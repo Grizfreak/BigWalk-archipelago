@@ -18,6 +18,13 @@
 
 **Piège rencontré** : le script `il2cpp.py` plante sur la phase *"Processing constructed generic methods"* (nom de namespace obfusqué invalide pour Ghidra). Sans importance pour nos besoins : la phase précédente (*"Processing method definitions"*, les méthodes non-génériques — l'essentiel du gameplay) se termine avec succès **avant** le crash, et les labels sont déjà appliqués à ce stade.
 
+**Mise à jour (2026-09-03)** — deux pièges supplémentaires rencontrés en rejouant ce workflow en PyGhidra **headless** (pas la console interactive) :
+1. Malgré la phrase ci-dessus, le projet `BW_metadata_ghidra/Big Walk` fourni n'avait **en fait jamais eu ses labels appliqués/persistés** (144k fonctions génériques `FUN_xxxxxxxx` constaté au début de cette session) — la note originale décrivait l'intention/un run antérieur non sauvegardé, pas l'état réel du projet sur disque.
+2. `analyzeHeadless.bat -postScript foo.py` échoue sur tout script marqué `# @runtime PyGhidra` (comme `il2cpp.py`) avec *"Ghidra was not started with PyGhidra. Python is not available"* — il faut passer par le package pip `pyghidra` (venv à `%APPDATA%\ghidra\ghidra_<version>\venv`, déjà installé sur cette machine) et sa fonction `pyghidra.run_script(...)`/exécution manuelle, pas `analyzeHeadless.bat` classique.
+3. Dans ce mode d'exécution "synthétique" (projet ouvert via `pyghidra.core._setup_project`/`_setup_script`, pas un vrai script lancé depuis le gestionnaire de scripts Ghidra), `getSourceFile()` retourne `None` — `il2cpp.py` plante silencieusement dans `get_script_directory()` (`AttributeError` sur `.getParentFile()`) en essayant de localiser `il2cpp.json` à côté de lui-même. **Aucune trace de cette erreur n'apparaît dans les logs** (le wrapper `PyGhidraScript.run()` avale l'exception et l'imprime via un `PrintWriter` Java qui ne semble jamais flush avant la fin du process) — seul un `exec()` Python direct avec capture d'exception native révèle le vrai traceback. Fix minimal : patcher `get_script_directory()` pour retourner le chemin en dur plutôt que de dépendre de `getSourceFile()`, sans toucher à la logique de labellisation elle-même.
+
+Une fois ces deux pièges contournés, l'import du header (92 Mo, 2,3M lignes) a pris **~99s**, et le run complet du script (jusqu'au crash attendu sur les méthodes génériques) **~136s** — largement plus rapide que redouté (on avait initialement estimé 30-60+ min et mis cette investigation de côté pour cette raison). Résultat : **96 933 fonctions nommées** (contre 98 avant, qui étaient juste les exports natifs du PE).
+
 ## Chaîne complète : de l'action du joueur à la sauvegarde disque
 
 ```
@@ -46,7 +53,39 @@ SaveData.entries : List<SaveEntry>            ← paires clé(string)/valeur(int
 
 **Lecture** (au chargement) : `SaveManager.GetIntValue(key)` → `SaveData.GetIntValue()` fait le même scan linéaire en sens inverse.
 
-**Non résolu** : le point exact où l'état est *relu* pour repositionner visuellement les `RewardGourd` au chargement d'une partie. `RewardGourd.OnSpawn(isInventory)` ne fait que forcer l'état à `Loose` si le gourd est un item d'inventaire flottant — ce n'est pas le point de restauration principal. Piste probable : le système `PropHome`/`Prop` doit itérer les homes savables au démarrage et déclencher `onPinServer`/`onChangeServer`, mais la fonction précise n'a pas été identifiée. **À creuser si besoin d'une restauration fidèle de l'état lors de la connexion à une session Archipelago.**
+**RÉSOLU (2026-09-03, décompilation Ghidra typée)** — le point exact où l'état est relu au chargement pour repositionner un `Prop`/`RewardGourd` : **`Prop.Start()`**. Unity appelle `Start()` une fois par instance quand son GameObject devient actif dans la scène chargée — c'est un mécanisme **par-prop**, pas un balayage global fait par un manager. Logique (côté serveur/host uniquement, `netIdentity.isServer` vérifié en premier) :
+
+```
+Prop.Start()
+  │  (uniquement si isServer == true)
+  ▼
+key = saveablePropName.ToString()  (ou savablePropGuid si canSaveHomeWithGuid)
+  ▼
+savedValue = SaveManager.GetIntValue(key, 0, false)
+  │
+  ├─ savedValue == 0 → home = startHome (position par défaut du prefab)
+  │
+  └─ savedValue != 0 → home = <PropHome trouvé en itérant le registre statique
+  │                              des PropHome, celui dont .saveableHomeName == savedValue>
+  ▼
+Prop.ServerSetPinned(home)        ← épingle réellement le prop à ce home
+  │  (dé-épingle l'ancien home s'il y en a un, met à jour NetworkpropHomeShellReference,
+  │   déclenche home.onPin / home.onPinServer / home.onChangeServer)
+  ▼
+Prop.LocallySetPinned(home, ...)  ← appelé en aval, réécrit SaveManager.SetIntValue(key, home.saveableHomeName)
+                                      (donc idempotent : re-pin un home déjà sauvegardé ré-écrit la même valeur)
+```
+
+`Prop.SavePropHome(propHome, isPinned)` (déjà documenté ci-dessus) est l'écriture "pure" : `SetIntValue(key, isPinned ? home.saveableHomeName : 0)`, appelée notamment depuis `Prop.SetSaveType` quand le type de sauvegarde change.
+
+**Conséquence directe pour la réception d'item Archipelago** (remplace la recommandation n°2 plus bas, désormais validée plutôt qu'hypothétique) :
+- **Cas zone déjà chargée** : appeler `SaveManager.SetIntValue(key, homeValue)` (persistance) **et** retrouver l'instance `Prop` vivante (via le registre `PropHome`/`GourdMap.GetFlag`) pour appeler `Prop.ServerSetPinned(propHome)` directement — ça réplique exactement ce que fait `Prop.Start()`, donc pas besoin de connaître d'API cachée.
+- **Cas zone PAS chargée** : il suffit d'écrire `SaveManager.SetIntValue(key, homeValue)` **et rien d'autre** — la prochaine fois que cette zone se charge, `Prop.Start()` du prop concerné lira cette valeur tout seul et s'auto-épinglera. **Pas besoin de garder de référence en mémoire, pas besoin de logique de "rattrapage au chargement de zone" côté mod** : le jeu le fait déjà nativement. Ça répond complètement à la préoccupation "on ne peut pas garder de référence après un quit".
+
+**Question de conception ouverte — où matérialiser un item reçu ?** (discussion du 2026-09-03, pas encore tranchée) : la communauté Archipelago semble s'accorder sur l'idée de faire apparaître l'item reçu **au hub des joueurs** plutôt qu'à son `PropHome` d'origine (celui lié au puzzle). Pistes à vérifier avant de trancher/implémenter :
+- Le comportement déjà observé "gourd porté en main → renvoyé à la base des joueurs à la déconnexion" (cf. section suivante) suggère qu'un système de hub/zone de dépôt existe déjà nativement dans le jeu — probablement plus approprié à réutiliser qu'à réinventer un point de spawn maison.
+- `SaveManager.SetInventory()` / `SaveData.inventory : List<string>` est une liste **séparée** du dictionnaire clé/valeur `SaveData.entries` — piste à vérifier : c'est peut-être le vrai mécanisme de "objet porté/en possession du joueur" (plutôt que `PropHome`), ce qui changerait l'approche pour matérialiser un item reçu.
+- Persistance tant que non-stashé : `Prop.Start()` relit `SaveManager` et repin le prop à **chaque** chargement (pas seulement au moment de l'octroi), donc tant que l'entrée de sauvegarde reste non-nulle — peu importe le home exact (hub, couffin, ou position finale) — l'item ne se perd jamais entre deux sessions, même si le joueur ne l'a pas "rangé" définitivement. Le détail précis de "où il atterrit exactement s'il n'est pas stashé" (logique de fallback à la déconnexion/rechargement) reste non identifié précisément en code — probablement une logique séparée de `Prop.Start()`, à creuser via Ghidra le jour où ce point de conception devra être tranché.
 
 **Mise à jour (session de test en jeu du 2026-09-03)** — comportement du "panier" de secours pour un gourd loose, confirmé par observation + explication utilisateur (pas de la rétro-ingénierie statique) :
 - Résoudre une énigme (peck qui libère le gourd de l'étau) déclenche `PeckEffectSavableHome.Peck()` sur le GameObject "vice launch switch" associé, qui appelle `Prop.SavePropHome` **directement**, sans passer par `RewardGourd.ServerSetGourdState`. Log Unity observé : `GourdViceLaunchSwitch (PeckEffectSavableHome) has saved prop gourdTellerWindow with new home valetTellerWindow`.
@@ -119,10 +158,9 @@ List<string> inventory           // items d'inventaire portés/transportables
 
 1. **Détection des checks** : hook Harmony **postfix** sur `SaveManager.SetIntValue(string key, int value)`, filtré sur les clés préfixées `gourd`/`bigKey` et `value != 0`. Un seul point d'interception générique au lieu de hooker 57+ instances individuelles de `RewardGourd`.
 
-2. **Envoi d'un item à distance** (débloquer un gourd envoyé par un autre joueur) : nécessite probablement un double appel —
-   - `SaveManager.SetIntValue(key, homeSlotId)` pour la persistance disque
-   - **et** `RewardGourd.ServerSetGourdState(GourdState.Stashed)` sur l'instance vivante correspondante pour que ça se reflète visuellement/en jeu immédiatement (sans ça, le changement ne sera visible qu'au prochain redémarrage/rechargement de zone)
-   - Alternative plus légère à explorer : invoquer directement l'event statique `GourdMap.refreshFlag` pour forcer un rafraîchissement visuel sans repasser par tout le pipeline réseau.
+2. **Envoi d'un item à distance** (débloquer un gourd envoyé par un autre joueur) — **validé** (voir la section "RÉSOLU" plus haut sur `Prop.Start()`), remplace l'hypothèse initiale de `ServerSetGourdState(Stashed)` :
+   - Zone chargée : `SaveManager.SetIntValue(key, homeValue)` + `Prop.ServerSetPinned(propHome)` sur l'instance vivante (trouvable via `GourdMap.GetFlag`/le registre `PropHome`) pour un effet immédiat.
+   - Zone non chargée : `SaveManager.SetIntValue(key, homeValue)` seul suffit — `Prop.Start()` de ce prop lira la valeur et s'auto-épinglera tout seul à son prochain chargement, aucun code de mod supplémentaire nécessaire.
 
 3. **Respect du modèle d'autorité host** : toute écriture doit se faire **côté host** (les méthodes `[Server]` le garantissent déjà — un hook côté client sur un client non-host serait ignoré ou risquerait une désync). Le mod Archipelago devra tourner côté host, ou transmettre ses ordres au host via un canal séparé si l'architecture du mod le sépare du process de jeu.
 

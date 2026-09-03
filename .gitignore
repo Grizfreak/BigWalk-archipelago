@@ -18,3 +18,4 @@ lib/*.dll
 # Seules les notes de repro écrites à la main sont gardées.
 BW_export/*
 !BW_export/big-walk-archipelago-notes.md
+BigWalk-ghidra-project.zip
