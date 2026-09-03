@@ -1,0 +1,20 @@
+# Build outputs
+[Bb]in/
+[Oo]bj/
+
+# DLL locales copiées depuis l'installation du jeu (voir lib/README.md) —
+# jamais commitées : elles dépendent de la machine et de la version du jeu.
+lib/*.dll
+!lib/README.md
+
+# IDE
+.vs/
+*.user
+
+# Dump complet Il2CppInspectorRedux (~1 Go : DLL du jeu extraites, JSON/header
+# de métadonnées, projet Ghidra binaire) — jamais commité : bien trop volumineux
+# pour git (au-delà de la limite GitHub sans LFS) et contient des binaires
+# extraits du jeu qui n'ont rien à faire dans un repo, même privé.
+# Seules les notes de repro écrites à la main sont gardées.
+BW_export/*
+!BW_export/big-walk-archipelago-notes.md

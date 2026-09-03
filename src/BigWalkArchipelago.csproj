@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Doit matcher le runtime .NET embarqué par BepInEx IL2CPP dans le jeu
+         (confirmé dans BepInEx/LogOutput.log : "Runtime information: .NET 6.0.7"). -->
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Désactivé : les DLL interop IL2CPP embarquent leur propre
+         System.Runtime.CompilerServices.NullableAttribute incomplet, ce qui
+         fait échouer la compilation (CS0656) dès que Nullable est actif et
+         qu'une de ces DLL est référencée. -->
+    <Nullable>disable</Nullable>
+    <AssemblyName>BigWalkArchipelago</AssemblyName>
+    <RootNamespace>BigWalkArchipelago</RootNamespace>
+
+    <!-- Les DLL référencées ci-dessous existent déjà dans BepInEx/ et
+         BepInEx/interop/ au runtime : ne jamais les copier dans notre sortie. -->
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <EnableDefaultItems>true</EnableDefaultItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- BepInEx core (IL2CPP) + Harmony — copiées depuis <jeu>/BepInEx/core/
+         (voir lib/README.md pour la provenance exacte de chaque DLL). -->
+    <Reference Include="BepInEx.Core">
+      <HintPath>..\lib\BepInEx.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="BepInEx.Unity.IL2CPP">
+      <HintPath>..\lib\BepInEx.Unity.IL2CPP.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>..\lib\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+
+    <!-- Interop du jeu (générée par Il2CppInterop, PAS le dummy Il2CppInspector) -->
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\lib\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Mirror">
+      <HintPath>..\lib\Mirror.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\lib\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2Cppmscorlib">
+      <HintPath>..\lib\Il2Cppmscorlib.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2CppInterop.Runtime">
+      <HintPath>..\lib\Il2CppInterop.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
