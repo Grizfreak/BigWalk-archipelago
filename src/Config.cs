@@ -14,6 +14,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<bool> DebugModeEnabled;
         internal static ConfigEntry<KeyboardShortcut> ToggleFlightKey;
         internal static ConfigEntry<KeyboardShortcut> UnlockNextKey;
+        internal static ConfigEntry<KeyboardShortcut> SimulateReceivedItemKey;
 
         internal static void Bind(ConfigFile file)
         {
@@ -34,6 +35,12 @@ namespace BigWalkArchipelago
                 "UnlockNextKey",
                 new KeyboardShortcut(KeyCode.F3),
                 "Débloque de force le prochain gourd/big key verrouillé de la zone actuelle, sans résoudre l'énigme (n'a d'effet que si Debug.Enabled est actif).");
+
+            SimulateReceivedItemKey = file.Bind(
+                "Debug",
+                "SimulateReceivedItemKey",
+                new KeyboardShortcut(KeyCode.F4),
+                "Simule la réception à distance d'un item Archipelago pour le prochain gourd/big key verrouillé de la zone actuelle (n'a d'effet que si Debug.Enabled est actif).");
         }
     }
 }

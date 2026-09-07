@@ -13,9 +13,10 @@ namespace BigWalkArchipelago.Patches
     // par RewardGourd. Ce patch capte génériquement toute écriture, au prix de
     // ne pas savoir quel état exact du gourd l'a déclenchée.
     //
-    // CheckTracker.TryMarkReported garantit qu'un même gourd déjà signalé par
-    // GourdStatePatch (les deux chemins convergent souvent sur le même appel)
-    // n'est jamais reporté deux fois.
+    // CheckTracker.TryMarkReported (persisté, cf. Core/CheckTracker.cs)
+    // garantit qu'un même gourd déjà signalé — par ce patch, par
+    // GourdStatePatch, ou lors d'une session précédente — n'est jamais
+    // reporté deux fois.
     [HarmonyPatch(typeof(SaveManager), nameof(SaveManager.SetIntValue))]
     internal static class SaveValuePatch
     {

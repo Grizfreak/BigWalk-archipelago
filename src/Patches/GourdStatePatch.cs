@@ -30,6 +30,18 @@ namespace BigWalkArchipelago.Patches
     // les gourds du registre : les gourds de test (hors registre) gardent
     // leur comportement vanilla.
     //
+    // Confirmé en test le 2026-09-07 : ServerSetGourdState(Loose) est aussi
+    // rappelé pour de vrai (pas juste Prop.Start()) au chargement d'une zone
+    // pour un gourd déjà résolu lors d'une session précédente — une
+    // restauration légitime, pas une re-résolution par le joueur. D'où
+    // l'importance que CheckTracker.TryMarkReported soit persistant (cf.
+    // Core/CheckTracker.cs) : sans ça, ce rappel redéclencherait le check à
+    // chaque redémarrage du jeu. Le reste du postfix (Hidden/UnSpawn/
+    // SetActive) doit lui continuer à s'exécuter à chaque fois : chaque
+    // session recrée une instance fraîche du GameObject, donc le re-masquage
+    // est nécessaire à chaque fois, seul le *report* du check doit être
+    // dédoublonné.
+    //
     // Testé en jeu le 2026-09-03 : Hidden seul ne fait que rafraîchir l'icône
     // sur la carte (confirmé — GourdMap.refreshFlag, cf. notes.md), le modèle
     // 3D reste visible et ramassable. Un simple GameObject.SetActive(false)

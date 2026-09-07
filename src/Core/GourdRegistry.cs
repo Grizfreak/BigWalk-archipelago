@@ -18,6 +18,22 @@ namespace BigWalkArchipelago.Core
             return LocationIdsByProp.TryGetValue(propName, out locationId);
         }
 
+        // Convention de nommage confirmée en jeu (cf. big-walk-archipelago-notes.md) :
+        // gourdXxx (SaveablePropName, le prop-récompense) correspond 1:1 à
+        // valetXxx (SaveableHomeName, son emplacement de rangement/couffin).
+        // Centralisé ici (plutôt que dupliqué dans chaque appelant) car utilisé
+        // à la fois par le debug (DebugGourdUnlocker) et par la matérialisation
+        // d'un item reçu (ItemApplier).
+        internal static bool TryGetHomeName(SaveablePropName propName, out SaveableHomeName homeName)
+        {
+            var name = propName.ToString();
+            if (name.StartsWith("gourd", StringComparison.Ordinal))
+                return Enum.TryParse("valet" + name.Substring("gourd".Length), out homeName);
+
+            homeName = default;
+            return false;
+        }
+
         private static Dictionary<SaveablePropName, string> BuildLocationIds()
         {
             var map = new Dictionary<SaveablePropName, string>();

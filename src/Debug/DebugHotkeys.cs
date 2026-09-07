@@ -20,6 +20,9 @@ namespace BigWalkArchipelago.Debug
 
             if (ModConfig.UnlockNextKey.Value.IsDown())
                 DebugGourdUnlocker.UnlockNext();
+
+            if (ModConfig.SimulateReceivedItemKey.Value.IsDown())
+                DebugItemSimulator.SimulateReceiveNext();
         }
     }
 }
