@@ -9,9 +9,11 @@ namespace BigWalkArchipelago.Debug
     {
         private static bool _active;
 
+        internal static bool IsActive => _active;
+
         internal static void Toggle()
         {
-            var localPlayer = FindLocalPlayer();
+            var localPlayer = DebugPlayerLookup.FindLocalPlayer();
             if (localPlayer == null)
             {
                 Plugin.Log.LogWarning($"[{nameof(DebugFlightTool)}] Aucun joueur local trouvé.");
@@ -39,21 +41,6 @@ namespace BigWalkArchipelago.Debug
                 cameraCheatMover.Attach();
 
             Plugin.Log.LogInfo($"[{nameof(DebugFlightTool)}] Caméra libre {(_active ? "activée" : "désactivée")}.");
-        }
-
-        private static PlayerCharacter FindLocalPlayer()
-        {
-            var all = PlayerCharacter.allPlayerCharacters;
-            if (all == null)
-                return null;
-
-            foreach (var pc in all)
-            {
-                if (pc != null && pc.isLocalPlayer)
-                    return pc;
-            }
-
-            return null;
         }
     }
 }

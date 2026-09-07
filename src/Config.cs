@@ -13,6 +13,7 @@ namespace BigWalkArchipelago
     {
         internal static ConfigEntry<bool> DebugModeEnabled;
         internal static ConfigEntry<KeyboardShortcut> ToggleFlightKey;
+        internal static ConfigEntry<KeyboardShortcut> UnlockNextKey;
 
         internal static void Bind(ConfigFile file)
         {
@@ -27,6 +28,12 @@ namespace BigWalkArchipelago
                 "ToggleFlightKey",
                 new KeyboardShortcut(KeyCode.F2),
                 "Touche pour activer/désactiver la caméra libre (n'a d'effet que si Debug.Enabled est actif).");
+
+            UnlockNextKey = file.Bind(
+                "Debug",
+                "UnlockNextKey",
+                new KeyboardShortcut(KeyCode.F3),
+                "Débloque de force le prochain gourd/big key verrouillé de la zone actuelle, sans résoudre l'énigme (n'a d'effet que si Debug.Enabled est actif).");
         }
     }
 }

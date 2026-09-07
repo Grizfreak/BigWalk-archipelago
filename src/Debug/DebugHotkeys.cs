@@ -17,6 +17,9 @@ namespace BigWalkArchipelago.Debug
         {
             if (ModConfig.ToggleFlightKey.Value.IsDown())
                 DebugFlightTool.Toggle();
+
+            if (ModConfig.UnlockNextKey.Value.IsDown())
+                DebugGourdUnlocker.UnlockNext();
         }
     }
 }

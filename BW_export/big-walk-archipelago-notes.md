@@ -53,6 +53,12 @@ SaveData.entries : List<SaveEntry>            ← paires clé(string)/valeur(int
 
 **Lecture** (au chargement) : `SaveManager.GetIntValue(key)` → `SaveData.GetIntValue()` fait le même scan linéaire en sens inverse.
 
+**Correction (2026-09-07, décompilation typée de `RewardGourd.ServerSetGourdState` lui-même — jamais vérifié avant, le schéma ci-dessus datait d'une hypothèse de la toute première session)** :
+- `ServerSetGourdState` n'agit **pas** sur `this.prop`, mais itère `propsToMakeSavable` (un `PropBlock[]`, chaque `PropBlock` contenant ses propres `Prop[]`) et appelle `Prop.SetSaveType(Always)` sur chacun si `newGourdState` est `Loose` ou `Stashed`.
+- `Prop.SetSaveType(Always)` n'appelle `Prop.SavePropHome` (donc `SaveManager.SetIntValue`) **que si le prop est déjà épinglé à un `PropHome` valide** (`propHomeShellReference` résolu). Juste sorti de l'étau, un prop n'est pinné nulle part — donc `ServerSetGourdState(Loose)` seul, **sans action complémentaire, n'écrit rien dans la sauvegarde**.
+- Ça confirme et explique le "3ᵉ chemin d'écriture" trouvé le 2026-09-03 : c'est `PeckEffectSavableHome.Peck()` (le "vice launch switch") qui fait le vrai travail en appelant `Prop.ServerSetPinned(panierDeRepli)` juste après la résolution — `ServerSetGourdState` seul seul ne suffit jamais à persister, dans le jeu normal comme dans un appel forcé.
+- **Conséquence pour le mod** : `Plugin.DebugGourdUnlocker` (déblocage de debug, F3) appelait initialement juste `ServerSetGourdState(Loose)` — ça déclenchait bien le check (via `GourdStatePatch`) mais ne survivait pas à un rechargement (confirmé en jeu : le gourd réapparaissait dans son étau). Fix : appeler aussi `Prop.ServerSetPinned(prop.startHome)` juste après, pour simuler l'épinglage que fait `PeckEffectSavableHome` en vrai.
+
 **RÉSOLU (2026-09-03, décompilation Ghidra typée)** — le point exact où l'état est relu au chargement pour repositionner un `Prop`/`RewardGourd` : **`Prop.Start()`**. Unity appelle `Start()` une fois par instance quand son GameObject devient actif dans la scène chargée — c'est un mécanisme **par-prop**, pas un balayage global fait par un manager. Logique (côté serveur/host uniquement, `netIdentity.isServer` vérifié en premier) :
 
 ```
