@@ -19,3 +19,4 @@ lib/*.dll
 BW_export/*
 !BW_export/big-walk-archipelago-notes.md
 BigWalk-ghidra-project.zip
+gh-pj/*

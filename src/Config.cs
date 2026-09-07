@@ -15,6 +15,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> ToggleFlightKey;
         internal static ConfigEntry<KeyboardShortcut> UnlockNextKey;
         internal static ConfigEntry<KeyboardShortcut> SimulateReceivedItemKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpNearbyKey;
 
         internal static void Bind(ConfigFile file)
         {
@@ -41,6 +42,12 @@ namespace BigWalkArchipelago
                 "SimulateReceivedItemKey",
                 new KeyboardShortcut(KeyCode.F4),
                 "Simule la réception à distance d'un item Archipelago pour le prochain gourd/big key verrouillé de la zone actuelle (n'a d'effet que si Debug.Enabled est actif).");
+
+            DumpNearbyKey = file.Bind(
+                "Debug",
+                "DumpNearbyKey",
+                new KeyboardShortcut(KeyCode.F5),
+                "Logue les RewardGourd les plus proches du joueur (nom + état + distance), quel que soit leur état — diagnostic pour voir ce qui est réellement présent autour de soi (n'a d'effet que si Debug.Enabled est actif).");
         }
     }
 }

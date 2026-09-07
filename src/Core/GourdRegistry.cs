@@ -13,6 +13,23 @@ namespace BigWalkArchipelago.Core
     {
         private static readonly Dictionary<SaveablePropName, string> LocationIdsByProp = BuildLocationIds();
 
+        // Contrairement à gourdXxx/valetXxx, les big keys sont nommées par
+        // zone d'origine (couleur) alors que leurs plinthes sont nommées par
+        // lieu physique de dépôt : aucune correspondance dérivable par nom.
+        // Confirmé par le joueur en jeu (session du 2026-09-07, cf.
+        // big-walk-archipelago-notes.md) — pas décompilable via Ghidra, ce
+        // câblage n'existe que dans les assets de scène Unity.
+        private static readonly Dictionary<SaveablePropName, SaveableHomeName> BigKeyHomesByProp = new()
+        {
+            { SaveablePropName.bigKeyIntro, SaveableHomeName.bigKeyPlinthIntro },
+            { SaveablePropName.bigKeyRedZone, SaveableHomeName.bigKeyPlinthMapRoom },
+            { SaveablePropName.bigKeyGreenZone, SaveableHomeName.bigKeyPlinthSkiLift },
+            { SaveablePropName.bigKeyBlueZone, SaveableHomeName.bigKeyPlinthTrain },
+            { SaveablePropName.bigKeyYellowZone, SaveableHomeName.bigKeyPlinthTunnels },
+            { SaveablePropName.bigKeyBoss, SaveableHomeName.bigKeyPlinthEnding },
+            { SaveablePropName.bigKeyOverflow, SaveableHomeName.bigKeyPlinthGoodbye2 },
+        };
+
         internal static bool TryGetLocationId(SaveablePropName propName, out string locationId)
         {
             return LocationIdsByProp.TryGetValue(propName, out locationId);
@@ -26,6 +43,9 @@ namespace BigWalkArchipelago.Core
         // d'un item reçu (ItemApplier).
         internal static bool TryGetHomeName(SaveablePropName propName, out SaveableHomeName homeName)
         {
+            if (BigKeyHomesByProp.TryGetValue(propName, out homeName))
+                return true;
+
             var name = propName.ToString();
             if (name.StartsWith("gourd", StringComparison.Ordinal))
                 return Enum.TryParse("valet" + name.Substring("gourd".Length), out homeName);

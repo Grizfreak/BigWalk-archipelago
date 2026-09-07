@@ -23,6 +23,9 @@ namespace BigWalkArchipelago.Debug
 
             if (ModConfig.SimulateReceivedItemKey.Value.IsDown())
                 DebugItemSimulator.SimulateReceiveNext();
+
+            if (ModConfig.DumpNearbyKey.Value.IsDown())
+                DebugGourdLookup.LogNearby(50);
         }
     }
 }
