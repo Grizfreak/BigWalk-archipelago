@@ -64,6 +64,37 @@ namespace BigWalkArchipelago.Debug
             }
         }
 
+        // Diagnostic pur : liste les PropHome réellement enregistrés en scène
+        // (pas la liste brute de l'enum SaveableHomeName, qui peut contenir
+        // des valeurs de réserve/inutilisées — cf. gourdTesting/bigKeyTesting)
+        // dont le nom contient "monoument". Utile pour vérifier en jeu le
+        // vrai nombre de slots par monument (le joueur se souvient de 4 pour
+        // le tuto et 5 pour les tours, ce qui ne correspond pas au nombre brut
+        // trouvé dans l'enum — à confirmer avec les PropHome vraiment actifs).
+        internal static void LogMonumentHomes()
+        {
+            var all = PropHome.allPropHomes;
+            if (all == null || all.Count == 0)
+            {
+                Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}] Aucun PropHome trouvé dans la zone actuelle.");
+                return;
+            }
+
+            var matches = new List<PropHome>();
+            foreach (var home in all)
+            {
+                if (home != null && home.saveableHomeName.ToString().Contains("monoument", StringComparison.OrdinalIgnoreCase))
+                    matches.Add(home);
+            }
+
+            Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}] {all.Count} PropHome au total dans la zone, {matches.Count} contenant 'monoument' :");
+            foreach (var home in matches)
+            {
+                var pinnedLabel = home.pinnedProp != null ? home.pinnedProp.saveablePropName.ToString() : "<vide>";
+                Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}]   {home.saveableHomeName} — pinnedProp={pinnedLabel}");
+            }
+        }
+
         // Lookup générique successeur de FindNearestLocked : couvre gourds ET
         // big keys en se basant sur le signal canonique "pas encore écrit dans
         // SaveManager" (le même que ItemApplier/CheckTracker utilisent déjà)

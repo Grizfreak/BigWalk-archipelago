@@ -37,13 +37,67 @@ namespace BigWalkArchipelago.Core
             // pas distinguer cette réécriture différée d'une vraie résolution —
             // reportait alors un check fantôme. Marquer ici couvre les deux cas
             // (l'écriture immédiate ci-dessous ET celle, différée, de Prop.Start()).
-            if (GourdRegistry.TryGetLocationId(propName, out var locationId))
-                CheckTracker.TryMarkReported(locationId);
+            //
+            // Corrigé le 2026-09-07 (repéré en test, cf. discussion notes.md
+            // "logique locations/items à repenser") : TryMarkReported ne
+            // suffit pas seul, il faut aussi reporter le check. Avant ce fix,
+            // un item reçu AVANT toute résolution locale de cette location ne
+            // reportait jamais le check nulle part (ItemApplier marquait
+            // silencieusement sans appeler Plugin.Reporter.ReportCheck) — la
+            // location restait ensuite bloquée pour toujours (CheckTracker
+            // empêche tout report futur), donc son propre item randomisé
+            // n'était jamais envoyé à qui l'attend dans le multiworld. Même
+            // pattern que GourdStatePatch/SaveValuePatch : premier arrivé
+            // (résolution réelle OU item reçu) reporte le check une fois, peu
+            // importe lequel des deux c'est.
+            if (GourdRegistry.TryGetLocationId(propName, out var locationId)
+                && CheckTracker.TryMarkReported(locationId))
+                Plugin.Reporter.ReportCheck(locationId);
 
             SaveManager.SetIntValue(propName.ToString(), (int)homeName);
 
+            TryApplyLiveEffect(propName, homeName);
+
             Plugin.Log.LogInfo($"[{nameof(ItemApplier)}] Item appliqué : {propName} -> {homeName}.");
             return true;
+        }
+
+        // Effet instantané, en plus de l'écriture SaveManager ci-dessus —
+        // UNIQUEMENT pour les props sans composant RewardGourd (big keys,
+        // cf. big-walk-archipelago-notes.md, découvert en session de test le
+        // 2026-09-07). Les deux raisons qui interdisent le pin live pour un
+        // gourd ne s'appliquent pas à ces props : pas de GourdState/icône
+        // carte à désynchroniser (il n'y en a pas), et pas de puzzle local à
+        // garder solvable (le "check" d'une big key est le peck vers sa
+        // plinthe, pas une résolution répétable). Ne fait rien si la zone
+        // n'est pas chargée (prop introuvable) ou si un RewardGourd est
+        // présent : Prop.Start() prendra alors le relais au prochain
+        // chargement, exactement comme avant pour tous les cas.
+        private static void TryApplyLiveEffect(SaveablePropName propName, SaveableHomeName homeName)
+        {
+            Prop targetProp = null;
+            foreach (var prop in Prop.allProps)
+            {
+                if (prop != null && prop.saveablePropName == propName)
+                {
+                    targetProp = prop;
+                    break;
+                }
+            }
+
+            if (targetProp == null)
+                return;
+
+            if (targetProp.GetComponent<RewardGourd>() != null)
+                return;
+
+            var propHome = PropHome.GetSaveableHome(homeName);
+            if (propHome == null)
+                return;
+
+            targetProp.ServerSetPinned(propHome);
+            Plugin.Log.LogInfo(
+                $"[{nameof(ItemApplier)}] Effet immédiat appliqué (pas de RewardGourd) : {propName} pinné en direct sur {homeName}.");
         }
     }
 }

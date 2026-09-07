@@ -268,7 +268,107 @@ Cycle complet testé en jeu pour `bigKeyIntro` (après le fix `DebugGourdLookup.
 
 Conclusion : le design "écriture `SaveManager` pure" fonctionne à l'identique pour les gourds et les big keys, aucune divergence de comportement — la seule vraie différence entre les deux était l'absence de composant `RewardGourd` sur les big keys (déjà documentée ci-dessus), qui n'affecte que les outils de debug/detection, pas le mécanisme de réception d'item lui-même.
 
-Pas encore testé : une clé de couleur (Red/Green/Blue/Yellow/Boss/Overflow) pour valider le reste de la table `GourdRegistry.BigKeyHomesByProp` (seule `bigKeyIntro→bigKeyPlinthIntro` a été vérifiée en jeu jusqu'ici — c'était aussi la seule paire évidente par le nom, donc pas une preuve pour les 6 autres) ; et non-régression d'un vrai check gourd résolu normalement (hors item reçu) après le fix `FindNearestUncollectedProp`.
+Une clé de couleur a été testée juste après (en combinaison avec l'effet instantané ci-dessous) et le joueur a confirmé que ça fonctionnait ("ça a fonctionné") — mais sans capture de log précisant laquelle ni la paire exacte obtenue, donc **pas une confirmation formelle** au même niveau que `bigKeyIntro`. À reconfirmer avec un log explicite à l'occasion. Non-régression d'un vrai check gourd résolu normalement (hors item reçu) après le fix `FindNearestUncollectedProp` : toujours pas testée.
+
+**Effet instantané pour les props sans `RewardGourd` (2026-09-07)** — suite à un test en jeu où le pont associé à `bigKeyIntro` ne s'ouvrait pas tant que la zone n'était pas rechargée (comportement "compromis assumé" ci-dessus), question posée : pour un gourd, ne jamais pinner en direct se justifie par deux raisons (désync `GourdState`/icône carte, préserver le puzzle local rejouable) — aucune des deux ne s'applique à une big key (pas de `GourdState` du tout, pas de puzzle répétable, cf. découverte ci-dessus). `ItemApplier.TryApplyLiveEffect` appelle donc `Prop.ServerSetPinned` en direct, mais **uniquement si le prop ciblé n'a pas de composant `RewardGourd`** ET que la zone est déjà chargée (sinon, comportement inchangé : `Prop.Start()` prendra le relais au prochain chargement). Validé en jeu : le pont s'ouvre immédiatement, sans reload, pour une big key.
+
+## Point ouvert — la logique location/item mérite d'être repensée (2026-09-07)
+
+En testant l'effet instantané ci-dessus, question soulevée par le joueur : est-ce que le fait d'appliquer un item annule la possibilité d'utiliser la même entrée comme location Archipelago ? Réponse creusée pendant la session, et le problème s'est avéré plus profond qu'anticipé — noté ici tel quel, **pas résolu**, juste documenté pour y revenir avec plus de recul.
+
+**Le vrai bug trouvé (corrigé)** : `ItemApplier` marquait la location comme "déjà reportée" dans `CheckTracker` **sans jamais appeler `Plugin.Reporter.ReportCheck`**. Donc si l'item d'une location arrivait par Archipelago avant que le joueur ait lui-même résolu cette location en jeu, le check n'était **jamais reporté nulle part** — ni immédiatement, ni plus tard (`CheckTracker` bloque tout report futur pour cette clé). Concrètement : l'item randomisé qui *devrait* partir de cette location vers qui l'attend dans le multiworld ne partait jamais. Fix appliqué : `ItemApplier` appelle maintenant `Plugin.Reporter.ReportCheck` lui-même si c'est lui qui marque la location en premier (même pattern que `GourdStatePatch`/`SaveValuePatch` : premier arrivé — résolution réelle ou item reçu — reporte le check une fois).
+
+**La question de fond, non résolue** : `GourdRegistry` utilise aujourd'hui **le même identifiant** (`propName.ToString()`, ex. `"bigKeyRedZone"`) à la fois comme id de **location** (ce que le joueur accomplit dans son propre monde) et comme id d'**item** (ce que `ItemApplier` matérialise quand il est reçu). En vrai Archipelago multiworld, ce sont deux espaces indépendants : la location "bigKeyRedZone" de ce joueur pourrait contenir n'importe quel item du multiworld (pas forcément "bigKeyRedZone"), et l'item "bigKeyRedZone" reçu par ce joueur peut venir de n'importe quelle location, chez n'importe qui. Les fusionner comme c'est fait actuellement n'est correct que si le monde Archipelago pour Big Walk est conçu comme un "shuffle sur place" (chaque slot nommé est à la fois sa propre location et son propre item, seul le lien entre les deux est mélangé) plutôt qu'un vrai multiworld à espaces items/locations découplés.
+
+**Pourquoi ce n'est pas juste un choix arbitraire à trancher facilement** : contrainte physique du jeu, déjà bien documentée plus haut — un seul `PropHome`/slot de sauvegarde par `SaveablePropName`, réutilisé à la fois pour détecter la résolution locale ET pour matérialiser un item reçu (aucun mécanisme générique d'inventaire trouvé qui déclenche la vraie logique de déblocage du jeu, cf. section "Design retenu"/pistes écartées). Résultat : une fois un item matérialisé, l'objet physique est consommé (étau vide / clé déjà posée) — le joueur ne peut de toute façon plus jamais "vraiment" résoudre cette location lui-même après coup. Donc découpler complètement location et item (au sens d'un vrai multiworld) demanderait de retrouver un mécanisme de matérialisation qui ne consomme pas le même slot que la détection de check — et cette piste a déjà été explorée et abandonnée (voir "Pistes explorées et écartées" plus haut).
+
+**À rouvrir plus tard** : est-ce que le modèle "chaque slot nommé = sa propre location ET son propre item, seul le lien est randomisé" est acceptable pour ce monde Archipelago, ou faut-il absolument un vrai découplage ? Ça dépend surtout de comment le monde Python (pas encore écrit) définira les locations/items — pas uniquement une question côté mod.
+
+## Régions, tours et modèle locations/items — investigation du 2026-09-07
+
+Suite de la discussion "point ouvert" ci-dessus, déclenchée par la même question. Résumé de tout ce qui a été découvert/discuté ensuite, classé par sujet — rien de tout ça n'est implémenté côté mod pour l'instant (uniquement les checks puzzle et clé existants), c'est de la préparation pour la conception du monde Python.
+
+### Nouveaux outils de debug
+
+Deux hotkeys ajoutées dans `Debug/DebugGourdLookup.cs` (actives seulement si `Debug.Enabled`) :
+- **F5** (`DumpNearbyKey`) : logue les `Prop` savables les plus proches du joueur (nom, `gourdState` si un `RewardGourd` existe, `déjà sauvegardé`, actif/inactif, distance). Basé sur `Prop.allProps`, pas `RewardGourd`, pour ne rien manquer (cf. découverte big keys plus haut).
+- **F6** (`DumpMonumentHomesKey`) : logue tous les `PropHome` réellement enregistrés (`PropHome.allPropHomes`) dont le nom contient "monoument", avec leur état de remplissage (`pinnedProp`).
+
+### Bug trouvé : incohérence de nommage gourd/valet (non corrigé)
+
+En comparant un par un les 58 `gourdXxx` (`SaveablePropName`) et les 58 `valetXxx` (`SaveableHomeName`), 3 paires ont une orthographe **incohérente entre les deux enums** — une faute de frappe du jeu lui-même, pas du mod :
+
+| `SaveablePropName` | `valet` attendu par substitution naïve | `SaveableHomeName` réel |
+|---|---|---|
+| `gourdCenturonSong` | `valetCenturonSong` | `valetCenturionSong` |
+| `gourdSingerAndSelecter` | `valetSingerAndSelecter` | `valetSingerAndSelector` |
+| `gourdDancerAndSelecter` | `valetDancerAndSelecter` | `valetDancerAndSelector` |
+
+`GourdRegistry.TryGetHomeName` fait `"valet" + name.Substring("gourd".Length)` puis `Enum.TryParse` — échoue silencieusement pour ces 3 gourds précis (`TryParse` renvoie `false` puisque le nom généré n'existe pas), donc `ItemApplier.ApplyGourdItem` retourne `false`/item ignoré pour eux uniquement. **Pas encore corrigé.** Fix évident pour la prochaine session : ajouter ces 3 paires comme exceptions explicites dans `GourdRegistry` (même principe que `BigKeyHomesByProp`).
+
+### Liste complète des 58 valets (`SaveableHomeName`)
+
+```
+valetCabinFever, valetHighButton, valetFielding, valetCannonBall, valetInvisibleInk,
+valetTrapRoom, valetMediumSimPress, valetEasySimPress, valetRingRoom, valetBunker,
+valetHighPegBoard, valetFirstPegBoard, valetObby, valetCarousel, valetCoordinates,
+valetTelescopeToBox, valetObservationRoom, valetWindowLabyrinth, valetMagiciansTrick,
+valetButtonBoothChallenge, valetBasketball, valetConcert, valetIndoorSemaphore,
+valetOpticalTelegraph, valetPoetAndPreist, valetTileSoup, valetMemoryBombs,
+valetPanopticon, valetMaypole, valetBlindfoldCircus, valetMessengerRun, valetHotPotato,
+valetTileThief, valetCharadesRooms, valetMicrophoneArray, valetPointersParadise,
+valetCoordinatesHolding, valetEggHunt, valetTellerWindow, valetSignalFlags,
+valetCabinFeverLong, valetBreadcrumbLoop, valetScoutBombs, valetScoutTiles,
+valetScoutCounting, valetCenturionSong, valetMusicalHoliday, valetKickUpPits,
+valetSingerAndSelector, valetDancerAndSelector, valetSpeedObby, valetBlindfoldCatwalk,
+valetBlindfoldFishtrap, valetPerspectiveCounting, valetCenturionSeance, valetFlareRun,
+valetCannonballCommute, valetPoetAndPontiff
+```
+
+### Étau vs valet vs monument — clarification du cycle de vie d'un gourd
+
+Point de confusion levé cette session (une hypothèse formulée en cours de discussion — "le pin à un valet nécessite deux joueurs" — était fausse, corrigée en recroisant avec les notes du 2026-09-03) :
+
+1. **Étau** : le mécanisme qui bloque le gourd tant que le puzzle n'est pas résolu. Pas de `SaveableHomeName` dédié — c'est `Prop.startHome`, la position par défaut du prefab (`SaveManager` = 0/absent tant qu'on est dedans).
+2. **Valet** (`valetXxx`) : confirmé par le log du 2026-09-03 (`PeckEffectSavableHome.Peck()` → "has saved prop gourdTellerWindow with new home valetTellerWindow") — un point de repli écrit **automatiquement, au moment même où le puzzle est résolu** (même action que la transition `Loose`, pas une étape séparée). Sert de filet de sécurité si personne ne récupère le gourd avant un reload. **Ce n'est pas l'étape à deux joueurs.**
+3. **Monument** (`monoumentXSlotY`) : hypothèse — non vérifiée directement en jeu comme pour `valetTellerWindow`, mais cohérente avec les noms d'enum et le commentaire déjà présent dans `GourdStatePatch.cs` ("stasher un gourd nécessite deux joueurs, l'un ouvre le slot, l'autre y dépose le gourd") — le vrai emplacement final/trophée visé par `GourdState.Stashed`, un pedestal partagé à plusieurs emplacements génériques (pas liés à un gourd précis), d'où le besoin de coordination à deux joueurs.
+
+Conséquence pour la conception des régions/tours : si `valetXxx` s'écrit automatiquement à chaque résolution de puzzle, un `PropHomeBlock` qui regroupe des `valetXxx` spécifiques se remplirait **simplement en résolvant les bons puzzles**, sans dépendre de l'étape de stash aux monuments (qui serait une progression séparée, genre salle des trophées, pas un pré-requis pour débloquer une tour).
+
+### Monuments réels vs enum déclaré (F6, 2026-09-07)
+
+Vérification en jeu via F6 : le nombre réel de `PropHome` "monoument" enregistrés est **inférieur** au nombre déclaré dans l'enum `SaveableHomeName` pour toutes les catégories — confirmé par le joueur qui se souvenait de "4 pour le tuto, 5 pour les tours" :
+
+| Monument | Slots déclarés (enum) | Slots réels (`PropHome.allPropHomes`) |
+|---|---|---|
+| `monoumentIntro` | 0–7 (8) | **0–3 (4)** |
+| `monoument0` | 0–8 (9) | **0–4 (5)** |
+| `monoument1` | 0–8 (9) | **0–4 (5)** |
+| `monoument2` | 0–8 (9) | **0–4 (5)** |
+| `monoument3` | 0–8 (9) | **0–4 (5)** |
+| `monoumentFinal` | 0–8 (9) | **0–5 (6)** |
+| `monoumentOverflow` | 0–17 (18) | **0–14 (15)** |
+
+**Leçon générale** (dépasse le cas des monuments) : les enums `SaveableHomeName`/`SaveablePropName` contiennent des valeurs de réserve jamais construites en scène, au-delà des entrées explicitement "Testing" déjà exclues par `GourdRegistry`. Ne jamais déduire une quantité réelle depuis le nombre brut de valeurs d'un enum — seul ce qui est effectivement enregistré en scène (`PropHome.allPropHomes`, `Prop.allProps`, ou `RewardGourd` trouvés via `FindObjectsByType`) fait foi.
+
+**Hypothèse structurelle** (non vérifiée, mais suggestive) : 7 catégories de monuments (`0, 1, 2, 3, Final, Intro, Overflow`) pour 7 catégories de big keys (`RedZone, GreenZone, BlueZone, YellowZone, Boss, Intro, Overflow`) — `monoumentIntro`↔`bigKeyIntro` et `monoumentOverflow`↔`bigKeyOverflow` matchent déjà par le nom ; `monoumentFinal` correspondrait à `bigKeyBoss` ; `monoument0/1/2/3` aux 4 zones colorées, dans un ordre encore à déterminer.
+
+### Retour communauté (message tiers via Discord, non vérifié en jeu)
+
+Quelqu'un ayant apparemment déjà travaillé sur un monde Archipelago pour Big Walk (framework "Manual") a partagé son approche :
+- N'a pas fait de l'item qui bloque la sortie du tutoriel (probablement `bigKeyIntro`) un item AP randomisé — combiné à une randomisation des portes, la logique deviendrait inexprimable dans Manual ("just doesn't work in a manual"). Point à garder en tête si on randomise un jour les portes.
+- Pour débloquer les tours : assignation de **régions** aux gourds — certains gourds spécifiques doivent être amenés à la tour bleue, d'autres à la rouge, etc., plutôt qu'un compteur générique "24 gourds au choix parmi tous". Confirme/précise l'hypothèse `PropHomeBlock` (groupe fixe de homes par tour, pas un total générique) trouvée via Ghidra plus haut.
+- Suggestion cosmétique : recolorer les gourds AP-shufflés façon "purple gourds" (variante déjà existante dans le jeu) pour les distinguer visuellement des gourds vanilla.
+
+### Point ouvert — granularité des locations (puzzles / pins / clés)
+
+Question posée en cours de session : les locations Archipelago pourraient-elles être (a) les puzzles, (b) les pins de gourds aux valets, et (c) les emplacements de clés, comme trois catégories séparées ?
+- (a) et (c) sont déjà ce qu'on détecte aujourd'hui (`Loose` pour les gourds via `GourdStatePatch`, peck-vers-plinthe pour les clés faute d'alternative puisqu'elles n'ont pas de `RewardGourd`/`GourdState`).
+- (b) est en fait **redondant avec (a)** une fois la clarification étau/valet/monument ci-dessus prise en compte : le valet s'écrit automatiquement au moment de la résolution, donc (a) et (b) se complètent toujours au même instant — pas une vraie distinction temporelle, contrairement à ce qu'on pensait avant de recroiser avec les notes du 2026-09-03.
+- Le vrai second palier distinct serait plutôt le **stash à un monument** (nécessite deux joueurs, séparé dans le temps de la résolution) — mais ce n'est pas spécifique à un gourd précis (slots génériques partagés), donc le modéliser comme location demanderait une approche différente ("un gourd a été stashé au monument N slot M", pas "gourdX a été stashé").
+- Le monde n'est pas prévu pour être jouable en solo (confirmé par le joueur) — donc la contrainte à deux joueurs pour le stash n'est pas un problème de conception à éviter, juste à garder en tête pour la logique d'accessibilité du monde Python (une location de stash ne serait jamais atteignable en solo, mais ce n'est pas un souci si le monde suppose du multi).
+
+Rien de tout ça n'est implémenté côté mod pour l'instant — à rouvrir quand le monde Python sera conçu.
 
 ## Fichiers de référence
 

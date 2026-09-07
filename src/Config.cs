@@ -16,6 +16,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> UnlockNextKey;
         internal static ConfigEntry<KeyboardShortcut> SimulateReceivedItemKey;
         internal static ConfigEntry<KeyboardShortcut> DumpNearbyKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpMonumentHomesKey;
 
         internal static void Bind(ConfigFile file)
         {
@@ -48,6 +49,12 @@ namespace BigWalkArchipelago
                 "DumpNearbyKey",
                 new KeyboardShortcut(KeyCode.F5),
                 "Logue les RewardGourd les plus proches du joueur (nom + état + distance), quel que soit leur état — diagnostic pour voir ce qui est réellement présent autour de soi (n'a d'effet que si Debug.Enabled est actif).");
+
+            DumpMonumentHomesKey = file.Bind(
+                "Debug",
+                "DumpMonumentHomesKey",
+                new KeyboardShortcut(KeyCode.F6),
+                "Logue tous les PropHome 'monoument*' réellement enregistrés dans la zone actuelle, avec leur état de remplissage (n'a d'effet que si Debug.Enabled est actif).");
         }
     }
 }

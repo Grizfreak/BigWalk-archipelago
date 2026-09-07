@@ -26,6 +26,9 @@ namespace BigWalkArchipelago.Debug
 
             if (ModConfig.DumpNearbyKey.Value.IsDown())
                 DebugGourdLookup.LogNearby(50);
+
+            if (ModConfig.DumpMonumentHomesKey.Value.IsDown())
+                DebugGourdLookup.LogMonumentHomes();
         }
     }
 }
