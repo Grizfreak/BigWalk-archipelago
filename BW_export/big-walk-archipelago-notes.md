@@ -2,6 +2,23 @@
 
 *Dernière mise à jour : session de reverse engineering du 3 septembre 2026*
 
+## Prochaines étapes (notées le 2026-09-07)
+
+1. **Faire apparaître une gourd visible au spawn/hub à la réception d'un item.**
+   `Core/ItemApplier.ApplyGourdItem` (implémenté) gère déjà toute la persistance/matérialisation réelle sans rien spawner — le design retenu n'a **pas** besoin d'un objet physique porté par le joueur pour fonctionner (cf. section "Design retenu" plus bas). Ce spawn serait donc **purement cosmétique/notification** ("tiens, tu viens de recevoir gourdX"), pas le mécanisme de délivrance lui-même — à garder en tête pour ne pas réintroduire par erreur l'ancienne idée de gourd générique portée à la main.
+   Pistes déjà identifiées côté technique (non vérifiées) :
+   - `InventorySpawn.GetNextSpawnPosition()` : point d'ancrage avec dispersion aléatoire dans un rayon (`spawnRadius`) — candidat naturel pour la position de spawn.
+   - Cloner un `RewardGourd`/`Prop` existant en scène (`UnityEngine.Object.Instantiate` sur une instance déjà présente, pas besoin de trouver une référence de prefab) + `NetworkServer.Spawn` pour le réseauter. Attention : un clone garde le `saveablePropName` de l'original — s'assurer que ce gourd cosmétique n'écrit jamais dans `SaveManager` sous ce nom (ou le neutraliser/detacher du système de save), sinon collision avec la vraie entrée du gourd reçu.
+   - Reste à définir : durée de vie (disparaît après combien de temps / une fois vu ?), comportement multi-joueurs (spawn visible pour tous ou seulement le destinataire ?).
+
+2. **Système de clés (big keys) : découpler la feature débloquée de l'usage de la clé.**
+   Une clé se débloque avec un nombre de gourds associées (pins) et débloque une feature du jeu. Idée du user : traiter séparément (a) le **check** "la clé a été utilisée/placée" et (b) l'**item** "on possède la clé" — même philosophie de découplage que pour les gourds (cf. section "Design retenu" plus bas), pas encore appliquée aux big keys.
+   Pas encore investigué en profondeur cette session — pistes de départ à partir de ce qu'on sait déjà :
+   - `SaveablePropName` a une famille dédiée : `bigKeyIntro`, `bigKeyRedZone`, `bigKeyGreenZone`, `bigKeyBlueZone`, `bigKeyYellowZone`, `bigKeyBoss`, `bigKeyOverflow`.
+   - `SaveableHomeName` a les "plinthes" correspondantes : `bigKeyPlinthIntro`, `bigKeyPlinthMapRoom`, `bigKeyPlinthTrain`, `bigKeyPlinthSkiLift`, `bigKeyPlinthTunnels`, `bigKeyPlinthEnding`, `bigKeyPlinthGoodbye2` — pas une correspondance 1:1 par nom comme `gourdX`/`valetX` (7 clés vs 7 plinthes mais noms différents), à clarifier laquelle va où.
+   - Confirmé plus tôt : pas de classe `BigKey` dédiée, les big keys passent par le même pipeline générique `RewardGourd`/`Prop` que les gourds — donc `GourdStatePatch`/`SaveValuePatch`/`ItemApplier` les couvrent probablement déjà mécaniquement, mais le lien "N gourds pinnées → clé utilisable → feature débloquée" (le vrai comportement de jeu spécifique aux clés) n'a pas été décompilé/tracé.
+   - À investiguer : quelle fonction lit/compte les gourds associés à une clé, quelle fonction représente "utiliser la clé" (le check à détecter), et quelle fonction représente "la feature débloquée" (l'effet à matérialiser côté item reçu, séparément du check).
+
 ## Contexte technique
 
 - **Jeu** : Big Walk (House House / Panic), sorti le 4 août 2026
