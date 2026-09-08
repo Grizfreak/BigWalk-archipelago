@@ -31,6 +31,7 @@
    - **RÉSOLU (2026-09-07)** — mapping complet confirmé directement par le joueur (connaissance du jeu, pas de la rétro-ingénierie statique) et codé en dur dans `GourdRegistry.BigKeyHomesByProp` :
      `bigKeyIntro→bigKeyPlinthIntro`, `bigKeyRedZone→bigKeyPlinthMapRoom`, `bigKeyGreenZone→bigKeyPlinthSkiLift`, `bigKeyBlueZone→bigKeyPlinthTrain`, `bigKeyYellowZone→bigKeyPlinthTunnels`, `bigKeyBoss→bigKeyPlinthEnding`, `bigKeyOverflow→bigKeyPlinthGoodbye2`.
      Avec cette table, `ItemApplier.ApplyGourdItem` fonctionne maintenant aussi pour les big keys (plus seulement les gourds) — aucun autre changement mécanique nécessaire (cf. investigation Ghidra ci-dessus : pipeline générique, déjà couvert par `GourdStatePatch`/`SaveValuePatch` côté détection de check).
+     **Confirmé une deuxième fois, indépendamment, plus tard dans la session** : un document tiers ("Big Walk Archipelago details.pdf", cf. section dédiée en bas de ce fichier) nomme les vraies tours (Red Funnel/Green Cup/Blue Castle/Yellow Twist/Black Monolith/Green Dome) et leurs lieux de dépôt de clé, qui recoupent exactement cette table ET les comptages F6 des monuments — très haute confiance sur ce mapping désormais.
 
    **CORRECTION IMPORTANTE (test en jeu du 2026-09-07)** — l'hypothèse "les big keys passent par le même pipeline RewardGourd/Prop que les gourds" (confirmée "plus tôt" selon une note antérieure, jamais vérifiée en jeu) s'est révélée **fausse sur un point précis** : une big key n'a **aucun composant `RewardGourd`**. Découvert via `Debug/DebugGourdLookup.LogNearby` (nouvel outil F5, scanne `FindObjectsByType<RewardGourd>` avec `FindObjectsInactive.Include`) : en se tenant devant une big key visible en jeu, 0 des 46 `RewardGourd` de la zone (actifs et inactifs confondus) ne correspondait à une big key — uniquement des gourds normaux. Donc pas de `GourdState` (Locked/Loose/Stashed/Hidden) pour une big key : c'est un `Prop` nu, probablement piloté par `Prop.onUseAsKey` (`PeckSwitch`) et `PropGroup.BigKey` (cf. section Ghidra ci-dessus), pas par l'étau/couffin des gourds.
    - **Conséquence sur la détection de check** : aucune, `SaveValuePatch` (générique sur `SaveManager.SetIntValue`) capte toujours l'événement peu importe l'absence de `RewardGourd` — seul `GourdStatePatch` (qui patch spécifiquement `RewardGourd.ServerSetGourdState`) ne se déclenchera jamais pour une big key, mais ce n'est pas un problème puisque `SaveValuePatch` fait déjà le travail en filet de sécurité.
@@ -369,6 +370,71 @@ Question posée en cours de session : les locations Archipelago pourraient-elles
 - Le monde n'est pas prévu pour être jouable en solo (confirmé par le joueur) — donc la contrainte à deux joueurs pour le stash n'est pas un problème de conception à éviter, juste à garder en tête pour la logique d'accessibilité du monde Python (une location de stash ne serait jamais atteignable en solo, mais ce n'est pas un souci si le monde suppose du multi).
 
 Rien de tout ça n'est implémenté côté mod pour l'instant — à rouvrir quand le monde Python sera conçu.
+
+## Document externe tiers — "Big Walk Archipelago details.pdf" + fil Discord (2026-09-07)
+
+Le joueur a partagé un document de conception d'APworld (options YAML, liste items/locations, guide de tuiles custom) et des extraits d'un fil Discord, très probablement du même auteur tiers ("trinity") déjà mentionné plus haut ("Retour communauté"). Ni le document ni le fil ne sont affiliés à ce mod — mais ils recoupent fortement (et parfois corrigent) ce qu'on a déduit aujourd'hui par rétro-ingénierie pure, en plus d'apporter des infos neuves. Tout ce qui suit vient de tiers, pas vérifié par nous en jeu, sauf mention contraire.
+
+### Cross-validation forte : noms réels des tours et mapping des clés
+
+Le document nomme explicitement les 6 tours + le tutoriel, avec leurs propres emplacements de dépôt de clé ("Key Deposit"). En recoupant l'ordre des sections du document (`Completion Rewards`) avec nos `monoumentX`/`bigKeyPlinthYyy` et le mapping couleur→plinthe donné par le joueur plus tôt cette session, tout concorde parfaitement :
+
+| Tour (nom réel) | Big key (`SaveablePropName`) | Plinthe (`SaveableHomeName`) | Lieu de dépôt (nom du doc) | Deposit boxes (doc) | Slots réels (F6) |
+|---|---|---|---|---|---|
+| Tutorial | `bigKeyIntro` | `bigKeyPlinthIntro` | Drawbridge Key Deposit | 4 | **4** ✓ |
+| Red Funnel Tower | `bigKeyRedZone` | `bigKeyPlinthMapRoom` | Map Room Key Deposit | 5 | **5** ✓ |
+| Green Cup Tower | `bigKeyGreenZone` | `bigKeyPlinthSkiLift` | Chairlift Station Key Deposit | 5 | **5** ✓ |
+| Blue Castle Tower | `bigKeyBlueZone` | `bigKeyPlinthTrain` | Train Station Key Deposit | 5 | **5** ✓ |
+| Yellow Twist Tower | `bigKeyYellowZone` | `bigKeyPlinthTunnels` | Underground Tunnel Key Deposit | 5 | **5** ✓ |
+| Black Monolith Tower | `bigKeyBoss` | `bigKeyPlinthEnding` | Dam Key Deposit | 6 | **6** ✓ |
+| Green Dome Tower | `bigKeyOverflow` | `bigKeyPlinthGoodbye2` | Tutorial Key Deposit (keyhole, fin "big_game") | 15 (réductible à 6 en jeu, `limit_green_dome_deposit_boxes`) | **15** ✓ |
+
+Chaque colonne "Deposit boxes (doc)" correspond **exactement** aux comptages réels trouvés via F6 cette session (`monoumentIntro`=4, `monoument0-3`=5 chacun, `monoumentFinal`=6, `monoumentOverflow`=15) — donc `monoument0/1/2/3` = les 4 tours "5 slots" (Red Funnel/Green Cup/Blue Castle/Yellow Twist, ordre exact entre elles pas encore déterminé), `monoumentFinal` = Black Monolith Tower, `monoumentOverflow` = Green Dome Tower. Confirme aussi indépendamment (donc avec un niveau de confiance bien plus élevé) le mapping couleur→plinthe donné par le joueur : Red→MapRoom, Green→SkiLift, Blue→Train, Yellow→Tunnels, Boss→Ending, Overflow→Goodbye2, déjà codé dans `GourdRegistry.BigKeyHomesByProp`.
+
+Sens du mécanisme (déduit du doc) : après avoir rempli les deposit boxes ("gourd deposit boxes") d'une tour, on obtient la clé de cette tour ("Tower: Key Cutter 1-5" — encore un mécanisme "Key Cutter" pas investigué, 5 par tour, 25 au total sur les 5 premières tours), qu'on va ensuite déposer ailleurs (le "Key Deposit" suivant dans la séquence) pour débloquer la suite. Donc **chaque tour a son propre lieu de dépôt de clé, séparé du lieu où on obtient la clé** — cohérent avec notre design "clé déposée à une plinthe = check", mais révèle que la clé d'une tour est physiquement obtenue À cette tour puis déposée AILLEURS (pas à la même tour).
+
+### Nouveau : 45 puzzles au lancement, 58 aujourd'hui
+
+Le fil Discord date d'environ une semaine après la sortie du jeu ("only having released a few days ago", posts datés 07-08/08/2026 ; jeu sorti le 4 août 2026 selon nos notes). Le doc et le fil parlent de **45 puzzles au total**, avec un objectif "any 30 of 45". En comparant la liste de 45 puzzles du document avec les 58 `gourdXxx` de notre enum actuel, **13 gourds présents aujourd'hui sont absents de la liste du document** (`gourdBunker`, `gourdHighPegBoard`, `gourdFirstPegBoard`, `gourdMagiciansTrick`, `gourdButtonBoothChallenge`, `gourdTileSoup`, `gourdPanopticon`, `gourdMaypole`, `gourdBlindfoldCircus`, `gourdMessengerRun`, `gourdHotPotato`, `gourdScoutTiles`, `gourdScoutCounting`). Hypothèse la plus probable : **le jeu a reçu une mise à jour de contenu ajoutant 13 puzzles depuis la sortie**, entre la rédaction de ce document (~août 2026) et aujourd'hui (2026-09-07). À garder en tête si jamais ce document ou une future version du monde Python s'appuie sur l'ancien total de 45 — le vrai total actuel est 58.
+
+### Terminologie confirmée indépendamment
+
+Une remarque du même auteur, en inspectant les fichiers du jeu de son côté : *"the name for the puzzle reward object... is internally called 'Gourd'"* — confirme, par une source complètement indépendante de notre décompilation Ghidra, que `SaveablePropName.gourdXxx` est bien la structure interne exacte, pas une coïncidence de nommage de notre part.
+
+### Le problème qu'ils ont rencontré, qu'on a évité par design
+
+Extraits très pertinents du fil (paraphrasés) — l'auteur a passé au moins un mois (posts du 07/08 au 18/08/2026) coincé sur exactement le problème qu'on a résolu cette session, mais en l'abordant différemment :
+- Approche initiale envisagée : **empêcher le "gourd clamp" (l'étau) de se déclamper tant qu'un item AP n'est pas reçu**, ou pouvoir le déclamper à volonté par code. Jamais aboutie : *"I haven't figured out how to accomplish stopping the gourd clamp from unclamping on puzzle solution, or being able to arbitrarily unclamp the gourd whenever I need to"*.
+- Complication additionnelle notée : **certains puzzles n'ont pas d'étau du tout** (le gourd est déjà "ouvert" sans clamp), ex. le puzzle "Telescope to Box" du tutoriel — donc une approche par blocage de l'étau ne fonctionnerait de toute façon pas uniformément sur tous les puzzles.
+- Pivot suggéré par un autre participant (Kimtroverted) : **verrouiller les *deposit zones* (les monuments/valets) plutôt que l'étau lui-même**. Adopté ("that might just be better yeah"), mais avec un coût reconnu : ça transforme "30 gourds au choix parmi 45" en "ces 30 emplacements de dépôt précis parmi 45" — perte de flexibilité du pool.
+- Liste de problèmes non résolus qu'ils ont identifiés avec cette dernière approche : sur-marche arrière (aller collecter un gourd déjà résolu puis le ramener), ça encourage à se séparer du groupe (pour aller chercher les gourds) alors que les puzzles nécessitent souvent d'être ensemble, complexité de suivi de l'état (résolu ? récupéré ? déposé ?), plus de travail de programmation (tous les puzzles n'ont pas de clamp à affecter), exploitable via une fonction "objets perdus" du jeu, et tout ça reste fastidieux à jouer.
+
+**Comparaison avec notre design** : notre approche ("écriture SaveManager pure, jamais toucher l'objet vivant", cf. "Design retenu" plus haut) évite structurellement presque tous ces problèmes — pas besoin de bloquer ou déverrouiller l'étau (on ne le touche jamais), fonctionne uniformément même pour les puzzles sans clamp (on écrit juste la valeur finale attendue dans `SaveManager`, peu importe le mécanisme physique de résolution), pas de sur-marche-arrière ni de séparation forcée du groupe (`Prop.Start()`/le pin live font le travail automatiquement). Bonne confirmation indirecte que le design retenu cette session (par une voie complètement différente : test empirique + Ghidra, pas de mise en commun avec ce fil Discord avant la rédaction) est solide.
+
+### Modèle checks/items proposé par ce tiers (à comparer avec le nôtre)
+
+- **Checks** : puzzle complété, clé obtenue d'une tour, station radio trouvée.
+- **Items** : *déblocage* de la récompense d'un puzzle (pas la récompense elle-même — un item générique "tu peux maintenant résoudre/récupérer ce type de puzzle"), déblocage d'une clé (à l'exception de la dernière tour, gardée comme objectif plutôt que progression), activation d'une station radio.
+
+Différence notable avec notre implémentation actuelle : dans ce modèle, l'item reçu n'est pas littéralement "le gourd X" mais un **déblocage indirect** (cohérent avec les options `lock_puzzles`/`lock_pickups` du YAML : `individual` = un item de déblocage par type d'objet, `all` = un seul item générique qui débloque tout, `disabled` = tout dispo dès le début). Notre mod fait actuellement l'inverse : l'item reçu EST directement `gourdX`/`bigKeyX` (matérialisé par écriture `SaveManager`), sans notion de "déblocage préalable" séparé. Aucune des deux approches n'est tranchée comme la bonne pour notre monde — à recroiser avec la discussion "Point ouvert — la logique location/item" plus haut quand le monde Python sera conçu.
+
+### Point à tester la prochaine session : puzzles coopératifs sans étau (ex. `gourdTelescopeToBox`)
+
+Suite à la discussion ci-dessus, le joueur a précisé le fonctionnement réel de ces puzzles "sans clamp" : c'est en fait une mécanique **coopérative** — un joueur appuie sur un bouton ailleurs (qui déverrouille une caisse), l'autre récupère l'objet à l'intérieur. Filet de sécurité déjà observé : si l'objet est jeté loin de sa caisse, le jeu le replace dedans automatiquement.
+
+`gourdTelescopeToBox`/`valetTelescopeToBox` (un de nos 58 gourds) est très probablement l'exemple exact cité par trinity dans le fil Discord — donc testable directement avec nos outils actuels, sans code supplémentaire. Nécessite deux joueurs (confirmé par le joueur). Questions à trancher au prochain test :
+1. Ce puzzle a-t-il un composant `RewardGourd` ou non (F5 près de la caisse) ?
+2. À quel moment précis `SaveManager` reçoit l'écriture pour cette clé — à l'ouverture de la caisse (bouton pressé) ou seulement à la récupération/rangement de l'objet ?
+3. Le comportement "recharge dans sa caisse si perdu" cause-t-il des écritures `SaveManager` répétées, et est-ce que ça interagit avec `ItemApplier.TryApplyLiveEffect` (pin en direct pour les props sans `RewardGourd`) si un item AP arrive avant que la caisse soit ouverte ?
+
+Hypothèse de travail (non vérifiée) : `SaveValuePatch` (filet de sécurité générique, indépendant de `RewardGourd`) devrait capter le check quel que soit le mécanisme physique exact — cohérent avec sa raison d'être documentée plus haut. À confirmer.
+
+### Autres pistes non explorées, notées pour plus tard
+
+- **Key Cutters** : 5 par tour (25 au total sur les 5 premières tours), mécanisme pas du tout investigué côté mod — semble être une étape intermédiaire entre "gourds déposés" et "clé obtenue".
+- **Radio stations** (7, "Radio Station 1-7" + "All Radio Stations") : autre catégorie de check potentielle, jamais regardée.
+- **Arch doors** (3 : Tutorial/Left/Right) et **lock_map_room** : mécanismes de portes/accès qui pourraient interagir avec le level design des checks, pas investigués.
+- Liste complète des items "vanilla" du jeu (capacités, déblocages de portage, objets d'inventaire) donnée dans le document — utile comme référence si le mod doit un jour s'étendre au-delà des gourds/big keys.
 
 ## Fichiers de référence
 
