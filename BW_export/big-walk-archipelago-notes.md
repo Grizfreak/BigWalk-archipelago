@@ -37,6 +37,14 @@
    - **Conséquence sur la détection de check** : aucune, `SaveValuePatch` (générique sur `SaveManager.SetIntValue`) capte toujours l'événement peu importe l'absence de `RewardGourd` — seul `GourdStatePatch` (qui patch spécifiquement `RewardGourd.ServerSetGourdState`) ne se déclenchera jamais pour une big key, mais ce n'est pas un problème puisque `SaveValuePatch` fait déjà le travail en filet de sécurité.
    - **Conséquence sur les outils de debug** : `DebugGourdLookup.FindNearestLocked` (basé sur `RewardGourd.gourdState == Locked`) ne peut broadcast que trouver des gourds, jamais une big key — c'est ce qui rendait F4 (`DebugItemSimulator`) systématiquement aveugle aux big keys en test. **Fix** : nouveau lookup `DebugGourdLookup.FindNearestUncollectedProp`, basé sur `Prop.allProps` (registre statique qui couvre gourds ET big keys) et sur le signal canonique "`SaveManager` n'a pas encore de valeur pour ce `saveablePropName`" — le même signal que `CheckTracker`/`ItemApplier` utilisent déjà, plutôt que sur `gourdState` qui n'existe pas pour tous les props. `DebugItemSimulator` utilise maintenant ce lookup (il n'avait de toute façon jamais eu besoin de `RewardGourd`, seul `saveablePropName` lui sert). `DebugGourdUnlocker`/F3 reste basé sur `RewardGourd` pour l'instant (il simule un vrai déblocage local via `ServerSetGourdState`, un concept qui ne s'applique qu'aux gourds) — non testé sur les big keys, probablement pas pertinent pour elles.
 
+## Idée notée pour plus tard — config serveur AP dans le menu d'hébergement plutôt qu'un fichier BepInEx (2026-09-09)
+
+Quand le vrai client réseau Archipelago sera implémenté, il faudra une config (adresse serveur, slot name, password) — piste évidente : `BepInEx` config (`.cfg`, pattern déjà utilisé partout dans le mod, cf. `Config.cs`), mais oblige l'hôte à éditer un fichier texte hors du jeu.
+
+Idée du joueur : gérer plutôt ça dans l'écran in-game d'hébergement de partie, qui a déjà un flow nom/mot de passe (vu en jeu : `SetGameName`, "password is correct", cf. logs de session). Si "slot name"/"password" AP recoupent sémantiquement ce que le joueur saisit déjà pour héberger, possible de réutiliser ces champs plutôt que d'ajouter un écran dédié — resterait à caser l'adresse serveur AP quelque part. Nécessiterait d'injecter une vraie UI Unity (pas juste des hotkeys/logs comme le reste du mod aujourd'hui) ou d'étendre `WorldMenuManager` — un chantier à part entière, pas encore commencé, pas encore investigué en détail (quels champs existent précisément sur cet écran, où les intercepter).
+
+À rouvrir une fois le client réseau lui-même fonctionnel.
+
 ## Contexte technique
 
 - **Jeu** : Big Walk (House House / Panic), sorti le 4 août 2026
@@ -433,11 +441,15 @@ Suite à la discussion ci-dessus, le joueur a précisé le fonctionnement réel 
 
 Hypothèse de travail (non vérifiée) : `SaveValuePatch` (filet de sécurité générique, indépendant de `RewardGourd`) devrait capter le check quel que soit le mécanisme physique exact — cohérent avec sa raison d'être documentée plus haut. À confirmer.
 
+### Goal (condition de victoire côté AP) — dépend d'abord d'une décision de design (2026-09-09)
+
+Pas encore de piste technique retenue, et volontairement pas encore investigué : avant de chercher *quelle fonction/état du jeu représente "terminé"*, il faut d'abord trancher **quel** goal le monde AP propose — ce n'est pas qu'une question technique. Options mentionnées : finir une fin standard du jeu (laquelle, il y en a peut-être plusieurs), ou exiger un nombre N de tours complétées (les 5-6 tours + tutoriel), ou autre variante. Le choix change complètement quoi hooker en jeu (candidats déjà repérés si besoin : `EndingGate`, `GauntletComplete`, les 9 `monoumentFinalSlot0-8`) — donc à rouvrir une fois cette décision de design prise, pas avant.
+
 ### Autres pistes non explorées, notées pour plus tard
 
-- **Key Cutters** : 5 par tour (25 au total sur les 5 premières tours), mécanisme pas du tout investigué côté mod — semble être une étape intermédiaire entre "gourds déposés" et "clé obtenue".
-- **Radio stations** (7, "Radio Station 1-7" + "All Radio Stations") : autre catégorie de check potentielle, jamais regardée.
-- **lock_map_room** : mécanisme d'accès qui pourrait interagir avec le level design des checks, pas investigué.
+- **Key Cutters** : 5 par tour (25 au total sur les 5 premières tours) — **décidé de ne pas explorer** (2026-09-09) : juste une étape intermédiaire mécanique vers "clé obtenue/complétée", pas un accomplissement distinct du joueur qui aurait du sens comme check séparé. Ne sera pas transformé en check.
+- **Radio stations** (`SavableSystem.FmStation*`, 10 entrées dans l'enum) — décidé (2026-09-09) comme **checks/locations** (le joueur allume la radio en jeu → check reporté), pas comme items à matérialiser. Jugé facile : réutilise directement `SaveValuePatch` (déjà générique sur `SaveManager.SetIntValue`), il suffit d'élargir la reconnaissance de clé pour tenter aussi `Enum.TryParse<SavableSystem>` (en plus de `SaveablePropName` déjà géré) — aucune nouvelle plomberie de détection à écrire, juste étendre l'existante.
+- **`lock_map_room`** et **`PoetAndPriestDoors`/`PoetAndPontiffDoors`** (ces deux derniers trouvés dans l'enum `SavableSystem`, hypothèse non vérifiée : liés aux puzzles `gourdPoetAndPreist`/`gourdPoetAndPontiff`) : ni le joueur ni l'investigation Ghidra n'ont permis d'identifier précisément ce que c'est (2026-09-09) — **laissé de côté pour l'instant**, à reprendre en jeu si l'un des deux tombe dessus par hasard ou reconnaît le mécanisme en jouant.
 - Liste complète des items "vanilla" du jeu (capacités, déblocages de portage, objets d'inventaire) donnée dans le document — utile comme référence si le mod doit un jour s'étendre au-delà des gourds/big keys.
 
 ## Gourds "variant challenge" (violettes/postgame) — révélation automatique sur la carte (implémenté le 2026-09-09)
