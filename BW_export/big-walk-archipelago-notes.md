@@ -1,8 +1,36 @@
 # Big Walk — Notes de rétro-ingénierie pour implémentation Archipelago
 
-*Dernière mise à jour : session de reverse engineering du 3 septembre 2026*
+*Dernière mise à jour : session du 9 septembre 2026*
 
-## Prochaines étapes (notées le 2026-09-07)
+## To-do actuelle (mise à jour le 2026-09-09)
+
+### À implémenter côté mod
+
+- **Client réseau Archipelago** — le vrai chantier manquant : rien ne se connecte à un serveur AP aujourd'hui. Remplacer `LocalLogReporter` par une vraie implémentation `ICheckReporter` (protocole AP, WebSocket/JSON), et appeler `ItemApplier` pour de vrai à la réception d'un item (au lieu du simulateur `DebugItemSimulator`).
+- **`ItemApplier.ApplyGenericGourdFiller()`** — matérialise un item "gourd" générique (filler, pas 1:1) sur n'importe quel gourd non-résolu localement ; réutilise `ApplyGourdItem` en interne une fois la cible choisie ; no-op silencieux si plus aucun gourd non-résolu. Décidé le 2026-09-09 (cf. section "DÉCISION TRANCHÉE — modèle final location/item" plus bas) ; big keys restent 1:1, inchangées.
+- **Spawn cosmétique du gourd reçu** — objet physique ramassable au hub (zone de spawn), pas juste une écriture `SaveManager` invisible. Décidé le 2026-09-09 (cf. section "Sur l'apparence de l'item gourd reçu"). Pistes techniques déjà notées : `InventorySpawn.GetNextSpawnPosition()`, clonage d'un `RewardGourd`/`Prop` existant + neutraliser le risque de collision `saveablePropName`.
+- **Détection des gourd deposit boxes (monuments)** — au minimum le mode "compteur global progressif" (le plus simple, `GourdPinAudioBehaviour.GetNumberOfFilledHomes()` déjà repéré), pensé pour devenir un réglage reçu du monde/slot AP plutôt qu'un mode figé en dur (cf. section dédiée plus bas).
+- **Radio stations comme locations** — étendre `SaveValuePatch` pour tenter aussi `Enum.TryParse<SavableSystem>` (en plus de `SaveablePropName` déjà géré), reporter un check quand ça matche. Pas de matérialisation d'item nécessaire (juste de la détection).
+- **`Config.cs`** — ajouter les entrées de config serveur AP (adresse, slot name, password) une fois le client réseau existant ; possibilité d'exposer ça dans le menu d'hébergement in-game plutôt qu'un fichier `.cfg` (idée notée, pas encore investiguée — cf. section dédiée).
+
+### À tester/valider en jeu
+
+- `gourdTelescopeToBox` (puzzle coopératif sans étau, nécessite 2 joueurs) — jamais testé : présence d'un `RewardGourd` ou non, moment exact de l'écriture `SaveManager`, interaction avec `TryApplyLiveEffect`.
+- Les 4 mappings couleur big key restants sans confirmation formelle en jeu : `bigKeyRedZone`, `bigKeyYellowZone`, `bigKeyBoss`, `bigKeyOverflow` (seuls Intro/GreenZone/BlueZone confirmés individuellement).
+- Non-régression d'un check gourd résolu **normalement** (hors item reçu) après le fix `DebugGourdLookup.FindNearestUncollectedProp`.
+- Comportement en vrai multi-joueurs avec un client **non-host** (le modèle d'autorité host est codé partout mais jamais éprouvé en co-op réel avec quelqu'un d'autre que l'hôte).
+
+### Décisions de conception encore ouvertes (bloquent l'écriture du monde Python, pas le mod C#)
+
+- **Goal** — bloqué sur une décision de design (fin standard vs N tours vs combinaison des deux, cf. section dédiée) avant même de chercher le déclencheur technique.
+- **Modèle des gourd deposit boxes** — probable option YAML (progressif global / séquentiel par tour / par slot précis sans item critique), à choisir en concevant le monde Python.
+
+### Explicitement écarté / mis de côté
+
+- **Key Cutters** — décidé de ne pas explorer, étape intermédiaire sans intérêt comme check séparé.
+- **`lock_map_room`** et portes **Poet&Priest/Poet&Pontiff** — mis de côté faute de comprendre ce que c'est ; à reprendre seulement si l'un de vous tombe dessus en jouant.
+
+## Historique — investigation initiale des big keys (2026-09-07, résolu)
 
 1. **Faire apparaître une gourd visible au spawn/hub à la réception d'un item.**
    `Core/ItemApplier.ApplyGourdItem` (implémenté) gère déjà toute la persistance/matérialisation réelle sans rien spawner — le design retenu n'a **pas** besoin d'un objet physique porté par le joueur pour fonctionner (cf. section "Design retenu" plus bas). Ce spawn serait donc **purement cosmétique/notification** ("tiens, tu viens de recevoir gourdX"), pas le mécanisme de délivrance lui-même — à garder en tête pour ne pas réintroduire par erreur l'ancienne idée de gourd générique portée à la main.
@@ -383,6 +411,18 @@ Question posée en cours de session : les locations Archipelago pourraient-elles
 
 Rien de tout ça n'est implémenté côté mod pour l'instant — à rouvrir quand le monde Python sera conçu.
 
+**Suite Discord "Big Walk" (23/08/2026, tiers, sujet "How to deal with gourd deposit boxes")** — reprend directement ce point ouvert, trois options de design proposées pour les "gourd deposit boxes" (= le stash au monument ci-dessus) :
+
+1. **Progressives, un seul type de location** : tous les monuments contribuent à **une seule** location progressive globale (ex. "N gourds déposées au total, toutes tours confondues"), **pas** de récompense de complétion spécifique par tour.
+2. **Non-progressives, déblocage séquentiel** : une seule tour "active" à la fois — la tour suivante ne se débloque qu'une fois **tous** les gourds déposés dans la tour courante.
+3. **Non-progressives, mais sans item critique dedans** : chaque deposit box est une location comme une autre (indépendante par tour/slot), mais le monde exclut les items de progression critique de pouvoir s'y trouver — évite qu'un item bloquant tout le multiworld dépende d'un accomplissement à deux joueurs, tardif et spécifique.
+
+**DÉCISION (2026-09-09)** : pas figé sur une seule option — le joueur fait remarquer que ce choix devrait plutôt être une **option YAML du monde AP** (même famille que `lock_puzzles`/`lock_pickups` déjà vus dans le doc tiers), pas quelque chose qu'on fige une fois pour toutes côté mod. Conséquence côté implémentation future : le mod devra recevoir ce réglage depuis le monde/slot AP (à la connexion) et adapter son comportement de détection en conséquence, plutôt que coder en dur un seul modèle. Priorité pratique suggérée par la faisabilité technique déjà connue : l'**option 1** (compteur global progressif) est la plus simple à détecter dès maintenant — `GourdPinAudioBehaviour.GetNumberOfFilledHomes()` (déjà repéré en Ghidra, cf. section "Classes et structures clés" plus haut) donne directement ce compte, sans investigation supplémentaire. Les options 2 et 3 restent valides comme réglages alternatifs à supporter plus tard, l'option 3 nécessitant en particulier de vérifier si le jeu expose un moyen de distinguer QUEL slot précis a été rempli (pas confirmé).
+
+**Sur l'apparence de l'item gourd reçu** (reprend la toute première tâche notée en tout début de session, jamais implémentée) : le même tiers recommande que le gourd matérialisé soit à la fois **visible/spawné devant le joueur** ET **un objet d'inventaire** portable — pas juste une écriture invisible comme le fait `ItemApplier` aujourd'hui.
+
+**DÉCISION (2026-09-09)** : spawn dans la **zone de spawn/hub** (pas lâché devant le joueur où qu'il soit dans le monde) — tranché par le joueur. Rappel du contexte technique déjà noté pour cette tâche (jamais réalisée) : `InventorySpawn.GetNextSpawnPosition()` (point d'ancrage avec dispersion aléatoire dans un rayon, situé au hub) et le clonage d'un `RewardGourd`/`Prop` existant sont les pistes techniques déjà identifiées, avec le risque de collision `saveablePropName` déjà documenté à neutraliser. Cohérent avec la décision "gourds = fillers génériques" du même jour : un item filler générique reçu pourrait logiquement apparaître comme un objet physique ramassable au hub, plutôt que de rester une pure abstraction `SaveManager`.
+
 ## Document externe tiers — "Big Walk Archipelago details.pdf" + fil Discord (2026-09-07)
 
 Le joueur a partagé un document de conception d'APworld (options YAML, liste items/locations, guide de tuiles custom) et des extraits d'un fil Discord, très probablement du même auteur tiers ("trinity") déjà mentionné plus haut ("Retour communauté"). Ni le document ni le fil ne sont affiliés à ce mod — mais ils recoupent fortement (et parfois corrigent) ce qu'on a déduit aujourd'hui par rétro-ingénierie pure, en plus d'apporter des infos neuves. Tout ce qui suit vient de tiers, pas vérifié par nous en jeu, sauf mention contraire.
@@ -429,6 +469,36 @@ Extraits très pertinents du fil (paraphrasés) — l'auteur a passé au moins u
 - **Items** : *déblocage* de la récompense d'un puzzle (pas la récompense elle-même — un item générique "tu peux maintenant résoudre/récupérer ce type de puzzle"), déblocage d'une clé (à l'exception de la dernière tour, gardée comme objectif plutôt que progression), activation d'une station radio.
 
 Différence notable avec notre implémentation actuelle : dans ce modèle, l'item reçu n'est pas littéralement "le gourd X" mais un **déblocage indirect** (cohérent avec les options `lock_puzzles`/`lock_pickups` du YAML : `individual` = un item de déblocage par type d'objet, `all` = un seul item générique qui débloque tout, `disabled` = tout dispo dès le début). Notre mod fait actuellement l'inverse : l'item reçu EST directement `gourdX`/`bigKeyX` (matérialisé par écriture `SaveManager`), sans notion de "déblocage préalable" séparé. Aucune des deux approches n'est tranchée comme la bonne pour notre monde — à recroiser avec la discussion "Point ouvert — la logique location/item" plus haut quand le monde Python sera conçu.
+
+### Nouveau retour communauté (Discord, 2026-09-09) — précise le modèle checks/items, mentionne les "bells"
+
+Nouvelle réponse de Jack5 (auteur tiers déjà cité, doc Google partagé : "Big Walk Archipelago details", même contenu que le PDF déjà référencé plus haut) suite à une question directe du joueur ("comment gérer goal/items/locations, et les gourds — locations pour vessel ou à retirer complètement ?") :
+
+- **Goal** : "both or either a certain number of each collectible and specific endings or areas to reach" — un nombre de collectibles (gourds/clés) ET/OU atteindre des fins/zones spécifiques. Recoupe directement notre "Point ouvert — Goal" plus haut (fin standard vs N tours vs autre) : cette réponse suggère que ce n'est pas exclusif, un monde AP peut combiner les deux approches selon les options YAML.
+- **Items** : capacités du personnage (beaucoup liées au fait de porter certains types d'objets), objets d'inventaire (spawn), **arch doors**, **tours**, clés, pièges, et des **fillers** ("misnamed gourds" — des gourds "mal nommés", i.e. des items génériques/junk qui n'ont pas de lien 1:1 avec une vraie location gourd).
+- **Locations** : premier ramassage d'objet, résolution de chaque puzzle, allumer les stations radio (confirme ce qu'on vient de trancher), déposer les gourds et les clés (le stash au monument — cf. distinction étau/valet/monument plus haut), et **détruire des cloches ("bells")**.
+
+**Recoupement technique important** : "destroying bells" correspond très probablement au champ `bell` dans `PeckDevHelper.UnlockRules` (trouvé lors de l'investigation des Arch doors, cf. section dédiée — jamais suivi jusqu'ici, aux côtés de `chairlift`/`train`/`tunnel`/`map`/`gourd`). Piste concrète à creuser le jour où on s'attaque à cette catégorie : probablement la même technique que les Arch doors (`TrackedPeckState` de catégorie dédiée dans `SavableSystem`, à identifier).
+
+**Éclairage nouveau sur le "Point ouvert — logique location/item"** : cette réponse penche clairement vers un **vrai découplage multiworld**, pas un shuffle-sur-place — les gourds y sont explicitement des **fillers/items génériques** ("misnamed gourds"), pas des items 1:1 avec leur propre location comme notre implémentation actuelle (`ItemApplier` matérialise littéralement "gourdX" reçu). Ça répond en partie à la question du joueur ("gourds comme locations pour vessel, ou à retirer complètement ?") : dans ce modèle, les gourds *résolus* sont des locations (comme aujourd'hui), mais l'item qu'on reçoit en retour n'est pas censé être "ce gourd précis" — c'est un filler générique parmi d'autres, semblable à n'importe quel item de remplissage AP. Implication concrète si ce modèle est retenu : `GourdRegistry`/`ItemApplier` devront être repensés pour dissocier réception d'un "gourd filler" (peu importe lequel, matérialiser n'importe quel gourd non-résolu) de la détection de location (toujours 1:1 avec le gourd précis résolu). Pas encore décidé — à trancher avec le joueur avant de commencer le monde Python, puisque ça détermine directement l'architecture de `ItemApplier`.
+
+Lien du document complet (partagé par le joueur) : https://docs.google.com/document/d/1T5QBFIr71wFKN-EDTNV8827-H6aXTLw-UT3azjbWGHs/edit?tab=t.0
+
+### DÉCISION TRANCHÉE (2026-09-09) — modèle final location/item, gourds vs big keys
+
+Répond définitivement au "Point ouvert" ci-dessus :
+
+- **Gourds — items découplés (fillers génériques)** : un item "gourd" reçu par Archipelago n'est **plus** lié à un `SaveablePropName` précis — il se pose sur **n'importe quel** gourd non-résolu localement (peu importe lequel). Confirmé par le joueur : «évidemment qu'il faut des gourds génériques pour les placer dans les monuments». **Locations** : inchangé, toujours 1:1 (chaque gourd résolu = sa propre location précise, comme aujourd'hui).
+- **Contrainte de world-design signalée par le joueur** (côté monde Python, pas le mod C#) : il faudra s'assurer qu'il existe **assez de gourds génériques dans le pool d'items** pour satisfaire le nombre de slots des monuments réellement actifs (cf. comptages F6 : `monoumentIntro`=4, `monoument0-3`=5 chacun, `monoumentFinal`=6, `monoumentOverflow`=15) — sinon un joueur pourrait se retrouver bloqué avec des monuments jamais remplissables faute d'assez d'items gourd dans son pool. **Nuance immédiate du joueur** : contrainte jugée peu risquée en pratique — le pool d'items AP n'a pas besoin d'être fait *que* de gourds génériques ; des traps et autres items sans effet peuvent combler le reste du pool sans casser l'équilibre. À garder en tête lors de la conception des options YAML du monde, mais pas un blocage majeur anticipé.
+- **Big keys — restent 1:1** : chaque big key reçue reste précisément celle attendue (`bigKeyRedZone` reste `bigKeyRedZone`), **pas** de traitement filler. Raison du joueur : «les clés peuvent être des objets de progression donc il semble normal de les laisser en 1:1» — une clé aléatoire ne serait d'aucune utilité si ce n'est pas celle de la tour où le joueur doit progresser. Aucun changement par rapport à l'implémentation actuelle (`ItemApplier.ApplyGourdItem(bigKeyXxx)` déjà 1:1).
+- **Cas limite — filler gourd reçu alors que tous les gourds locaux sont déjà résolus** : **no-op silencieux** (décision du joueur, pas de log même en cas de debug) — l'item est simplement absorbé sans effet, comme un filler AP classique déjà "au max".
+
+**Implication concrète pour le code** (pas encore implémenté, à faire quand le client réseau existera ou pour préparer/tester en amont) : `ItemApplier.ApplyGourdItem(SaveablePropName)` reste inchangé et continue de servir tel quel pour les big keys (1:1) et en interne pour les gourds une fois la cible choisie. Il faut ajouter une nouvelle fonction, ex. `ItemApplier.ApplyGenericGourdFiller()`, qui :
+1. Scanne les gourds (pas les big keys) non-résolus localement (même signal que `DebugGourdLookup.FindNearestUncollectedProp`, mais filtré aux seuls `gourdXxx` et sans notion de "plus proche" — n'importe lequel convient, la matérialisation n'a pas besoin de proximité).
+2. S'il en trouve un, appelle `ApplyGourdItem` dessus (réutilise toute la plomberie existante : écriture `SaveManager`, effet en direct, garde anti-doublon de check).
+3. S'il n'en trouve aucun (tous déjà résolus) : ne fait rien, silencieusement.
+
+Le futur monde Python devra donc distinguer, côté items, un item générique type `"Gourd"` (compte = N, où N dépend des options) des items nommés 1:1 `"bigKeyRedZone"` etc. — à garder en tête pour la conception des `item_table`/`location_table` de l'apworld.
 
 ### Point à tester la prochaine session : puzzles coopératifs sans étau (ex. `gourdTelescopeToBox`)
 
