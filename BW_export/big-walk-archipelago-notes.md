@@ -271,6 +271,8 @@ Conclusion : le design "écriture `SaveManager` pure" fonctionne à l'identique 
 
 Une clé de couleur a été testée juste après (en combinaison avec l'effet instantané ci-dessous) et le joueur a confirmé que ça fonctionnait ("ça a fonctionné") — mais sans capture de log précisant laquelle ni la paire exacte obtenue, donc **pas une confirmation formelle** au même niveau que `bigKeyIntro`. À reconfirmer avec un log explicite à l'occasion. Non-régression d'un vrai check gourd résolu normalement (hors item reçu) après le fix `FindNearestUncollectedProp` : toujours pas testée.
 
+**RÉSOLU (2026-09-09)** — `bigKeyGreenZone→bigKeyPlinthSkiLift` (téléphérique) et `bigKeyBlueZone→bigKeyPlinthTrain` (train) confirmés individuellement en jeu, chacun via une touche de debug dédiée (F7/F8, cf. `Config.cs`/`DebugHotkeys.cs`, plus besoin de passer par `FindNearestUncollectedProp` donc testable sans être physiquement devant l'objet). Effet instantané (`TryApplyLiveEffect`) validé pour les deux : le joueur confirme que le téléphérique et le train se sont activés immédiatement après F7/F8, sans reload. Détail observé en cours de test : la clé disparaît visuellement du socle du monument au moment du pin en direct — attendu, pas un bug (l'ordre d'exécution dans `ItemApplier.ApplyGourdItem` reporte déjà le check *avant* que `TryApplyLiveEffect` ne déplace l'objet vers sa plinthe de dépôt ; la disparition du socle est juste la conséquence visuelle du `ServerSetPinned` vers la plinthe, pas une perte d'état). Avec `bigKeyIntro` (2026-09-07), les 3 mappings couleur/plinthe testés à ce jour sont donc formellement confirmés ; les 4 restants (`bigKeyRedZone`, `bigKeyYellowZone`, `bigKeyBoss`, `bigKeyOverflow`) n'ont qu'une confirmation indirecte (cross-validation du document tiers, cf. section plus bas) — à tester individuellement si besoin d'une confirmation en jeu complète.
+
 **Effet instantané pour les props sans `RewardGourd` (2026-09-07)** — suite à un test en jeu où le pont associé à `bigKeyIntro` ne s'ouvrait pas tant que la zone n'était pas rechargée (comportement "compromis assumé" ci-dessus), question posée : pour un gourd, ne jamais pinner en direct se justifie par deux raisons (désync `GourdState`/icône carte, préserver le puzzle local rejouable) — aucune des deux ne s'applique à une big key (pas de `GourdState` du tout, pas de puzzle répétable, cf. découverte ci-dessus). `ItemApplier.TryApplyLiveEffect` appelle donc `Prop.ServerSetPinned` en direct, mais **uniquement si le prop ciblé n'a pas de composant `RewardGourd`** ET que la zone est déjà chargée (sinon, comportement inchangé : `Prop.Start()` prendra le relais au prochain chargement). Validé en jeu : le pont s'ouvre immédiatement, sans reload, pour une big key.
 
 ## Point ouvert — la logique location/item mérite d'être repensée (2026-09-07)
@@ -305,7 +307,9 @@ En comparant un par un les 58 `gourdXxx` (`SaveablePropName`) et les 58 `valetXx
 | `gourdSingerAndSelecter` | `valetSingerAndSelecter` | `valetSingerAndSelector` |
 | `gourdDancerAndSelecter` | `valetDancerAndSelecter` | `valetDancerAndSelector` |
 
-`GourdRegistry.TryGetHomeName` fait `"valet" + name.Substring("gourd".Length)` puis `Enum.TryParse` — échoue silencieusement pour ces 3 gourds précis (`TryParse` renvoie `false` puisque le nom généré n'existe pas), donc `ItemApplier.ApplyGourdItem` retourne `false`/item ignoré pour eux uniquement. **Pas encore corrigé.** Fix évident pour la prochaine session : ajouter ces 3 paires comme exceptions explicites dans `GourdRegistry` (même principe que `BigKeyHomesByProp`).
+`GourdRegistry.TryGetHomeName` fait `"valet" + name.Substring("gourd".Length)` puis `Enum.TryParse` — échouait silencieusement pour ces 3 gourds précis (`TryParse` renvoie `false` puisque le nom généré n'existe pas), donc `ItemApplier.ApplyGourdItem` retournait `false`/item ignoré pour eux uniquement.
+
+**CORRIGÉ (2026-09-09)** : ajout de `GourdRegistry.GourdHomeNameExceptions` (même principe que `BigKeyHomesByProp`, vérifié avant la substitution naïve `"gourd"→"valet"`) pour les 3 paires. Pas encore retesté en jeu — à valider à l'occasion (F4 sur un de ces 3 gourds devrait maintenant appliquer l'item au lieu de logguer "Aucun home connu").
 
 ### Liste complète des 58 valets (`SaveableHomeName`)
 
@@ -433,8 +437,70 @@ Hypothèse de travail (non vérifiée) : `SaveValuePatch` (filet de sécurité g
 
 - **Key Cutters** : 5 par tour (25 au total sur les 5 premières tours), mécanisme pas du tout investigué côté mod — semble être une étape intermédiaire entre "gourds déposés" et "clé obtenue".
 - **Radio stations** (7, "Radio Station 1-7" + "All Radio Stations") : autre catégorie de check potentielle, jamais regardée.
-- **Arch doors** (3 : Tutorial/Left/Right) et **lock_map_room** : mécanismes de portes/accès qui pourraient interagir avec le level design des checks, pas investigués.
+- **lock_map_room** : mécanisme d'accès qui pourrait interagir avec le level design des checks, pas investigué.
 - Liste complète des items "vanilla" du jeu (capacités, déblocages de portage, objets d'inventaire) donnée dans le document — utile comme référence si le mod doit un jour s'étendre au-delà des gourds/big keys.
+
+## Gourds "variant challenge" (violettes/postgame) — révélation automatique sur la carte (implémenté le 2026-09-09)
+
+**Investigué et résolu.** Demande utilisateur : les gourds violettes (`RewardGourd.isVariantChallenge`, normalement débloquées après une première fin de partie) doivent être rendues visibles sur la carte dès le début, pour un monde Archipelago où elles sont accessibles depuis le départ.
+
+**Mécanisme découvert par décompilation Ghidra** (`GourdMap.Initialize`/`Start`/`RevealHiddenGourds`, `RewardGourd.Awake` — cf. script `BW_export/decompile_variant_gourds.py`, sortie dans `BW_export/variant_gourds_decompiled.txt`) :
+- `GourdMap.Initialize()` (appelée une fois par instance de `GourdMap`, donc à chaque chargement de zone) instancie l'icône de carte de chaque gourd (`flagPrefab` ou `flagPrefabVariantChallenge` selon `isVariantChallenge`) et force **systématiquement** `GourdFlag.SetState(Hidden)` pour tout gourd `isVariantChallenge == true` — un état purement local/session, **jamais lu ni écrit dans `SaveManager`**.
+- `GourdMap.RevealHiddenGourds(PeckContext)` (méthode privée, déclenchée en vrai jeu via `GourdMap.revealSystem`, un `PeckSystemReference`, probablement lié à un event de fin de partie) fait l'inverse : pour tout `GourdFlag` actuellement `Hidden`, `SetState(Locked)` — révèle l'icône sur la carte.
+
+**Solution retenue** : plutôt que de toucher à la méthode privée, on obtient le même résultat via l'event statique **public** `GourdMap.refreshFlag` (`Action<SaveablePropName, GourdFlag.GourdState>`, déjà utilisé par le jeu pour rafraîchir l'icône en live) :
+```csharp
+GourdMap.refreshFlag.Invoke(prop.saveablePropName, GourdFlag.GourdState.Locked);
+```
+appelé pour chaque `RewardGourd.isVariantChallenge == true` trouvé via `FindObjectsByType<RewardGourd>()`.
+
+**Particularité par rapport aux Arch doors** : comme cet état n'est jamais persisté et est remis à `Hidden` à **chaque nouvelle instance de `GourdMap`** (donc à chaque chargement de zone, pas une seule fois par save), l'automatisation ne peut pas être un flag "une fois par save" — `Core/VariantGourdMapUnlocker.cs` (`MonoBehaviour` ajouté inconditionnellement, cf. `Plugin.Load()`) poll toutes les 2s (`WorldManager.isReadyForEffects` comme garde) et rappelle `Core/VariantGourdRevealer.RevealAll()` en continu. Pas besoin de garde `NetworkServer.active` : c'est un état d'affichage carte purement local/client, pas réseauté, pas persisté.
+
+**BUG SÉRIEUX TROUVÉ ET CORRIGÉ (2026-09-09) — freeze total du jeu lié à l'invocation directe d'un delegate Il2Cpp statique** :
+
+La toute première implémentation appelait directement `GourdMap.refreshFlag.Invoke(propName, GourdState.Locked)` (l'event statique `Action<SaveablePropName, GourdFlag.GourdState>` que le jeu utilise en interne pour rafraîchir l'icône en live). Deux freezes complets du jeu sont survenus dans la même session (aucune exception, aucun log, process "Responding" côté OS mais figé à l'écran, confirmé par le dialogue Windows "ne répond pas") — dans les deux cas, plusieurs dizaines de secondes *après* avoir révélé puis résolu un gourd violet, au premier alt-tab suivant.
+
+**Isolation par test A/B en jeu** (l'utilisateur a confirmé "ce problème ne survenait pas avant") :
+- Gourd normale (non-violette) résolue + alt-tab → aucun freeze.
+- Désactiver `VariantGourdMapUnlocker` (le polling) entièrement → freeze quand même reproduit sur une gourd violette révélée via le hotkey `Home` (qui appelle la même logique `Invoke()`) puis résolue.
+- Gourd violette découverte/résolue **sans jamais appeler `refreshFlag.Invoke()`** (jamais de `Home` pressé) + alt-tab → aucun freeze.
+
+Conclusion : ni le polling en lui-même, ni les gourds violettes en tant que telles ne posent problème — c'est spécifiquement l'appel `Invoke()` sur le delegate Il2Cpp statique qui corrompt un état interne (probablement côté interop IL2CPP) ne se manifestant qu'au retour de focus (alt-tab), sans trace exploitable dans aucun log.
+
+**Fix** : `VariantGourdRevealer.RevealAll()` ne touche plus jamais `GourdMap.refreshFlag`. Il trouve directement l'instance `GourdFlag` concernée (`FindObjectsByType<GourdFlag>()`, filtrée sur `gourdState == Hidden` et croisée avec les `RewardGourd.isVariantChallenge` trouvés) et appelle `GourdFlag.SetState(Locked)` **directement dessus** — un appel de méthode C# normal sur un composant, pas une invocation de delegate statique. C'est exactement ce que fait la méthode privée `GourdMap.RefreshFlag` en interne (elle aussi appelle `GourdFlag.SetState` directement, jamais via le delegate), donc tout aussi sûr côté jeu. Revalidé en jeu : plus aucun freeze sur plusieurs cycles révélation → résolution → alt-tab.
+
+**Leçon générale pour la suite du mod** : ne jamais appeler `.Invoke()` sur un champ de delegate Il2Cpp statique du jeu (même public) depuis du code managé externe — préférer systématiquement l'appel direct de la méthode d'instance sous-jacente quand elle est accessible, même si ça demande de retrouver l'instance concernée soi-même plutôt que de passer par l'event.
+
+**Validé en jeu (comportement final)** :
+- Icônes des gourds violettes bien visibles sur la carte dès le début, sans action manuelle (hotkey `Home` conservé pour déclenchement manuel via `Debug/DebugVariantGourdReveal.cs`).
+- Le prop physique lui-même est un `RewardGourd` tout à fait normal (`gourdState=Locked`, `actif=True`, pas de second verrou caché) — confirmé via F5 (`DebugGourdLookup.LogNearby`) à 3m d'un gourd violet.
+- Check détecté et reporté normalement après résolution physique (`[Check] gourdCharadesRooms`/`[Check] gourdSpeedObby` observés en jeu, pipeline `GourdStatePatch`/`SaveValuePatch`/`CheckTracker` inchangé).
+- Une fois un gourd violet résolu, son icône disparaît de la carte comme n'importe quel gourd classique — comportement normal, pas un bug.
+- Aucun freeze reproduit après le fix, sur plusieurs cycles de test avec alt-tab.
+
+## Arch doors / raccourcis du hub — ouverture automatique au premier lancement d'une save (implémenté le 2026-09-09)
+
+**Investigué et résolu.** Nom interne : pas "Arch" du tout — le composant réel s'appelle `HubGate` (`HubGate_Plinth`, `HubGate_Gate`, `HubGate_DoorPieceL/R1-3`, `HubGate_DoorBlocker_Left/Right`, `GateMainSystem`). Décision utilisateur : ces raccourcis n'ont pas d'intérêt à rester fermés pour un monde Archipelago (contrairement aux gourds/big keys, qui sont le vrai contenu randomisé) — donc ouverts automatiquement dès la première session sur une save.
+
+**Mécanisme découvert par décompilation Ghidra** (`TrackedPeckState.SetState`, `PeckDevHelper.Trigger`, `PeckRelay`, `PeckSwitch` — cf. script `BW_export/decompile_peck_chain.py`, sortie dans `BW_export/peck_chain_decompiled.txt`) :
+- `TrackedPeckState.SetState(PeckContext)` écrit `SaveManager.SetIntValue(key, compressedState)`, où `key` = `saveIdentity.saveGuid` si `savableSystem == NotSavable`, sinon **`Enum.ToString(savableSystem)`** (le nom de l'enum `SavableSystem` lui-même, littéralement, pas un GUID par instance).
+- `PeckDevHelper.Trigger(UnlockRules)` (cheat dev déjà intégré au jeu, probablement pour les tests internes de House House) : itère tous les `PeckDevHelper` chargés, et pour chacun dont les règles matchent (soit `unlockRules.Matches(rules)`, soit les champs simplifiés `fireWithUnlocks`/`fireWithLights`/`fireWithTrain`), appelle `PeckSwitch.Peck()` sur le `PeckSwitch` attaché au même GameObject — qui lit `trackedStateSystem` (référence assignée dans l'éditeur Unity, **pas nécessairement l'objet le plus proche visuellement**) et y appelle `SetState`.
+
+**Piège rencontré** : `Trigger(new UnlockRules { unlocks = true })` ouvre bien les Arch doors, mais broadcaste à *toute* la catégorie "unlocks" — confirmé par inspection directe de plusieurs fichiers `.sav` (`grep -o '"key":"[^"]*","value":[0-9-]*'` sur le JSON) : persiste aussi `EndingGate=1` et les 7 `FmStation*`/4 `LookoutLight*` à `1`, en plus des 3 clés hub voulues. Le "ça se referme après reload" observé au premier test visuel était trompeur — en fait seule une partie de l'effet est purement visuel/transitoire (les switches sans catégorie "hub"), le reste (les 3 clés hub + accessoirement Ending/FmStations/LookoutLights) est bien persisté.
+
+**Solution retenue** : écriture directe des clés `SaveManager`, sans jamais appeler `PeckDevHelper.Trigger` ni toucher un objet vivant — même philosophie que `ItemApplier` pour les gourds/big keys. Confirmé par test A/B sur plusieurs saves fraîches passées uniquement par le hook automatique (pas de F11 manuel mélangé) : `Trigger(unlocks:true)` écrit ensemble exactement `SpawnHubGate`, `HubTunnel`, `HubShortcutToSportsCreek` (jamais `EndingGate`/`FmStation*`/`LookoutLight*` dans ce sous-ensemble précis — ces 3 sont la vraie catégorie "raccourcis hub"). `Core/ArchDoorUnlocker.cs` écrit donc directement :
+```csharp
+SaveManager.SetIntValue("SpawnHubGate", 1);
+SaveManager.SetIntValue("HubTunnel", 1);
+SaveManager.SetIntValue("HubShortcutToSportsCreek", 1);
+```
+**Comportement confirmé en jeu** : contrairement à `Trigger()` (effet visuel immédiat via la vraie mécanique Peck), une écriture `SaveManager` brute seule n'ouvre rien en direct dans la session courante — il faut un rechargement complet pour que la restauration au chargement (mécanisme non identifié précisément, probablement l'équivalent de `Prop.Start()` mais pour `TrackedPeckState`) relise la valeur et ouvre réellement la porte. Validé : après redémarrage complet, les 3 raccourcis du hub sont ouverts, aucune autre clé (FmStations/LookoutLights) n'a été touchée.
+
+**RÉSOLU pour l'effet en direct (2026-09-09)** : `Core/ArchDoorUnlocker.cs` cherche maintenant, pour chacune des 3 clés, le `TrackedPeckState` correspondant réellement chargé en scène (`FindObjectsByType<TrackedPeckState>()`, filtré sur `savableSystem == clé`) et appelle `SetState(1)` dessus directement (même écriture `SaveManager` en interne, confirmée par Ghidra, mais déclenche aussi les callbacks visuels/d'animation — sans le broadcast large de `Trigger()`). Si l'objet n'est pas chargé dans la zone actuelle, fallback sur l'écriture `SaveManager` brute seule (même philosophie que `ItemApplier.TryApplyLiveEffect` pour les gourds/big keys) : la restauration au chargement prendra le relais au prochain reload. Validé en jeu : les 3 raccourcis s'ouvrent immédiatement, dans la session même où la save est créée, sans reload.
+
+**Timing du hook** : `WorldManager.OnWorldManagerStart` (event statique) et `WorldManager.instance.onLocalPlayerCharcterStart` se déclenchent tous les deux **trop tôt** (avant que le "peck manager" du jeu existe — confirmé en jeu par une rafale de logs `no peck manager instance. this is maybe too early` juste après le déclenchement, bien avant `"[id] World Started"`/`"world manager started"`). Sans incidence pour une écriture `SaveManager` brute (ça n'a pas besoin du peck manager), mais le composant final utilise quand même `WorldManager.isReadyForEffects` (propriété statique du jeu, conçue pour signaler "sûr de déclencher des effets") en polling dans `Update()`, par prudence/cohérence.
+
+**Outils de debug ajoutés en cours de route** (`Debug/DebugComponentLookup.cs`, `Debug/DebugPeckDevHelper.cs`, `Debug/DebugTrackedPeckStateLookup.cs`, `Debug/DebugPeckSwitchTarget.cs`, touches F9-F12/Insert/Delete) : utiles pour toute investigation future d'un mécanisme de scène sans classe C# dédiée trouvable par nom — approche qui a fonctionné ici après plusieurs fausses pistes (recherche par mot-clé sur les composants proches, puis inspection des champs `PeckDevHelper.unlockRules`/`fireWith*`, puis `TrackedPeckState.savableSystem`/`saveIdentity`, puis `PeckSwitch.trackedStateSystem` — la référence Unity assignée dans l'éditeur, pas déductible par proximité).
 
 ## Fichiers de référence
 

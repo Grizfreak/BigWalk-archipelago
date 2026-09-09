@@ -30,5 +30,17 @@ namespace BigWalkArchipelago.Debug
                 $"[{nameof(DebugItemSimulator)}] Simulation de réception d'item : {prop.saveablePropName}");
             ItemApplier.ApplyGourdItem(prop.saveablePropName);
         }
+
+        // Cible directement une SaveablePropName précise, sans passer par
+        // FindNearestUncollectedProp : utile pour tester une big key qui n'est
+        // pas dans la zone actuellement chargée (téléphérique/train, cf.
+        // big-walk-archipelago-notes.md "À tester" du 2026-09-09), ou dont on
+        // veut forcer l'application peu importe la proximité du joueur.
+        internal static void SimulateReceive(SaveablePropName propName)
+        {
+            Plugin.Log.LogInfo(
+                $"[{nameof(DebugItemSimulator)}] Simulation de réception d'item (ciblée) : {propName}");
+            ItemApplier.ApplyGourdItem(propName);
+        }
     }
 }

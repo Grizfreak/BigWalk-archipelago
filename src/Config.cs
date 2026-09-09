@@ -17,6 +17,15 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> SimulateReceivedItemKey;
         internal static ConfigEntry<KeyboardShortcut> DumpNearbyKey;
         internal static ConfigEntry<KeyboardShortcut> DumpMonumentHomesKey;
+        internal static ConfigEntry<KeyboardShortcut> SimulateGreenZoneKeyKey;
+        internal static ConfigEntry<KeyboardShortcut> SimulateBlueZoneKeyKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpNearbyKeywordKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpNearbyPeckDevHelperKey;
+        internal static ConfigEntry<KeyboardShortcut> TriggerUnlocksKey;
+        internal static ConfigEntry<KeyboardShortcut> TriggerGourdKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpSpawnHubGateKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpPeckSwitchTargetKey;
+        internal static ConfigEntry<KeyboardShortcut> RevealVariantGourdsKey;
 
         internal static void Bind(ConfigFile file)
         {
@@ -55,6 +64,60 @@ namespace BigWalkArchipelago
                 "DumpMonumentHomesKey",
                 new KeyboardShortcut(KeyCode.F6),
                 "Logue tous les PropHome 'monoument*' réellement enregistrés dans la zone actuelle, avec leur état de remplissage (n'a d'effet que si Debug.Enabled est actif).");
+
+            SimulateGreenZoneKeyKey = file.Bind(
+                "Debug",
+                "SimulateGreenZoneKeyKey",
+                new KeyboardShortcut(KeyCode.F7),
+                "Simule la réception directe de bigKeyGreenZone (téléphérique), sans recherche du prop le plus proche (n'a d'effet que si Debug.Enabled est actif).");
+
+            SimulateBlueZoneKeyKey = file.Bind(
+                "Debug",
+                "SimulateBlueZoneKeyKey",
+                new KeyboardShortcut(KeyCode.F8),
+                "Simule la réception directe de bigKeyBlueZone (train), sans recherche du prop le plus proche (n'a d'effet que si Debug.Enabled est actif).");
+
+            DumpNearbyKeywordKey = file.Bind(
+                "Debug",
+                "DumpNearbyKeywordKey",
+                new KeyboardShortcut(KeyCode.F9),
+                "Logue les GameObjects proches (nom ou composant contenant 'arch'/'door'/'switch'/'button'/'gate'/'peck'/'shortcut') avec leurs composants — diagnostic générique pour identifier un mécanisme sans classe C# dédiée connue (n'a d'effet que si Debug.Enabled est actif).");
+
+            DumpNearbyPeckDevHelperKey = file.Bind(
+                "Debug",
+                "DumpNearbyPeckDevHelperKey",
+                new KeyboardShortcut(KeyCode.F10),
+                "Logue les PeckDevHelper proches avec leur UnlockRules assigné (unlocks/lights/chairlift/train/bell/tunnel/map/gourd) — diagnostic pour savoir quelle règle déclenche quel switch de triche (n'a d'effet que si Debug.Enabled est actif).");
+
+            TriggerUnlocksKey = file.Bind(
+                "Debug",
+                "TriggerUnlocksKey",
+                new KeyboardShortcut(KeyCode.F11),
+                "Appelle PeckDevHelper.Trigger avec UnlockRules.unlocks=true (cheat déjà intégré au jeu) — test pour les Arch doors/HubGate (n'a d'effet que si Debug.Enabled est actif).");
+
+            TriggerGourdKey = file.Bind(
+                "Debug",
+                "TriggerGourdKey",
+                new KeyboardShortcut(KeyCode.F12),
+                "Appelle PeckDevHelper.Trigger avec UnlockRules.gourd=true (cheat déjà intégré au jeu) — test pour les gourds violettes/variant challenges, normalement débloquées après une première fin de partie (n'a d'effet que si Debug.Enabled est actif).");
+
+            DumpSpawnHubGateKey = file.Bind(
+                "Debug",
+                "DumpSpawnHubGateKey",
+                new KeyboardShortcut(KeyCode.Insert),
+                "Logue tous les TrackedPeckState de catégorie SpawnHubGate (les 3 Arch doors) avec leur SaveIdentity.saveGuid et la valeur SaveManager actuelle — diagnostic pour cibler directement ces 3 portes sans passer par PeckDevHelper.Trigger (n'a d'effet que si Debug.Enabled est actif).");
+
+            DumpPeckSwitchTargetKey = file.Bind(
+                "Debug",
+                "DumpPeckSwitchTargetKey",
+                new KeyboardShortcut(KeyCode.Delete),
+                "Logue tous les PeckSwitch proches avec leur trackedStateSystem réel (le vrai TrackedPeckState modifié au peck, pas une supposition) et la clé SaveManager correspondante (n'a d'effet que si Debug.Enabled est actif).");
+
+            RevealVariantGourdsKey = file.Bind(
+                "Debug",
+                "RevealVariantGourdsKey",
+                new KeyboardShortcut(KeyCode.Home),
+                "Révèle sur la carte tous les gourds 'variant challenge' (violettes/postgame) de la zone chargée, via GourdMap.refreshFlag (n'a d'effet que si Debug.Enabled est actif).");
         }
     }
 }

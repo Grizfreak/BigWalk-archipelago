@@ -44,6 +44,9 @@ namespace BigWalkArchipelago
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll();
 
+            AddComponent<Core.ArchDoorUnlocker>();
+            AddComponent<Core.VariantGourdMapUnlocker>();
+
             if (ModConfig.DebugModeEnabled.Value)
             {
                 AddComponent<Debug.DebugHotkeys>();

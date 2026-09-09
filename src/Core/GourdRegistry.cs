@@ -30,6 +30,20 @@ namespace BigWalkArchipelago.Core
             { SaveablePropName.bigKeyOverflow, SaveableHomeName.bigKeyPlinthGoodbye2 },
         };
 
+        // 3 gourds dont le valet correspondant n'est PAS la substitution
+        // naïve "gourd"->"valet" : faute de frappe côté jeu lui-même entre les
+        // deux enums (trouvé en comparant les 58 paires une par une, cf.
+        // big-walk-archipelago-notes.md, session du 2026-09-07). Sans cette
+        // table, TryGetHomeName échoue silencieusement pour ces 3 gourds
+        // (Enum.TryParse ne trouve pas le nom généré) et ItemApplier ignore
+        // l'item correspondant.
+        private static readonly Dictionary<SaveablePropName, SaveableHomeName> GourdHomeNameExceptions = new()
+        {
+            { SaveablePropName.gourdCenturonSong, SaveableHomeName.valetCenturionSong },
+            { SaveablePropName.gourdSingerAndSelecter, SaveableHomeName.valetSingerAndSelector },
+            { SaveablePropName.gourdDancerAndSelecter, SaveableHomeName.valetDancerAndSelector },
+        };
+
         internal static bool TryGetLocationId(SaveablePropName propName, out string locationId)
         {
             return LocationIdsByProp.TryGetValue(propName, out locationId);
@@ -44,6 +58,9 @@ namespace BigWalkArchipelago.Core
         internal static bool TryGetHomeName(SaveablePropName propName, out SaveableHomeName homeName)
         {
             if (BigKeyHomesByProp.TryGetValue(propName, out homeName))
+                return true;
+
+            if (GourdHomeNameExceptions.TryGetValue(propName, out homeName))
                 return true;
 
             var name = propName.ToString();

@@ -29,6 +29,33 @@ namespace BigWalkArchipelago.Debug
 
             if (ModConfig.DumpMonumentHomesKey.Value.IsDown())
                 DebugGourdLookup.LogMonumentHomes();
+
+            if (ModConfig.SimulateGreenZoneKeyKey.Value.IsDown())
+                DebugItemSimulator.SimulateReceive(SaveablePropName.bigKeyGreenZone);
+
+            if (ModConfig.SimulateBlueZoneKeyKey.Value.IsDown())
+                DebugItemSimulator.SimulateReceive(SaveablePropName.bigKeyBlueZone);
+
+            if (ModConfig.DumpNearbyKeywordKey.Value.IsDown())
+                DebugComponentLookup.DumpNearbyByKeyword(30f);
+
+            if (ModConfig.DumpNearbyPeckDevHelperKey.Value.IsDown())
+                DebugPeckDevHelper.DumpNearby(30f);
+
+            if (ModConfig.TriggerUnlocksKey.Value.IsDown())
+                DebugPeckDevHelper.Trigger(new PeckDevHelper.UnlockRules { unlocks = true });
+
+            if (ModConfig.TriggerGourdKey.Value.IsDown())
+                DebugPeckDevHelper.Trigger(new PeckDevHelper.UnlockRules { gourd = true });
+
+            if (ModConfig.DumpSpawnHubGateKey.Value.IsDown())
+                DebugTrackedPeckStateLookup.DumpSpawnHubGate();
+
+            if (ModConfig.DumpPeckSwitchTargetKey.Value.IsDown())
+                DebugPeckSwitchTarget.DumpNearby(30f);
+
+            if (ModConfig.RevealVariantGourdsKey.Value.IsDown())
+                DebugVariantGourdReveal.RevealAll();
         }
     }
 }
