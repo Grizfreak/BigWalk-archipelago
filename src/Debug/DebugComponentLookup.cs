@@ -18,7 +18,7 @@ namespace BigWalkArchipelago.Debug
     // sans deviner à l'aveugle via Ghidra.
     internal static class DebugComponentLookup
     {
-        private static readonly string[] DefaultKeywords = { "arch", "door", "switch", "button", "gate", "peck", "shortcut" };
+        private static readonly string[] DefaultKeywords = { "arch", "door", "switch", "button", "gate", "peck", "shortcut", "bell", "chime", "gong", "cowbell", "sphere", "orb", "void", "block", "barrier", "wall", "unlock", "skip", "proven", "reward", "postgame", "complet" };
 
         internal static void DumpNearbyByKeyword(float radius)
         {

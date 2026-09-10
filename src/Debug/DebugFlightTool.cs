@@ -8,6 +8,8 @@ namespace BigWalkArchipelago.Debug
     internal static class DebugFlightTool
     {
         private static bool _active;
+        private static float _originalMovingSpeed;
+        private static bool _hasOriginalMovingSpeed;
 
         internal static bool IsActive => _active;
 
@@ -36,9 +38,27 @@ namespace BigWalkArchipelago.Debug
 
             _active = !_active;
             if (_active)
+            {
                 cameraCheatMover.Detach();
+
+                // movingSpeed est ré-appliqué à chaque activation (pas une
+                // seule fois à l'Awake du jeu) pour suivre les changements de
+                // valeur du multiplicateur en config sans relancer le jeu.
+                if (!_hasOriginalMovingSpeed)
+                {
+                    _originalMovingSpeed = cameraCheatMover.movingSpeed;
+                    _hasOriginalMovingSpeed = true;
+                }
+
+                cameraCheatMover.movingSpeed = _originalMovingSpeed * ModConfig.FlightSpeedMultiplier.Value;
+            }
             else
+            {
                 cameraCheatMover.Attach();
+
+                if (_hasOriginalMovingSpeed)
+                    cameraCheatMover.movingSpeed = _originalMovingSpeed;
+            }
 
             Plugin.Log.LogInfo($"[{nameof(DebugFlightTool)}] Caméra libre {(_active ? "activée" : "désactivée")}.");
         }

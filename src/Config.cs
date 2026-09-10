@@ -17,8 +17,8 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> SimulateReceivedItemKey;
         internal static ConfigEntry<KeyboardShortcut> DumpNearbyKey;
         internal static ConfigEntry<KeyboardShortcut> DumpMonumentHomesKey;
-        internal static ConfigEntry<KeyboardShortcut> SimulateGreenZoneKeyKey;
-        internal static ConfigEntry<KeyboardShortcut> SimulateBlueZoneKeyKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpNearbyCombinatorKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpAllSaveEntriesKey;
         internal static ConfigEntry<KeyboardShortcut> DumpNearbyKeywordKey;
         internal static ConfigEntry<KeyboardShortcut> DumpNearbyPeckDevHelperKey;
         internal static ConfigEntry<KeyboardShortcut> TriggerUnlocksKey;
@@ -26,6 +26,11 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> DumpSpawnHubGateKey;
         internal static ConfigEntry<KeyboardShortcut> DumpPeckSwitchTargetKey;
         internal static ConfigEntry<KeyboardShortcut> RevealVariantGourdsKey;
+        internal static ConfigEntry<KeyboardShortcut> FireRemotePeckSwitchKey;
+        internal static ConfigEntry<string> RemotePeckSwitchName;
+        internal static ConfigEntry<float> FlightSpeedMultiplier;
+        internal static ConfigEntry<KeyboardShortcut> ForceNearbyCombinatorKey;
+        internal static ConfigEntry<KeyboardShortcut> ForceEndingFlagsKey;
 
         internal static void Bind(ConfigFile file)
         {
@@ -65,17 +70,17 @@ namespace BigWalkArchipelago
                 new KeyboardShortcut(KeyCode.F6),
                 "Logue tous les PropHome 'monoument*' réellement enregistrés dans la zone actuelle, avec leur état de remplissage (n'a d'effet que si Debug.Enabled est actif).");
 
-            SimulateGreenZoneKeyKey = file.Bind(
+            DumpNearbyCombinatorKey = file.Bind(
                 "Debug",
-                "SimulateGreenZoneKeyKey",
+                "DumpNearbyCombinatorKey",
                 new KeyboardShortcut(KeyCode.F7),
-                "Simule la réception directe de bigKeyGreenZone (téléphérique), sans recherche du prop le plus proche (n'a d'effet que si Debug.Enabled est actif).");
+                "Logue les PeckCombinator proches (directControlSystem, onConditionMet/onConditionStop, règles avec systems[]/minimumMatches) — diagnostic pour les mécanismes à conditions combinées (ex. deux boutons pressés simultanément) (n'a d'effet que si Debug.Enabled est actif).");
 
-            SimulateBlueZoneKeyKey = file.Bind(
+            DumpAllSaveEntriesKey = file.Bind(
                 "Debug",
-                "SimulateBlueZoneKeyKey",
+                "DumpAllSaveEntriesKey",
                 new KeyboardShortcut(KeyCode.F8),
-                "Simule la réception directe de bigKeyBlueZone (train), sans recherche du prop le plus proche (n'a d'effet que si Debug.Enabled est actif).");
+                "Logue toutes les entrées int de SaveManager.currentData.entries — pour diffé avant/après une action en jeu et trouver la vraie clé sans deviner via le graphe Peck (n'a d'effet que si Debug.Enabled est actif).");
 
             DumpNearbyKeywordKey = file.Bind(
                 "Debug",
@@ -118,6 +123,36 @@ namespace BigWalkArchipelago
                 "RevealVariantGourdsKey",
                 new KeyboardShortcut(KeyCode.Home),
                 "Révèle sur la carte tous les gourds 'variant challenge' (violettes/postgame) de la zone chargée, via GourdMap.refreshFlag (n'a d'effet que si Debug.Enabled est actif).");
+
+            RemotePeckSwitchName = file.Bind(
+                "Debug",
+                "RemotePeckSwitchName",
+                "",
+                "Sous-chaîne (insensible à la casse) du nom du GameObject dont le PeckSwitch doit être déclenché à distance par FireRemotePeckSwitchKey — repérer le nom via F9/Delete au préalable. Vide = rien ne se déclenche.");
+
+            FlightSpeedMultiplier = file.Bind(
+                "Debug",
+                "FlightSpeedMultiplier",
+                4f,
+                "Multiplicateur appliqué à CameraCheatMover.movingSpeed quand la caméra libre est activée (touche ToggleFlightKey) — 1 = vitesse vanilla du cheat caméra du jeu.");
+
+            FireRemotePeckSwitchKey = file.Bind(
+                "Debug",
+                "FireRemotePeckSwitchKey",
+                new KeyboardShortcut(KeyCode.PageUp),
+                "Déclenche à distance (PeckSwitch.Peck(), sans avoir à s'y tenir devant) tous les PeckSwitch de la zone dont le nom contient RemotePeckSwitchName — pour tester seul un mécanisme prévu pour 2 joueurs (n'a d'effet que si Debug.Enabled est actif).");
+
+            ForceNearbyCombinatorKey = file.Bind(
+                "Debug",
+                "ForceNearbyCombinatorKey",
+                new KeyboardShortcut(KeyCode.End),
+                "Force directement (TrackedPeckState.SetState, pas de simulation de bouton) l'état de tous les systems[]/block.systems[] des PeckCombinator à moins de 30m à leur desiredState — pour satisfaire seul une condition 'N joueurs simultanés' (ex. cloches N-hold) sans dépendre du système d'appui/maintien (n'a d'effet que si Debug.Enabled est actif).");
+
+            ForceEndingFlagsKey = file.Bind(
+                "Debug",
+                "ForceEndingFlagsKey",
+                new KeyboardShortcut(KeyCode.PageDown),
+                "Force à distance les 7 big keys (via ItemApplier) + SaveManager[EndingGate]=1 + SaveManager[GauntletComplete]=1 d'un coup — pour tester si la sphère noire du hub réagit à cette combinaison de flags sans avoir à tout refaire en vrai. À utiliser sur une save n'ayant jamais vu l'écran de fin (n'a d'effet que si Debug.Enabled est actif).");
         }
     }
 }
