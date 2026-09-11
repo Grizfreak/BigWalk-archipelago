@@ -31,6 +31,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<float> FlightSpeedMultiplier;
         internal static ConfigEntry<KeyboardShortcut> ForceNearbyCombinatorKey;
         internal static ConfigEntry<KeyboardShortcut> ForceEndingFlagsKey;
+        internal static ConfigEntry<KeyboardShortcut> ApplyBigKeyOverflowKey;
 
         internal static void Bind(ConfigFile file)
         {
@@ -153,6 +154,12 @@ namespace BigWalkArchipelago
                 "ForceEndingFlagsKey",
                 new KeyboardShortcut(KeyCode.PageDown),
                 "Force à distance les 7 big keys (via ItemApplier) + SaveManager[EndingGate]=1 + SaveManager[GauntletComplete]=1 d'un coup — pour tester si la sphère noire du hub réagit à cette combinaison de flags sans avoir à tout refaire en vrai. À utiliser sur une save n'ayant jamais vu l'écran de fin (n'a d'effet que si Debug.Enabled est actif).");
+
+            ApplyBigKeyOverflowKey = file.Bind(
+                "Debug",
+                "ApplyBigKeyOverflowKey",
+                new KeyboardShortcut(KeyCode.O),
+                "Applique uniquement bigKeyOverflow (via ItemApplier.ApplyGourdItem, donc pin live réel sur bigKeyPlinthGoodbye2) — test isolé (une seule variable, contrairement à ForceEndingFlagsKey) de l'hypothèse 2026-09-11 : la plinthe bigKeyPlinthGoodbye2 est juste derrière la sphère noire du hub, peut-être le vrai déclencheur de OpenSystem/PropHomeBlock plutôt qu'une notion de 'jeu déjà fini' (n'a d'effet que si Debug.Enabled est actif).");
         }
     }
 }

@@ -46,6 +46,7 @@ namespace BigWalkArchipelago
 
             AddComponent<Core.ArchDoorUnlocker>();
             AddComponent<Core.VariantGourdMapUnlocker>();
+            AddComponent<Core.SecondEndingSphereUnlocker>();
 
             if (ModConfig.DebugModeEnabled.Value)
             {

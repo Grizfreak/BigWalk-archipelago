@@ -65,6 +65,9 @@ namespace BigWalkArchipelago.Debug
 
             if (ModConfig.ForceEndingFlagsKey.Value.IsDown())
                 DebugForceEndingFlags.ForceAll();
+
+            if (ModConfig.ApplyBigKeyOverflowKey.Value.IsDown())
+                DebugItemSimulator.SimulateReceive(SaveablePropName.bigKeyOverflow);
         }
     }
 }
