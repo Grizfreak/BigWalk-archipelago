@@ -89,7 +89,7 @@ namespace BigWalkArchipelago.Debug
 
             foreach (var home in PropHome.allPropHomes)
             {
-                if (home == null || home.pinnedProp != null)
+                if (home == null || home.pinnedProp != null || !ReceivedItemSpawner.IsMonumentHome(home))
                     continue;
 
                 var sqrDistance = (home.transform.position - origin).sqrMagnitude;

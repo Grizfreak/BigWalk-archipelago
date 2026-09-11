@@ -27,12 +27,28 @@ namespace BigWalkArchipelago.Core
     // les clés `SaveablePropName`/`SaveableHomeName` que le jeu écrit pour
     // de vrai.
     //
-    // Détection du pin : PropHome.onAnyChangeServer est un event STATIQUE
-    // GLOBAL du jeu (pas un Harmony patch — le jeu expose déjà ce point
-    // d'extension), déclenché pour CHAQUE changement de pin, dans tous les
-    // PropHome du jeu. Un clone cosmétique est reconnu sans ambiguïté par
-    // saveablePropName == notSavable (jamais vrai pour un prop normal du
-    // jeu) + le suffixe de nom (double vérification, peu coûteuse).
+    // Détection du pin — confirmé en test le 2026-09-11 : PropHome.
+    // onAnyChangeServer (event STATIQUE global) ne se déclenche JAMAIS pour
+    // un pin fait via Prop.ServerSetPinned (vérifié : abonnement réussi,
+    // mais aucun déclenchement malgré un pin par ailleurs confirmé réussi
+    // dans les logs) — probablement un champ mort/jamais câblé par le jeu.
+    // Le vrai signal est `PropHome.onChangeServer`, la version PAR-INSTANCE
+    // du même type d'event (`onPinServer`, un Action<Prop> plus simple,
+    // marche aussi mais ne couvre pas le dépin) — il faut s'abonner
+    // individuellement sur CHAQUE PropHome chargé (pas de version globale
+    // qui fonctionne), fait une fois via SubscribeToAllHomes(). Un clone
+    // cosmétique est reconnu sans ambiguïté par saveablePropName ==
+    // notSavable (jamais vrai pour un prop normal du jeu) + le suffixe de
+    // nom (double vérification, peu coûteuse).
+    //
+    // PropHome est aussi utilisé pour des emplacements portés par le joueur
+    // (ex. une "ceinture" d'inventaire, saveableHomeName == notSavable,
+    // toujours à distance ~0 puisqu'attachée au personnage) — pas seulement
+    // les monuments. Filtré via ReceivedItemSpawner.IsMonumentHome
+    // (préfixe "monoument") pour ne jamais persister/restaurer un pin dans
+    // un emplacement de ce type (repéré en testant DebugCosmeticPinForce
+    // sans ce filtre : un gourd cosmétique s'est retrouvé épinglé dans une
+    // "ceinture" au lieu d'un monument).
     //
     // Restauration au chargement : timing calqué sur ArchDoorUnlocker
     // (poll sur WorldManager.isReadyForEffects), UNE SEULE FOIS par
@@ -60,14 +76,14 @@ namespace BigWalkArchipelago.Core
             if (!NetworkServer.active || !WorldManager.isReadyForEffects)
                 return;
 
-            // L'abonnement à l'event global ne dépend d'aucune zone
-            // chargée : fait une seule fois pour toute la durée du process
-            // (pas de désabonnement nécessaire, ce composant vit aussi
-            // longtemps que la session).
+            // L'abonnement ne dépend d'aucune zone chargée : fait une
+            // seule fois pour toute la durée du process (pas de
+            // désabonnement nécessaire, ce composant vit aussi longtemps
+            // que la session).
             if (!_subscribed)
             {
-                PropHome.onAnyChangeServer += (Action<PropHome, Prop, Prop>)OnAnyPropHomeChanged;
                 _subscribed = true;
+                SubscribeToAllHomes();
             }
 
             if (_restored)
@@ -77,9 +93,28 @@ namespace BigWalkArchipelago.Core
             RestoreFilledHomes();
         }
 
-        private static void OnAnyPropHomeChanged(PropHome propHome, Prop propBefore, Prop propAfter)
+        private static void SubscribeToAllHomes()
         {
-            if (propHome == null)
+            var homes = PropHome.allPropHomes;
+            if (homes == null || homes.Count == 0)
+                return;
+
+            var count = 0;
+            foreach (var home in homes)
+            {
+                if (home == null)
+                    continue;
+
+                home.onChangeServer += (Action<PropHome, Prop, Prop>)OnHomeChanged;
+                count++;
+            }
+
+            Plugin.Log.LogInfo($"[{nameof(CosmeticMonumentFillTracker)}] Abonné à onChangeServer sur {count} PropHome.");
+        }
+
+        private static void OnHomeChanged(PropHome propHome, Prop propBefore, Prop propAfter)
+        {
+            if (propHome == null || !ReceivedItemSpawner.IsMonumentHome(propHome))
                 return;
 
             // Règle unique qui couvre pin/dépin/remplacement : la clé
@@ -112,7 +147,7 @@ namespace BigWalkArchipelago.Core
                 // Ne jamais écraser un home déjà occupé (par un vrai gourd
                 // normalement restauré par Prop.Start(), ou déjà par un
                 // clone restauré plus tôt dans cette même passe).
-                if (home == null || home.pinnedProp != null)
+                if (home == null || home.pinnedProp != null || !ReceivedItemSpawner.IsMonumentHome(home))
                     continue;
 
                 var key = SaveKeyPrefix + home.saveableHomeName;

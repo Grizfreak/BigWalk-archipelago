@@ -269,6 +269,24 @@ namespace BigWalkArchipelago.Core
                 && prop.gameObject.name.Contains(CosmeticNameSuffix, StringComparison.Ordinal);
         }
 
+        // Trouvé en test le 2026-09-11 : PropHome est un concept générique du
+        // jeu, réutilisé aussi pour des emplacements portés par le joueur
+        // (ex. une "ceinture" d'inventaire, saveableHomeName == notSavable,
+        // toujours à distance ~0 du joueur puisqu'attachée à son propre
+        // personnage) — pas seulement les monuments. DebugCosmeticPinForce
+        // avait pris le PropHome vide le plus proche SANS ce filtre, et a
+        // épinglé un gourd cosmétique dans une "ceinture" au lieu d'un vrai
+        // monument (log : "épinglé dans notSavable"). Tous les vrais
+        // emplacements de monument (`SaveableHomeName`) commencent par le
+        // préfixe "monoument" (monoumentIntro/monoument0-3Slot.../
+        // monoumentFinalSlot.../monoumentOverflowSlot..., cf. l'enum) —
+        // filtre partagé pour ne jamais reproduire cette confusion.
+        internal static bool IsMonumentHome(PropHome home)
+        {
+            return home != null
+                && home.saveableHomeName.ToString().StartsWith("monoument", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static MethodInfo GetPrivatePropertySetter<T>(string propertyName)
         {
             return typeof(T)
