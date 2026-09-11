@@ -58,6 +58,11 @@ namespace BigWalkArchipelago.Core
 
             TryApplyLiveEffect(propName, homeName);
 
+            // Purement cosmétique/notification (cf. ReceivedItemSpawner) :
+            // la vraie persistance ci-dessus est déjà faite, un échec ici
+            // ne doit avoir aucune conséquence sur elle.
+            ReceivedItemSpawner.SpawnCosmeticPickup();
+
             Plugin.Log.LogInfo($"[{nameof(ItemApplier)}] Item appliqué : {propName} -> {homeName}.");
             return true;
         }

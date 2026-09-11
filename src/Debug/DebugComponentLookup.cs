@@ -30,7 +30,7 @@ namespace BigWalkArchipelago.Debug
     // objets appartiennent au même assemblage scène — d'où l'ajout ci-dessous.
     internal static class DebugComponentLookup
     {
-        private static readonly string[] DefaultKeywords = { "arch", "door", "switch", "button", "gate", "peck", "shortcut", "bell", "chime", "gong", "cowbell", "sphere", "orb", "void", "block", "barrier", "wall", "unlock", "skip", "proven", "reward", "postgame", "complet", "second", "ending" };
+        private static readonly string[] DefaultKeywords = { "arch", "door", "switch", "button", "gate", "peck", "shortcut", "bell", "chime", "gong", "cowbell", "sphere", "orb", "void", "block", "barrier", "wall", "unlock", "skip", "proven", "reward", "postgame", "complet", "second", "ending", "cosmetic" };
 
         internal static void DumpNearbyByKeyword(float radius)
         {

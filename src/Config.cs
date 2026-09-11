@@ -32,6 +32,9 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> ForceNearbyCombinatorKey;
         internal static ConfigEntry<KeyboardShortcut> ForceEndingFlagsKey;
         internal static ConfigEntry<KeyboardShortcut> ApplyBigKeyOverflowKey;
+        internal static ConfigEntry<KeyboardShortcut> SpawnCosmeticPickupKey;
+        internal static ConfigEntry<KeyboardShortcut> ToggleNeverCullKey;
+        internal static ConfigEntry<KeyboardShortcut> ForceCosmeticPinKey;
 
         internal static void Bind(ConfigFile file)
         {
@@ -160,6 +163,24 @@ namespace BigWalkArchipelago
                 "ApplyBigKeyOverflowKey",
                 new KeyboardShortcut(KeyCode.O),
                 "Applique uniquement bigKeyOverflow (via ItemApplier.ApplyGourdItem, donc pin live réel sur bigKeyPlinthGoodbye2) — test isolé (une seule variable, contrairement à ForceEndingFlagsKey) de l'hypothèse 2026-09-11 : la plinthe bigKeyPlinthGoodbye2 est juste derrière la sphère noire du hub, peut-être le vrai déclencheur de OpenSystem/PropHomeBlock plutôt qu'une notion de 'jeu déjà fini' (n'a d'effet que si Debug.Enabled est actif).");
+
+            SpawnCosmeticPickupKey = file.Bind(
+                "Debug",
+                "SpawnCosmeticPickupKey",
+                new KeyboardShortcut(KeyCode.P),
+                "Déclenche ReceivedItemSpawner.SpawnCosmeticPickup() directement (sans passer par un vrai item), pour tester isolément le clonage/spawn réseau du gourd cosmétique au hub (n'a d'effet que si Debug.Enabled est actif).");
+
+            ToggleNeverCullKey = file.Bind(
+                "Debug",
+                "ToggleNeverCullKey",
+                new KeyboardShortcut(KeyCode.C),
+                "Bascule CullingAgent.Instance.neverCull (cheat dev déjà intégré au jeu) — test isolé de l'hypothèse 2026-09-11 : le gourd cosmétique spawné par P reste invisible malgré tous les indicateurs Unity au vert (enabled/isVisible/observers), peut-être à cause du système de culling par région propre au jeu, qui ignorerait un objet jamais enregistré dans aucune CullingRegion (n'a d'effet que si Debug.Enabled est actif).");
+
+            ForceCosmeticPinKey = file.Bind(
+                "Debug",
+                "ForceCosmeticPinKey",
+                new KeyboardShortcut(KeyCode.N),
+                "Épingle directement (Prop.ServerSetPinned, sans passer par l'interaction manuelle/maintien) le gourd cosmétique le plus proche dans le PropHome vide le plus proche (30m) — pour tester CosmeticMonumentFillTracker sans avoir à refaire l'interaction de dépôt en vrai (n'a d'effet que si Debug.Enabled est actif).");
         }
     }
 }
