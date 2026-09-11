@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
 
@@ -29,36 +30,27 @@ namespace BigWalkArchipelago.Core
     //
     // Détection du pin — confirmé en test le 2026-09-11 : PropHome.
     // onAnyChangeServer (event STATIQUE global) ne se déclenche JAMAIS pour
-    // un pin fait via Prop.ServerSetPinned (vérifié : abonnement réussi,
-    // mais aucun déclenchement malgré un pin par ailleurs confirmé réussi
-    // dans les logs) — probablement un champ mort/jamais câblé par le jeu.
-    // Le vrai signal est `PropHome.onChangeServer`, la version PAR-INSTANCE
-    // du même type d'event (`onPinServer`, un Action<Prop> plus simple,
-    // marche aussi mais ne couvre pas le dépin) — il faut s'abonner
-    // individuellement sur CHAQUE PropHome chargé (pas de version globale
-    // qui fonctionne), fait une fois via SubscribeToAllHomes(). Un clone
-    // cosmétique est reconnu sans ambiguïté par saveablePropName ==
-    // notSavable (jamais vrai pour un prop normal du jeu) + le suffixe de
-    // nom (double vérification, peu coûteuse).
+    // un pin fait via Prop.ServerSetPinned — le vrai signal est PropHome.
+    // onChangeServer, la version PAR-INSTANCE du même type d'event, à
+    // laquelle il faut s'abonner individuellement sur CHAQUE PropHome.
+    //
+    // Abonnement par instance (2ème correction, même session) : un premier
+    // essai scannait `PropHome.allPropHomes` UNE SEULE FOIS au démarrage
+    // (poll sur WorldManager.isReadyForEffects, cf. historique git) — a
+    // fonctionné pour un monument proche du hub mais PAS pour un monument
+    // loin (Black Tower) : le jeu charge manifestement certains PropHome à
+    // la volée, pas tous simultanément. Remplacé par Patches/
+    // PropHomeEnablePatch.cs (postfix sur PropHome.OnEnable(), le seul
+    // point de passage garanti pour CHAQUE instance qu'elle existe dès le
+    // départ ou apparaisse plus tard) qui appelle RegisterHome ci-dessous
+    // pour chaque PropHome, au fil de l'eau.
     //
     // PropHome est aussi utilisé pour des emplacements portés par le joueur
     // (ex. une "ceinture" d'inventaire, saveableHomeName == notSavable,
     // toujours à distance ~0 puisqu'attachée au personnage) — pas seulement
     // les monuments. Filtré via ReceivedItemSpawner.IsMonumentHome
     // (préfixe "monoument") pour ne jamais persister/restaurer un pin dans
-    // un emplacement de ce type (repéré en testant DebugCosmeticPinForce
-    // sans ce filtre : un gourd cosmétique s'est retrouvé épinglé dans une
-    // "ceinture" au lieu d'un monument).
-    //
-    // Restauration au chargement : timing calqué sur ArchDoorUnlocker
-    // (poll sur WorldManager.isReadyForEffects), UNE SEULE FOIS par
-    // session. Hypothèse non vérifiée (à confirmer en jeu) : tous les
-    // PropHome du jeu sont chargés simultanément (monde ouvert sans
-    // streaming de zones à proprement parler) — si ça s'avère faux (des
-    // PropHome distants ne sont chargés qu'à l'approche du joueur), cette
-    // restauration "une fois au démarrage" manquerait les monuments hors
-    // de la zone initiale et il faudrait la redéclencher à chaque
-    // (re)chargement de zone plutôt qu'une seule fois par session.
+    // un emplacement de ce type.
     internal class CosmeticMonumentFillTracker : MonoBehaviour
     {
         // Constructeur requis par Il2CppInterop pour tout type injecté en IL2CPP.
@@ -68,48 +60,57 @@ namespace BigWalkArchipelago.Core
 
         private const string SaveKeyPrefix = "ap_home_";
 
-        private static bool _subscribed;
-        private bool _restored;
+        // File d'attente alimentée par PropHomeEnablePatch, au fil de l'eau
+        // (chargement initial ET streaming ultérieur confondus) — vidée en
+        // continu dans Update() une fois le monde prêt pour les effets, pas
+        // en un seul passage figé au démarrage.
+        private static readonly Queue<PropHome> PendingRestoreCheck = new Queue<PropHome>();
+
+        // Appelé par Patches/PropHomeEnablePatch pour CHAQUE PropHome, dès
+        // qu'il devient actif. L'abonnement lui-même (juste un +=) ne
+        // dépend d'aucune condition de timing et se fait immédiatement ;
+        // la vérification de restauration est différée en revanche (cf.
+        // Update ci-dessous) — spawner/épingler un clone trop tôt (avant
+        // que le "peck manager" du jeu existe) peut échouer silencieusement,
+        // même piège déjà rencontré pour ArchDoorUnlocker.
+        internal static void RegisterHome(PropHome home)
+        {
+            if (home == null)
+                return;
+
+            home.onChangeServer += (Action<PropHome, Prop, Prop>)OnHomeChanged;
+            PendingRestoreCheck.Enqueue(home);
+        }
 
         private void Update()
         {
-            if (!NetworkServer.active || !WorldManager.isReadyForEffects)
+            if (!NetworkServer.active || !WorldManager.isReadyForEffects || PendingRestoreCheck.Count == 0)
                 return;
 
-            // L'abonnement ne dépend d'aucune zone chargée : fait une
-            // seule fois pour toute la durée du process (pas de
-            // désabonnement nécessaire, ce composant vit aussi longtemps
-            // que la session).
-            if (!_subscribed)
+            var restoredCount = 0;
+            while (PendingRestoreCheck.Count > 0)
             {
-                _subscribed = true;
-                SubscribeToAllHomes();
+                if (TryRestoreHome(PendingRestoreCheck.Dequeue()))
+                    restoredCount++;
             }
 
-            if (_restored)
-                return;
-            _restored = true;
-
-            RestoreFilledHomes();
+            if (restoredCount > 0)
+                Plugin.Log.LogInfo($"[{nameof(CosmeticMonumentFillTracker)}] {restoredCount} gourd(s) cosmétique(s) restauré(s) dans leurs monuments.");
         }
 
-        private static void SubscribeToAllHomes()
+        private static bool TryRestoreHome(PropHome home)
         {
-            var homes = PropHome.allPropHomes;
-            if (homes == null || homes.Count == 0)
-                return;
+            // Ne jamais écraser un home déjà occupé (par un vrai gourd
+            // normalement restauré par Prop.Start(), ou déjà par un clone
+            // restauré juste avant dans cette même passe).
+            if (home == null || home.pinnedProp != null || !ReceivedItemSpawner.IsMonumentHome(home))
+                return false;
 
-            var count = 0;
-            foreach (var home in homes)
-            {
-                if (home == null)
-                    continue;
+            var key = SaveKeyPrefix + home.saveableHomeName;
+            if (SaveManager.GetIntValue(key, 0, false) == 0)
+                return false;
 
-                home.onChangeServer += (Action<PropHome, Prop, Prop>)OnHomeChanged;
-                count++;
-            }
-
-            Plugin.Log.LogInfo($"[{nameof(CosmeticMonumentFillTracker)}] Abonné à onChangeServer sur {count} PropHome.");
+            return ReceivedItemSpawner.SpawnCosmeticPickupPinnedTo(home) != null;
         }
 
         private static void OnHomeChanged(PropHome propHome, Prop propBefore, Prop propAfter)
@@ -130,36 +131,6 @@ namespace BigWalkArchipelago.Core
             SaveManager.SetIntValue(key, newValue);
             Plugin.Log.LogInfo(
                 $"[{nameof(CosmeticMonumentFillTracker)}] {key} = {newValue} (gourd cosmétique {(isCosmeticNow ? "déposé" : "retiré")}).");
-        }
-
-        private static void RestoreFilledHomes()
-        {
-            var homes = PropHome.allPropHomes;
-            if (homes == null || homes.Count == 0)
-            {
-                Plugin.Log.LogInfo($"[{nameof(CosmeticMonumentFillTracker)}] Aucun PropHome chargé, restauration ignorée.");
-                return;
-            }
-
-            var restoredCount = 0;
-            foreach (var home in homes)
-            {
-                // Ne jamais écraser un home déjà occupé (par un vrai gourd
-                // normalement restauré par Prop.Start(), ou déjà par un
-                // clone restauré plus tôt dans cette même passe).
-                if (home == null || home.pinnedProp != null || !ReceivedItemSpawner.IsMonumentHome(home))
-                    continue;
-
-                var key = SaveKeyPrefix + home.saveableHomeName;
-                if (SaveManager.GetIntValue(key, 0, false) == 0)
-                    continue;
-
-                if (ReceivedItemSpawner.SpawnCosmeticPickupPinnedTo(home) != null)
-                    restoredCount++;
-            }
-
-            if (restoredCount > 0)
-                Plugin.Log.LogInfo($"[{nameof(CosmeticMonumentFillTracker)}] {restoredCount} gourd(s) cosmétique(s) restauré(s) dans leurs monuments.");
         }
     }
 }
