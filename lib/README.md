@@ -8,7 +8,7 @@ seulement utiles pour la lecture statique du code dans `BW_export/il2cpp.cs`).
 
 Sur cette machine, le jeu est installé ici :
 ```
-C:\Program Files (x86)\Steam\steamapps\common\Big Walk\
+F:\Games\Big Walk\
 ```
 avec BepInEx déjà initialisé (build `6.0.0-be.781`, runtime `.NET 6.0.7`, IL2CPP —
 voir `BepInEx\LogOutput.log` dans ce dossier pour confirmation).
@@ -27,6 +27,8 @@ lancement — PAS les dummy DLL) :
 - `Mirror.dll` (étape 3) — `NetworkBehaviour`, base de `RewardGourd`/`Prop`
 - `UnityEngine.CoreModule.dll` (étape 3) — `MonoBehaviour`, base de `NetworkBehaviour`
 - `Il2Cppmscorlib.dll` (étape 3) — `Il2CppSystem.Object`, base de `UnityEngine.Object`
+- `Unity.TextMeshPro.dll` (étape 4, 2026-09-15) — `TMP_InputField` (`HostMenuConfirm.gameNameField`/`passwordField`), pour `Debug/DebugMenuLookup.cs`
+- `UnityEngine.UI.dll` (étape 4, 2026-09-15) — `Selectable`, classe de base de `TMP_InputField`
 
 Depuis `<jeu>\BepInEx\core\` (étape 3) :
 - `Il2CppInterop.Runtime.dll` — `Il2CppObjectBase`, base de `Il2CppSystem.Object`

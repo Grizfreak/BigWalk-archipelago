@@ -12,6 +12,7 @@ namespace BigWalkArchipelago
     internal static class ModConfig
     {
         internal static ConfigEntry<bool> DebugModeEnabled;
+        internal static ConfigEntry<string> ArchipelagoHostPort;
         internal static ConfigEntry<KeyboardShortcut> ToggleFlightKey;
         internal static ConfigEntry<KeyboardShortcut> UnlockNextKey;
         internal static ConfigEntry<KeyboardShortcut> SimulateReceivedItemKey;
@@ -35,9 +36,16 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> SpawnCosmeticPickupKey;
         internal static ConfigEntry<KeyboardShortcut> ToggleNeverCullKey;
         internal static ConfigEntry<KeyboardShortcut> ForceCosmeticPinKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpHostMenuConfirmKey;
 
         internal static void Bind(ConfigFile file)
         {
+            ArchipelagoHostPort = file.Bind(
+                "Archipelago",
+                "HostPort",
+                "archipelago.gg:",
+                "Dernière valeur saisie dans le champ host:port de l'écran d'hébergement (Patches/HostMenuConfirmPatch.cs) — persistée pour ne pas avoir à la retaper à chaque lancement.");
+
             DebugModeEnabled = file.Bind(
                 "Debug",
                 "Enabled",
@@ -162,7 +170,7 @@ namespace BigWalkArchipelago
                 "Debug",
                 "ApplyBigKeyOverflowKey",
                 new KeyboardShortcut(KeyCode.O),
-                "Applique uniquement bigKeyOverflow (via ItemApplier.ApplyGourdItem, donc pin live réel sur bigKeyPlinthGoodbye2) — test isolé (une seule variable, contrairement à ForceEndingFlagsKey) de l'hypothèse 2026-09-11 : la plinthe bigKeyPlinthGoodbye2 est juste derrière la sphère noire du hub, peut-être le vrai déclencheur de OpenSystem/PropHomeBlock plutôt qu'une notion de 'jeu déjà fini' (n'a d'effet que si Debug.Enabled est actif).");
+                "Applique uniquement bigKeyOverflow (via ItemApplier.ApplyBigKeyItem, donc pin live réel sur bigKeyPlinthGoodbye2) — test isolé (une seule variable, contrairement à ForceEndingFlagsKey) de l'hypothèse 2026-09-11 : la plinthe bigKeyPlinthGoodbye2 est juste derrière la sphère noire du hub, peut-être le vrai déclencheur de OpenSystem/PropHomeBlock plutôt qu'une notion de 'jeu déjà fini' (n'a d'effet que si Debug.Enabled est actif).");
 
             SpawnCosmeticPickupKey = file.Bind(
                 "Debug",
@@ -181,6 +189,12 @@ namespace BigWalkArchipelago
                 "ForceCosmeticPinKey",
                 new KeyboardShortcut(KeyCode.N),
                 "Épingle directement (Prop.ServerSetPinned, sans passer par l'interaction manuelle/maintien) le gourd cosmétique le plus proche dans le PropHome vide le plus proche (30m) — pour tester CosmeticMonumentFillTracker sans avoir à refaire l'interaction de dépôt en vrai (n'a d'effet que si Debug.Enabled est actif).");
+
+            DumpHostMenuConfirmKey = file.Bind(
+                "Debug",
+                "DumpHostMenuConfirmKey",
+                new KeyboardShortcut(KeyCode.M),
+                "Dump la hiérarchie complète de l'écran d'hébergement (HostMenuConfirm) — à presser sur cet écran, avant de coder un ajout de champ host:port AP dessus (n'a d'effet que si Debug.Enabled est actif).");
         }
     }
 }

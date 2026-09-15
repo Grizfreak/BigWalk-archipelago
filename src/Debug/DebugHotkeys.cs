@@ -99,6 +99,9 @@ namespace BigWalkArchipelago.Debug
 
             if (ModConfig.ForceCosmeticPinKey.Value.IsDown())
                 DebugCosmeticPinForce.ForceNearby(30f);
+
+            if (ModConfig.DumpHostMenuConfirmKey.Value.IsDown())
+                DebugMenuLookup.DumpHostMenuConfirm();
         }
 
         private void RecheckCosmeticPickup()

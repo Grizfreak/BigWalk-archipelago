@@ -11,7 +11,31 @@ namespace BigWalkArchipelago.Core
     // zone concernée. Ça garde l'énigme physique intacte et solvable.
     internal static class ItemApplier
     {
-        internal static bool ApplyGourdItem(SaveablePropName propName)
+        // Item gourd générique reçu par le réseau AP (cf. CORRECTION
+        // 2026-09-11, big-walk-archipelago-notes.md) : monnaie de progression
+        // pure pour les monuments, entièrement décorrélée de la résolution
+        // des puzzles. Ne doit JAMAIS écrire dans SaveManager au nom d'un
+        // gourdXxx précis ni piloter TryApplyLiveEffect — contrairement au
+        // modèle 1:1 encore utilisé pour les big keys (ApplyBigKeyItem
+        // ci-dessous). Son propre check de location continue d'être reporté
+        // uniquement par une résolution physique réelle en jeu
+        // (GourdStatePatch/SaveValuePatch, jamais touché ici).
+        internal static bool ApplyGourdItem()
+        {
+            if (!NetworkServer.active)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(ItemApplier)}] Ignoré : gourd reçu alors qu'on n'est pas host.");
+                return false;
+            }
+
+            ReceivedItemSpawner.SpawnCosmeticPickup();
+
+            Plugin.Log.LogInfo($"[{nameof(ItemApplier)}] Gourd générique appliqué (spawn cosmétique uniquement).");
+            return true;
+        }
+
+        internal static bool ApplyBigKeyItem(SaveablePropName propName)
         {
             // Toute écriture de sauvegarde doit venir du host (modèle
             // d'autorité déjà établi pour le reste du mod, cf. notes.md).

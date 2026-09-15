@@ -7,9 +7,11 @@ namespace BigWalkArchipelago.Core
 {
     // Fait apparaître un gourd cosmétique/ramassable au hub quand un item
     // Archipelago est reçu — purement une notification visuelle ("tiens, tu
-    // viens de recevoir un item"), PAS le mécanisme de délivrance lui-même
-    // (ItemApplier.ApplyGourdItem fait déjà tout le travail réel par écriture
-    // SaveManager, avant même l'appel à ce spawner). Décidé le 2026-09-09
+    // viens de recevoir un item"). Pour un gourd (ItemApplier.ApplyGourdItem),
+    // c'est même son SEUL effet depuis la CORRECTION 2026-09-11 (plus aucune
+    // écriture SaveManager) ; pour une big key (ItemApplier.ApplyBigKeyItem),
+    // le vrai travail (écriture SaveManager, pin live) reste fait séparément
+    // avant l'appel à ce spawner. Décidé le 2026-09-09
     // (cf. big-walk-archipelago-notes.md, "Sur l'apparence de l'item gourd
     // reçu") : durée de vie = jusqu'au ramassage (pas de timer), visible de
     // tous les joueurs de la session (spawn réseau standard, pas de scoping

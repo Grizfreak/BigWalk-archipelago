@@ -66,6 +66,16 @@ namespace BigWalkArchipelago.Core
         // en un seul passage figé au démarrage.
         private static readonly Queue<PropHome> PendingRestoreCheck = new Queue<PropHome>();
 
+        // Tous les PropHome de monument connus (remplis ou non), pour
+        // GetFilledMonumentCount ci-dessous — Option A tranchée le
+        // 2026-09-15 (cf. big-walk-archipelago-notes.md) : comptage global
+        // agrégé, pas de location par tour, pour éliminer le risque de
+        // softlock identifié le 2026-09-11 (rien n'empêche un joueur de tout
+        // déposer dans un seul monument). RegisterHome est garanti appelé
+        // une seule fois par instance (cf. Patches/PropHomeEnablePatch),
+        // donc pas de doublon possible ici.
+        private static readonly List<PropHome> MonumentHomes = new List<PropHome>();
+
         // Appelé par Patches/PropHomeEnablePatch pour CHAQUE PropHome, dès
         // qu'il devient actif. L'abonnement lui-même (juste un +=) ne
         // dépend d'aucune condition de timing et se fait immédiatement ;
@@ -80,6 +90,26 @@ namespace BigWalkArchipelago.Core
 
             home.onChangeServer += (Action<PropHome, Prop, Prop>)OnHomeChanged;
             PendingRestoreCheck.Enqueue(home);
+
+            if (ReceivedItemSpawner.IsMonumentHome(home))
+                MonumentHomes.Add(home);
+        }
+
+        // Total agrégé, tous monuments confondus (Option A) : le nombre de
+        // PropHome de monument actuellement occupés par un gourd cosmétique.
+        // Requête à la volée sur la donnée déjà persistée (`ap_home_<slot>`)
+        // plutôt qu'un compteur en cache — évite tout risque de désync avec
+        // OnHomeChanged/TryRestoreHome (deux chemins d'écriture distincts).
+        internal static int GetFilledMonumentCount()
+        {
+            var count = 0;
+            foreach (var home in MonumentHomes)
+            {
+                if (home != null && SaveManager.GetIntValue(SaveKeyPrefix + home.saveableHomeName, 0, false) == 1)
+                    count++;
+            }
+
+            return count;
         }
 
         private void Update()

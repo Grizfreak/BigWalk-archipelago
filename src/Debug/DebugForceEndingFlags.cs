@@ -36,7 +36,7 @@ namespace BigWalkArchipelago.Debug
 
             foreach (var bigKey in BigKeys)
             {
-                var applied = ItemApplier.ApplyGourdItem(bigKey);
+                var applied = ItemApplier.ApplyBigKeyItem(bigKey);
                 Plugin.Log.LogInfo($"[{nameof(DebugForceEndingFlags)}]   {bigKey} -> {(applied ? "OK" : "échec (voir warning ci-dessus)")}");
             }
 

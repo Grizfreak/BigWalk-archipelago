@@ -49,6 +49,15 @@ namespace BigWalkArchipelago.Core
             return LocationIdsByProp.TryGetValue(propName, out locationId);
         }
 
+        // Distingue les deux chemins de réception d'item dans ItemApplier
+        // (ApplyBigKeyItem, 1:1, vs ApplyGourdItem, générique) : la table des
+        // 7 big keys ci-dessus est déjà la source de vérité pour "quels
+        // SaveablePropName sont des big keys", pas la peine de la dupliquer.
+        internal static bool IsBigKey(SaveablePropName propName)
+        {
+            return BigKeyHomesByProp.ContainsKey(propName);
+        }
+
         // Convention de nommage confirmée en jeu (cf. big-walk-archipelago-notes.md) :
         // gourdXxx (SaveablePropName, le prop-récompense) correspond 1:1 à
         // valetXxx (SaveableHomeName, son emplacement de rangement/couffin).

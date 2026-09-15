@@ -28,7 +28,7 @@ namespace BigWalkArchipelago.Debug
 
             Plugin.Log.LogInfo(
                 $"[{nameof(DebugItemSimulator)}] Simulation de réception d'item : {prop.saveablePropName}");
-            ItemApplier.ApplyGourdItem(prop.saveablePropName);
+            Dispatch(prop.saveablePropName);
         }
 
         // Cible directement une SaveablePropName précise, sans passer par
@@ -40,7 +40,21 @@ namespace BigWalkArchipelago.Debug
         {
             Plugin.Log.LogInfo(
                 $"[{nameof(DebugItemSimulator)}] Simulation de réception d'item (ciblée) : {propName}");
-            ItemApplier.ApplyGourdItem(propName);
+            Dispatch(propName);
+        }
+
+        // Un gourd simulé via une SaveablePropName précise (gourdXxx) n'a
+        // plus de sens 1:1 depuis la CORRECTION 2026-09-11 (big-walk-
+        // archipelago-notes.md) : ApplyGourdItem est maintenant générique,
+        // sans propName. On garde le paramètre ici (utile pour cibler une
+        // big key précise, ou pour choisir quel gourd simuler au clavier),
+        // et on route juste vers le bon chemin d'ItemApplier selon le type.
+        private static void Dispatch(SaveablePropName propName)
+        {
+            if (GourdRegistry.IsBigKey(propName))
+                ItemApplier.ApplyBigKeyItem(propName);
+            else
+                ItemApplier.ApplyGourdItem();
         }
     }
 }
