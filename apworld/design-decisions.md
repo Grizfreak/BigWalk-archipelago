@@ -191,6 +191,30 @@ than as fixed choices (the preference already stated on 2026-09-09):
       recreate exactly the logic softlock this reset mechanism is meant to
       avoid (fill-in state would then need to be saved/restored outside the
       save file, keyed by AP slot).
+    - **LEAD, NOT IMPLEMENTED (2026-09-15) — restore deposits through
+      Archipelago's DataStorage.** Confirmed in-game that a reload of the
+      *same* save does put deposited gourds back in their slots
+      (`ap_home_<slot>`, `CosmeticMonumentFillTracker`); what a new save
+      cannot recover is that those keys live in the save file that was just
+      abandoned. The server knows what the slot *received*, never what was
+      done with it.
+      - The client library exposes `ArchipelagoSession.DataStorage`, a
+        server-side key/value store scoped to the slot, which by definition
+        survives starting a new save. Writing the deposited count there
+        would let a fresh save re-pin that many gourds — and under Option A
+        *which* monuments they go into is irrelevant, so only the count is
+        needed. `ReceivedItemSpawner.SpawnCosmeticPickupPinnedTo` already
+        does the pinning.
+      - **Deliberately deferred**: it moves part of the game state out of
+        the save file, which raises a question with no obvious answer —
+        what to do when the local `ap_home_*` keys and the server's count
+        disagree (two machines, a restored backup, a save copied by hand).
+        Under Option A the cost of not having it is a few minutes of
+        walking, so the trade is not worth making blind.
+      - **Reconsider first** if Option C/D lands (the entry above already
+        says this state would then have to leave the save file), or if
+        players hit the new-save recovery path often enough for the manual
+        redeposit to grate.
 - **NEW LEAD, NOT SETTLED (2026-09-11, player) — decompose the big-key
   system into several checks decoupled from the real game effects they
   trigger, same principle as the location/item decoupling already done for

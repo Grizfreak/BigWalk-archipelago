@@ -142,6 +142,13 @@ the hub, they do not go back into the monuments they were deposited in. The
 players redeposit them by hand. Harmless while deposits are counted globally;
 it would need rethinking if monuments ever became individually meaningful.
 
+Note this is specific to a *new* save. Reloading the same save does put
+deposited gourds back in their slots, from the `ap_home_*` keys — which is
+exactly why a new save cannot: those keys live in the save that was
+abandoned, and the server only knows what the slot received, never what was
+done with it. Storing the count in Archipelago's `DataStorage` would fix
+that; deliberately not done for the alpha, see `design-decisions.md`.
+
 ### Suppressing the replay is not enough — gourds must be reconciled
 
 Found in the first in-game session (2026-09-15) and worth spelling out,
