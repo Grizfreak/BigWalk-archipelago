@@ -65,7 +65,10 @@ namespace BigWalkArchipelago.Core.Net
         private static int _appliedItemCount;
 
         // Loose-gourd reconciliation, per connection (see RestoreLooseGourds).
+        private static bool _worldWasReady;
         private static bool _looseGourdsRestored;
+        private static bool _looseRestoreBlockedLogged;
+        private static bool _reconciliationLogged;
         private static int _looseGourdsRestoredCount;
         private static int _gourdsSeenThisSession;
         private static int _gourdsSpawnedThisSession;
@@ -97,6 +100,19 @@ namespace BigWalkArchipelago.Core.Net
 
                 return;
             }
+
+            // Loose gourds do not survive a world reload, and a world reload
+            // does not require the process to restart: going back to the
+            // main menu and hosting again destroys them just the same, while
+            // the Archipelago socket stays open and every static here keeps
+            // its value. Arming the reconciliation on "a connection was
+            // established" therefore missed that case entirely — it has to
+            // be "a world became ready".
+            var worldReady = NetworkServer.active && WorldManager.isReadyForEffects;
+            if (worldReady && !_worldWasReady)
+                OnWorldBecameReady();
+
+            _worldWasReady = worldReady;
 
             // Not hosting: nothing to connect, and anything queued stays
             // queued. This also covers the main menu, where there is no save
@@ -131,10 +147,7 @@ namespace BigWalkArchipelago.Core.Net
             // for the same "safe to touch the world" signal the rest of the
             // mod uses. Items simply stay queued until then.
             if (WorldManager.isReadyForEffects)
-            {
                 DrainIncomingItems();
-                RestoreLooseGourds();
-            }
 
             _pollTimer -= Time.unscaledDeltaTime;
             if (_pollTimer > 0f)
@@ -144,9 +157,28 @@ namespace BigWalkArchipelago.Core.Net
 
             if (WorldManager.isReadyForEffects)
             {
+                // On the poll rather than every frame: it retries until the
+                // spawn actually succeeds, and the hub can take a while to
+                // be loadable. Once a second is responsive enough and keeps
+                // the log readable while the players are far from the hub.
+                RestoreLooseGourds();
                 ReportDeposits();
                 CheckGoal();
             }
+        }
+
+        // A freshly loaded world contains none of the loose gourds the
+        // previous one did, so everything tracking "what exists right now"
+        // starts over. The ledger itself (ap_gourds_received) is untouched:
+        // it counts what the player was given, which a reload does not
+        // change.
+        private static void OnWorldBecameReady()
+        {
+            _looseGourdsRestored = false;
+            _looseRestoreBlockedLogged = false;
+            _reconciliationLogged = false;
+            _looseGourdsRestoredCount = 0;
+            _gourdsSpawnedThisSession = 0;
         }
 
         private static bool HasSaveChanged()
@@ -214,10 +246,11 @@ namespace BigWalkArchipelago.Core.Net
             _seenItemCount = 0;
             _appliedItemCount = ApItemCursor.SyncTo(Connection.SeedName, Connection.SlotName);
             _lastReportedDepositCount = -1;
-            _looseGourdsRestored = false;
-            _looseGourdsRestoredCount = 0;
+            OnWorldBecameReady();
+
+            // Connection-scoped, unlike the rest: the replay and its timing
+            // belong to this session, not to whichever world is loaded.
             _gourdsSeenThisSession = 0;
-            _gourdsSpawnedThisSession = 0;
             _connectedAt = Time.unscaledTime;
 
             // A goal string this build cannot detect would otherwise leave
@@ -333,15 +366,37 @@ namespace BigWalkArchipelago.Core.Net
                 ApItemCursor.SetGourdsReceived(_gourdsSeenThisSession);
             }
 
-            var owed = ApItemCursor.GourdsReceived
-                       - CosmeticMonumentFillTracker.GetFilledMonumentCount()
-                       - _gourdsSpawnedThisSession;
+            var deposited = CosmeticMonumentFillTracker.GetFilledMonumentCount();
+            var owed = ApItemCursor.GourdsReceived - deposited - _gourdsSpawnedThisSession;
+
+            if (!_reconciliationLogged)
+            {
+                _reconciliationLogged = true;
+                Plugin.Log.LogInfo(
+                    $"[{nameof(ApRuntime)}] Gourd reconciliation: {ApItemCursor.GourdsReceived} received, "
+                    + $"{deposited} deposited, {_gourdsSpawnedThisSession} already spawned -> {owed} to restore.");
+            }
 
             var batch = Math.Min(owed, MaxItemsPerFrame);
             for (var i = 0; i < batch; i++)
             {
+                // A failed spawn is NOT counted. The usual cause is that the
+                // hub's InventorySpawn is not loaded yet, which resolves
+                // itself a moment later — so this simply returns and the
+                // next poll tries again, rather than recording a gourd the
+                // player never got.
                 if (!ItemApplier.ApplyGourdItem())
+                {
+                    if (!_looseRestoreBlockedLogged)
+                    {
+                        _looseRestoreBlockedLogged = true;
+                        Plugin.Log.LogInfo(
+                            $"[{nameof(ApRuntime)}] Cannot spawn the {owed} owed gourd(s) yet (the hub's spawn point is "
+                            + "probably not loaded); retrying every second.");
+                    }
+
                     return;
+                }
 
                 _gourdsSpawnedThisSession++;
                 _looseGourdsRestoredCount++;
@@ -388,8 +443,14 @@ namespace BigWalkArchipelago.Core.Net
 
                 try
                 {
-                    if (Apply(item) && isGourd)
+                    var materialized = Apply(item);
+                    if (isGourd && materialized)
                         _gourdsSpawnedThisSession++;
+                    else if (isGourd)
+                        // The prop did not appear (hub not loaded yet, most
+                        // likely). Re-arm the reconciler so it puts this
+                        // gourd back rather than leaving the player short.
+                        _looseGourdsRestored = false;
                 }
                 catch (Exception ex)
                 {

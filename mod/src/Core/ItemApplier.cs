@@ -28,7 +28,15 @@ namespace BigWalkArchipelago.Core
                 return false;
             }
 
-            ReceivedItemSpawner.SpawnCosmeticPickup();
+            // The return value matters, and used to be discarded here.
+            // SpawnCosmeticPickup gives back null when it cannot do the job
+            // — most often because no InventorySpawn is loaded yet, which is
+            // exactly the situation right after a save loads. Reporting that
+            // as success made Core/Net/ApRuntime record the gourd as
+            // materialized and stop trying, so a gourd owed to the player
+            // silently evaporated. A caller that knows it failed can retry.
+            if (ReceivedItemSpawner.SpawnCosmeticPickup() == null)
+                return false;
 
             Plugin.Log.LogInfo($"[{nameof(ItemApplier)}] Generic gourd applied (cosmetic spawn only).");
             return true;
