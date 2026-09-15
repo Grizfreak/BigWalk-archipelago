@@ -143,6 +143,36 @@ see [`../apworld/design-decisions.md`](../apworld/design-decisions.md).
     **`_RColor`** (logged once per session from
     `PropertyBlockHelper.colorSettings`) — worth knowing if the colour ever
     needs targeting directly.
+  - **Surviving a dropped connection, RESOLVED (2026-09-15) — three bugs,
+    none of which would have shown up any other way than by killing the
+    server mid-session.** Everything previously claimed about automatic
+    recovery was deduced from the code, never observed; the first real test
+    demolished it in thirty seconds.
+    1. **The drop was not noticed at all.** It raised `ErrorReceived` and
+       never `SocketClosed`, which was the only signal being watched, so
+       the status stayed `Connected`: no warning, no retry, checks going
+       nowhere while the mod believed all was well. Which event a WebSocket
+       stack raises on an abrupt drop is not dependable — `Status` now asks
+       `IArchipelagoSocketHelper.Connected` directly.
+    2. **The retry loop wedged after one attempt.** Against a dead port,
+       `TryConnectAndLogin` does not return, so the status sat on
+       `Connecting` — which `ApRuntime` reads as "wait" — for minutes.
+       An attempt now has 15s to answer before being written off. It cannot
+       be cancelled, so it is fenced off by generation: a stale attempt
+       coming back later finds itself superseded and writes nothing, which
+       stops it resurrecting a dead connection.
+    3. **Reconnecting spawned a second full set of gourds** (28, then 28
+       more). A scope mistake: `OnJustConnected` called
+       `OnWorldBecameReady`, so every *connection* cleared state describing
+       the *world*. Only a world reload destroys loose gourds, so only that
+       may clear it. Nothing was lost — the extras are not persisted, so
+       the next reload recomputed the right number from the ledger.
+    - **Validated in-game after the fixes**: amber on-screen warning, retry
+      cycles every 10s throughout the outage, automatic reconnection when
+      the server returned, `Resending 7 check(s)`, goal re-asserted, `105
+      item(s) already applied` — and crucially the counters unchanged
+      across the whole cycle (1 reconciliation, 28 spawns before and
+      after), so no duplicated gourd and no replayed item.
   - **Still unexercised in-game**: the new-save replay recovery path, and an
     outgoing check from a real puzzle resolution.
 - **RESOLVED (2026-09-15)** — `ItemApplier` split into two paths, confirmed
