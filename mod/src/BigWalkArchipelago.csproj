@@ -72,12 +72,6 @@
       <HintPath>..\lib\UnityEngine.UI.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <!-- Physics.Raycast, pour poser les gourdes restaurées sur du vrai sol
-         plutôt qu'à un décalage calculé à l'aveugle (cf. ReceivedItemSpawner). -->
-    <Reference Include="UnityEngine.PhysicsModule">
-      <HintPath>..\lib\UnityEngine.PhysicsModule.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
     <Reference Include="Il2Cppmscorlib">
       <HintPath>..\lib\Il2Cppmscorlib.dll</HintPath>
       <Private>false</Private>

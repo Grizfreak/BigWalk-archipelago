@@ -31,7 +31,9 @@ namespace BigWalkArchipelago.Core.Net
         // Applying an item can spawn a physical prop, and a reconnection
         // replays every item the slot ever received — on the new-save
         // recovery path that is the entire run at once. Spread over frames
-        // so a reconnect never lands as a multi-second freeze.
+        // so a reconnect never lands as a multi-second freeze. (The
+        // session-start gourd restore paces itself separately, one gourd per
+        // GourdRestoreInterval — see RestoreLooseGourds.)
         private const int MaxItemsPerFrame = 4;
 
         // How long to let the server's replay arrive before trusting an
@@ -72,6 +74,7 @@ namespace BigWalkArchipelago.Core.Net
         private static int _looseGourdsRestoredCount;
         private static int _gourdsSeenThisSession;
         private static int _gourdsSpawnedThisSession;
+        private static float _restoreTimer;
         private static float _connectedAt;
 
         private static int _lastReportedDepositCount = -1;
@@ -147,7 +150,14 @@ namespace BigWalkArchipelago.Core.Net
             // for the same "safe to touch the world" signal the rest of the
             // mod uses. Items simply stay queued until then.
             if (WorldManager.isReadyForEffects)
+            {
                 DrainIncomingItems();
+
+                // Every frame, because it paces itself: it drops one gourd
+                // per GourdRestoreInterval and returns immediately the rest
+                // of the time.
+                RestoreLooseGourds();
+            }
 
             _pollTimer -= Time.unscaledDeltaTime;
             if (_pollTimer > 0f)
@@ -157,11 +167,6 @@ namespace BigWalkArchipelago.Core.Net
 
             if (WorldManager.isReadyForEffects)
             {
-                // On the poll rather than every frame: it retries until the
-                // spawn actually succeeds, and the hub can take a while to
-                // be loadable. Once a second is responsive enough and keeps
-                // the log readable while the players are far from the hub.
-                RestoreLooseGourds();
                 ReportDeposits();
                 CheckGoal();
             }
@@ -179,6 +184,7 @@ namespace BigWalkArchipelago.Core.Net
             _reconciliationLogged = false;
             _looseGourdsRestoredCount = 0;
             _gourdsSpawnedThisSession = 0;
+            _restoreTimer = 0f;
         }
 
         private static bool HasSaveChanged()
@@ -377,40 +383,52 @@ namespace BigWalkArchipelago.Core.Net
                     + $"{deposited} deposited, {_gourdsSpawnedThisSession} already spawned -> {owed} to restore.");
             }
 
-            var batch = Math.Min(owed, MaxItemsPerFrame);
-            for (var i = 0; i < batch; i++)
+            if (owed <= 0)
             {
-                // A failed spawn is NOT counted. The usual cause is that the
-                // hub's InventorySpawn is not loaded yet, which resolves
-                // itself a moment later — so this simply returns and the
-                // next poll tries again, rather than recording a gourd the
-                // player never got.
-                // Fanned out by position in the restore, so a big batch does
-                // not land as one heap of colliding rigidbodies.
-                if (!ItemApplier.ApplyGourdItem(_gourdsSpawnedThisSession))
-                {
-                    if (!_looseRestoreBlockedLogged)
-                    {
-                        _looseRestoreBlockedLogged = true;
-                        Plugin.Log.LogInfo(
-                            $"[{nameof(ApRuntime)}] Cannot spawn the {owed} owed gourd(s) yet (the hub's spawn point is "
-                            + "probably not loaded); retrying every second.");
-                    }
-
-                    return;
-                }
-
-                _gourdsSpawnedThisSession++;
-                _looseGourdsRestoredCount++;
+                _looseGourdsRestored = true;
+                if (_looseGourdsRestoredCount > 0)
+                    Plugin.Log.LogInfo(
+                        $"[{nameof(ApRuntime)}] Restored {_looseGourdsRestoredCount} gourd(s) received but never deposited.");
+                return;
             }
 
-            if (owed > batch)
+            // One at a time, spaced out, each dropped on the game's own
+            // spawn point. Two earlier attempts placed them by computing
+            // offsets — a spiral, then that spiral raycast onto the ground —
+            // and both lost gourds outside the playable area (11 of 28, then
+            // 8 of 28). The mistake was mine to make twice: deciding whether
+            // a position is valid is the game's job, and
+            // InventorySpawn.GetNextSpawnPosition already answers it.
+            //
+            // Landing them one by one is what replaces the spreading: each
+            // gourd falls onto ones that have already settled and rolls off,
+            // instead of dozens being born interpenetrating — which is what
+            // made the game stutter to begin with.
+            _restoreTimer -= Time.unscaledDeltaTime;
+            if (_restoreTimer > 0f)
                 return;
 
-            _looseGourdsRestored = true;
-            if (_looseGourdsRestoredCount > 0)
-                Plugin.Log.LogInfo(
-                    $"[{nameof(ApRuntime)}] Restored {_looseGourdsRestoredCount} gourd(s) received but never deposited.");
+            _restoreTimer = Mathf.Max(0f, ModConfig.CosmeticGourdRestoreInterval.Value);
+
+            // A failed spawn is NOT counted. The usual cause is that the
+            // hub's InventorySpawn is not loaded yet, which resolves itself
+            // a moment later, so this returns and tries again rather than
+            // recording a gourd the player never got.
+            if (!ItemApplier.ApplyGourdItem())
+            {
+                if (!_looseRestoreBlockedLogged)
+                {
+                    _looseRestoreBlockedLogged = true;
+                    Plugin.Log.LogInfo(
+                        $"[{nameof(ApRuntime)}] Cannot spawn the {owed} owed gourd(s) yet (the hub's spawn point is "
+                        + "probably not loaded); still trying.");
+                }
+
+                return;
+            }
+
+            _gourdsSpawnedThisSession++;
+            _looseGourdsRestoredCount++;
         }
 
         private static void DrainIncomingItems()

@@ -16,7 +16,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<bool> ArchipelagoEnabled;
         internal static ConfigEntry<string> ArchipelagoHostPort;
         internal static ConfigEntry<string> CosmeticGourdColor;
-        internal static ConfigEntry<float> CosmeticGourdSpreadSpacing;
+        internal static ConfigEntry<float> CosmeticGourdRestoreInterval;
         internal static ConfigEntry<KeyboardShortcut> ToggleFlightKey;
         internal static ConfigEntry<KeyboardShortcut> UnlockNextKey;
         internal static ConfigEntry<KeyboardShortcut> SimulateReceivedItemKey;
@@ -62,11 +62,11 @@ namespace BigWalkArchipelago
                 "#FFA62B",
                 "Colour of the gourds received from Archipelago, as an HTML hex string (e.g. #FFA62B). Applied through the game's own variant-challenge colouring, so they stand out from the gourds sitting in puzzles. Leave empty to keep whatever the cloned template looked like.");
 
-            CosmeticGourdSpreadSpacing = file.Bind(
+            CosmeticGourdRestoreInterval = file.Bind(
                 "Archipelago",
-                "GourdSpreadSpacing",
-                0.8f,
-                "Spacing, in metres, between gourds when a session start restores several at once. Lower packs them tighter; too low and they land in a heap, grind against each other instead of settling, and the game stutters for as long as they lie there. 0 drops them all on the spawn point.");
+                "GourdRestoreInterval",
+                0.5f,
+                "Seconds between each gourd when a session start restores several at once. They are dropped one at a time on the game's own spawn point and left to settle, which is both what keeps them from ending up outside the playable area and what stops a heap of them grinding against each other. Lower is faster but piles them up harder.");
 
             DebugModeEnabled = file.Bind(
                 "Debug",

@@ -19,11 +19,7 @@ namespace BigWalkArchipelago.Core
         // still used for big keys (ApplyBigKeyItem below). Its own location
         // check continues to be reported only by an actual in-game physical
         // resolution (GourdStatePatch/SaveValuePatch, never touched here).
-        // spreadIndex is used only by the session-start reconciliation, to
-        // fan a bulk restore out instead of piling it on one spot (see
-        // ReceivedItemSpawner.SpreadOffset). A gourd arriving mid-game
-        // leaves it at -1 and lands at the normal spawn point.
-        internal static bool ApplyGourdItem(int spreadIndex = -1)
+        internal static bool ApplyGourdItem()
         {
             if (!NetworkServer.active)
             {
@@ -39,7 +35,7 @@ namespace BigWalkArchipelago.Core
             // as success made Core/Net/ApRuntime record the gourd as
             // materialized and stop trying, so a gourd owed to the player
             // silently evaporated. A caller that knows it failed can retry.
-            if (ReceivedItemSpawner.SpawnCosmeticPickup(spreadIndex) == null)
+            if (ReceivedItemSpawner.SpawnCosmeticPickup() == null)
                 return false;
 
             Plugin.Log.LogInfo($"[{nameof(ItemApplier)}] Generic gourd applied (cosmetic spawn only).");
