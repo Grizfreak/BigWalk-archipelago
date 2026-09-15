@@ -323,9 +323,16 @@ namespace BigWalkArchipelago.Core.Net
             _seenItemCount = 0;
             _appliedItemCount = ApItemCursor.SyncTo(Connection.SeedName, Connection.SlotName);
             _lastReportedDepositCount = -1;
-            OnWorldBecameReady();
+            // Deliberately does NOT reset the loose-gourd state. That
+            // describes the world — what is currently lying on the ground —
+            // and a reconnection does not touch the world. Resetting it here
+            // is what made reconnecting spawn a second full set of gourds
+            // (observed in-game, 2026-09-15: 28 restored, connection
+            // dropped and recovered, 28 more on top). Only OnWorldBecameReady
+            // may clear it, because only a world reload actually destroys
+            // them.
 
-            // Connection-scoped, unlike the rest: the replay and its timing
+            // Connection-scoped, unlike the above: the replay and its timing
             // belong to this session, not to whichever world is loaded.
             _gourdsSeenThisSession = 0;
             _connectedAt = Time.unscaledTime;
