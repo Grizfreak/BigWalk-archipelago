@@ -46,22 +46,34 @@ namespace BigWalkArchipelago.Core
 
         private const string BlockingObjectNamePrefix = "Spawn_SecondEnding_Sphere";
 
-        private bool _done;
+            // Re-armed on every world load, not latched once for the life
+            // of the process. Going back to the main menu and loading
+            // another save reloads the world without restarting the game,
+            // and the old `_done` flag meant this simply never ran again —
+            // observed in-game on 2026-09-15, where a brand-new save got
+            // neither its hub shortcuts nor its sphere handled because a
+            // previous save had already consumed the one-shot. Running
+            // again is harmless in both cases: disabling an
+            // already-disabled object does nothing.
+        private bool _worldWasReady;
 
         private void Update()
         {
-            if (_done)
-                return;
-
             // Host authority model, like the rest of the mod (cf. ItemApplier).
-            if (!NetworkServer.active || !WorldManager.isReadyForEffects)
+            var worldReady = NetworkServer.active && WorldManager.isReadyForEffects;
+            if (!worldReady)
+            {
+                _worldWasReady = false;
+                return;
+            }
+
+            if (_worldWasReady)
                 return;
 
-            // Latched on the very first frame both conditions are met:
-            // avoids re-scanning every loaded Transform every frame for the
-            // rest of the session, whether or not the hub zone is loaded
-            // (if it isn't, there's nothing to do here anyway).
-            _done = true;
+            // Runs on the first frame of each loaded world and not again,
+            // so the scan over every loaded Transform below happens once
+            // per world rather than every frame.
+            _worldWasReady = true;
 
             var disabled = new List<string>();
             var allTransforms = UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsSortMode.None);

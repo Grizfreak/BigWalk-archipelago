@@ -65,21 +65,31 @@ namespace BigWalkArchipelago.Core
             SavableSystem.HubShortcutToSportsCreek,
         };
 
-        private bool _done;
+            // Re-armed on every world load, not latched once for the life
+            // of the process. Going back to the main menu and loading
+            // another save reloads the world without restarting the game,
+            // and the old `_done` flag meant this simply never ran again —
+            // observed in-game on 2026-09-15, where a brand-new save got
+            // neither its hub shortcuts nor its sphere handled because a
+            // previous save had already consumed the one-shot. Running
+            // again is harmless in both cases: the SaveManager flag below
+            // still keeps this to once per save.
+        private bool _worldWasReady;
 
         private void Update()
         {
-            if (_done)
-                return;
-
             // Host authority model, like the rest of the mod (cf. ItemApplier).
-            if (!NetworkServer.active || !WorldManager.isReadyForEffects)
+            var worldReady = NetworkServer.active && WorldManager.isReadyForEffects;
+            if (!worldReady)
+            {
+                _worldWasReady = false;
+                return;
+            }
+
+            if (_worldWasReady)
                 return;
 
-            // Latched on the very first frame both conditions are met,
-            // whether or not the SaveManager flag is already set — avoids
-            // re-checking every frame for the rest of the session.
-            _done = true;
+            _worldWasReady = true;
 
             if (SaveManager.GetIntValue(OpenedFlagKey, 0, false) != 0)
                 return;
