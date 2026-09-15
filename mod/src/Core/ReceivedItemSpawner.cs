@@ -396,7 +396,14 @@ namespace BigWalkArchipelago.Core
         internal static int DestroyLooseCosmeticGourds()
         {
             var destroyed = 0;
-            var all = UnityEngine.Object.FindObjectsByType<RewardGourd>(FindObjectsSortMode.None);
+            var seen = 0;
+
+            // Inactive included: a prop that has been picked up can leave
+            // the active hierarchy, and the default scan would quietly walk
+            // past exactly the gourd this is meant to reclaim. The mod's
+            // own debug lookup learned this already.
+            var all = UnityEngine.Object.FindObjectsByType<RewardGourd>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
             if (all == null)
                 return 0;
 
@@ -409,9 +416,18 @@ namespace BigWalkArchipelago.Core
                 if (home != null && IsMonumentHome(home))
                     continue;
 
+                seen++;
+
+                // Tidying the hands is best effort; removing the gourd is
+                // not. Keeping these apart matters: the first version let a
+                // failure to drop abort the removal, so the one gourd that
+                // most needed reclaiming — the one being held — was the
+                // only one left behind, and the rebuild then counted it
+                // twice (observed in-game, 2026-09-15).
+                ReleaseFromHands(gourd.prop);
+
                 try
                 {
-                    ReleaseFromHands(gourd.prop);
                     NetworkServer.Destroy(gourd.gameObject);
                     destroyed++;
                 }
@@ -421,11 +437,20 @@ namespace BigWalkArchipelago.Core
                 }
             }
 
+            if (destroyed != seen)
+                Plugin.Log.LogWarning(
+                    $"[{nameof(ReceivedItemSpawner)}] {seen} loose cosmetic gourd(s) found but only {destroyed} removed; the rebuild will over-count.");
+
             return destroyed;
         }
 
         // Destroying a prop out of someone's hands would leave the hands
         // believing they still hold it, so it is dropped first.
+        //
+        // Drop takes a PlayerHeldInformation, which is a struct carrying a
+        // NetworkIdentity — so the parameterless-looking `Drop()` passes one
+        // with a null identity and the game dereferences it. The type's own
+        // constructor takes the prop, which is what it wants.
         private static void ReleaseFromHands(Prop prop)
         {
             var players = PlayerCharacter.allPlayerCharacters;
@@ -434,8 +459,21 @@ namespace BigWalkArchipelago.Core
 
             foreach (var pc in players)
             {
-                if (pc?.hands != null && pc.hands.heldProp == prop)
-                    pc.hands.Drop();
+                if (pc?.hands == null || pc.hands.heldProp != prop)
+                    continue;
+
+                try
+                {
+                    pc.hands.Drop(new PlayerHeldInformation(prop));
+                }
+                catch (Exception ex)
+                {
+                    // Last resort: sever the reference by hand rather than
+                    // leave the player holding an object about to vanish.
+                    Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] Drop failed, clearing the hand directly: {ex.Message}");
+                    try { pc.hands.heldProp = null; }
+                    catch (Exception inner) { Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] ...and that failed too: {inner.Message}"); }
+                }
             }
         }
 
