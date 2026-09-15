@@ -8,10 +8,15 @@ seulement utiles pour la lecture statique du code dans `BW_export/il2cpp.cs`).
 
 Sur cette machine, le jeu est installé ici :
 ```
-F:\Games\Big Walk\
+F:\SteamLibrary\steamapps\common\Big Walk\
 ```
 avec BepInEx déjà initialisé (build `6.0.0-be.781`, runtime `.NET 6.0.7`, IL2CPP —
-voir `BepInEx\LogOutput.log` dans ce dossier pour confirmation).
+voir `BepInEx\LogOutput.log` dans ce dossier pour confirmation). **Important** :
+lancer via Steam (`steam://run/1478500`), pas en exécutant l'exe directement —
+confirmé en session le 2026-09-15, un lancement direct de l'exe ne charge pas
+BepInEx (aucune trace dans `LogOutput.log`) sur cette machine. Il existe aussi
+une copie du jeu dans `F:\Games\Big Walk\` (jamais lancée par Steam, à ignorer
+pour le déploiement).
 
 ## DLL actuellement copiées
 

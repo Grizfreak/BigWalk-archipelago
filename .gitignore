@@ -2,10 +2,10 @@
 [Bb]in/
 [Oo]bj/
 
-# DLL locales copiées depuis l'installation du jeu (voir lib/README.md) —
+# DLL locales copiées depuis l'installation du jeu (voir mod/lib/README.md) —
 # jamais commitées : elles dépendent de la machine et de la version du jeu.
-lib/*.dll
-!lib/README.md
+mod/lib/*.dll
+!mod/lib/README.md
 
 # IDE
 .vs/
@@ -18,5 +18,5 @@ lib/*.dll
 # Seules les notes de repro écrites à la main sont gardées.
 BW_export/*
 !BW_export/big-walk-archipelago-notes.md
-BigWalk-ghidra-project.zip
-gh-pj/*
+mod/BigWalk-ghidra-project.zip
+mod/gh-pj/*

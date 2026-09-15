@@ -1,37 +1,22 @@
-# BigWalkArchipelago
+# BigWalk-archipelago
 
-Mod BepInEx (IL2CPP, Harmony) pour *Big Walk* (House House). Objectif final :
-brancher un client Archipelago (multiworld randomizer) sur la boucle de jeu.
-Voir [architecture-mod.md](architecture-mod.md) pour la conception détaillée.
+Intégration Archipelago (multiworld randomizer) pour *Big Walk* (House House).
+Deux sous-projets distincts :
 
-## Build
+- [`mod/`](mod/README.md) — mod BepInEx (IL2CPP, Harmony) qui s'installe dans
+  le jeu : détection des checks, matérialisation des items reçus, écran
+  d'hébergement étendu avec les identifiants Archipelago. Voir
+  [`mod/architecture-mod.md`](mod/architecture-mod.md) pour la conception.
+- [`apworld/`](apworld/README.md) — futur monde Python Archipelago
+  (`worlds/bigwalk/`), pas encore commencé.
 
-Prérequis : .NET SDK (testé avec 10.0.301), DLL locales dans `lib/` — voir
-[lib/README.md](lib/README.md) pour la provenance exacte de chaque fichier.
-
-```
-dotnet build BigWalkArchipelago.sln
-```
-
-Cible `net6.0` pour matcher le runtime BepInEx IL2CPP embarqué dans le jeu
-(`.NET 6.0.7`, confirmé dans `BepInEx/LogOutput.log`).
-
-## Déploiement
-
-Copier `src/bin/Debug/net6.0/BigWalkArchipelago.dll` dans :
-```
-<dossier du jeu>/BepInEx/plugins/BigWalkArchipelago/
-```
-
-Sur cette machine, le jeu est installé dans :
-```
-C:\Program Files (x86)\Steam\steamapps\common\Big Walk\
-```
+Notes de rétro-ingénierie et décisions de conception (goal, modèle des
+monuments, softlocks, etc.), pertinentes pour les deux sous-projets :
+[`BW_export/big-walk-archipelago-notes.md`](BW_export/big-walk-archipelago-notes.md).
 
 ## État d'avancement
 
-- [x] 1. Scaffolding + `Plugin.cs` minimal chargeant Harmony
-- [x] 2. `ICheckReporter` + `LocalLogReporter` + `GourdRegistry`
-- [x] 3. Brancher `GourdStatePatch` sur `ICheckReporter`
-- [x] 4. `Debug/DebugFlightTool` (investigation `PlayerCheater`/`CameraCheatMover`)
-- [x] 5. `SaveValuePatch` en filet de sécurité
+- [x] Mod : scaffolding, détection de checks (gourds/big keys), matérialisation
+      d'item reçu, écran d'hébergement avec champs Archipelago
+- [ ] Mod : vrai client réseau Archipelago (bloquant principal, cf. notes)
+- [ ] apworld : rien commencé, en attente du client réseau
