@@ -72,7 +72,7 @@ namespace BigWalkArchipelago.Core
         // Returns the created GameObject (or null on failure/no-op) — useful
         // for ad-hoc diagnostics (cf. DebugHotkeys); ItemApplier (real usage)
         // simply ignores the return value.
-        internal static GameObject SpawnCosmeticPickup()
+        internal static GameObject SpawnCosmeticPickup(int spreadIndex = -1)
         {
             if (!NetworkServer.active)
                 return null;
@@ -86,7 +86,7 @@ namespace BigWalkArchipelago.Core
                     return null;
                 }
 
-                var position = spawnPoint.GetNextSpawnPosition();
+                var position = spawnPoint.GetNextSpawnPosition() + SpreadOffset(spreadIndex);
                 var rewardGourd = CreateNeutralizedClone(position, Quaternion.identity);
                 if (rewardGourd == null)
                     return null;
@@ -153,6 +153,123 @@ namespace BigWalkArchipelago.Core
         // to use (networked, activated, visually correct). Sets neither the
         // puzzle state (gourdState) nor the physics/pin — left to the
         // caller's discretion.
+        // Spreads a bulk restore out instead of stacking it on one spot.
+        //
+        // InventorySpawn scatters within its own small radius, which is
+        // right for the odd gourd arriving mid-game but not for the
+        // session-start reconciliation: 28 networked rigidbodies landing
+        // inside ~1.5 m interpenetrate, never settle, never fall asleep, and
+        // keep both PhysX and Mirror busy — reported in-game on 2026-09-15
+        // as lag that persisted well after the gourds had appeared.
+        //
+        // Sunflower placement (golden angle, radius growing as sqrt) rather
+        // than concentric rings: it keeps neighbours evenly spaced at every
+        // count, so nothing clumps however many are restored. Lifted
+        // slightly so they drop and settle instead of being born overlapping
+        // the ground.
+        private static Vector3 SpreadOffset(int spreadIndex)
+        {
+            if (spreadIndex < 0)
+                return Vector3.zero;
+
+            const float spacing = 1.1f;
+            const float goldenAngle = 2.39996323f;
+
+            var angle = spreadIndex * goldenAngle;
+            var radius = spacing * Mathf.Sqrt(spreadIndex);
+
+            return new Vector3(Mathf.Cos(angle) * radius, 0.5f, Mathf.Sin(angle) * radius);
+        }
+
+        // Gives received gourds a colour of their own, so they read at a
+        // glance as "this came from Archipelago" rather than as a gourd that
+        // wandered out of a puzzle. A third party suggested exactly this
+        // (see apworld/design-decisions.md, community feedback).
+        //
+        // Reuses the game's own mechanism rather than poking at shaders:
+        // RewardGourd already carries `isVariantChallenge` + a
+        // `variantChallengeColor`, which is how the postgame purple gourds
+        // get their look, and PropertyBlockHelper.Refresh() is public. Set
+        // before activation so Awake picks it up, and refreshed after
+        // activation in case the helper only applies on demand.
+        //
+        // Until now the colour was whatever the cloned template happened to
+        // look like — FindTemplate takes the first RewardGourd the engine
+        // returns, in unspecified order, so it was arbitrary and could
+        // differ between sessions. It came out purple in-game on
+        // 2026-09-15, which was luck rather than design.
+        private static void ApplyCosmeticColor(RewardGourd rewardGourd)
+        {
+            var configured = ModConfig.CosmeticGourdColor.Value;
+            if (string.IsNullOrWhiteSpace(configured))
+                return;
+
+            if (!ColorUtility.TryParseHtmlString(configured.Trim(), out var color))
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(ReceivedItemSpawner)}] '{configured}' is not a readable colour (expected something like #FFA62B); leaving the gourd as cloned.");
+                return;
+            }
+
+            rewardGourd.isVariantChallenge = true;
+            rewardGourd.variantChallengeColor = color;
+            _pendingColorRefresh = rewardGourd;
+
+            LogColorSettingsOnce(rewardGourd);
+        }
+
+        // Applied after activation: Awake may be what pushes
+        // variantChallengeColor into the property block, and if it is not,
+        // this is. Harmless either way.
+        private static void RefreshCosmeticColor()
+        {
+            var target = _pendingColorRefresh;
+            _pendingColorRefresh = null;
+            if (target == null)
+                return;
+
+            try
+            {
+                target.propertyBlockHelper?.Refresh();
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] Could not refresh the gourd's colour: {ex.Message}");
+            }
+        }
+
+        // Logged once per session: if the colour above does not take, these
+        // are the shader properties the game actually drives, and the next
+        // fix can target one by name instead of guessing.
+        private static void LogColorSettingsOnce(RewardGourd rewardGourd)
+        {
+            if (_colorSettingsLogged)
+                return;
+
+            _colorSettingsLogged = true;
+
+            var helper = rewardGourd.propertyBlockHelper;
+            if (helper == null)
+            {
+                Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] Cloned gourd has no PropertyBlockHelper.");
+                return;
+            }
+
+            var settings = helper.colorSettings;
+            if (settings == null || settings.Length == 0)
+            {
+                Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] PropertyBlockHelper exposes no colour setting.");
+                return;
+            }
+
+            for (var i = 0; i < settings.Length; i++)
+                Plugin.Log.LogInfo(
+                    $"[{nameof(ReceivedItemSpawner)}] colorSettings[{i}] '{settings[i].propertyName}' = {settings[i].color}");
+        }
+
+        private static RewardGourd _pendingColorRefresh;
+        private static bool _colorSettingsLogged;
+
         private static RewardGourd CreateNeutralizedClone(Vector3 position, Quaternion rotation)
         {
             var template = FindTemplate();
@@ -219,6 +336,8 @@ namespace BigWalkArchipelago.Core
                 return null;
             }
 
+            ApplyCosmeticColor(rewardGourd);
+
             // Neutralization BEFORE activation (points 3 and 4 at the top of
             // the file) — not after ServerSetGourdState, which actually
             // triggered a false check in testing.
@@ -257,6 +376,8 @@ namespace BigWalkArchipelago.Core
                 GetPrivatePropertySetter<NetworkIdentity>(nameof(NetworkIdentity.SpawnedFromInstantiate))?.Invoke(cloneIdentity, new object[] { false });
 
             NetworkServer.Spawn(clone);
+
+            RefreshCosmeticColor();
 
             return rewardGourd;
         }

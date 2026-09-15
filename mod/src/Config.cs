@@ -15,6 +15,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<bool> DebugModeEnabled;
         internal static ConfigEntry<bool> ArchipelagoEnabled;
         internal static ConfigEntry<string> ArchipelagoHostPort;
+        internal static ConfigEntry<string> CosmeticGourdColor;
         internal static ConfigEntry<KeyboardShortcut> ToggleFlightKey;
         internal static ConfigEntry<KeyboardShortcut> UnlockNextKey;
         internal static ConfigEntry<KeyboardShortcut> SimulateReceivedItemKey;
@@ -53,6 +54,12 @@ namespace BigWalkArchipelago
                 "HostPort",
                 "archipelago.gg:",
                 "Last value entered in the host:port field of the hosting screen (Patches/HostMenuConfirmPatch.cs) — persisted so it doesn't need to be retyped on every launch.");
+
+            CosmeticGourdColor = file.Bind(
+                "Archipelago",
+                "GourdColor",
+                "#FFA62B",
+                "Colour of the gourds received from Archipelago, as an HTML hex string (e.g. #FFA62B). Applied through the game's own variant-challenge colouring, so they stand out from the gourds sitting in puzzles. Leave empty to keep whatever the cloned template looked like.");
 
             DebugModeEnabled = file.Bind(
                 "Debug",

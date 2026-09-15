@@ -385,7 +385,9 @@ namespace BigWalkArchipelago.Core.Net
                 // itself a moment later — so this simply returns and the
                 // next poll tries again, rather than recording a gourd the
                 // player never got.
-                if (!ItemApplier.ApplyGourdItem())
+                // Fanned out by position in the restore, so a big batch does
+                // not land as one heap of colliding rigidbodies.
+                if (!ItemApplier.ApplyGourdItem(_gourdsSpawnedThisSession))
                 {
                     if (!_looseRestoreBlockedLogged)
                     {
