@@ -54,7 +54,40 @@ namespace BigWalkArchipelago.Core.Net
         // extra locking is needed around them.
         private HashSet<long> _slotLocations = new();
 
-        internal ConnectionStatus Status => _status;
+        // Asks the socket itself rather than trusting an event to have told
+        // us. Proven necessary in-game (2026-09-15): killing the server
+        // mid-session raised ErrorReceived and never SocketClosed, so the
+        // status stayed Connected, nothing retried, and the mod happily
+        // considered a dead connection alive — no warning, no reconnection,
+        // checks quietly going nowhere. Which event a WebSocket stack
+        // chooses to raise on an abrupt drop is not something to depend on;
+        // `Connected` is the answer to the actual question.
+        internal ConnectionStatus Status
+        {
+            get
+            {
+                if (_status == ConnectionStatus.Connected && !IsSocketAlive())
+                {
+                    LastError = string.IsNullOrEmpty(LastError) ? "connection dropped" : LastError;
+                    _status = ConnectionStatus.Failed;
+                }
+
+                return _status;
+            }
+        }
+
+        private bool IsSocketAlive()
+        {
+            try
+            {
+                return _session?.Socket != null && _session.Socket.Connected;
+            }
+            catch (Exception ex)
+            {
+                LastError = ex.Message;
+                return false;
+            }
+        }
         internal ApSlotData SlotData { get; private set; }
         internal string SeedName { get; private set; } = string.Empty;
         internal string SlotName { get; private set; } = string.Empty;
@@ -154,6 +187,11 @@ namespace BigWalkArchipelago.Core.Net
 
         private void OnErrorReceived(Exception exception, string message)
         {
+            // Recorded, not acted on: an error is not proof the connection
+            // is gone, and Status asks the socket directly anyway. Keeping
+            // the message means the warning the player sees names the real
+            // cause instead of a generic "connection dropped".
+            LastError = string.IsNullOrEmpty(message) ? exception?.Message ?? "socket error" : message;
             Plugin.Log.LogWarning($"[{nameof(ApConnection)}] Socket error: {message} ({exception?.Message}).");
         }
 
