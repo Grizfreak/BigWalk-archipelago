@@ -15,8 +15,13 @@ mod/lib/*.dll
 # de métadonnées, projet Ghidra binaire) — jamais commité : bien trop volumineux
 # pour git (au-delà de la limite GitHub sans LFS) et contient des binaires
 # extraits du jeu qui n'ont rien à faire dans un repo, même privé.
-# Seules les notes de repro écrites à la main sont gardées.
+# Seules les notes de repro écrites à la main sont gardées (désormais
+# scindées et traduites dans mod/reverse-engineering-notes.md et
+# apworld/design-decisions.md, cf. .gitignore history).
 BW_export/*
-!BW_export/big-walk-archipelago-notes.md
 mod/BigWalk-ghidra-project.zip
 mod/gh-pj/*
+
+# Config locale de l'agent Claude Code — spécifique à la machine/l'éditeur,
+# n'a rien à faire dans le repo.
+.claude/
