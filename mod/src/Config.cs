@@ -20,6 +20,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<bool> ShowConnectionStatus;
         internal static ConfigEntry<bool> SpawnGourdAtPlayer;
         internal static ConfigEntry<bool> PutGourdInHands;
+        internal static ConfigEntry<KeyboardShortcut> ResyncGourdsKey;
         internal static ConfigEntry<KeyboardShortcut> ToggleFlightKey;
         internal static ConfigEntry<KeyboardShortcut> UnlockNextKey;
         internal static ConfigEntry<KeyboardShortcut> SimulateReceivedItemKey;
@@ -82,6 +83,12 @@ namespace BigWalkArchipelago
                 "PutGourdInHands",
                 true,
                 "Puts a gourd received during play straight into your hands when they are free and the game considers the prop safe to pick up; otherwise it just drops in front of you. Never applies to the batch rebuilt at the start of a session. Note that a gourd received inside a sealed puzzle room stays there until the next world load, hands or not — the game does not let you carry it out.");
+
+            ResyncGourdsKey = file.Bind(
+                "Archipelago",
+                "ResyncGourdsKey",
+                new KeyboardShortcut(KeyCode.R, KeyCode.LeftControl),
+                "Clears away every gourd of yours that is not in a monument and puts the right number back at the hub, from what the server says you have received. For when one has ended up somewhere you cannot reach it — stranded in a sealed puzzle room, say. Monument deposits are never touched, so nothing that counts for Archipelago can be lost by pressing this. Host only.");
 
             ShowConnectionStatus = file.Bind(
                 "Archipelago",

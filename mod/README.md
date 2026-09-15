@@ -57,3 +57,15 @@ Section `[Archipelago]` du `.cfg` : `Enabled` (coupe la connexion et revient
 au simple log local des checks) et `HostPort` (mémorise la dernière adresse
 saisie). Le slot name et le mot de passe sont les deux champs de l'écran
 d'hébergement, relus depuis la sauvegarde.
+
+Confort : `SpawnGourdAtPlayer` et `PutGourdInHands` (une gourde reçue en
+cours de partie atterrit dans tes mains ou devant toi ; le réassort de
+début de session va toujours au hub), `GourdColor`, `GourdRestoreInterval`,
+`ShowConnectionStatus`.
+
+`ResyncGourdsKey` (**Ctrl+R** par défaut, hôte connecté uniquement) balaie
+toutes tes gourdes qui ne sont pas dans un monument et remet au hub le
+nombre exact dû par le serveur. À utiliser quand l'une d'elles est devenue
+inatteignable — coincée dans une salle scellée, par exemple. Les dépôts en
+monument ne sont jamais touchés, donc rien de ce que compte Archipelago ne
+peut être perdu.

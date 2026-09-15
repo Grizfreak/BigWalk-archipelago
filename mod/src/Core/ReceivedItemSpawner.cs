@@ -376,6 +376,69 @@ namespace BigWalkArchipelago.Core
         // clone is unambiguously recognized by saveablePropName ==
         // notSavable (never true for a normal game prop) + the name suffix,
         // as a double check.
+        // Clears away every cosmetic gourd that is not sitting in a
+        // monument, so the session-start reconciliation can put the right
+        // number back. Returns how many were removed.
+        //
+        // This is the escape hatch for a gourd that has become unreachable
+        // without the world being reloaded — stranded in a sealed puzzle
+        // room, dropped somewhere awkward. Those are recovered on the next
+        // world load anyway, since loose clones are never persisted and the
+        // ledger recomputes; this simply makes that recovery available
+        // without quitting.
+        //
+        // Monument deposits are deliberately untouched: they are persisted
+        // (`ap_home_*`), they are what the Archipelago logic counts, and
+        // nothing about them can go wrong in a way this would fix.
+        // Everything else goes — on the ground, in a player's hands, on a
+        // carried belt — because the rebuild counts what exists, and
+        // leaving one behind would have it counted twice.
+        internal static int DestroyLooseCosmeticGourds()
+        {
+            var destroyed = 0;
+            var all = UnityEngine.Object.FindObjectsByType<RewardGourd>(FindObjectsSortMode.None);
+            if (all == null)
+                return 0;
+
+            foreach (var gourd in all)
+            {
+                if (gourd == null || !IsCosmeticClone(gourd.prop))
+                    continue;
+
+                var home = gourd.prop != null ? gourd.prop.currentHome : null;
+                if (home != null && IsMonumentHome(home))
+                    continue;
+
+                try
+                {
+                    ReleaseFromHands(gourd.prop);
+                    NetworkServer.Destroy(gourd.gameObject);
+                    destroyed++;
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] Could not remove a cosmetic gourd: {ex.Message}");
+                }
+            }
+
+            return destroyed;
+        }
+
+        // Destroying a prop out of someone's hands would leave the hands
+        // believing they still hold it, so it is dropped first.
+        private static void ReleaseFromHands(Prop prop)
+        {
+            var players = PlayerCharacter.allPlayerCharacters;
+            if (prop == null || players == null)
+                return;
+
+            foreach (var pc in players)
+            {
+                if (pc?.hands != null && pc.hands.heldProp == prop)
+                    pc.hands.Drop();
+            }
+        }
+
         internal static bool IsCosmeticClone(Prop prop)
         {
             return prop != null

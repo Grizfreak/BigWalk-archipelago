@@ -113,6 +113,52 @@ namespace BigWalkArchipelago.Core.Net
             PendingLocationNames.Enqueue(locationName);
         }
 
+        // Puts the player's gourds back within reach, without quitting.
+        //
+        // Sweeps away every cosmetic gourd that is not in a monument and
+        // re-arms the reconciliation, which then restocks the hub with
+        // exactly what the ledger says is owed. Monument deposits are
+        // untouched, so nothing the Archipelago logic counts can be lost
+        // by pressing this.
+        //
+        // Exists because a gourd can become unreachable while the world
+        // stays loaded — the case the player raised: received inside a
+        // sealed puzzle room, which the game will not let you carry it out
+        // of. A world reload already fixes that; this makes the same fix
+        // available without one, and covers any future placement mishap
+        // the same way.
+        internal static void ResyncGourds()
+        {
+            if (!NetworkServer.active)
+            {
+                Plugin.Log.LogInfo($"[{nameof(ApRuntime)}] Gourd resync ignored: only the host can do this.");
+                return;
+            }
+
+            // Refused while disconnected, and this is not caution for its
+            // own sake: the rebuild only runs on a live connection, so
+            // sweeping the gourds away now would take them and give nothing
+            // back until the server returned.
+            if (Connection.Status != ApConnection.ConnectionStatus.Connected)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(ApRuntime)}] Gourd resync refused: not connected to Archipelago, so the gourds could not be put back. Try again once reconnected.");
+                return;
+            }
+
+            var removed = ReceivedItemSpawner.DestroyLooseCosmeticGourds();
+
+            _looseGourdsRestored = false;
+            _looseRestoreBlockedLogged = false;
+            _reconciliationLogged = false;
+            _looseGourdsRestoredCount = 0;
+            _gourdsSpawnedThisSession = 0;
+            _restoreTimer = 0f;
+
+            Plugin.Log.LogInfo(
+                $"[{nameof(ApRuntime)}] Gourd resync: {removed} loose gourd(s) cleared, restocking the hub from the ledger.");
+        }
+
         private static void RefreshStatusMessage()
         {
             // Nothing to say when Archipelago is switched off, and nothing
@@ -154,6 +200,12 @@ namespace BigWalkArchipelago.Core.Net
         private void Update()
         {
             RefreshStatusMessage();
+
+            // Read before the early returns below so the key always gets
+            // an answer in the log, even when the mod is in a state where
+            // it will decline to act.
+            if (ModConfig.ResyncGourdsKey.Value.IsDown())
+                ResyncGourds();
 
             if (!ModConfig.ArchipelagoEnabled.Value)
             {
