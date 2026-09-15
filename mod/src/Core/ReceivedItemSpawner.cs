@@ -86,7 +86,8 @@ namespace BigWalkArchipelago.Core
                     return null;
                 }
 
-                var position = spawnPoint.GetNextSpawnPosition() + SpreadOffset(spreadIndex);
+                var basePosition = spawnPoint.GetNextSpawnPosition();
+                var position = SpreadPosition(basePosition, spreadIndex);
                 var rewardGourd = CreateNeutralizedClone(position, Quaternion.identity);
                 if (rewardGourd == null)
                     return null;
@@ -167,18 +168,67 @@ namespace BigWalkArchipelago.Core
         // count, so nothing clumps however many are restored. Lifted
         // slightly so they drop and settle instead of being born overlapping
         // the ground.
-        private static Vector3 SpreadOffset(int spreadIndex)
+        private static Vector3 SpreadPosition(Vector3 basePosition, int spreadIndex)
         {
-            if (spreadIndex < 0)
-                return Vector3.zero;
+            if (spreadIndex <= 0)
+                return basePosition;
 
-            const float spacing = 1.1f;
             const float goldenAngle = 2.39996323f;
+
+            // Configurable because it is a matter of feel: the first value
+            // tried (1.1) killed the stutter but scattered 28 gourds over
+            // nearly 6 m, which the player found too wide. Tightening it
+            // trades tidiness against the chance they pile up again.
+            var spacing = Mathf.Max(0f, ModConfig.CosmeticGourdSpreadSpacing.Value);
+            if (spacing <= 0f)
+                return basePosition;
 
             var angle = spreadIndex * goldenAngle;
             var radius = spacing * Mathf.Sqrt(spreadIndex);
+            var candidate = basePosition + new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
 
-            return new Vector3(Mathf.Cos(angle) * radius, 0.5f, Mathf.Sin(angle) * radius);
+            return GroundOrFallback(candidate, basePosition);
+        }
+
+        // InventorySpawn's own scatter radius is tiny (measured at well
+        // under a metre in-game), so spreading a bulk restore means leaving
+        // the area the game vouches for. The first attempt placed gourds at
+        // blind offsets and 11 of 28 ended up somewhere unreachable — inside
+        // geometry or over an edge — while the log happily reported 28
+        // spawned (2026-09-15).
+        //
+        // So every offset position is now checked against the world: drop a
+        // ray from above it and place the gourd on whatever it lands on.
+        // Nothing solid under it means the offset left the playable area,
+        // and the gourd goes back to the spawn point, where it may join a
+        // small pile but is at least reachable. Losing one to the void is
+        // much worse than stacking two.
+        private static Vector3 GroundOrFallback(Vector3 candidate, Vector3 fallback)
+        {
+            const float castStartHeight = 3f;
+            const float castDistance = 12f;
+            const float restingLift = 0.3f;
+
+            try
+            {
+                var origin = candidate + Vector3.up * castStartHeight;
+                if (Physics.Raycast(origin, Vector3.down, out var hit, castDistance,
+                                    ~0, QueryTriggerInteraction.Ignore))
+                {
+                    // Guard against a ray that found the roof of a tunnel or
+                    // some surface far below: only accept ground close to
+                    // the spawn point's own height.
+                    if (Mathf.Abs(hit.point.y - fallback.y) <= castStartHeight)
+                        return hit.point + Vector3.up * restingLift;
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(ReceivedItemSpawner)}] Ground check failed, using the spawn point: {ex.Message}");
+            }
+
+            return fallback;
         }
 
         // Gives received gourds a colour of their own, so they read at a

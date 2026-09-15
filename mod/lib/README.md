@@ -48,6 +48,10 @@ ces DLL interop embarquent leur propre `System.Runtime.CompilerServices.Nullable
 incomplet (sans tous les constructeurs), ce qui fait échouer la compilation (CS0656)
 si Nullable Reference Types est actif dès qu'on référence l'une d'elles.
 
+- `UnityEngine.PhysicsModule.dll` (étape 5, 2026-09-15) — `Physics.Raycast`,
+  pour poser les gourdes restaurées sur du vrai sol au lieu d'un décalage
+  calculé à l'aveugle (cf. `Core/ReceivedItemSpawner.cs`)
+
 ## À ajouter aux étapes suivantes
 
 - Autres DLL `UnityEngine.*Module.dll` (physique, input, caméra) au besoin,
