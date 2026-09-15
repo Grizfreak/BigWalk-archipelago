@@ -83,10 +83,19 @@ namespace BigWalkArchipelago.Core
 
             TryApplyLiveEffect(propName, homeName);
 
-            // Purely cosmetic/notification (cf. ReceivedItemSpawner): the
-            // real persistence above is already done, a failure here must
-            // have no consequence on it.
-            ReceivedItemSpawner.SpawnCosmeticPickup();
+            // NO cosmetic spawn here. There used to be one, as a "you just
+            // received something" notification for any item (2026-09-11) —
+            // but later the same day cosmetic gourds stopped being decoration
+            // and became the ONLY way to fill a monument. That turned this
+            // line into a bug that survived unnoticed until the first real
+            // in-game session (2026-09-15): receiving a big key visibly
+            // dropped a GOURD at the hub, and every key handed the player a
+            // free unit of the one currency the Archipelago world balances
+            // exactly (the pool holds one Gourd per monument slot and no
+            // more, see apworld/protocol.md §4).
+            //
+            // A big key needs no notification anyway: it materializes in its
+            // own plinth and whatever it opens opens on the spot.
 
             Plugin.Log.LogInfo($"[{nameof(ItemApplier)}] Item applied: {propName} -> {homeName}.");
             return true;

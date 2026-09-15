@@ -50,6 +50,22 @@ see [`../apworld/design-decisions.md`](../apworld/design-decisions.md).
     `Archipelago.MultiClient.Net` and its bundled `Newtonsoft.Json` from the
     plugin folder, the managed client runs inside the game process, and a
     session reaches the server from the hosting screen.
+  - **BUG FOUND AND FIXED in that very first session (2026-09-15, player):
+    receiving a big key dropped a GOURD at the hub.** `ItemApplier.
+    ApplyBigKeyItem` ended with a `ReceivedItemSpawner.SpawnCosmeticPickup()`
+    call, left over from 2026-09-11 when that spawn was a generic "you
+    received something" notification for any item. Later the *same day*, the
+    design flipped and cosmetic gourds stopped being decoration to become
+    the only way to fill a monument — which silently turned that line into
+    a real bug: every big key handed the player a free unit of the one
+    currency the Archipelago world balances exactly (its pool holds one
+    `Gourd` per monument slot and no more). Not seed-breaking, since extra
+    gourds only ever make monuments easier to fill, but it breaks the model
+    and it is visibly confusing. Call removed; a big key needs no
+    notification anyway, it materializes in its own plinth and opens what it
+    opens on the spot. Exactly the leftover the 2026-09-07 note warned
+    about ("keep this in mind to avoid accidentally reintroducing the old
+    idea of a generic hand-carried gourd").
   - **Still unexercised in-game**, in order of how much damage a bug would
     do: the received-items cursor across a reconnect (nothing yet proves a
     reconnection does *not* duplicate every gourd), deposit threshold
