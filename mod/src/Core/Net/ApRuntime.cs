@@ -40,6 +40,11 @@ namespace BigWalkArchipelago.Core.Net
         // empty item queue to mean "that was all of it".
         private const float ReplayGraceSeconds = 3f;
 
+        // How long a connection attempt may go unanswered before it is
+        // written off. The client library gives no timeout of its own
+        // that can be relied on here.
+        private const float ConnectTimeoutSeconds = 15f;
+
         // ALL state below is static, and that is not laziness. This is a type
         // injected into IL2CPP: the managed wrapper around the component is
         // not guaranteed to be the same object for the component's whole
@@ -80,6 +85,7 @@ namespace BigWalkArchipelago.Core.Net
         private static int _lastReportedDepositCount = -1;
         private static bool _goalSent;
         private static float _retryTimer;
+        private static float _connectingSince;
         private static float _pollTimer;
         private static bool _disabledNoticeLogged;
         private static string _lastConnectProblem = string.Empty;
@@ -181,6 +187,20 @@ namespace BigWalkArchipelago.Core.Net
                     return;
 
                 case ApConnection.ConnectionStatus.Connecting:
+                    // An attempt that never comes back would otherwise wedge
+                    // the client here for good: TryConnectAndLogin does not
+                    // reliably return against a dead port (proven in-game,
+                    // 2026-09-15 — one failed retry then silence for
+                    // minutes). Past this, the attempt is written off and the
+                    // retry loop takes over.
+                    if (Time.unscaledTime - _connectingSince > ConnectTimeoutSeconds)
+                    {
+                        Plugin.Log.LogWarning(
+                            $"[{nameof(ApRuntime)}] Connection attempt gave no answer after {ConnectTimeoutSeconds:0}s; abandoning it and retrying.");
+                        Connection.AbandonAttempt($"no answer after {ConnectTimeoutSeconds:0}s");
+                        _retryTimer = 0f;
+                    }
+
                     return;
             }
 
@@ -286,6 +306,7 @@ namespace BigWalkArchipelago.Core.Net
             }
 
             _lastConnectProblem = string.Empty;
+            _connectingSince = Time.unscaledTime;
             Plugin.Log.LogInfo(
                 $"[{nameof(ApRuntime)}] Connecting to {endpoint.Host}:{endpoint.Port} as '{endpoint.SlotName}'...");
 

@@ -49,6 +49,9 @@ namespace BigWalkArchipelago.Core.Net
         private ArchipelagoSession _session;
         private volatile ConnectionStatus _status = ConnectionStatus.Idle;
 
+        // Bumped for every attempt, so a stale one can be fenced off.
+        private volatile int _generation;
+
         // Written by the connect task, read by the main thread once Status
         // has flipped to Connected/Failed — that flip is the handoff, so no
         // extra locking is needed around them.
@@ -110,10 +113,34 @@ namespace BigWalkArchipelago.Core.Net
             SaveUuid = endpoint.Uuid;
             LastError = string.Empty;
 
-            Task.Run(() => ConnectBlocking(endpoint));
+            var generation = ++_generation;
+            Task.Run(() => ConnectBlocking(endpoint, generation));
         }
 
-        private void ConnectBlocking(ApEndpoint endpoint)
+        // Gives up on an attempt that never came back, so the retry loop can
+        // start a fresh one.
+        //
+        // Needed because TryConnectAndLogin does not reliably return when
+        // the port is dead: proven in-game (2026-09-15) by killing the
+        // server and watching the client log one failed attempt and then
+        // nothing at all for minutes — stuck in Connecting, which ApRuntime
+        // treats as "wait", so it waited forever.
+        //
+        // The abandoned attempt is not cancellable, so it is fenced off
+        // instead: bumping the generation makes every write it might still
+        // perform a no-op, and a later reply from a session nobody is
+        // waiting for can no longer resurrect a stale connection.
+        internal void AbandonAttempt(string reason)
+        {
+            if (_status != ConnectionStatus.Connecting)
+                return;
+
+            _generation++;
+            LastError = reason;
+            _status = ConnectionStatus.Failed;
+        }
+
+        private void ConnectBlocking(ApEndpoint endpoint, int generation)
         {
             try
             {
@@ -140,6 +167,13 @@ namespace BigWalkArchipelago.Core.Net
                     endpoint.Password,
                     true);
 
+                // Everything past this point writes shared state, so it
+                // only counts if this attempt is still the current one. An
+                // attempt abandoned for taking too long must not come back
+                // later and declare itself connected.
+                if (generation != _generation)
+                    return;
+
                 if (result is not LoginSuccessful success)
                 {
                     LastError = result is LoginFailure failure && failure.Errors is { Length: > 0 }
@@ -158,6 +192,9 @@ namespace BigWalkArchipelago.Core.Net
             }
             catch (Exception ex)
             {
+                if (generation != _generation)
+                    return;
+
                 LastError = ex.Message;
                 _status = ConnectionStatus.Failed;
             }
