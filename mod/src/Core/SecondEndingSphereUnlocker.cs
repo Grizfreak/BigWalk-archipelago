@@ -59,8 +59,17 @@ namespace BigWalkArchipelago.Core
 
         private void Update()
         {
-            // Host authority model, like the rest of the mod (cf. ItemApplier).
-            var worldReady = NetworkServer.active && WorldManager.isReadyForEffects;
+            // NOT gated on NetworkServer.active, unlike most of the mod.
+            // This writes nothing and touches no networked state: it is a
+            // local SetActive(false), which Mirror does not replicate. So
+            // the host disabling its own copy does nothing for anyone else
+            // — every client has to do it for itself, or a joining player
+            // walks into a sphere the host walks through. Same reasoning as
+            // VariantGourdMapUnlocker, which is client-side for exactly the
+            // same reason. (Found while preparing the first co-op session,
+            // 2026-09-15: the host guard here quietly made the mod useless
+            // for the very player it was supposed to help.)
+            var worldReady = WorldManager.isReadyForEffects;
             if (!worldReady)
             {
                 _worldWasReady = false;

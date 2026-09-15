@@ -102,8 +102,15 @@ namespace BigWalkArchipelago.Core.Net
 
         internal static void QueueLocation(string locationName)
         {
-            if (!string.IsNullOrEmpty(locationName))
-                PendingLocationNames.Enqueue(locationName);
+            // Dropped outright on a non-host. Its detection patches can
+            // still fire, but it never connects and so never drains this
+            // queue — every check it saw would sit there for the whole
+            // session, growing without bound and reported by nobody. The
+            // host's own client is what reports these.
+            if (string.IsNullOrEmpty(locationName) || !NetworkServer.active)
+                return;
+
+            PendingLocationNames.Enqueue(locationName);
         }
 
         private static void RefreshStatusMessage()
