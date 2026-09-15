@@ -103,7 +103,12 @@ namespace BigWalkArchipelago.Core
                 // file.
                 rewardGourd.prop?.SetLoose();
 
-                Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] Cosmetic gourd spawned at {rewardGourd.transform.position}.");
+                var inHands = TryPutInHands(rewardGourd.prop);
+
+                Plugin.Log.LogInfo(
+                    inHands
+                        ? $"[{nameof(ReceivedItemSpawner)}] Cosmetic gourd spawned and handed to the player."
+                        : $"[{nameof(ReceivedItemSpawner)}] Cosmetic gourd spawned at {rewardGourd.transform.position}.");
                 return rewardGourd.gameObject;
             }
             catch (Exception ex)
@@ -453,6 +458,50 @@ namespace BigWalkArchipelago.Core
         {
             var player = FindLocalPlayerCharacter();
             return player != null ? player.transform.position : null;
+        }
+
+        // Hands the gourd straight to the player when their hands are free,
+        // rather than making them stoop for something the server just gave
+        // them (player request, 2026-09-15).
+        //
+        // Both conditions come from the game rather than from a guess:
+        // `isHoldingSomething` is the "are their hands free" it already
+        // tracks, and `IsSafeToPickUp` is its own judgement about whether a
+        // given prop may be picked up at all. Asking the game beats
+        // reasoning about it, which is the lesson from placing props by
+        // computed offsets.
+        //
+        // Self-limiting during a bulk restore: the first gourd fills the
+        // hands and every one after it simply drops as before.
+        //
+        // NOTE, and it is not solved by this: a gourd handed over inside a
+        // sealed puzzle room is stranded there for the session, exactly as
+        // one dropped at the player's feet would be, because the game does
+        // not let you carry it out. That is recovered on the next world
+        // load — the ledger recomputes received-minus-deposited and puts it
+        // back — but not before.
+        private static bool TryPutInHands(Prop prop)
+        {
+            if (prop == null || !ModConfig.PutGourdInHands.Value)
+                return false;
+
+            try
+            {
+                var hands = FindLocalPlayerCharacter()?.hands;
+                if (hands == null || hands.isHoldingSomething || !hands.IsSafeToPickUp(prop))
+                    return false;
+
+                hands.PickUp(prop);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // Cosmetic to the last: the gourd already exists and is
+                // pickable, so failing to place it in the hands costs
+                // nothing.
+                Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] Could not hand the gourd over: {ex.Message}");
+                return false;
+            }
         }
 
         private static PlayerCharacter FindLocalPlayerCharacter()

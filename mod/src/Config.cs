@@ -19,6 +19,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<float> CosmeticGourdRestoreInterval;
         internal static ConfigEntry<bool> ShowConnectionStatus;
         internal static ConfigEntry<bool> SpawnGourdAtPlayer;
+        internal static ConfigEntry<bool> PutGourdInHands;
         internal static ConfigEntry<KeyboardShortcut> ToggleFlightKey;
         internal static ConfigEntry<KeyboardShortcut> UnlockNextKey;
         internal static ConfigEntry<KeyboardShortcut> SimulateReceivedItemKey;
@@ -75,6 +76,12 @@ namespace BigWalkArchipelago
                 "SpawnGourdAtPlayer",
                 true,
                 "Drops a received gourd just in front of you instead of at the hub, so you do not have to walk back across the island for it. Falls back to the hub whenever there is no player in the world yet (loading, menus). Turn off to always use the hub, the original behaviour.");
+
+            PutGourdInHands = file.Bind(
+                "Archipelago",
+                "PutGourdInHands",
+                true,
+                "Puts a received gourd straight into your hands when they are free and the game considers the prop safe to pick up; otherwise it just drops in front of you. Note that a gourd received inside a sealed puzzle room stays there until the next world load, hands or not — the game does not let you carry it out.");
 
             ShowConnectionStatus = file.Bind(
                 "Archipelago",
