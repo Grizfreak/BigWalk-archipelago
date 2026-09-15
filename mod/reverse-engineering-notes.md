@@ -104,22 +104,45 @@ see [`../apworld/design-decisions.md`](../apworld/design-decisions.md).
     reported to the server. The reconciliation was then confirmed on the
     next session, exactly as predicted: `Restored 28 gourd(s) received but
     never deposited.` (33 received − 5 deposited), with no warning.
-  - **Performance finding from that same test**: restoring 28 gourds
-    stuttered visibly. `ReceivedItemSpawner.FindTemplate()` ran a full
-    `FindObjectsByType<RewardGourd>()` scan of the scene on **every** spawn
-    — negligible for one gourd, four scene-wide scans per frame while
-    reconciling dozens. Now cached (invalidated implicitly when the object
-    dies, so a world reload re-scans once). A second, inherent cost remains
-    and is not solved by that: dozens of networked physics props piled into
-    the spawn point's small scatter radius, interpenetrating and replicated
-    by Mirror.
-  - **Appearance of cosmetic gourds is arbitrary, not chosen**:
-    `FindTemplate` takes the first `RewardGourd` `FindObjectsByType` returns
-    (unspecified order), so the clones inherit whatever that one looks like
-    — observed as purple in-game, i.e. a `isVariantChallenge` template was
-    picked. Worth making deliberate: purple happens to be exactly what the
-    community feedback in `apworld/design-decisions.md` suggested, to tell
-    AP gourds apart from vanilla ones.
+  - **Performance, RESOLVED (2026-09-15)**: restoring 28 gourds stuttered
+    badly, and it outlasted the spawning. Two causes, both fixed.
+    `FindTemplate()` ran a full `FindObjectsByType<RewardGourd>()` scan of
+    the scene on **every** spawn — now cached, invalidated implicitly when
+    the object dies so a world reload re-scans once. And the props were all
+    born inside `InventorySpawn`'s scatter radius (measured well under a
+    metre from the logged positions), interpenetrating, never settling,
+    never sleeping, with Mirror replicating the lot.
+  - **Placement, RESOLVED (2026-09-15) after getting it wrong twice.** The
+    fix for the pile was first a sunflower spiral of computed offsets: it
+    killed the stutter but **11 gourds of 28 ended up outside the playable
+    area** (inside geometry or over an edge), while the log cheerfully
+    reported 28 spawned. Raycasting each offset onto the ground still lost
+    8 of 28. Both attempts shared one mistake — deciding where a valid
+    position is, which is the game's job.
+    - **What works** (player's suggestion): drop them **one at a time**, on
+      `InventorySpawn.GetNextSpawnPosition()`, one per
+      `GourdRestoreInterval` (default 0.5s, configurable). Out-of-bounds is
+      impossible by construction, and pacing replaces spreading — each
+      gourd lands on ones that have already settled and rolls off, instead
+      of dozens being born interpenetrating, which was the actual cause of
+      the stutter rather than the density. Confirmed in-game: 28 of 28, no
+      lag. The spiral, the ground check and the `UnityEngine.PhysicsModule`
+      reference it needed are all gone.
+    - Nothing was ever permanently lost to those two attempts: the ledger
+      recomputes received-minus-deposited every session, so gourds dropped
+      into the void came back on the next connection.
+  - **Appearance, RESOLVED (2026-09-15)**: it used to be arbitrary —
+    `FindTemplate` takes the first `RewardGourd` `FindObjectsByType`
+    returns, in unspecified order, so clones inherited whatever that one
+    looked like (observed purple in-game, i.e. an `isVariantChallenge`
+    template). Now deliberate and configurable (`Archipelago/GourdColor`,
+    default `#FFA62B`), applied through the game's own mechanism:
+    `RewardGourd.isVariantChallenge` + `variantChallengeColor` set before
+    activation, plus `PropertyBlockHelper.Refresh()` after. Confirmed
+    working in-game. The shader property the game actually drives is
+    **`_RColor`** (logged once per session from
+    `PropertyBlockHelper.colorSettings`) — worth knowing if the colour ever
+    needs targeting directly.
   - **Still unexercised in-game**: the new-save replay recovery path, and an
     outgoing check from a real puzzle resolution.
 - **RESOLVED (2026-09-15)** — `ItemApplier` split into two paths, confirmed
