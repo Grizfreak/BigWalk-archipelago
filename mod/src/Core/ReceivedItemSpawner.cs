@@ -366,8 +366,20 @@ namespace BigWalkArchipelago.Core
             return null;
         }
 
+        // Last template found, reused while it is still alive. Without this,
+        // every single spawn paid for a full FindObjectsByType scan of the
+        // scene — unnoticeable for one gourd, but the session-start
+        // reconciliation can restore dozens at four per frame, and that was
+        // four scene-wide scans per frame (visible stutter reported
+        // in-game, 2026-09-15). Cleared implicitly when the object dies: a
+        // world reload invalidates it and the next call re-scans once.
+        private static RewardGourd _cachedTemplate;
+
         private static RewardGourd FindTemplate()
         {
+            if (_cachedTemplate != null && _cachedTemplate.prop != null)
+                return _cachedTemplate;
+
             var all = UnityEngine.Object.FindObjectsByType<RewardGourd>(FindObjectsSortMode.None);
             if (all == null || all.Length == 0)
                 return null;
@@ -385,14 +397,20 @@ namespace BigWalkArchipelago.Core
             {
                 if (candidate != null && candidate.prop != null && candidate.gourdState == GourdFlag.GourdState.Loose
                     && !candidate.gameObject.name.Contains(CosmeticNameSuffix, StringComparison.Ordinal))
+                {
+                    _cachedTemplate = candidate;
                     return candidate;
+                }
             }
 
             foreach (var candidate in all)
             {
                 if (candidate != null && candidate.prop != null
                     && !candidate.gameObject.name.Contains(CosmeticNameSuffix, StringComparison.Ordinal))
+                {
+                    _cachedTemplate = candidate;
                     return candidate;
+                }
             }
 
             return null;

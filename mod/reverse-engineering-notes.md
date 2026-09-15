@@ -98,9 +98,30 @@ see [`../apworld/design-decisions.md`](../apworld/design-decisions.md).
       kept no count at all). Hence the wait for the replay to go quiet
       before reconciling: an empty queue right after connecting means "not
       yet", not "nothing".
-  - **Still unexercised in-game**, in order of how much damage a bug would
-    do: the reconciliation above, deposit threshold reporting, goal
-    reporting, and an outgoing check from a real puzzle resolution.
+  - **CONFIRMED IN-GAME (2026-09-15)** — deposits, deposit checks and the
+    goal all work: a session reached `ap_gourds_received=33` with five
+    `ap_home_*` slots filled, and the `deposits` goal (threshold 5) was
+    reported to the server. The reconciliation was then confirmed on the
+    next session, exactly as predicted: `Restored 28 gourd(s) received but
+    never deposited.` (33 received − 5 deposited), with no warning.
+  - **Performance finding from that same test**: restoring 28 gourds
+    stuttered visibly. `ReceivedItemSpawner.FindTemplate()` ran a full
+    `FindObjectsByType<RewardGourd>()` scan of the scene on **every** spawn
+    — negligible for one gourd, four scene-wide scans per frame while
+    reconciling dozens. Now cached (invalidated implicitly when the object
+    dies, so a world reload re-scans once). A second, inherent cost remains
+    and is not solved by that: dozens of networked physics props piled into
+    the spawn point's small scatter radius, interpenetrating and replicated
+    by Mirror.
+  - **Appearance of cosmetic gourds is arbitrary, not chosen**:
+    `FindTemplate` takes the first `RewardGourd` `FindObjectsByType` returns
+    (unspecified order), so the clones inherit whatever that one looks like
+    — observed as purple in-game, i.e. a `isVariantChallenge` template was
+    picked. Worth making deliberate: purple happens to be exactly what the
+    community feedback in `apworld/design-decisions.md` suggested, to tell
+    AP gourds apart from vanilla ones.
+  - **Still unexercised in-game**: the new-save replay recovery path, and an
+    outgoing check from a real puzzle resolution.
 - **RESOLVED (2026-09-15)** — `ItemApplier` split into two paths, confirmed
   by reading `mod/src/Core/ItemApplier.cs`:
   - `ApplyGourdItem()` (no parameter) does nothing but
