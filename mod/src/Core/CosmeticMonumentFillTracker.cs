@@ -62,16 +62,6 @@ namespace BigWalkArchipelago.Core
         // fixed pass at startup.
         private static readonly Queue<PropHome> PendingRestoreCheck = new Queue<PropHome>();
 
-        // All known monument PropHomes (filled or not), for
-        // GetFilledMonumentCount below — Option A settled on 2026-09-15
-        // (cf. big-walk-archipelago-notes.md): a single aggregated global
-        // count, not per-tower location tracking, to eliminate the softlock
-        // risk identified on 2026-09-11 (nothing prevents a player from
-        // depositing everything into a single monument). RegisterHome is
-        // guaranteed to be called exactly once per instance (cf. Patches/
-        // PropHomeEnablePatch), so no duplicate is possible here.
-        private static readonly List<PropHome> MonumentHomes = new List<PropHome>();
-
         // Called by Patches/PropHomeEnablePatch for EACH PropHome, as soon
         // as it becomes active. The subscription itself (just a +=) does
         // not depend on any timing condition and happens immediately; the
@@ -86,22 +76,35 @@ namespace BigWalkArchipelago.Core
 
             home.onChangeServer += (Action<PropHome, Prop, Prop>)OnHomeChanged;
             PendingRestoreCheck.Enqueue(home);
-
-            if (ReceivedItemSpawner.IsMonumentHome(home))
-                MonumentHomes.Add(home);
         }
 
-        // Aggregated total across all monuments (Option A): the number of
-        // monument PropHomes currently occupied by a cosmetic gourd.
-        // Queried on the fly from already-persisted data (`ap_home_<slot>`)
-        // rather than a cached counter — avoids any risk of desync with
-        // OnHomeChanged/TryRestoreHome (two separate write paths).
+        // Aggregated total across all monuments (Option A settled on
+        // 2026-09-15): how many monument slots hold a cosmetic gourd, with
+        // no notion of which tower — that is what makes it impossible for a
+        // bad distribution of gourds to lock a seed.
+        //
+        // Counted by scanning the save's own `ap_home_*` entries rather than
+        // by walking the loaded PropHomes. An earlier version did the
+        // latter, and it under-reported for as long as a monument had not
+        // streamed in yet: at session start, before walking anywhere near
+        // the Black Tower, its filled slots simply did not exist as far as
+        // this count was concerned. That fed the deposit checks, the goal,
+        // and (worse) the loose-gourd reconciliation in Core/Net/ApRuntime,
+        // which would have spawned duplicates for every monument not yet
+        // loaded. The save always knows; the scene does not.
         internal static int GetFilledMonumentCount()
         {
+            var data = SaveManager.instance != null ? SaveManager.instance.currentData : null;
+            if (data == null || data.entries == null)
+                return 0;
+
             var count = 0;
-            foreach (var home in MonumentHomes)
+            var entries = data.entries;
+            for (var i = 0; i < entries.Count; i++)
             {
-                if (home != null && SaveManager.GetIntValue(SaveKeyPrefix + home.saveableHomeName, 0, false) == 1)
+                var entry = entries[i];
+                if (entry.value != 0 && entry.key != null
+                    && entry.key.StartsWith(SaveKeyPrefix, StringComparison.Ordinal))
                     count++;
             }
 

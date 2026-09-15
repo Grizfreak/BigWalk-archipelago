@@ -124,9 +124,10 @@ both the deposit count and the item economy.
 Persist a cursor in the save file instead:
 
 ```
-SaveManager["ap_items_received"]  // how many items of the ordered list are applied
-SaveManager["ap_seed_name"]       // the server's seed_name, as a string entry
-SaveManager["ap_slot_name"]       // the connected slot name
+SaveManager["ap_items_received"]   // how many items of the ordered list are applied
+SaveManager["ap_gourds_received"]  // how many of those were gourds (see below)
+SaveManager["ap_seed_name"]        // the server's seed_name, as a string entry
+SaveManager["ap_slot_name"]        // the connected slot name
 ```
 
 On `ReceivedItems`, apply only entries at index ≥ `ap_items_received`, then
@@ -140,6 +141,42 @@ Known and accepted consequence of that recovery path: replayed gourds land at
 the hub, they do not go back into the monuments they were deposited in. The
 players redeposit them by hand. Harmless while deposits are counted globally;
 it would need rethinking if monuments ever became individually meaningful.
+
+### Suppressing the replay is not enough — gourds must be reconciled
+
+Found in the first in-game session (2026-09-15) and worth spelling out,
+because the two halves are each correct and together they lose data.
+
+A cosmetic gourd deliberately has **no save identity** (`saveablePropName =
+notSavable`, `startHome = null`) so it can never collide with a real check.
+The consequence is that the game persists one only once it is pinned in a
+monument, through `ap_home_<slot>`. A gourd lying at the hub, or in someone's
+hands, is gone after a restart. Before the cursor existed this was invisible:
+the server's replay respawned everything on every connection. Suppressing the
+replay made it permanent — and losing a single gourd puts the last big key
+out of reach, because the pool holds exactly one `Gourd` per monument slot.
+
+So the client does not try to remember individual props. Gourds are
+fungible, so it remembers the count and rebuilds the world from it at every
+session start:
+
+```
+loose gourds to spawn = gourds ever received
+                        - slots filled (count of ap_home_* set)
+                        - gourds already spawned this session
+```
+
+Two details that are not optional:
+
+- **Count the deposited slots from the save, not from loaded `PropHome`s.**
+  Monuments stream in as the players approach, so a scene-based count
+  under-reports at session start and the reconciliation would spawn
+  duplicates for every monument not yet loaded.
+- **Rebuild the ledger from the replay, do not merely trust it.** Counting
+  the gourds in the replayed history is authoritative, and it repairs a save
+  written by a build that kept no count at all. That means waiting for the
+  replay to arrive and go quiet before reconciling; an empty queue right
+  after connecting means "not yet", not "nothing".
 
 ## 6. Reporting the goal
 

@@ -34,6 +34,10 @@ namespace BigWalkArchipelago.Core.Net
         // so a reconnect never lands as a multi-second freeze.
         private const int MaxItemsPerFrame = 4;
 
+        // How long to let the server's replay arrive before trusting an
+        // empty item queue to mean "that was all of it".
+        private const float ReplayGraceSeconds = 3f;
+
         // ALL state below is static, and that is not laziness. This is a type
         // injected into IL2CPP: the managed wrapper around the component is
         // not guaranteed to be the same object for the component's whole
@@ -59,6 +63,13 @@ namespace BigWalkArchipelago.Core.Net
         // is exactly the replay the server sends on every connection.
         private static int _seenItemCount;
         private static int _appliedItemCount;
+
+        // Loose-gourd reconciliation, per connection (see RestoreLooseGourds).
+        private static bool _looseGourdsRestored;
+        private static int _looseGourdsRestoredCount;
+        private static int _gourdsSeenThisSession;
+        private static int _gourdsSpawnedThisSession;
+        private static float _connectedAt;
 
         private static int _lastReportedDepositCount = -1;
         private static bool _goalSent;
@@ -120,7 +131,10 @@ namespace BigWalkArchipelago.Core.Net
             // for the same "safe to touch the world" signal the rest of the
             // mod uses. Items simply stay queued until then.
             if (WorldManager.isReadyForEffects)
+            {
                 DrainIncomingItems();
+                RestoreLooseGourds();
+            }
 
             _pollTimer -= Time.unscaledDeltaTime;
             if (_pollTimer > 0f)
@@ -200,6 +214,11 @@ namespace BigWalkArchipelago.Core.Net
             _seenItemCount = 0;
             _appliedItemCount = ApItemCursor.SyncTo(Connection.SeedName, Connection.SlotName);
             _lastReportedDepositCount = -1;
+            _looseGourdsRestored = false;
+            _looseGourdsRestoredCount = 0;
+            _gourdsSeenThisSession = 0;
+            _gourdsSpawnedThisSession = 0;
+            _connectedAt = Time.unscaledTime;
 
             // A goal string this build cannot detect would otherwise leave
             // the player unable to ever finish, with nothing in the log to
@@ -274,6 +293,69 @@ namespace BigWalkArchipelago.Core.Net
                 Connection.SendChecks(SendBuffer.ToArray());
         }
 
+        // Puts back the gourds this save owns but no longer physically has.
+        //
+        // Only a gourd pinned in a monument survives a restart: a loose or
+        // carried one has no save identity, by design, and is gone. So at
+        // every session start the world is made to match the ledger again:
+        //
+        //     loose gourds to spawn = gourds ever received
+        //                             - gourds deposited in monuments
+        //                             - gourds already spawned this session
+        //
+        // Nothing tries to remember *which* gourd was where, because gourds
+        // are interchangeable — the same property that makes the global
+        // deposit model softlock-proof. Quit holding five gourds, find five
+        // at the hub.
+        //
+        // The ledger is rebuilt from the server rather than merely trusted:
+        // the replay names every item this slot ever received, so counting
+        // the gourds in it is authoritative and repairs a save written by a
+        // version of the mod that did not keep the count at all. Hence
+        // waiting for the replay to arrive and go quiet before acting —
+        // reconciling against a ledger of zero would "restore" nothing and
+        // then latch.
+        private static void RestoreLooseGourds()
+        {
+            if (_looseGourdsRestored || Connection.HasPendingItems)
+                return;
+
+            // An empty queue right after connecting usually means the replay
+            // has not landed yet, not that there is nothing to replay.
+            if (Time.unscaledTime - _connectedAt < ReplayGraceSeconds)
+                return;
+
+            if (_gourdsSeenThisSession > ApItemCursor.GourdsReceived)
+            {
+                Plugin.Log.LogInfo(
+                    $"[{nameof(ApRuntime)}] Gourd ledger rebuilt from the server: {_gourdsSeenThisSession} received "
+                    + $"(this save recorded {ApItemCursor.GourdsReceived}).");
+                ApItemCursor.SetGourdsReceived(_gourdsSeenThisSession);
+            }
+
+            var owed = ApItemCursor.GourdsReceived
+                       - CosmeticMonumentFillTracker.GetFilledMonumentCount()
+                       - _gourdsSpawnedThisSession;
+
+            var batch = Math.Min(owed, MaxItemsPerFrame);
+            for (var i = 0; i < batch; i++)
+            {
+                if (!ItemApplier.ApplyGourdItem())
+                    return;
+
+                _gourdsSpawnedThisSession++;
+                _looseGourdsRestoredCount++;
+            }
+
+            if (owed > batch)
+                return;
+
+            _looseGourdsRestored = true;
+            if (_looseGourdsRestoredCount > 0)
+                Plugin.Log.LogInfo(
+                    $"[{nameof(ApRuntime)}] Restored {_looseGourdsRestoredCount} gourd(s) received but never deposited.");
+        }
+
         private static void DrainIncomingItems()
         {
             var appliedThisFrame = 0;
@@ -282,6 +364,14 @@ namespace BigWalkArchipelago.Core.Net
             {
                 _seenItemCount++;
 
+                // Counted even for items about to be skipped: this tally is
+                // what rebuilds the gourd ledger in RestoreLooseGourds, and
+                // for that it has to reflect the slot's whole history, not
+                // just what is new to this save.
+                var isGourd = item.ItemId == ApLocationIds.GourdItemId;
+                if (isGourd)
+                    _gourdsSeenThisSession++;
+
                 // Already materialized into this save by an earlier session:
                 // this is the server's replay, not a new item. Skipping it is
                 // the entire reason ApItemCursor exists. Skipped items are
@@ -289,9 +379,17 @@ namespace BigWalkArchipelago.Core.Net
                 if (_seenItemCount <= _appliedItemCount)
                     continue;
 
+                // Raised before the item is applied, deliberately: a gourd
+                // that was granted is owed to the player whether or not the
+                // prop actually spawned. Next session's reconciliation makes
+                // good on it.
+                if (isGourd)
+                    ApItemCursor.CountGourdReceived();
+
                 try
                 {
-                    Apply(item);
+                    if (Apply(item) && isGourd)
+                        _gourdsSpawnedThisSession++;
                 }
                 catch (Exception ex)
                 {
@@ -309,27 +407,24 @@ namespace BigWalkArchipelago.Core.Net
             }
         }
 
-        private static void Apply(Archipelago.MultiClient.Net.Models.ItemInfo item)
+        // Returns whether the item actually materialized in the world, which
+        // is what the gourd reconciliation counts.
+        private static bool Apply(Archipelago.MultiClient.Net.Models.ItemInfo item)
         {
             var itemId = item.ItemId;
 
             if (itemId == ApLocationIds.GourdItemId)
-            {
-                ItemApplier.ApplyGourdItem();
-                return;
-            }
+                return ItemApplier.ApplyGourdItem();
 
             if (ApLocationIds.TryResolveBigKeyItem(itemId, out var propName))
-            {
-                ItemApplier.ApplyBigKeyItem(propName);
-                return;
-            }
+                return ItemApplier.ApplyBigKeyItem(propName);
 
             // Filler, traps and anything a newer apworld invents: no effect,
             // by design. Logged rather than silent so a genuinely unhandled
             // item is visible in the log instead of looking like a bug in the
             // multiworld.
             Plugin.Log.LogInfo($"[{nameof(ApRuntime)}] Received '{item.ItemName}' ({itemId}): no in-game effect.");
+            return false;
         }
 
         // Monument deposits are counted across every monument together, never

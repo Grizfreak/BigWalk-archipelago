@@ -66,11 +66,41 @@ see [`../apworld/design-decisions.md`](../apworld/design-decisions.md).
     opens on the spot. Exactly the leftover the 2026-09-07 note warned
     about ("keep this in mind to avoid accidentally reintroducing the old
     idea of a generic hand-carried gourd").
+  - **SECOND BUG, the serious one, found and fixed in the same session
+    (2026-09-15, player): gourds vanished across a reconnect.** Two
+    individually-correct decisions that destroy data together.
+    1. A cosmetic gourd has no save identity on purpose
+       (`saveablePropName = notSavable`, `startHome = null`) so it can never
+       collide with a real check — so the game persists one **only** once it
+       is pinned in a monument (`ap_home_<slot>`). Loose or carried, it is
+       gone on restart.
+    2. The new item cursor suppresses the server's replay, to stop a
+       reconnection duplicating every gourd.
+    Before (2), the replay quietly papered over (1) by respawning
+    everything. After (2), any gourd not deposited before quitting is lost
+    **permanently** — and since the pool holds exactly one `Gourd` per
+    monument slot, losing one puts the last big key out of reach: a seed
+    made unfinishable, silently.
+    - **Fix, in `Core/Net/ApRuntime.RestoreLooseGourds`**: stop trying to
+      remember individual props. Gourds are fungible — the same property
+      that makes the global deposit model softlock-proof — so the mod
+      remembers the *count* (`ap_gourds_received`) and rebuilds the world
+      from it at every session start: `received - deposited - spawned this
+      session` loose gourds at the hub.
+    - **`GetFilledMonumentCount()` rewritten to scan the save's `ap_home_*`
+      entries** instead of walking `MonumentHomes`. The old version
+      under-reported for as long as a monument had not streamed in, which
+      also quietly degraded deposit checks and the goal — and would have
+      made the reconciliation above spawn duplicates for every monument not
+      yet loaded. The save always knows; the scene does not.
+    - **The ledger is rebuilt from the server's replay** rather than merely
+      trusted, so it also repairs a save written by the buggy build (which
+      kept no count at all). Hence the wait for the replay to go quiet
+      before reconciling: an empty queue right after connecting means "not
+      yet", not "nothing".
   - **Still unexercised in-game**, in order of how much damage a bug would
-    do: the received-items cursor across a reconnect (nothing yet proves a
-    reconnection does *not* duplicate every gourd), deposit threshold
-    reporting, goal reporting, and an outgoing check from a real puzzle
-    resolution.
+    do: the reconciliation above, deposit threshold reporting, goal
+    reporting, and an outgoing check from a real puzzle resolution.
 - **RESOLVED (2026-09-15)** — `ItemApplier` split into two paths, confirmed
   by reading `mod/src/Core/ItemApplier.cs`:
   - `ApplyGourdItem()` (no parameter) does nothing but

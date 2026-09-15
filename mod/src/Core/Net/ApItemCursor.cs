@@ -22,6 +22,7 @@ namespace BigWalkArchipelago.Core.Net
     internal static class ApItemCursor
     {
         private const string CountKey = "ap_items_received";
+        private const string GourdCountKey = "ap_gourds_received";
         private const string SeedKey = "ap_seed_name";
         private const string SlotKey = "ap_slot_name";
 
@@ -48,12 +49,47 @@ namespace BigWalkArchipelago.Core.Net
             SaveManager.SetStringValue(SeedKey, seedName ?? string.Empty);
             SaveManager.SetStringValue(SlotKey, slotName ?? string.Empty);
             SaveManager.SetIntValue(CountKey, 0);
+            SaveManager.SetIntValue(GourdCountKey, 0);
             return 0;
         }
 
         internal static void Set(int appliedCount)
         {
             SaveManager.SetIntValue(CountKey, appliedCount);
+        }
+
+        // How many Gourd items this save has ever been given, which is not
+        // the same question as how many gourds physically exist right now.
+        //
+        // A cosmetic gourd has no save identity on purpose (that is what
+        // stops it colliding with a real check), so the game persists it
+        // only once it is pinned in a monument. One lying at the hub, or
+        // carried, is simply gone after a restart. Before the item cursor
+        // existed that was invisible, because the server's replay respawned
+        // everything on every connection; suppressing the replay made it
+        // visible and permanent — and losing a single gourd puts the last
+        // big key out of reach, since the item pool holds exactly one per
+        // monument slot.
+        //
+        // So the mod stops trying to remember individual props and remembers
+        // the count instead: gourds are fungible, and Core/Net/ApRuntime
+        // rebuilds "received minus deposited" loose gourds at every session
+        // start. Self-healing by construction — it also recovers gourds lost
+        // by a version of the mod that had this bug.
+        internal static int GourdsReceived => SaveManager.GetIntValue(GourdCountKey, 0, false);
+
+        internal static void CountGourdReceived()
+        {
+            SaveManager.SetIntValue(GourdCountKey, GourdsReceived + 1);
+        }
+
+        // Adopts a count recomputed from the server's replay. The server's
+        // item history is the real authority, so this repairs a save whose
+        // ledger is wrong or — the case that matters — was never written at
+        // all, by a build of the mod that predates this counter.
+        internal static void SetGourdsReceived(int count)
+        {
+            SaveManager.SetIntValue(GourdCountKey, count);
         }
     }
 }

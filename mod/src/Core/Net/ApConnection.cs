@@ -162,6 +162,11 @@ namespace BigWalkArchipelago.Core.Net
             return _incomingItems.TryDequeue(out item);
         }
 
+        // Whether the server's replay is still arriving. ApRuntime waits for
+        // this to go quiet before reconciling gourds, because that
+        // reconciliation depends on having seen the whole item history.
+        internal bool HasPendingItems => !_incomingItems.IsEmpty;
+
         // Whether an id belongs to this slot at all. Snapshotted once at
         // login rather than read live, both to avoid enumerating a collection
         // the network thread is mutating and because the answer cannot
