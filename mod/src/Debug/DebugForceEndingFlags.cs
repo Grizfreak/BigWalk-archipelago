@@ -2,21 +2,21 @@ using BigWalkArchipelago.Core;
 
 namespace BigWalkArchipelago.Debug
 {
-    // Outil d'action (pas un diagnostic). Sert à tester l'hypothèse notée
-    // dans big-walk-archipelago-notes.md (section sphère noire du hub,
-    // 2026-09-10) après décompilation Ghidra de la chaîne "fin de partie" :
-    // aucune fonction de EndingTransition/PeckEffectEndingTransition
-    // n'écrit dans SaveManager, donc il n'existe probablement pas de flag
-    // dédié "jeu terminé" — si la sphère du hub vérifie une notion de
-    // complétion, c'est vraisemblablement une combinaison des flags déjà
-    // connus (EndingGate, GauntletComplete, les 7 plinthes de big key).
+    // Action tool (not a diagnostic). Used to test the hypothesis noted in
+    // big-walk-archipelago-notes.md (hub black sphere section, 2026-09-10)
+    // after Ghidra decompilation of the "end of game" chain: no function of
+    // EndingTransition/PeckEffectEndingTransition writes to SaveManager, so
+    // there is probably no dedicated "game finished" flag — if the hub
+    // sphere checks some notion of completion, it is likely a combination of
+    // the already-known flags (EndingGate, GauntletComplete, the 7 big-key
+    // plinths).
     //
-    // Ce tool force ces 9 écritures d'un coup, à distance (comme ItemApplier
-    // le fait déjà pour la réception d'un item), sans avoir à retrouver
-    // chaque big key ni à refaire les deux cloches en vrai. À utiliser sur
-    // une save qui n'a **jamais** vu l'écran de fin, pour ne pas fausser le
-    // test — sinon on ne peut pas savoir si la sphère réagit à ce forçage ou
-    // était déjà cassée avant.
+    // This tool forces these 9 writes all at once, remotely (like
+    // ItemApplier already does for receiving an item), without having to
+    // find each big key or redo both bells for real. Use it on a save that
+    // has **never** seen the ending screen, so as not to skew the test —
+    // otherwise there's no way to know whether the sphere reacts to this
+    // forcing or was already broken beforehand.
     internal static class DebugForceEndingFlags
     {
         private static readonly SaveablePropName[] BigKeys =
@@ -32,18 +32,18 @@ namespace BigWalkArchipelago.Debug
 
         internal static void ForceAll()
         {
-            Plugin.Log.LogInfo($"[{nameof(DebugForceEndingFlags)}] Forçage de EndingGate, GauntletComplete et des 7 big keys...");
+            Plugin.Log.LogInfo($"[{nameof(DebugForceEndingFlags)}] Forcing EndingGate, GauntletComplete, and the 7 big keys...");
 
             foreach (var bigKey in BigKeys)
             {
                 var applied = ItemApplier.ApplyBigKeyItem(bigKey);
-                Plugin.Log.LogInfo($"[{nameof(DebugForceEndingFlags)}]   {bigKey} -> {(applied ? "OK" : "échec (voir warning ci-dessus)")}");
+                Plugin.Log.LogInfo($"[{nameof(DebugForceEndingFlags)}]   {bigKey} -> {(applied ? "OK" : "failed (see warning above)")}");
             }
 
             SaveManager.SetIntValue("EndingGate", 1);
             SaveManager.SetIntValue("GauntletComplete", 1);
 
-            Plugin.Log.LogInfo($"[{nameof(DebugForceEndingFlags)}] Terminé. SaveManager[EndingGate]={SaveManager.GetIntValue("EndingGate", -12345, false)}, SaveManager[GauntletComplete]={SaveManager.GetIntValue("GauntletComplete", -12345, false)}.");
+            Plugin.Log.LogInfo($"[{nameof(DebugForceEndingFlags)}] Done. SaveManager[EndingGate]={SaveManager.GetIntValue("EndingGate", -12345, false)}, SaveManager[GauntletComplete]={SaveManager.GetIntValue("GauntletComplete", -12345, false)}.");
         }
     }
 }

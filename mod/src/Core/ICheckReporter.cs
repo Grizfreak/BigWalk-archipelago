@@ -1,8 +1,8 @@
 namespace BigWalkArchipelago.Core
 {
-    // Un patch appelle Plugin.Reporter.ReportCheck(id) sans savoir ce qui se
-    // passe derrière : logguer localement aujourd'hui, parler au serveur
-    // Archipelago demain — aucune ligne à toucher dans Patches/ pour ce switch.
+    // A patch calls Plugin.Reporter.ReportCheck(id) without knowing what
+    // happens behind it: log locally today, talk to the Archipelago server
+    // tomorrow — no line to touch in Patches/ for that switch.
     internal interface ICheckReporter
     {
         void ReportCheck(string locationId);

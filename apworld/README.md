@@ -1,8 +1,10 @@
 # apworld/ (pas encore commencé)
 
 Futur monde Python Archipelago (`worlds/bigwalk/`) pour *Big Walk*. Rien n'est
-codé ici pour l'instant — voir [`../BW_export/big-walk-archipelago-notes.md`](../BW_export/big-walk-archipelago-notes.md)
-pour l'état complet des décisions de conception et des blocages.
+codé ici pour l'instant — voir [`design-decisions.md`](design-decisions.md)
+pour l'état complet des décisions de conception et des blocages, et
+[`../mod/reverse-engineering-notes.md`](../mod/reverse-engineering-notes.md)
+pour le fonctionnement interne du jeu et du mod.
 
 ## Bloquants avant de commencer
 

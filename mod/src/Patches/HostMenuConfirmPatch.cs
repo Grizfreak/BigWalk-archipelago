@@ -7,41 +7,42 @@ using UnityEngine.Events;
 
 namespace BigWalkArchipelago.Patches
 {
-    // Ajoute un champ host:port AP sur l'écran d'hébergement (HostMenuConfirm)
-    // — préalable au vrai client réseau AP (pas encore écrit), qui lira
-    // Core.ApSessionConfig.HostAndPort au moment de se connecter. Layout
-    // confirmé via Debug/DebugMenuLookup.cs (touche M) le 2026-09-15 :
-    // GameSlotCard_Editable positionne tout à la main (pas de LayoutGroup),
-    // avec GameName en pleine largeur (900) sur sa propre ligne, et
-    // Password/LastPlayed côte à côte en dessous (399.42 de large chacun,
-    // décalage de 489.4 entre les deux). On reproduit exactement ce schéma
-    // pour la ligne GameName : rétrécie à 399.42, avec le nouveau champ
-    // cloné à sa droite (décalage 489.4, même Y) — décision du joueur
-    // (2026-09-15) de placer le champ "en face du nom de la sauvegarde".
+    // Adds an AP host:port field to the hosting screen (HostMenuConfirm) —
+    // a prerequisite for the real AP network client (not yet written),
+    // which will read Core.ApSessionConfig.HostAndPort when connecting.
+    // Layout confirmed via Debug/DebugMenuLookup.cs (M key) on 2026-09-15:
+    // GameSlotCard_Editable positions everything by hand (no LayoutGroup),
+    // with GameName full-width (900) on its own row, and Password/LastPlayed
+    // side by side below it (399.42 wide each, offset by 489.4 between the
+    // two). We reproduce this exact layout for the GameName row: shrunk to
+    // 399.42, with the new field cloned to its right (offset 489.4, same Y)
+    // — player decision (2026-09-15) to place the field "facing the save
+    // name".
     //
-    // Clonage plutôt que construction from scratch (même philosophie que
-    // ReceivedItemSpawner pour les gourds cosmétiques) : GameNameInput porte
-    // MultiPlatformInputField (sous-classe de TMP_InputField, confirmé dans
-    // il2cpp.cs) avec toute la navigation clavier/manette/style déjà câblée
-    // — bien plus sûr que d'assembler un TMP_InputField à la main.
+    // Cloning rather than building from scratch (same philosophy as
+    // ReceivedItemSpawner for cosmetic gourds): GameNameInput carries
+    // MultiPlatformInputField (a subclass of TMP_InputField, confirmed in
+    // il2cpp.cs) with all keyboard/gamepad navigation and styling already
+    // wired up — much safer than assembling a TMP_InputField by hand.
     [HarmonyPatch(typeof(HostMenuConfirm), nameof(HostMenuConfirm.OnEnable))]
     internal static class HostMenuConfirmPatch
     {
         private const string HostPortRowName = "ApHostPortRow";
         private const float HalfRowWidth = 399.42f;
-        private const float ColumnOffsetX = 489.4f; // Password -> LastPlayed, mesuré via DebugMenuLookup
+        private const float ColumnOffsetX = 489.4f; // Password -> LastPlayed, measured via DebugMenuLookup
 
         private static void Postfix(HostMenuConfirm __instance)
         {
-            // Décompilation Ghidra du 2026-09-15 (HouseAuthenticator.
+            // Ghidra decompilation from 2026-09-15 (HouseAuthenticator.
             // OnPasswordResponseMessage, HostMenuConfirm.RequiredInputsHaveValues/
-            // IsReadyToContinue/ActionStart) : passwordRequired est un simple
-            // booléen sérialisé qui gate la validation du bouton "Continuer",
-            // rien côté Mirror/HouseAuthenticator n'exige un mot de passe
-            // non-vide (comparaison de chaînes ordinaire, vide == vide passe).
-            // Le mettre à false rend juste le champ optionnel : s'il reste
-            // rempli, sa valeur est quand même écrite/transmise normalement
-            // (ActionStart ne conditionne l'écriture à rien d'autre).
+            // IsReadyToContinue/ActionStart): passwordRequired is a plain
+            // serialized boolean that gates validation of the "Continue"
+            // button, nothing on the Mirror/HouseAuthenticator side requires
+            // a non-empty password (ordinary string comparison, empty ==
+            // empty passes). Setting it to false just makes the field
+            // optional: if it's still filled in, its value is still
+            // written/transmitted normally (ActionStart doesn't condition
+            // the write on anything else).
             __instance.passwordRequired = false;
 
             try
@@ -51,7 +52,7 @@ namespace BigWalkArchipelago.Patches
             catch (Exception ex)
             {
                 Plugin.Log.LogWarning(
-                    $"[{nameof(HostMenuConfirmPatch)}] Échec de l'injection du champ host:port, ignoré : {ex.Message}");
+                    $"[{nameof(HostMenuConfirmPatch)}] Failed to inject the host:port field, ignored: {ex.Message}");
             }
         }
 
@@ -63,8 +64,8 @@ namespace BigWalkArchipelago.Patches
             if (gameNameRow == null || parent == null || gameNameRow.name != "GameName")
                 return;
 
-            // OnEnable peut être rappelé plusieurs fois sur la même instance
-            // (le joueur quitte/rouvre l'écran) : ne pas re-cloner à chaque fois.
+            // OnEnable can be called back multiple times on the same instance
+            // (the player leaves/reopens the screen): don't re-clone every time.
             if (parent.Find(HostPortRowName) != null)
                 return;
 
@@ -85,16 +86,16 @@ namespace BigWalkArchipelago.Patches
             RetitleClone(clone.transform);
             RelabelOriginalFields(menu, gameNameRow);
 
-            Plugin.Log.LogInfo($"[{nameof(HostMenuConfirmPatch)}] Champ host:port injecté sur '{menu.gameObject.name}'.");
+            Plugin.Log.LogInfo($"[{nameof(HostMenuConfirmPatch)}] host:port field injected on '{menu.gameObject.name}'.");
         }
 
-        // Les 2 champs existants sont réutilisés comme identifiants AP (slot
-        // name / mot de passe AP), pas comme nom/mot de passe de la session
-        // locale — décision du joueur (2026-09-15). Ne renomme QUE les
-        // libellés affichés : la logique (ActionStart, SaveData.slotName/
-        // password, NetworkMinder.SetServerPassword) reste inchangée, c'est
-        // le vrai client réseau AP (pas encore écrit) qui lira ces mêmes
-        // champs différemment le moment venu.
+        // The 2 existing fields are repurposed as AP identifiers (slot
+        // name / AP password), not as the local session's name/password —
+        // player decision (2026-09-15). Only renames the displayed labels:
+        // the logic (ActionStart, SaveData.slotName/password,
+        // NetworkMinder.SetServerPassword) stays unchanged; it's the real AP
+        // network client (not yet written) that will read these same fields
+        // differently when the time comes.
         private static void RelabelOriginalFields(HostMenuConfirm menu, Transform gameNameRow)
         {
             SetStaticLabel(gameNameRow.Find("GameNameTitle"), "SLOT NAME :");
@@ -104,10 +105,10 @@ namespace BigWalkArchipelago.Patches
                 SetStaticLabel(passwordRow.Find("PasswordTitle"), "ARCHIPELAGO PASSWORD :");
         }
 
-        // Rétrécit la ligne GameName ET ses deux enfants directs
-        // (GameNameTitle/GameNameInput) proportionnellement — pas de
-        // LayoutGroup sur ce panneau, tout est en sizeDelta fixe, donc
-        // resize le parent seul ne toucherait pas les enfants.
+        // Shrinks the GameName row AND its two direct children
+        // (GameNameTitle/GameNameInput) proportionally — no LayoutGroup on
+        // this panel, everything uses a fixed sizeDelta, so resizing the
+        // parent alone wouldn't affect the children.
         private static void ScaleRowWidth(Transform row, float scale, float newRowWidth)
         {
             var rowRect = row.GetComponent<RectTransform>();
@@ -139,18 +140,18 @@ namespace BigWalkArchipelago.Patches
             if (tmpInput == null)
                 return;
 
-            // Cloné de GameNameInput, qui limite la longueur d'un nom de
-            // sauvegarde (characterLimit hérité, trop court pour une adresse
-            // "archipelago.gg:38281" ou un hostname perso) — retiré, aucune
-            // raison de limiter la longueur d'un host:port (signalé par le
-            // joueur, 2026-09-15 : impossible de taper assez de caractères).
+            // Cloned from GameNameInput, which limits the length of a save
+            // name (inherited characterLimit, too short for an address like
+            // "archipelago.gg:38281" or a custom hostname) — removed, no
+            // reason to limit the length of a host:port (reported by the
+            // player, 2026-09-15: unable to type enough characters).
             tmpInput.characterLimit = 0;
 
-            // Pré-rempli avec la dernière valeur saisie (persistée dans le
-            // .cfg BepInEx, ModConfig.ArchipelagoHostPort — "archipelago.gg:"
-            // par défaut au tout premier lancement) plutôt qu'une valeur figée
-            // à chaque fois — demande du joueur (2026-09-15) de ne pas avoir à
-            // la retaper à chaque partie.
+            // Pre-filled with the last entered value (persisted in the
+            // BepInEx .cfg, ModConfig.ArchipelagoHostPort — "archipelago.gg:"
+            // by default on the very first launch) rather than a fixed value
+            // every time — player request (2026-09-15) to avoid retyping it
+            // every session.
             var lastValue = ModConfig.ArchipelagoHostPort.Value;
             tmpInput.text = lastValue;
             ApSessionConfig.HostAndPort = lastValue;
@@ -161,11 +162,11 @@ namespace BigWalkArchipelago.Patches
             }));
         }
 
-        // Les libellés (GameNameTitle, Placeholder) portent un LocalizedText
-        // qui réécrit le texte depuis une clé de traduction — sans le
-        // désactiver, notre texte serait écrasé au prochain refresh de
-        // langue (voire immédiatement, LocalizedText pouvant réappliquer sa
-        // traduction dans son propre OnEnable, rejoué par Instantiate).
+        // The labels (GameNameTitle, Placeholder) carry a LocalizedText that
+        // rewrites the text from a translation key — without disabling it,
+        // our text would be overwritten on the next language refresh (or
+        // even immediately, since LocalizedText can reapply its translation
+        // in its own OnEnable, which gets replayed by Instantiate).
         private static void SetStaticLabel(Transform target, string text)
         {
             if (target == null)

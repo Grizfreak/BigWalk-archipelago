@@ -3,19 +3,19 @@ using UnityEngine;
 
 namespace BigWalkArchipelago.Debug
 {
-    // Diagnostic pur (aucune écriture). Suite de DebugTrackedPeckStateLookup :
-    // le dump filtré sur savableSystem==SpawnHubGate n'a trouvé qu'un seul
-    // TrackedPeckState ("GateMainSystem"), mais son savableSystem n'apparaît
-    // jamais dans le fichier de save après un déclenchement confirmé en jeu —
-    // donc ce n'est probablement PAS le TrackedPeckState réellement modifié.
-    // PeckDevHelper.Trigger (décompilé via Ghidra, cf.
-    // big-walk-archipelago-notes.md) appelle en fait PeckSwitch.Peck() sur le
-    // PeckSwitch attaché au même GameObject que le PeckDevHelper (ex.
-    // "DevUnlock") — et c'est le champ PeckSwitch.trackedStateSystem
-    // (référence assignée dans l'éditeur Unity, pas forcément le
-    // TrackedPeckState le plus proche) qui reçoit le vrai SetState(). Ce tool
-    // inspecte directement cette référence pour identifier le bon
-    // TrackedPeckState sans deviner.
+    // Pure diagnostic (no writes). Continuation of
+    // DebugTrackedPeckStateLookup: the dump filtered on
+    // savableSystem==SpawnHubGate found only one TrackedPeckState
+    // ("GateMainSystem"), but its savableSystem never shows up in the save
+    // file after a trigger confirmed in-game — so this is probably NOT the
+    // TrackedPeckState that is actually modified. PeckDevHelper.Trigger
+    // (decompiled via Ghidra, cf. big-walk-archipelago-notes.md) actually
+    // calls PeckSwitch.Peck() on the PeckSwitch attached to the same
+    // GameObject as the PeckDevHelper (e.g. "DevUnlock") — and it's the
+    // PeckSwitch.trackedStateSystem field (a reference assigned in the Unity
+    // editor, not necessarily the nearest TrackedPeckState) that receives
+    // the real SetState(). This tool inspects that reference directly to
+    // identify the right TrackedPeckState without guessing.
     internal static class DebugPeckSwitchTarget
     {
         internal static void DumpNearby(float radius)
@@ -23,7 +23,7 @@ namespace BigWalkArchipelago.Debug
             var localPlayer = DebugPlayerLookup.FindLocalPlayer();
             if (localPlayer == null)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugPeckSwitchTarget)}] Joueur local introuvable.");
+                Plugin.Log.LogInfo($"[{nameof(DebugPeckSwitchTarget)}] Local player not found.");
                 return;
             }
 
@@ -33,7 +33,7 @@ namespace BigWalkArchipelago.Debug
             var all = UnityEngine.Object.FindObjectsByType<PeckSwitch>(FindObjectsSortMode.None);
             if (all == null || all.Length == 0)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugPeckSwitchTarget)}] Aucun PeckSwitch trouvé dans la zone actuelle.");
+                Plugin.Log.LogInfo($"[{nameof(DebugPeckSwitchTarget)}] No PeckSwitch found in the current area.");
                 return;
             }
 
@@ -55,7 +55,7 @@ namespace BigWalkArchipelago.Debug
                 }
 
                 var saveIdentity = target.saveIdentity;
-                var saveGuid = saveIdentity != null ? saveIdentity.saveGuid : "<pas de SaveIdentity>";
+                var saveGuid = saveIdentity != null ? saveIdentity.saveGuid : "<no SaveIdentity>";
                 var savableSystem = target.savableSystem;
                 var key = savableSystem != SavableSystem.NotSavable ? savableSystem.ToString() : saveGuid;
                 var currentValue = SaveManager.GetIntValue(key, -12345, false);
@@ -63,7 +63,7 @@ namespace BigWalkArchipelago.Debug
                 Plugin.Log.LogInfo(
                     $"[{nameof(DebugPeckSwitchTarget)}]   {sw.gameObject.name} (PeckSwitch, specificState={sw.specificState}) -> " +
                     $"trackedStateSystem={target.gameObject.name} — savableSystem={savableSystem} — saveGuid={saveGuid} — " +
-                    $"clé réelle='{key}' — SaveManager[{key}]={currentValue}");
+                    $"actual key='{key}' — SaveManager[{key}]={currentValue}");
             }
         }
     }

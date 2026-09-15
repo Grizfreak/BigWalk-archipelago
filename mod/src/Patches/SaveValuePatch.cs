@@ -4,26 +4,27 @@ using HarmonyLib;
 
 namespace BigWalkArchipelago.Patches
 {
-    // Filet de sécurité : SaveManager.SetIntValue est le point d'écriture bas
-    // niveau commun à tous les chemins de code qui persistent un gourd. On ne
-    // connaît pas tous ces chemins (cf. big-walk-archipelago-notes.md) —
-    // confirmé en session de test le 2026-09-03 : en plus de RewardGourd.
-    // ServerSetGourdState, PeckEffectSavableHome.Peck() (sur un "vice launch
-    // switch") appelle Prop.SavePropHome indépendamment, sans jamais passer
-    // par RewardGourd. Ce patch capte génériquement toute écriture, au prix de
-    // ne pas savoir quel état exact du gourd l'a déclenchée.
+    // Safety net: SaveManager.SetIntValue is the low-level write point
+    // common to all code paths that persist a gourd. We don't know all of
+    // these paths (cf. big-walk-archipelago-notes.md) — confirmed during a
+    // test session on 2026-09-03: in addition to
+    // RewardGourd.ServerSetGourdState, PeckEffectSavableHome.Peck() (on a
+    // "vice launch switch") calls Prop.SavePropHome independently, never
+    // going through RewardGourd. This patch generically captures every
+    // write, at the cost of not knowing exactly which gourd state triggered
+    // it.
     //
-    // CheckTracker.TryMarkReported (persisté, cf. Core/CheckTracker.cs)
-    // garantit qu'un même gourd déjà signalé — par ce patch, par
-    // GourdStatePatch, ou lors d'une session précédente — n'est jamais
-    // reporté deux fois.
+    // CheckTracker.TryMarkReported (persisted, cf. Core/CheckTracker.cs)
+    // guarantees that the same gourd already reported — by this patch, by
+    // GourdStatePatch, or during a previous session — is never reported
+    // twice.
     [HarmonyPatch(typeof(SaveManager), nameof(SaveManager.SetIntValue))]
     internal static class SaveValuePatch
     {
         private static void Postfix(string key, int value)
         {
-            // value == 0 signifie "non pinné" (cf. Prop.SavePropHome dans les
-            // notes) : ce n'est jamais un check, potentiellement un retrait.
+            // value == 0 means "unpinned" (cf. Prop.SavePropHome in the
+            // notes): this is never a check, potentially a removal.
             if (value == 0)
                 return;
 

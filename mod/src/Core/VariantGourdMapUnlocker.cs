@@ -3,19 +3,19 @@ using UnityEngine;
 
 namespace BigWalkArchipelago.Core
 {
-    // Révèle automatiquement sur la carte les gourds "variant challenge"
-    // (violettes/postgame), en continu — pas une seule fois par save comme
-    // Core/ArchDoorUnlocker.cs : GourdMap.Initialize() remet systématiquement
-    // l'icône à Hidden à CHAQUE nouvelle instance de GourdMap (donc à chaque
-    // changement de zone), cf. VariantGourdRevealer. Poll à intervalle plutôt
-    // qu'à chaque frame (FindObjectsByType a un coût) ; GourdFlag.SetState a
-    // un early-return no-op si l'état ne change pas, donc rappeler sur un
-    // gourd déjà révélé ne fait rien. Purement un état d'affichage
-    // local/carte (pas de SaveManager, pas de réseau) : pas besoin de garde
-    // NetworkServer.active, s'exécute sur chaque client indépendamment.
+    // Automatically reveals "variant challenge" gourds (purple/postgame) on
+    // the map, continuously — not a one-time-per-save thing like
+    // Core/ArchDoorUnlocker.cs: GourdMap.Initialize() systematically resets
+    // the icon to Hidden on EVERY new GourdMap instance (i.e. on every zone
+    // change), cf. VariantGourdRevealer. Polled at an interval rather than
+    // every frame (FindObjectsByType has a cost); GourdFlag.SetState has an
+    // early-return no-op if the state doesn't change, so calling it again
+    // on an already-revealed gourd does nothing. Purely a local/map display
+    // state (no SaveManager, no network): no need for a NetworkServer.active
+    // guard, runs independently on every client.
     internal class VariantGourdMapUnlocker : MonoBehaviour
     {
-        // Constructeur requis par Il2CppInterop pour tout type injecté en IL2CPP.
+        // Constructor required by Il2CppInterop for any type injected into IL2CPP.
         public VariantGourdMapUnlocker(IntPtr ptr) : base(ptr)
         {
         }

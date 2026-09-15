@@ -4,27 +4,27 @@ using HarmonyLib;
 
 namespace BigWalkArchipelago.Patches
 {
-    // CosmeticMonumentFillTracker a besoin de connaître TOUS les PropHome du
-    // jeu, pas seulement ceux déjà chargés au moment d'un unique passage "au
-    // démarrage de la session" — confirmé en test le 2026-09-11 : un
-    // monument proche du hub (monoumentIntroSlot0) a fonctionné du premier
-    // coup, mais un monument loin (Black Tower, monoumentFinalSlot4) n'a
-    // reçu AUCUN abonnement onChangeServer (silence total dans les logs
-    // après un pin pourtant confirmé réussi par ailleurs) — le jeu charge
-    // manifestement certains PropHome à la volée (au moins en partie), pas
-    // tous simultanément au démarrage comme l'hypothèse non vérifiée le
-    // supposait.
+    // CosmeticMonumentFillTracker needs to know about ALL the game's
+    // PropHome instances, not just the ones already loaded at the time of a
+    // single "on session startup" pass — confirmed in testing on
+    // 2026-09-11: a monument close to the hub (monoumentIntroSlot0) worked
+    // on the first try, but a distant monument (Black Tower,
+    // monoumentFinalSlot4) received NO onChangeServer subscription at all
+    // (total silence in the logs after a pin nonetheless confirmed
+    // successful elsewhere) — the game clearly loads some PropHome instances
+    // on the fly (at least partially), not all simultaneously at startup as
+    // the unverified hypothesis assumed.
     //
-    // PropHome.OnEnable() est le seul point de passage garanti pour CHAQUE
-    // instance, qu'elle existe dès le chargement initial ou apparaisse plus
-    // tard. Remplace l'ancien passage unique (PropHome.allPropHomes scanné
-    // une fois dans CosmeticMonumentFillTracker.Update()) par un abonnement
-    // fait au fil de l'eau, instance par instance, dès son activation.
+    // PropHome.OnEnable() is the only guaranteed pass-through point for
+    // EVERY instance, whether it exists from initial load or appears later.
+    // Replaces the old single pass (PropHome.allPropHomes scanned once in
+    // CosmeticMonumentFillTracker.Update()) with a subscription made
+    // incrementally, instance by instance, as each one activates.
     [HarmonyPatch(typeof(PropHome), nameof(PropHome.OnEnable))]
     internal static class PropHomeEnablePatch
     {
-        // Garde contre un double abonnement si OnEnable est rappelé plus
-        // d'une fois sur la même instance (désactivation/réactivation).
+        // Guard against a double subscription if OnEnable is called back more
+        // than once on the same instance (deactivation/reactivation).
         private static readonly HashSet<PropHome> RegisteredHomes = new HashSet<PropHome>();
 
         private static void Postfix(PropHome __instance)

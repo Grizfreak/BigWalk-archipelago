@@ -2,9 +2,9 @@ using BigWalkArchipelago.Core;
 
 namespace BigWalkArchipelago.Debug
 {
-    // Débloque de force un gourd/big key sans résoudre l'énigme, pour tester
-    // GourdStatePatch/SaveValuePatch sans dépendre de puzzles (souvent
-    // multijoueur) ni d'un vrai déroulé de jeu.
+    // Forcibly unlocks a gourd/big key without solving the puzzle, to test
+    // GourdStatePatch/SaveValuePatch without depending on puzzles (often
+    // multiplayer) or a real playthrough sequence.
     internal static class DebugGourdUnlocker
     {
         internal static void UnlockNext()
@@ -13,23 +13,23 @@ namespace BigWalkArchipelago.Debug
             if (closest == null)
             {
                 Plugin.Log.LogInfo(
-                    $"[{nameof(DebugGourdUnlocker)}] Plus aucun gourd/big key verrouillé dans la zone actuelle.");
+                    $"[{nameof(DebugGourdUnlocker)}] No more locked gourd/big key in the current area.");
                 return;
             }
 
             var prop = closest.prop;
-            string label = prop != null ? prop.saveablePropName.ToString() : "<prop inconnu>";
-            Plugin.Log.LogInfo($"[{nameof(DebugGourdUnlocker)}] Déblocage forcé (le plus proche) : {label}");
+            string label = prop != null ? prop.saveablePropName.ToString() : "<unknown prop>";
+            Plugin.Log.LogInfo($"[{nameof(DebugGourdUnlocker)}] Forced unlock (nearest one): {label}");
 
-            // Important : on pin le prop dans son home AVANT de passer le
-            // gourd à Loose. GourdStatePatch réagit lui aussi à ce passage
-            // (même méthode patchée) et fait NetworkServer.UnSpawn + SetActive
-            // (false) sur ce même GameObject (prop et gourd partagent la même
-            // NetworkIdentity, confirmé en jeu le 2026-09-07). Si on pin après
-            // coup, l'objet est déjà déspawné (netIdentity.isServer devient
-            // false) et Prop.LocallySetPinned n'écrit jamais dans la save. En
-            // pinant avant, on simule le vrai flux du jeu (dépôt au couffin
-            // avant que la vice ne masque le gourd).
+            // Important: we pin the prop to its home BEFORE moving the gourd
+            // to Loose. GourdStatePatch also reacts to this transition (same
+            // patched method) and does NetworkServer.UnSpawn + SetActive
+            // (false) on this same GameObject (prop and gourd share the same
+            // NetworkIdentity, confirmed in-game on 2026-09-07). If we pin
+            // afterward, the object is already despawned (netIdentity.isServer
+            // becomes false) and Prop.LocallySetPinned never writes to the
+            // save. By pinning beforehand, we simulate the real game flow
+            // (deposit in the basket before the vise hides the gourd).
             if (prop != null)
             {
                 PropHome home = null;
@@ -37,20 +37,20 @@ namespace BigWalkArchipelago.Debug
                 {
                     home = PropHome.GetSaveableHome(homeName);
                     Plugin.Log.LogInfo(
-                        $"[{nameof(DebugGourdUnlocker)}] Home cible {homeName} : {(home != null ? "trouvé" : "introuvable")}");
+                        $"[{nameof(DebugGourdUnlocker)}] Target home {homeName}: {(home != null ? "found" : "not found")}");
                 }
 
                 if (home == null)
                 {
                     home = prop.startHome;
                     Plugin.Log.LogInfo(
-                        $"[{nameof(DebugGourdUnlocker)}] Repli sur startHome : {(home != null ? "présent" : "absent")}");
+                        $"[{nameof(DebugGourdUnlocker)}] Falling back to startHome: {(home != null ? "present" : "absent")}");
                 }
 
                 if (home != null)
                 {
                     Plugin.Log.LogInfo(
-                        $"[{nameof(DebugGourdUnlocker)}] Pin sur saveableHomeName={home.saveableHomeName} avant transition Loose.");
+                        $"[{nameof(DebugGourdUnlocker)}] Pinning to saveableHomeName={home.saveableHomeName} before Loose transition.");
                     prop.ServerSetPinned(home);
                 }
             }

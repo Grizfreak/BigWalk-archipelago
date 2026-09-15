@@ -5,29 +5,30 @@ using UnityEngine;
 
 namespace BigWalkArchipelago.Debug
 {
-    // Diagnostic pur (aucune écriture), pour des mécanismes de scène sans
-    // classe C# dédiée trouvable par nom dans il2cpp.cs — ex. les "Arch
-    // doors"/boutons de raccourci du document tiers (cf.
-    // big-walk-archipelago-notes.md), introuvables statiquement (aucune
-    // classe "Arch"/"Shortcut" dans le dump, `strings` sur GameAssembly.dll
-    // ne remonte aucun identifiant "Arch" côté jeu non plus). Probablement,
-    // comme pour les plinthes de big key, un câblage scène générique
-    // (système Peck) plutôt qu'une classe dédiée — ce outil liste, en jeu,
-    // les GameObjects proches dont le nom ou un composant matche un mot-clé,
-    // avec la liste de leurs composants, pour identifier le vrai mécanisme
-    // sans deviner à l'aveugle via Ghidra.
+    // Pure diagnostic (no writes), for scene mechanisms with no dedicated C#
+    // class findable by name in il2cpp.cs — e.g. the "Arch doors"/shortcut
+    // buttons from the third-party document (cf.
+    // big-walk-archipelago-notes.md), unfindable statically (no "Arch"/
+    // "Shortcut" class in the dump, and `strings` on GameAssembly.dll doesn't
+    // surface any "Arch" identifier on the game side either). Probably, like
+    // the big-key plinths, generic scene wiring (Peck system) rather than a
+    // dedicated class — this tool lists, in-game, nearby GameObjects whose
+    // name or a component matches a keyword, along with their component
+    // list, in order to identify the real mechanism without blindly guessing
+    // via Ghidra.
     //
-    // Étendu le 2026-09-11 (chemin hiérarchique + savableSystem) pour la
-    // sphère noire du hub : le dump F9 du 2026-09-10 a révélé
-    // "Spawn_SecondEnding_Sphere_Whole" (mesh+collider, à 3,5m du joueur au
-    // hub) et, plus loin (~21m), un cluster "ModelOrb Colliders"/_Wall*/
-    // "SecondEndingDoorLogic" (PeckEffectAnimancer) — donc PAS un mécanisme
-    // sans aucun Peck comme supposé le 2026-09-10 (cf. big-walk-archipelago-
-    // notes.md), juste pas porté par les objets Sphere/_Wall eux-mêmes. Objet
-    // clé encore à confirmer : "OpenSystem" (TrackedPeckState+PeckSystemBlock
-    // +PeckBusConnection+2xPeckEffectToggle+PeckEffectAudio, à 4,8m, juste à
-    // côté du sphere). Sans le chemin hiérarchique on ne peut pas dire si ces
-    // objets appartiennent au même assemblage scène — d'où l'ajout ci-dessous.
+    // Extended on 2026-09-11 (hierarchy path + savableSystem) for the hub's
+    // black sphere: the F9 dump from 2026-09-10 revealed
+    // "Spawn_SecondEnding_Sphere_Whole" (mesh+collider, 3.5m from the player
+    // at the hub) and, further away (~21m), a cluster of "ModelOrb Colliders"/
+    // _Wall*/"SecondEndingDoorLogic" (PeckEffectAnimancer) — so NOT a
+    // mechanism entirely without a Peck as assumed on 2026-09-10 (cf.
+    // big-walk-archipelago-notes.md), just not carried by the Sphere/_Wall
+    // objects themselves. Key object still to confirm: "OpenSystem"
+    // (TrackedPeckState+PeckSystemBlock+PeckBusConnection+2xPeckEffectToggle
+    // +PeckEffectAudio, 4.8m away, right next to the sphere). Without the
+    // hierarchy path we can't tell whether these objects belong to the same
+    // scene assembly — hence the addition below.
     internal static class DebugComponentLookup
     {
         private static readonly string[] DefaultKeywords = { "arch", "door", "switch", "button", "gate", "peck", "shortcut", "bell", "chime", "gong", "cowbell", "sphere", "orb", "void", "block", "barrier", "wall", "unlock", "skip", "proven", "reward", "postgame", "complet", "second", "ending", "cosmetic" };
@@ -37,7 +38,7 @@ namespace BigWalkArchipelago.Debug
             var localPlayer = DebugPlayerLookup.FindLocalPlayer();
             if (localPlayer == null)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugComponentLookup)}] Joueur local introuvable.");
+                Plugin.Log.LogInfo($"[{nameof(DebugComponentLookup)}] Local player not found.");
                 return;
             }
 
@@ -66,12 +67,12 @@ namespace BigWalkArchipelago.Debug
 
             entries.Sort((a, b) => a.sqrDistance.CompareTo(b.sqrDistance));
 
-            Plugin.Log.LogInfo($"[{nameof(DebugComponentLookup)}] {entries.Count} objet(s) correspondant dans un rayon de {radius}m :");
+            Plugin.Log.LogInfo($"[{nameof(DebugComponentLookup)}] {entries.Count} matching object(s) within a radius of {radius}m:");
             foreach (var entry in entries)
             {
                 var distance = Math.Sqrt(entry.sqrDistance).ToString("F1");
                 var path = DescribePath(entry.go.transform);
-                Plugin.Log.LogInfo($"[{nameof(DebugComponentLookup)}]   {entry.go.name} — distance={distance}m — chemin={path} — composants: {entry.components}");
+                Plugin.Log.LogInfo($"[{nameof(DebugComponentLookup)}]   {entry.go.name} — distance={distance}m — path={path} — components: {entry.components}");
 
                 var trackedState = entry.go.GetComponent<TrackedPeckState>();
                 if (trackedState != null)
@@ -90,7 +91,7 @@ namespace BigWalkArchipelago.Debug
                 current = current.parent;
             }
 
-            return names.Count == 0 ? "<racine>" : string.Join("/", names);
+            return names.Count == 0 ? "<root>" : string.Join("/", names);
         }
 
         private static void DescribeTrackedPeckState(TrackedPeckState state)
@@ -98,18 +99,18 @@ namespace BigWalkArchipelago.Debug
             try
             {
                 var saveIdentity = state.saveIdentity;
-                var saveGuid = saveIdentity != null ? saveIdentity.saveGuid : "<pas de SaveIdentity>";
+                var saveGuid = saveIdentity != null ? saveIdentity.saveGuid : "<no SaveIdentity>";
                 var savableSystem = state.savableSystem;
                 var key = savableSystem != SavableSystem.NotSavable ? savableSystem.ToString() : saveGuid;
                 var currentValue = SaveManager.GetIntValue(key, -12345, false);
 
                 Plugin.Log.LogInfo(
                     $"[{nameof(DebugComponentLookup)}]     TrackedPeckState — label='{state.label}' — savableSystem={savableSystem} — " +
-                    $"saveGuid={saveGuid} — clé réelle='{key}' — SaveManager[{key}]={currentValue}");
+                    $"saveGuid={saveGuid} — actual key='{key}' — SaveManager[{key}]={currentValue}");
             }
             catch (Exception ex)
             {
-                Plugin.Log.LogWarning($"[{nameof(DebugComponentLookup)}]     TrackedPeckState — exception pendant la lecture, ignorée : {ex.Message}");
+                Plugin.Log.LogWarning($"[{nameof(DebugComponentLookup)}]     TrackedPeckState — exception while reading, ignored: {ex.Message}");
             }
         }
 

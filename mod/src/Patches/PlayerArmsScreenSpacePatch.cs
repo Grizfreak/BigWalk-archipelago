@@ -3,12 +3,12 @@ using HarmonyLib;
 
 namespace BigWalkArchipelago.Patches
 {
-    // PlayerArms.UpdateScreenSpaceArms() jette une NullReferenceException en
-    // boucle (chaque frame) pendant que DebugFlightTool.Toggle() a détaché la
-    // caméra (CameraCheatMover.Detach() la prive apparemment d'une référence
-    // qu'elle attend). Sans conséquence sur le jeu (juste du bruit dans les
-    // logs), donc on saute simplement l'appel pendant que la caméra libre de
-    // debug est active plutôt que de creuser la cause exacte côté jeu.
+    // PlayerArms.UpdateScreenSpaceArms() throws a NullReferenceException in a
+    // loop (every frame) while DebugFlightTool.Toggle() has detached the
+    // camera (CameraCheatMover.Detach() apparently deprives it of a
+    // reference it expects). No effect on the game (just log noise), so we
+    // simply skip the call while the debug free camera is active rather than
+    // digging into the exact cause on the game side.
     [HarmonyPatch(typeof(PlayerArms), "UpdateScreenSpaceArms")]
     internal static class PlayerArmsScreenSpacePatch
     {

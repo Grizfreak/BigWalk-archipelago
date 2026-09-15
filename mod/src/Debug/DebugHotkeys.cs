@@ -5,23 +5,23 @@ using UnityEngine;
 
 namespace BigWalkArchipelago.Debug
 {
-    // Injecté en IL2CPP par Plugin.AddComponent<DebugHotkeys>() (voir Plugin.Load()),
-    // seulement si Config.DebugModeEnabled est actif : le composant n'existe
-    // même pas dans la scène sinon, donc pas de coût de polling en usage normal.
+    // Injected in IL2CPP by Plugin.AddComponent<DebugHotkeys>() (see
+    // Plugin.Load()), only if Config.DebugModeEnabled is active: the
+    // component doesn't even exist in the scene otherwise, so there is no
+    // polling cost during normal use.
     internal class DebugHotkeys : MonoBehaviour
     {
-        // Constructeur requis par Il2CppInterop pour tout type injecté en IL2CPP.
+        // Constructor required by Il2CppInterop for any type injected in IL2CPP.
         public DebugHotkeys(IntPtr ptr) : base(ptr)
         {
         }
 
-        // Diagnostic 2026-09-11 : le clone spawné par P a tous les
-        // indicateurs Unity au vert au moment même du spawn (enabled,
-        // isVisible, activeInHierarchy), mais n'apparaît déjà plus dans un
-        // dump F9 fait seulement quelques secondes après — suspicion que
-        // quelque chose le désactive/détruit peu après coup plutôt qu'un
-        // vrai problème de rendu figé. Revérifié ici 3s après coup pour
-        // confirmer/infirmer sans deviner davantage.
+        // Diagnostic 2026-09-11: the clone spawned by P has all Unity flags
+        // green at the very moment of spawning (enabled, isVisible,
+        // activeInHierarchy), but is already gone from an F9 dump taken just
+        // a few seconds later — suspicion that something disables/destroys
+        // it shortly afterward rather than a genuine frozen-rendering issue.
+        // Rechecked here 3s later to confirm/refute without guessing further.
         private GameObject _lastCosmeticPickup;
         private float _lastCosmeticPickupCheckTime = -1f;
         private const float CosmeticPickupRecheckDelaySeconds = 3f;
@@ -109,15 +109,15 @@ namespace BigWalkArchipelago.Debug
             var clone = _lastCosmeticPickup;
             if (clone == null)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Revérif. {CosmeticPickupRecheckDelaySeconds}s après spawn — clone == null (détruit, ou référence Unity invalidée).");
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Recheck {CosmeticPickupRecheckDelaySeconds}s after spawn — clone == null (destroyed, or Unity reference invalidated).");
                 return;
             }
 
             var renderer = clone.GetComponentInChildren<Renderer>(true);
             Plugin.Log.LogInfo(
-                $"[{nameof(DebugHotkeys)}] Revérif. {CosmeticPickupRecheckDelaySeconds}s après spawn — clone toujours référencé : " +
+                $"[{nameof(DebugHotkeys)}] Recheck {CosmeticPickupRecheckDelaySeconds}s after spawn — clone still referenced: " +
                 $"name={clone.name}, activeSelf={clone.activeSelf}, activeInHierarchy={clone.activeInHierarchy}, " +
-                $"position={clone.transform.position}, renderer.enabled={(renderer != null ? renderer.enabled.ToString() : "<pas de renderer>")}, " +
+                $"position={clone.transform.position}, renderer.enabled={(renderer != null ? renderer.enabled.ToString() : "<no renderer>")}, " +
                 $"renderer.isVisible={(renderer != null ? renderer.isVisible.ToString() : "n/a")}.");
         }
 
@@ -126,7 +126,7 @@ namespace BigWalkArchipelago.Debug
             var instance = CullingAgent.Instance;
             if (instance == null)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] CullingAgent.Instance introuvable.");
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] CullingAgent.Instance not found.");
                 return;
             }
 

@@ -1,21 +1,21 @@
 namespace BigWalkArchipelago.Core
 {
-    // Dédoublonnage partagé entre tous les chemins de code qui peuvent
-    // détecter le même check. Confirmé nécessaire en session de test le
-    // 2026-09-03 : RewardGourd.ServerSetGourdState(Loose) ET
-    // PeckEffectSavableHome.Peck() (sur le "vice launch switch") écrivent
-    // tous les deux dans SaveManager.SetIntValue pour le même gourd.
+    // Deduplication shared by every code path that can detect the same
+    // check. Confirmed necessary during a test session on 2026-09-03:
+    // RewardGourd.ServerSetGourdState(Loose) AND
+    // PeckEffectSavableHome.Peck() (on the "vice launch switch") both write
+    // to SaveManager.SetIntValue for the same gourd.
     //
-    // Persisté dans SaveManager (pas un simple HashSet en mémoire) : confirmé
-    // en test le 2026-09-07, un HashSet en mémoire ne protège que DANS la
-    // session en cours. Au chargement d'une zone, le jeu réaffirme l'état
-    // d'un gourd déjà résolu par (au moins) deux chemins indépendants —
-    // Prop.Start() qui repin le prop, ET un rappel de
-    // RewardGourd.ServerSetGourdState(Loose) — chacun redéclenchant
-    // GourdStatePatch/SaveValuePatch à chaque redémarrage du jeu si le
-    // dédoublonnage ne survit pas à la session. Le préfixe "ap_reported_"
-    // évite toute collision avec les clés SaveablePropName/SaveableHomeName
-    // normales du jeu.
+    // Persisted in SaveManager (not a simple in-memory HashSet): confirmed
+    // in testing on 2026-09-07, an in-memory HashSet only protects WITHIN
+    // the current session. On zone load, the game re-asserts the state of
+    // an already-resolved gourd via (at least) two independent paths —
+    // Prop.Start() re-pinning the prop, AND a repeat call to
+    // RewardGourd.ServerSetGourdState(Loose) — each one re-triggering
+    // GourdStatePatch/SaveValuePatch on every game restart if the
+    // deduplication doesn't survive the session. The "ap_reported_" prefix
+    // avoids any collision with the game's normal
+    // SaveablePropName/SaveableHomeName keys.
     internal static class CheckTracker
     {
         private const string KeyPrefix = "ap_reported_";

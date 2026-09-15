@@ -11,8 +11,11 @@ Deux sous-projets distincts :
   (`worlds/bigwalk/`), pas encore commencé.
 
 Notes de rétro-ingénierie et décisions de conception (goal, modèle des
-monuments, softlocks, etc.), pertinentes pour les deux sous-projets :
-[`BW_export/big-walk-archipelago-notes.md`](BW_export/big-walk-archipelago-notes.md).
+monuments, softlocks, etc.) :
+[`mod/reverse-engineering-notes.md`](mod/reverse-engineering-notes.md)
+(comment le jeu fonctionne et comment le mod l'accroche) et
+[`apworld/design-decisions.md`](apworld/design-decisions.md) (à quoi doit
+ressembler le monde Archipelago).
 
 ## État d'avancement
 

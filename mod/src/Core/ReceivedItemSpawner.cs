@@ -5,73 +5,73 @@ using UnityEngine;
 
 namespace BigWalkArchipelago.Core
 {
-    // Fait apparaître un gourd cosmétique/ramassable au hub quand un item
-    // Archipelago est reçu — purement une notification visuelle ("tiens, tu
-    // viens de recevoir un item"). Pour un gourd (ItemApplier.ApplyGourdItem),
-    // c'est même son SEUL effet depuis la CORRECTION 2026-09-11 (plus aucune
-    // écriture SaveManager) ; pour une big key (ItemApplier.ApplyBigKeyItem),
-    // le vrai travail (écriture SaveManager, pin live) reste fait séparément
-    // avant l'appel à ce spawner. Décidé le 2026-09-09
-    // (cf. big-walk-archipelago-notes.md, "Sur l'apparence de l'item gourd
-    // reçu") : durée de vie = jusqu'au ramassage (pas de timer), visible de
-    // tous les joueurs de la session (spawn réseau standard, pas de scoping
-    // par connexion).
+    // Spawns a cosmetic/pickup gourd at the hub when an Archipelago item is
+    // received — purely a visual notification ("hey, you just received an
+    // item"). For a gourd (ItemApplier.ApplyGourdItem), this is even its
+    // ONLY effect since the 2026-09-11 FIX (no more SaveManager write at
+    // all); for a big key (ItemApplier.ApplyBigKeyItem), the real work
+    // (SaveManager write, live pin) is still done separately before calling
+    // this spawner. Decided on 2026-09-09 (cf.
+    // big-walk-archipelago-notes.md, "On the appearance of the received
+    // gourd item"): lifetime = until picked up (no timer), visible to all
+    // players in the session (standard network spawn, no per-connection
+    // scoping).
     //
-    // Approche : cloner un RewardGourd déjà chargé en scène (Instantiate),
-    // plutôt que d'introduire un nouveau prefab réseau (aucun enregistré pour
-    // ce mod, et NetworkServer.Spawn exige un prefab déjà connu de
-    // NetworkManager pour qu'un client puisse l'instancier lui-même à la
-    // réception du message de spawn). Cloner une instance déjà présente
-    // fonctionne car son NetworkIdentity/PrefabHash est déjà celui d'un
-    // prefab que TOUS les clients connaissent déjà.
+    // Approach: clone an already-loaded RewardGourd in the scene
+    // (Instantiate), rather than introducing a new network prefab (none
+    // registered for this mod, and NetworkServer.Spawn requires a prefab
+    // already known to NetworkManager so a client can instantiate it itself
+    // upon receiving the spawn message). Cloning an already-present
+    // instance works because its NetworkIdentity/PrefabHash is already that
+    // of a prefab ALL clients already know.
     //
-    // Ce type de clonage (un objet PLACÉ EN SCÈNE, pas un vrai prefab
-    // instancié dynamiquement par le jeu) s'est révélé truffé de pièges
-    // Mirror/moteur, tous rencontrés et résolus en session de test le
-    // 2026-09-11 — cf. commentaires inline pour le détail de chacun :
-    //   1. NetworkIdentity.sceneId + hasSpawned (copiés tels quels par
-    //      Instantiate) font croire à Awake() que ce clone est "le même"
-    //      objet de scène déjà connu → warning "already spawned" côté moteur.
-    //   2. NetworkIdentity.SpawnedFromInstantiate (mis à true par Awake())
-    //      doit aussi être remis à false après coup.
-    //   3. `saveablePropName` copié tel quel créerait une collision
-    //      SaveManager si le clone est un jour épinglé à une vraie plinthe —
-    //      neutralisé (`notSavable`/`PropSaveType.Never`) AVANT toute
-    //      activation. Fait aussi APRÈS ServerSetGourdState serait trop tard
-    //      : ce dernier peut déclencher un vrai check via GourdStatePatch si
-    //      le nom d'origine est encore présent (confirmé en test — a
-    //      déclenché un faux "gourdTellerWindow").
-    //   4. `startHome` (référence sérialisée vers le casier d'origine du
-    //      template) fait téléporter le clone loin du hub via le mécanisme
-    //      de restauration `Prop.Start()` — neutralisé (null) pour la même
-    //      raison que saveablePropName.
-    //   5. `Prop.SetLoose()` doit être appelé explicitement pour le cas
-    //      "posé au hub" : le SyncVar gourdState (piloté par
-    //      ServerSetGourdState) ne pilote que l'état visuel/logique du
-    //      puzzle, pas l'état physique du Prop lui-même (sinon le clone
-    //      reste "fixé"/sans gravité comme dans son étau d'origine).
-    //   6. Un MaterialPropertyBlock par-instance (pas copié par Instantiate,
-    //      contrairement aux références sérialisées) est capturé puis
-    //      réappliqué sur le clone par précaution.
+    // This kind of cloning (an object PLACED IN THE SCENE, not a real
+    // prefab dynamically instantiated by the game) turned out to be riddled
+    // with Mirror/engine pitfalls, all encountered and resolved during a
+    // test session on 2026-09-11 — see inline comments for details on each:
+    //   1. NetworkIdentity.sceneId + hasSpawned (copied as-is by
+    //      Instantiate) make Awake() believe this clone is "the same"
+    //      already-known scene object -> "already spawned" warning from the
+    //      engine.
+    //   2. NetworkIdentity.SpawnedFromInstantiate (set to true by Awake())
+    //      must also be reset to false afterward.
+    //   3. `saveablePropName` copied as-is would create a SaveManager
+    //      collision if the clone is ever pinned to a real plinth —
+    //      neutralized (`notSavable`/`PropSaveType.Never`) BEFORE any
+    //      activation. Doing this AFTER ServerSetGourdState would be too
+    //      late: the latter can trigger a real check via GourdStatePatch if
+    //      the original name is still present (confirmed in testing — it
+    //      triggered a false "gourdTellerWindow").
+    //   4. `startHome` (a serialized reference to the template's original
+    //      slot) teleports the clone far from the hub via the `Prop.Start()`
+    //      restoration mechanism — neutralized (null) for the same reason
+    //      as saveablePropName.
+    //   5. `Prop.SetLoose()` must be called explicitly for the "dropped at
+    //      the hub" case: the gourdState SyncVar (driven by
+    //      ServerSetGourdState) only controls the puzzle's visual/logical
+    //      state, not the Prop's own physical state (otherwise the clone
+    //      stays "fixed"/without gravity as in its original clamp).
+    //   6. A per-instance MaterialPropertyBlock (not copied by Instantiate,
+    //      unlike serialized references) is captured and then reapplied to
+    //      the clone as a precaution.
     //
-    // DÉCISION (2026-09-11, joueur) : contrairement à l'intuition initiale
-    // ("empêcher tout pin dans un vrai monument, cf. propGroups.Clear() —
-    // retiré depuis"), le comportement VOULU est l'inverse : les puzzles ne
-    // donnent plus de gourd exploitable directement (le vrai don passe par
-    // le réseau AP), donc ces clones cosmétiques doivent devenir le SEUL
-    // moyen de remplir les monuments. `propGroups` du template est donc
-    // conservé intact (permet un pin réel dans n'importe quel vrai
-    // PropHome) — la persistance de ce pin est gérée séparément par
-    // `Core/CosmeticMonumentFillTracker.cs` (clé `SaveManager` dédiée par
-    // PropHome, indépendante de `saveablePropName`/`SaveableHomeName`,
-    // cf. ce fichier pour le détail).
+    // DECISION (2026-09-11, player): contrary to the initial intuition
+    // ("prevent any pin into a real monument, cf. propGroups.Clear() —
+    // since removed"), the DESIRED behavior is the opposite: puzzles no
+    // longer grant a directly usable gourd (the real donation goes through
+    // the AP network), so these cosmetic clones must become the ONLY way
+    // to fill monuments. The template's `propGroups` is therefore kept
+    // intact (allows a real pin into any real PropHome) — persistence of
+    // that pin is handled separately by `Core/CosmeticMonumentFillTracker.cs`
+    // (a dedicated `SaveManager` key per PropHome, independent of
+    // `saveablePropName`/`SaveableHomeName`, see that file for details).
     internal static class ReceivedItemSpawner
     {
         internal const string CosmeticNameSuffix = "(AP cosmetic)";
 
-        // Retourne le GameObject créé (ou null en cas d'échec/no-op) — utile
-        // pour du diagnostic ponctuel (cf. DebugHotkeys) ; ItemApplier
-        // (usage réel) ignore simplement la valeur de retour.
+        // Returns the created GameObject (or null on failure/no-op) — useful
+        // for ad-hoc diagnostics (cf. DebugHotkeys); ItemApplier (real usage)
+        // simply ignores the return value.
         internal static GameObject SpawnCosmeticPickup()
         {
             if (!NetworkServer.active)
@@ -82,7 +82,7 @@ namespace BigWalkArchipelago.Core
                 var spawnPoint = FindSpawnPoint();
                 if (spawnPoint == null)
                 {
-                    Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] Aucun InventorySpawn chargé (hors zone du hub ?), spawn cosmétique ignoré.");
+                    Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] No InventorySpawn loaded (outside the hub zone?), cosmetic spawn skipped.");
                     return null;
                 }
 
@@ -93,29 +93,30 @@ namespace BigWalkArchipelago.Core
 
                 rewardGourd.ServerSetGourdState(GourdFlag.GourdState.Loose);
 
-                // Sans ça, le clone reste "fixé" (pas de gravité) comme dans
-                // son étau/casier d'origine — cf. point 5 en tête de fichier.
+                // Without this, the clone stays "fixed" (no gravity) as in
+                // its original clamp/cabinet — cf. point 5 at the top of the
+                // file.
                 rewardGourd.prop?.SetLoose();
 
-                Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] Gourd cosmétique spawné à {rewardGourd.transform.position}.");
+                Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] Cosmetic gourd spawned at {rewardGourd.transform.position}.");
                 return rewardGourd.gameObject;
             }
             catch (Exception ex)
             {
-                // Ne doit jamais faire échouer la réception réelle de
-                // l'item (déjà appliquée par ItemApplier avant cet appel) :
-                // purement cosmétique, une exception ici ne doit avoir
-                // aucune conséquence sur la vraie persistance.
-                Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] Échec du spawn cosmétique, ignoré : {ex}");
+                // Must never make the actual item reception fail (already
+                // applied by ItemApplier before this call): purely
+                // cosmetic, an exception here must have no consequence on
+                // the real persistence.
+                Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] Cosmetic spawn failed, ignored: {ex}");
                 return null;
             }
         }
 
-        // Variante utilisée par CosmeticMonumentFillTracker pour restaurer,
-        // au chargement, un gourd cosmétique déjà déposé lors d'une session
-        // précédente : clone + épingle directement dans propHome (plutôt que
-        // de le lâcher au hub). Retourne le GameObject créé, ou null en cas
-        // d'échec (jamais d'exception propagée, même logique défensive que
+        // Variant used by CosmeticMonumentFillTracker to restore, on load,
+        // a cosmetic gourd already deposited in a previous session: clone +
+        // pin directly into propHome (rather than dropping it at the hub).
+        // Returns the created GameObject, or null on failure (never
+        // propagates an exception, same defensive logic as
         // SpawnCosmeticPickup).
         internal static GameObject SpawnCosmeticPickupPinnedTo(PropHome propHome)
         {
@@ -128,13 +129,13 @@ namespace BigWalkArchipelago.Core
                 if (rewardGourd == null || rewardGourd.prop == null)
                     return null;
 
-                // Stashed (pas Loose) : représente un gourd déjà déposé dans
-                // son home, pas un gourd qui vient d'apparaître et attend
-                // d'être ramassé — cohérent avec le fait qu'on l'épingle
-                // directement ci-dessous, sans jamais passer par un état
-                // "posé au sol". Ignoré par GourdStatePatch (garde sur
-                // newGourdState == Loose uniquement), donc aucun risque de
-                // faux check ici non plus.
+                // Stashed (not Loose): represents a gourd already deposited
+                // in its home, not a gourd that just appeared and is waiting
+                // to be picked up — consistent with the fact that it is
+                // pinned directly right below, without ever passing through
+                // a "dropped on the ground" state. Ignored by GourdStatePatch
+                // (guarded on newGourdState == Loose only), so no risk of a
+                // false check here either.
                 rewardGourd.ServerSetGourdState(GourdFlag.GourdState.Stashed);
                 rewardGourd.prop.ServerSetPinned(propHome);
 
@@ -142,28 +143,28 @@ namespace BigWalkArchipelago.Core
             }
             catch (Exception ex)
             {
-                Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] Échec de la restauration d'un gourd cosmétique dans {propHome.saveableHomeName}, ignoré : {ex}");
+                Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] Failed to restore a cosmetic gourd in {propHome.saveableHomeName}, ignored: {ex}");
                 return null;
             }
         }
 
-        // Cœur commun aux deux points d'entrée ci-dessus : clone un
-        // RewardGourd existant à la position/rotation données, neutralisé et
-        // prêt à l'emploi (réseauté, activé, visuellement correct). Ne fixe
-        // ni l'état du puzzle (gourdState) ni la physique/pin — au choix de
-        // l'appelant.
+        // Core logic shared by both entry points above: clones an existing
+        // RewardGourd at the given position/rotation, neutralized and ready
+        // to use (networked, activated, visually correct). Sets neither the
+        // puzzle state (gourdState) nor the physics/pin — left to the
+        // caller's discretion.
         private static RewardGourd CreateNeutralizedClone(Vector3 position, Quaternion rotation)
         {
             var template = FindTemplate();
             if (template == null)
             {
-                Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] Aucun RewardGourd chargé à cloner, spawn cosmétique ignoré.");
+                Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] No RewardGourd loaded to clone, cosmetic spawn skipped.");
                 return null;
             }
 
-            // MaterialPropertyBlock par-instance : capturé sur le template
-            // AVANT clonage (cf. point 6 en tête de fichier), pour être
-            // réappliqué explicitement sur le clone plus bas.
+            // Per-instance MaterialPropertyBlock: captured on the template
+            // BEFORE cloning (cf. point 6 at the top of the file), to be
+            // explicitly reapplied to the clone further below.
             var templateRenderers = template.gameObject.GetComponentsInChildren<Renderer>(true);
             var templatePropertyBlocks = new MaterialPropertyBlock[templateRenderers.Length];
             for (var i = 0; i < templateRenderers.Length; i++)
@@ -176,12 +177,12 @@ namespace BigWalkArchipelago.Core
                 templatePropertyBlocks[i] = block;
             }
 
-            // Contournement du piège Mirror (point 1 en tête de fichier) :
-            // désactiver le template avant Instantiate fait hériter le clone
-            // de l'état inactif, ce qui diffère Awake()/OnEnable() jusqu'à
-            // SetActive(true) plus bas — le temps de corriger sceneId et de
-            // neutraliser saveablePropName/startHome pendant que le clone
-            // est encore inactif.
+            // Workaround for the Mirror pitfall (point 1 at the top of the
+            // file): disabling the template before Instantiate makes the
+            // clone inherit the inactive state, which defers Awake()/
+            // OnEnable() until SetActive(true) further below — giving time
+            // to fix sceneId and neutralize saveablePropName/startHome while
+            // the clone is still inactive.
             var templateWasActive = template.gameObject.activeSelf;
             GameObject clone;
             try
@@ -202,24 +203,25 @@ namespace BigWalkArchipelago.Core
             {
                 cloneIdentity.sceneId = 0;
 
-                // hasSpawned est exposé comme une propriété générée par
-                // Il2CppInterop (pas un vrai FieldInfo réfléchissable malgré
-                // sa déclaration en champ privé côté jeu) — réflexion sur le
-                // setter de la propriété, pas sur un nom de champ deviné.
+                // hasSpawned is exposed as an Il2CppInterop-generated
+                // property (not a genuinely reflectable FieldInfo despite
+                // being declared as a private field on the game side) —
+                // reflection on the property's setter, not on a guessed
+                // field name.
                 GetPrivatePropertySetter<NetworkIdentity>("hasSpawned")?.Invoke(cloneIdentity, new object[] { false });
             }
 
             var rewardGourd = clone.GetComponent<RewardGourd>();
             if (rewardGourd == null)
             {
-                Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] Clone sans RewardGourd, destruction et abandon.");
+                Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] Clone without a RewardGourd, destroying and aborting.");
                 UnityEngine.Object.Destroy(clone);
                 return null;
             }
 
-            // Neutralisation AVANT activation (points 3 et 4 en tête de
-            // fichier) — pas après ServerSetGourdState, ça a réellement
-            // déclenché un faux check en test.
+            // Neutralization BEFORE activation (points 3 and 4 at the top of
+            // the file) — not after ServerSetGourdState, which actually
+            // triggered a false check in testing.
             NeutralizeProgression(rewardGourd.prop);
             var propsToMakeSavable = rewardGourd.propsToMakeSavable;
             if (propsToMakeSavable != null)
@@ -234,10 +236,10 @@ namespace BigWalkArchipelago.Core
                 }
             }
 
-            // Réapplication des MaterialPropertyBlock capturés plus haut,
-            // par index (la hiérarchie de renderers du clone est une copie
-            // exacte de celle du template) — avant activation, pour éviter
-            // ne serait-ce qu'une frame avec l'apparence nue par défaut.
+            // Reapplying the MaterialPropertyBlocks captured above, by index
+            // (the clone's renderer hierarchy is an exact copy of the
+            // template's) — before activation, to avoid even a single frame
+            // with the default bare appearance.
             var cloneRenderers = clone.GetComponentsInChildren<Renderer>(true);
             for (var i = 0; i < cloneRenderers.Length && i < templatePropertyBlocks.Length; i++)
             {
@@ -247,10 +249,10 @@ namespace BigWalkArchipelago.Core
 
             clone.SetActive(true);
 
-            // SpawnedFromInstantiate (point 2 en tête de fichier) : mis à
-            // true PAR Awake() lui-même (donc seulement une fois SetActive
-            // appelé ci-dessus), remis à false après coup par réflexion sur
-            // le setter de la propriété.
+            // SpawnedFromInstantiate (point 2 at the top of the file): set
+            // to true BY Awake() itself (so only once SetActive is called
+            // above), reset to false afterward via reflection on the
+            // property's setter.
             if (cloneIdentity != null)
                 GetPrivatePropertySetter<NetworkIdentity>(nameof(NetworkIdentity.SpawnedFromInstantiate))?.Invoke(cloneIdentity, new object[] { false });
 
@@ -259,11 +261,11 @@ namespace BigWalkArchipelago.Core
             return rewardGourd;
         }
 
-        // Partagé avec CosmeticMonumentFillTracker (détection dans l'event
-        // PropHome.onAnyChangeServer) et les outils de debug : un clone
-        // cosmétique est reconnu sans ambiguïté par saveablePropName ==
-        // notSavable (jamais vrai pour un prop normal du jeu) + le suffixe
-        // de nom, en double vérification.
+        // Shared with CosmeticMonumentFillTracker (detection in the
+        // PropHome.onAnyChangeServer event) and the debug tools: a cosmetic
+        // clone is unambiguously recognized by saveablePropName ==
+        // notSavable (never true for a normal game prop) + the name suffix,
+        // as a double check.
         internal static bool IsCosmeticClone(Prop prop)
         {
             return prop != null
@@ -271,18 +273,17 @@ namespace BigWalkArchipelago.Core
                 && prop.gameObject.name.Contains(CosmeticNameSuffix, StringComparison.Ordinal);
         }
 
-        // Trouvé en test le 2026-09-11 : PropHome est un concept générique du
-        // jeu, réutilisé aussi pour des emplacements portés par le joueur
-        // (ex. une "ceinture" d'inventaire, saveableHomeName == notSavable,
-        // toujours à distance ~0 du joueur puisqu'attachée à son propre
-        // personnage) — pas seulement les monuments. DebugCosmeticPinForce
-        // avait pris le PropHome vide le plus proche SANS ce filtre, et a
-        // épinglé un gourd cosmétique dans une "ceinture" au lieu d'un vrai
-        // monument (log : "épinglé dans notSavable"). Tous les vrais
-        // emplacements de monument (`SaveableHomeName`) commencent par le
-        // préfixe "monoument" (monoumentIntro/monoument0-3Slot.../
-        // monoumentFinalSlot.../monoumentOverflowSlot..., cf. l'enum) —
-        // filtre partagé pour ne jamais reproduire cette confusion.
+        // Found in testing on 2026-09-11: PropHome is a generic game
+        // concept, also reused for slots carried by the player (e.g. an
+        // inventory "belt", saveableHomeName == notSavable, always at ~0
+        // distance from the player since attached to their own character)
+        // — not just monuments. DebugCosmeticPinForce used to pick the
+        // nearest empty PropHome WITHOUT this filter, and pinned a cosmetic
+        // gourd into a "belt" instead of a real monument (log: "pinned into
+        // notSavable"). All real monument slots (`SaveableHomeName`) start
+        // with the prefix "monoument" (monoumentIntro/monoument0-3Slot.../
+        // monoumentFinalSlot.../monoumentOverflowSlot..., cf. the enum) —
+        // a shared filter to never reproduce this confusion.
         internal static bool IsMonumentHome(PropHome home)
         {
             return home != null
@@ -304,23 +305,24 @@ namespace BigWalkArchipelago.Core
             prop.saveablePropName = SaveablePropName.notSavable;
             prop.propSaveType = PropSaveType.Never;
 
-            // Point 4 en tête de fichier : sans ça, Prop.Start() (le
-            // mécanisme de restauration au chargement déjà documenté dans
-            // big-walk-archipelago-notes.md, section "RÉSOLU 2026-09-03")
-            // téléporte le clone à l'emplacement du casier d'origine du
-            // template, potentiellement à l'autre bout de la carte.
+            // Point 4 at the top of the file: without this, Prop.Start()
+            // (the load-time restoration mechanism already documented in
+            // big-walk-archipelago-notes.md, section "RESOLVED 2026-09-03")
+            // teleports the clone to the template's original slot location,
+            // potentially at the other end of the map.
             prop.startHome = null;
 
-            // `propGroups` N'EST PLUS vidé ici (contrairement à une version
-            // antérieure) : décision du joueur (2026-09-11) de permettre
-            // explicitement le pin dans un vrai monument, cf. section
-            // "DÉCISION" en tête de fichier — CosmeticMonumentFillTracker
-            // gère la persistance de ce pin séparément.
+            // `propGroups` is NO LONGER cleared here (unlike an earlier
+            // version): player decision (2026-09-11) to explicitly allow
+            // pinning into a real monument, cf. the "DECISION" section at
+            // the top of the file — CosmeticMonumentFillTracker handles the
+            // persistence of that pin separately.
         }
 
-        // Choisit l'InventorySpawn le plus proche du joueur local plutôt que
-        // le premier trouvé — plusieurs InventorySpawn sont chargés
-        // simultanément (un par zone ?), pas un point unique dédié au hub.
+        // Picks the InventorySpawn closest to the local player rather than
+        // the first one found — several InventorySpawn instances are loaded
+        // simultaneously (one per zone?), not a single point dedicated to
+        // the hub.
         private static InventorySpawn FindSpawnPoint()
         {
             var all = UnityEngine.Object.FindObjectsByType<InventorySpawn>(FindObjectsSortMode.None);
@@ -370,15 +372,15 @@ namespace BigWalkArchipelago.Core
             if (all == null || all.Length == 0)
                 return null;
 
-            // Exclut nos propres clones précédents (marqués par
-            // CosmeticNameSuffix) : sinon un clone déjà spawné sert de
-            // template au clone suivant, qui clone un clone qui clone un
-            // clone... — toujours cloner depuis un vrai RewardGourd du jeu.
+            // Excludes our own previous clones (marked by CosmeticNameSuffix):
+            // otherwise an already-spawned clone would serve as the template
+            // for the next clone, which clones a clone which clones a
+            // clone... — always clone from a real game RewardGourd.
             //
-            // Préfère un gourd déjà "Loose" (rendus/visuels dans l'état
-            // "ramassable normal") ; à défaut, n'importe quel gourd chargé
-            // fait l'affaire, son état sera de toute façon forcé explicitement
-            // par l'appelant juste après le clonage.
+            // Prefers a gourd that is already "Loose" (rendered/visuals in
+            // the "normally pickable" state); failing that, any loaded gourd
+            // will do, since its state will be forced explicitly by the
+            // caller right after cloning anyway.
             foreach (var candidate in all)
             {
                 if (candidate != null && candidate.prop != null && candidate.gourdState == GourdFlag.GourdState.Loose

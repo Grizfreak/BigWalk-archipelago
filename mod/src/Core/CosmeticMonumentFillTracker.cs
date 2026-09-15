@@ -5,84 +5,80 @@ using UnityEngine;
 
 namespace BigWalkArchipelago.Core
 {
-    // Persiste et restaure le remplissage des monuments par des gourds
-    // cosmétiques (ReceivedItemSpawner) — décision du joueur (2026-09-11) :
-    // les puzzles ne donnent plus de gourd exploitable directement (le vrai
-    // don passe par le réseau AP), donc les clones cosmétiques doivent
-    // devenir le SEUL moyen de remplir un monument, et ce remplissage doit
-    // survivre à un rechargement.
+    // Persists and restores monument filling by cosmetic gourds
+    // (ReceivedItemSpawner) — player decision (2026-09-11): puzzles no
+    // longer grant a directly usable gourd (the real donation goes through
+    // the AP network), so cosmetic clones must become the ONLY way to fill
+    // a monument, and that filling must survive a reload.
     //
-    // Pourquoi pas le mécanisme vanilla (saveablePropName -> Prop.Start()) :
-    // ce mécanisme est fondamentalement par-IDENTITÉ (chaque prop retrouve
-    // sa place au chargement en relisant SA PROPRE clé SaveManager). Un
-    // clone cosmétique n'a pas d'identité stable réutilisable sans risquer
-    // une collision avec un vrai check (cf. ReceivedItemSpawner, points 3
-    // et 4) — la seule identité "libre" du jeu (gourdTesting00-39, ~40
-    // valeurs jamais utilisées en jeu normal) serait trop petite face aux
-    // ~45 emplacements de monuments réels du jeu (comptage F6, cf.
-    // big-walk-archipelago-notes.md) si les gourds cosmétiques doivent
-    // pouvoir remplir N'IMPORTE lequel. D'où ce mécanisme entièrement
-    // séparé, indexé par PropHome (pas par Prop) : une clé SaveManager par
-    // PLACE (`saveableHomeName`, l'identité stable du PropHome lui-même,
-    // pas du prop qui l'occupe), préfixée pour ne jamais collisionner avec
-    // les clés `SaveablePropName`/`SaveableHomeName` que le jeu écrit pour
-    // de vrai.
+    // Why not the vanilla mechanism (saveablePropName -> Prop.Start()):
+    // that mechanism is fundamentally IDENTITY-based (each prop finds its
+    // place on load by re-reading ITS OWN SaveManager key). A cosmetic
+    // clone has no stable reusable identity without risking a collision
+    // with a real check (cf. ReceivedItemSpawner, points 3 and 4) — the
+    // game's only "free" identity pool (gourdTesting00-39, ~40 values
+    // never used in normal gameplay) would be too small against the ~45
+    // real monument slots in the game (F6 count, cf.
+    // big-walk-archipelago-notes.md) if cosmetic gourds must be able to
+    // fill ANY of them. Hence this entirely separate mechanism, indexed by
+    // PropHome (not by Prop): one SaveManager key per SLOT
+    // (`saveableHomeName`, the stable identity of the PropHome itself, not
+    // of the prop occupying it), prefixed so it never collides with the
+    // `SaveablePropName`/`SaveableHomeName` keys the game actually writes.
     //
-    // Détection du pin — confirmé en test le 2026-09-11 : PropHome.
-    // onAnyChangeServer (event STATIQUE global) ne se déclenche JAMAIS pour
-    // un pin fait via Prop.ServerSetPinned — le vrai signal est PropHome.
-    // onChangeServer, la version PAR-INSTANCE du même type d'event, à
-    // laquelle il faut s'abonner individuellement sur CHAQUE PropHome.
+    // Pin detection — confirmed in testing on 2026-09-11: PropHome.
+    // onAnyChangeServer (a global STATIC event) NEVER fires for a pin done
+    // via Prop.ServerSetPinned — the real signal is PropHome.onChangeServer,
+    // the PER-INSTANCE version of the same event type, which must be
+    // subscribed to individually on EACH PropHome.
     //
-    // Abonnement par instance (2ème correction, même session) : un premier
-    // essai scannait `PropHome.allPropHomes` UNE SEULE FOIS au démarrage
-    // (poll sur WorldManager.isReadyForEffects, cf. historique git) — a
-    // fonctionné pour un monument proche du hub mais PAS pour un monument
-    // loin (Black Tower) : le jeu charge manifestement certains PropHome à
-    // la volée, pas tous simultanément. Remplacé par Patches/
-    // PropHomeEnablePatch.cs (postfix sur PropHome.OnEnable(), le seul
-    // point de passage garanti pour CHAQUE instance qu'elle existe dès le
-    // départ ou apparaisse plus tard) qui appelle RegisterHome ci-dessous
-    // pour chaque PropHome, au fil de l'eau.
+    // Per-instance subscription (2nd fix, same session): a first attempt
+    // scanned `PropHome.allPropHomes` ONCE at startup (polling on
+    // WorldManager.isReadyForEffects, cf. git history) — worked for a
+    // monument near the hub but NOT for a distant monument (Black Tower):
+    // the game clearly loads some PropHome instances on the fly, not all
+    // simultaneously. Replaced with Patches/PropHomeEnablePatch.cs (a
+    // postfix on PropHome.OnEnable(), the only guaranteed touchpoint for
+    // EVERY instance whether it exists from the start or appears later)
+    // which calls RegisterHome below for each PropHome, as they stream in.
     //
-    // PropHome est aussi utilisé pour des emplacements portés par le joueur
-    // (ex. une "ceinture" d'inventaire, saveableHomeName == notSavable,
-    // toujours à distance ~0 puisqu'attachée au personnage) — pas seulement
-    // les monuments. Filtré via ReceivedItemSpawner.IsMonumentHome
-    // (préfixe "monoument") pour ne jamais persister/restaurer un pin dans
-    // un emplacement de ce type.
+    // PropHome is also used for slots carried by the player (e.g. an
+    // inventory "belt", saveableHomeName == notSavable, always at ~0
+    // distance since attached to the character) — not just monuments.
+    // Filtered via ReceivedItemSpawner.IsMonumentHome (prefix "monoument")
+    // so a pin is never persisted/restored for a slot of that kind.
     internal class CosmeticMonumentFillTracker : MonoBehaviour
     {
-        // Constructeur requis par Il2CppInterop pour tout type injecté en IL2CPP.
+        // Constructor required by Il2CppInterop for any type injected into IL2CPP.
         public CosmeticMonumentFillTracker(IntPtr ptr) : base(ptr)
         {
         }
 
         private const string SaveKeyPrefix = "ap_home_";
 
-        // File d'attente alimentée par PropHomeEnablePatch, au fil de l'eau
-        // (chargement initial ET streaming ultérieur confondus) — vidée en
-        // continu dans Update() une fois le monde prêt pour les effets, pas
-        // en un seul passage figé au démarrage.
+        // Queue fed by PropHomeEnablePatch, as instances stream in (initial
+        // load AND later streaming alike) — drained continuously in
+        // Update() once the world is ready for effects, not in a single
+        // fixed pass at startup.
         private static readonly Queue<PropHome> PendingRestoreCheck = new Queue<PropHome>();
 
-        // Tous les PropHome de monument connus (remplis ou non), pour
-        // GetFilledMonumentCount ci-dessous — Option A tranchée le
-        // 2026-09-15 (cf. big-walk-archipelago-notes.md) : comptage global
-        // agrégé, pas de location par tour, pour éliminer le risque de
-        // softlock identifié le 2026-09-11 (rien n'empêche un joueur de tout
-        // déposer dans un seul monument). RegisterHome est garanti appelé
-        // une seule fois par instance (cf. Patches/PropHomeEnablePatch),
-        // donc pas de doublon possible ici.
+        // All known monument PropHomes (filled or not), for
+        // GetFilledMonumentCount below — Option A settled on 2026-09-15
+        // (cf. big-walk-archipelago-notes.md): a single aggregated global
+        // count, not per-tower location tracking, to eliminate the softlock
+        // risk identified on 2026-09-11 (nothing prevents a player from
+        // depositing everything into a single monument). RegisterHome is
+        // guaranteed to be called exactly once per instance (cf. Patches/
+        // PropHomeEnablePatch), so no duplicate is possible here.
         private static readonly List<PropHome> MonumentHomes = new List<PropHome>();
 
-        // Appelé par Patches/PropHomeEnablePatch pour CHAQUE PropHome, dès
-        // qu'il devient actif. L'abonnement lui-même (juste un +=) ne
-        // dépend d'aucune condition de timing et se fait immédiatement ;
-        // la vérification de restauration est différée en revanche (cf.
-        // Update ci-dessous) — spawner/épingler un clone trop tôt (avant
-        // que le "peck manager" du jeu existe) peut échouer silencieusement,
-        // même piège déjà rencontré pour ArchDoorUnlocker.
+        // Called by Patches/PropHomeEnablePatch for EACH PropHome, as soon
+        // as it becomes active. The subscription itself (just a +=) does
+        // not depend on any timing condition and happens immediately; the
+        // restore check, on the other hand, is deferred (cf. Update below)
+        // — spawning/pinning a clone too early (before the game's "peck
+        // manager" exists) can fail silently, the same pitfall already
+        // encountered for ArchDoorUnlocker.
         internal static void RegisterHome(PropHome home)
         {
             if (home == null)
@@ -95,11 +91,11 @@ namespace BigWalkArchipelago.Core
                 MonumentHomes.Add(home);
         }
 
-        // Total agrégé, tous monuments confondus (Option A) : le nombre de
-        // PropHome de monument actuellement occupés par un gourd cosmétique.
-        // Requête à la volée sur la donnée déjà persistée (`ap_home_<slot>`)
-        // plutôt qu'un compteur en cache — évite tout risque de désync avec
-        // OnHomeChanged/TryRestoreHome (deux chemins d'écriture distincts).
+        // Aggregated total across all monuments (Option A): the number of
+        // monument PropHomes currently occupied by a cosmetic gourd.
+        // Queried on the fly from already-persisted data (`ap_home_<slot>`)
+        // rather than a cached counter — avoids any risk of desync with
+        // OnHomeChanged/TryRestoreHome (two separate write paths).
         internal static int GetFilledMonumentCount()
         {
             var count = 0;
@@ -125,14 +121,14 @@ namespace BigWalkArchipelago.Core
             }
 
             if (restoredCount > 0)
-                Plugin.Log.LogInfo($"[{nameof(CosmeticMonumentFillTracker)}] {restoredCount} gourd(s) cosmétique(s) restauré(s) dans leurs monuments.");
+                Plugin.Log.LogInfo($"[{nameof(CosmeticMonumentFillTracker)}] {restoredCount} cosmetic gourd(s) restored to their monuments.");
         }
 
         private static bool TryRestoreHome(PropHome home)
         {
-            // Ne jamais écraser un home déjà occupé (par un vrai gourd
-            // normalement restauré par Prop.Start(), ou déjà par un clone
-            // restauré juste avant dans cette même passe).
+            // Never overwrite a home that is already occupied (by a real
+            // gourd normally restored via Prop.Start(), or already by a
+            // clone restored just before in this same pass).
             if (home == null || home.pinnedProp != null || !ReceivedItemSpawner.IsMonumentHome(home))
                 return false;
 
@@ -148,9 +144,9 @@ namespace BigWalkArchipelago.Core
             if (propHome == null || !ReceivedItemSpawner.IsMonumentHome(propHome))
                 return;
 
-            // Règle unique qui couvre pin/dépin/remplacement : la clé
-            // reflète simplement "un clone cosmétique occupe CE propHome
-            // MAINTENANT", peu importe ce qui s'y trouvait avant.
+            // Single rule that covers pin/unpin/replacement: the key simply
+            // reflects "a cosmetic clone occupies THIS propHome RIGHT NOW",
+            // regardless of what was there before.
             var isCosmeticNow = ReceivedItemSpawner.IsCosmeticClone(propAfter);
             var key = SaveKeyPrefix + propHome.saveableHomeName;
             var newValue = isCosmeticNow ? 1 : 0;
@@ -160,7 +156,7 @@ namespace BigWalkArchipelago.Core
 
             SaveManager.SetIntValue(key, newValue);
             Plugin.Log.LogInfo(
-                $"[{nameof(CosmeticMonumentFillTracker)}] {key} = {newValue} (gourd cosmétique {(isCosmeticNow ? "déposé" : "retiré")}).");
+                $"[{nameof(CosmeticMonumentFillTracker)}] {key} = {newValue} (cosmetic gourd {(isCosmeticNow ? "deposited" : "removed")}).");
         }
     }
 }

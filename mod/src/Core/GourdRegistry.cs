@@ -3,22 +3,21 @@ using System.Collections.Generic;
 
 namespace BigWalkArchipelago.Core
 {
-    // Traduit un SaveablePropName (identifiant interne du jeu) en id de
-    // location Archipelago. Pour l'instant l'id de location est simplement le
-    // nom de l'enum lui-même (ex. "gourdCabinFever") : c'est une clé stable et
-    // lisible, suffisante tant qu'on ne branche pas le vrai protocole
-    // Archipelago. Seul endroit à modifier pour changer la correspondance ou
-    // exclure d'autres valeurs.
+    // Translates a SaveablePropName (internal game identifier) into an
+    // Archipelago location id. For now the location id is simply the enum
+    // name itself (e.g. "gourdCabinFever"): a stable, readable key,
+    // sufficient until the real Archipelago protocol is wired in. The only
+    // place to modify to change the mapping or exclude other values.
     internal static class GourdRegistry
     {
         private static readonly Dictionary<SaveablePropName, string> LocationIdsByProp = BuildLocationIds();
 
-        // Contrairement à gourdXxx/valetXxx, les big keys sont nommées par
-        // zone d'origine (couleur) alors que leurs plinthes sont nommées par
-        // lieu physique de dépôt : aucune correspondance dérivable par nom.
-        // Confirmé par le joueur en jeu (session du 2026-09-07, cf.
-        // big-walk-archipelago-notes.md) — pas décompilable via Ghidra, ce
-        // câblage n'existe que dans les assets de scène Unity.
+        // Unlike gourdXxx/valetXxx, big keys are named by their zone of
+        // origin (color) while their plinths are named by physical deposit
+        // location: no naming-based mapping is derivable. Confirmed by the
+        // player in-game (session on 2026-09-07, cf.
+        // big-walk-archipelago-notes.md) — not decompilable via Ghidra,
+        // this wiring only exists in Unity scene assets.
         private static readonly Dictionary<SaveablePropName, SaveableHomeName> BigKeyHomesByProp = new()
         {
             { SaveablePropName.bigKeyIntro, SaveableHomeName.bigKeyPlinthIntro },
@@ -30,13 +29,13 @@ namespace BigWalkArchipelago.Core
             { SaveablePropName.bigKeyOverflow, SaveableHomeName.bigKeyPlinthGoodbye2 },
         };
 
-        // 3 gourds dont le valet correspondant n'est PAS la substitution
-        // naïve "gourd"->"valet" : faute de frappe côté jeu lui-même entre les
-        // deux enums (trouvé en comparant les 58 paires une par une, cf.
-        // big-walk-archipelago-notes.md, session du 2026-09-07). Sans cette
-        // table, TryGetHomeName échoue silencieusement pour ces 3 gourds
-        // (Enum.TryParse ne trouve pas le nom généré) et ItemApplier ignore
-        // l'item correspondant.
+        // 3 gourds whose corresponding valet is NOT the naive
+        // "gourd"->"valet" substitution: a typo on the game's own side
+        // between the two enums (found by comparing all 58 pairs one by
+        // one, cf. big-walk-archipelago-notes.md, session on 2026-09-07).
+        // Without this table, TryGetHomeName silently fails for these 3
+        // gourds (Enum.TryParse doesn't find the generated name) and
+        // ItemApplier ignores the corresponding item.
         private static readonly Dictionary<SaveablePropName, SaveableHomeName> GourdHomeNameExceptions = new()
         {
             { SaveablePropName.gourdCenturonSong, SaveableHomeName.valetCenturionSong },
@@ -49,21 +48,22 @@ namespace BigWalkArchipelago.Core
             return LocationIdsByProp.TryGetValue(propName, out locationId);
         }
 
-        // Distingue les deux chemins de réception d'item dans ItemApplier
-        // (ApplyBigKeyItem, 1:1, vs ApplyGourdItem, générique) : la table des
-        // 7 big keys ci-dessus est déjà la source de vérité pour "quels
-        // SaveablePropName sont des big keys", pas la peine de la dupliquer.
+        // Distinguishes the two item-reception paths in ItemApplier
+        // (ApplyBigKeyItem, 1:1, vs ApplyGourdItem, generic): the table of
+        // 7 big keys above is already the source of truth for "which
+        // SaveablePropName values are big keys", no need to duplicate it.
         internal static bool IsBigKey(SaveablePropName propName)
         {
             return BigKeyHomesByProp.ContainsKey(propName);
         }
 
-        // Convention de nommage confirmée en jeu (cf. big-walk-archipelago-notes.md) :
-        // gourdXxx (SaveablePropName, le prop-récompense) correspond 1:1 à
-        // valetXxx (SaveableHomeName, son emplacement de rangement/couffin).
-        // Centralisé ici (plutôt que dupliqué dans chaque appelant) car utilisé
-        // à la fois par le debug (DebugGourdUnlocker) et par la matérialisation
-        // d'un item reçu (ItemApplier).
+        // Naming convention confirmed in-game (cf.
+        // big-walk-archipelago-notes.md): gourdXxx (SaveablePropName, the
+        // reward prop) corresponds 1:1 to valetXxx (SaveableHomeName, its
+        // storage/basket slot). Centralized here (rather than duplicated in
+        // each caller) since it's used both by debug tooling
+        // (DebugGourdUnlocker) and by materializing a received item
+        // (ItemApplier).
         internal static bool TryGetHomeName(SaveablePropName propName, out SaveableHomeName homeName)
         {
             if (BigKeyHomesByProp.TryGetValue(propName, out homeName))
@@ -89,10 +89,10 @@ namespace BigWalkArchipelago.Core
                 if (propName == SaveablePropName.notSavable)
                     continue;
 
-                // Exclut gourdTesting00-39 ainsi que bigKeyTesting0-4 /
-                // bigKeyTestingOverflow (même famille de valeurs de dev que le
-                // jeu ne déclenche jamais en jeu normal) : aucune de ces
-                // valeurs n'est un vrai check.
+                // Excludes gourdTesting00-39 as well as bigKeyTesting0-4 /
+                // bigKeyTestingOverflow (the same family of dev-only values
+                // the game never triggers in normal play): none of these
+                // values is a real check.
                 if (propName.ToString().Contains("Testing", StringComparison.OrdinalIgnoreCase))
                     continue;
 

@@ -3,40 +3,40 @@ using UnityEngine;
 
 namespace BigWalkArchipelago.Debug
 {
-    // Outil d'action (pas un simple diagnostic) : permet de déclencher un
-    // PeckSwitch à distance, sans avoir à s'y tenir physiquement devant.
-    // Utile pour tester seul un mécanisme conçu pour 2 joueurs (ex. les
-    // boutons "N-hold" simultanés des cloches/du Gauntlet, cf.
-    // big-walk-archipelago-notes.md) : un joueur peck normalement le premier
-    // bouton, puis déclenche ce hotkey pour peck le second à distance par
-    // son nom (repéré au préalable via F9/Delete), sans avoir besoin d'un
-    // second joueur physiquement présent.
+    // Action tool (not a plain diagnostic): triggers a PeckSwitch remotely,
+    // without having to physically stand in front of it. Useful for testing
+    // alone a mechanism designed for 2 players (e.g. the simultaneous
+    // "N-hold" buttons of the bells/Gauntlet, cf.
+    // big-walk-archipelago-notes.md): one player normally pecks the first
+    // button, then triggers this hotkey to peck the second one remotely by
+    // its name (identified beforehand via F9/Delete), without needing a
+    // second player physically present.
     //
-    // PeckSwitch.Peck() est la même méthode publique appelée par le jeu lui-
-    // même lors d'une interaction normale (confirmé via il2cpp.cs) — ce n'est
-    // pas un contournement, juste un appel à distance de la même action.
+    // PeckSwitch.Peck() is the same public method called by the game itself
+    // during a normal interaction (confirmed via il2cpp.cs) — this is not a
+    // workaround, just a remote call to the same action.
     internal static class DebugPeckFire
     {
-        // Rayon de sécurité : beaucoup de noms de PeckSwitch sont génériques
-        // et réutilisés partout dans le jeu (ex. "UpSwitch", vu identique à
-        // la cloche de la chapelle, à l'entrée du Gauntlet ET à la cloche du
-        // sommet) — sans limite de distance, FireByName déclencherait TOUS
-        // les objets portant ce nom dans toute la zone chargée, pas
-        // seulement celui visé à côté du joueur.
+        // Safety radius: many PeckSwitch names are generic and reused
+        // everywhere in the game (e.g. "UpSwitch", seen identically on the
+        // chapel bell, the Gauntlet entrance, AND the summit bell) — without
+        // a distance limit, FireByName would trigger ALL objects with that
+        // name across the entire loaded area, not just the one targeted next
+        // to the player.
         private const float MaxFireRadius = 40f;
 
         internal static void FireByName(string nameSubstring)
         {
             if (string.IsNullOrWhiteSpace(nameSubstring))
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugPeckFire)}] Aucun nom configuré (ModConfig.RemotePeckSwitchName vide) — rien à déclencher.");
+                Plugin.Log.LogInfo($"[{nameof(DebugPeckFire)}] No name configured (ModConfig.RemotePeckSwitchName empty) — nothing to trigger.");
                 return;
             }
 
             var localPlayer = DebugPlayerLookup.FindLocalPlayer();
             if (localPlayer == null)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugPeckFire)}] Joueur local introuvable.");
+                Plugin.Log.LogInfo($"[{nameof(DebugPeckFire)}] Local player not found.");
                 return;
             }
 
@@ -46,7 +46,7 @@ namespace BigWalkArchipelago.Debug
             var all = UnityEngine.Object.FindObjectsByType<PeckSwitch>(FindObjectsSortMode.None);
             if (all == null || all.Length == 0)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugPeckFire)}] Aucun PeckSwitch trouvé dans la zone actuelle.");
+                Plugin.Log.LogInfo($"[{nameof(DebugPeckFire)}] No PeckSwitch found in the current area.");
                 return;
             }
 
@@ -65,20 +65,20 @@ namespace BigWalkArchipelago.Debug
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Log.LogWarning($"[{nameof(DebugPeckFire)}] PeckSwitch illisible (nom/position) : {ex.Message}");
+                    Plugin.Log.LogWarning($"[{nameof(DebugPeckFire)}] Unreadable PeckSwitch (name/position): {ex.Message}");
                     continue;
                 }
 
                 if (goName.IndexOf(nameSubstring, StringComparison.OrdinalIgnoreCase) < 0)
                     continue;
 
-                // Filtré par distance en dernier (pas dans la boucle de nom)
-                // pour que le message "aucun match" distingue "nom inconnu"
-                // de "nom connu mais trop loin" — voir le log ci-dessous.
+                // Filtered by distance last (not inside the name-matching
+                // loop) so the "no match" message distinguishes "unknown
+                // name" from "known name but too far" — see the log below.
                 if (sqrDistance > sqrRadius)
                 {
                     Plugin.Log.LogInfo(
-                        $"[{nameof(DebugPeckFire)}]   {goName} correspond au nom mais est à {Math.Sqrt(sqrDistance):F1}m (> {MaxFireRadius}m) — ignoré par sécurité.");
+                        $"[{nameof(DebugPeckFire)}]   {goName} matches the name but is {Math.Sqrt(sqrDistance):F1}m away (> {MaxFireRadius}m) — skipped for safety.");
                     continue;
                 }
 
@@ -86,16 +86,16 @@ namespace BigWalkArchipelago.Debug
                 {
                     sw.Peck();
                     fired++;
-                    Plugin.Log.LogInfo($"[{nameof(DebugPeckFire)}] Peck() déclenché à distance sur {goName}.");
+                    Plugin.Log.LogInfo($"[{nameof(DebugPeckFire)}] Peck() triggered remotely on {goName}.");
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Log.LogWarning($"[{nameof(DebugPeckFire)}] {goName} — exception pendant Peck(), ignorée : {ex.Message}");
+                    Plugin.Log.LogWarning($"[{nameof(DebugPeckFire)}] {goName} — exception during Peck(), ignored: {ex.Message}");
                 }
             }
 
             if (fired == 0)
-                Plugin.Log.LogInfo($"[{nameof(DebugPeckFire)}] Aucun PeckSwitch dont le nom contient '{nameSubstring}' trouvé à moins de {MaxFireRadius}m.");
+                Plugin.Log.LogInfo($"[{nameof(DebugPeckFire)}] No PeckSwitch whose name contains '{nameSubstring}' found within {MaxFireRadius}m.");
         }
     }
 }

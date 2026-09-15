@@ -1,10 +1,10 @@
 namespace BigWalkArchipelago.Debug
 {
-    // Bascule la caméra libre en réutilisant tel quel le système de "cheat
-    // camera" déjà présent dans le jeu (PlayerCharacter.cheater.cameraCheatMover,
-    // investigué via Ghidra le 2026-09-03 : Detach()/Attach() sont publiques et
-    // suffisent, pas besoin de connaître le code de triche texte du jeu ni de
-    // réimplémenter le mouvement depuis PlayerMover/Rigidbody).
+    // Toggles free camera by reusing as-is the "cheat camera" system already
+    // present in the game (PlayerCharacter.cheater.cameraCheatMover,
+    // investigated via Ghidra on 2026-09-03: Detach()/Attach() are public and
+    // sufficient, no need to know the game's text cheat code nor to
+    // reimplement movement from PlayerMover/Rigidbody).
     internal static class DebugFlightTool
     {
         private static bool _active;
@@ -18,21 +18,21 @@ namespace BigWalkArchipelago.Debug
             var localPlayer = DebugPlayerLookup.FindLocalPlayer();
             if (localPlayer == null)
             {
-                Plugin.Log.LogWarning($"[{nameof(DebugFlightTool)}] Aucun joueur local trouvé.");
+                Plugin.Log.LogWarning($"[{nameof(DebugFlightTool)}] No local player found.");
                 return;
             }
 
             var cheater = localPlayer.cheater;
             if (cheater == null)
             {
-                Plugin.Log.LogWarning($"[{nameof(DebugFlightTool)}] Le joueur local n'a pas de PlayerCheater.");
+                Plugin.Log.LogWarning($"[{nameof(DebugFlightTool)}] Local player has no PlayerCheater.");
                 return;
             }
 
             var cameraCheatMover = cheater.cameraCheatMover;
             if (cameraCheatMover == null)
             {
-                Plugin.Log.LogWarning($"[{nameof(DebugFlightTool)}] cheater.cameraCheatMover est introuvable.");
+                Plugin.Log.LogWarning($"[{nameof(DebugFlightTool)}] cheater.cameraCheatMover not found.");
                 return;
             }
 
@@ -41,9 +41,9 @@ namespace BigWalkArchipelago.Debug
             {
                 cameraCheatMover.Detach();
 
-                // movingSpeed est ré-appliqué à chaque activation (pas une
-                // seule fois à l'Awake du jeu) pour suivre les changements de
-                // valeur du multiplicateur en config sans relancer le jeu.
+                // movingSpeed is re-applied on every activation (not just
+                // once at the game's Awake) to track changes to the
+                // multiplier's config value without restarting the game.
                 if (!_hasOriginalMovingSpeed)
                 {
                     _originalMovingSpeed = cameraCheatMover.movingSpeed;
@@ -60,7 +60,7 @@ namespace BigWalkArchipelago.Debug
                     cameraCheatMover.movingSpeed = _originalMovingSpeed;
             }
 
-            Plugin.Log.LogInfo($"[{nameof(DebugFlightTool)}] Caméra libre {(_active ? "activée" : "désactivée")}.");
+            Plugin.Log.LogInfo($"[{nameof(DebugFlightTool)}] Free camera {(_active ? "enabled" : "disabled")}.");
         }
     }
 }

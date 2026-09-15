@@ -1,28 +1,28 @@
 namespace BigWalkArchipelago.Core
 {
-    // Logique partagée entre le hotkey de debug (Debug/DebugVariantGourdReveal)
-    // et l'automatisation (Core/VariantGourdMapUnlocker) : révèle sur la carte
-    // les gourds "variant challenge" (violettes, normalement débloquées après
-    // une première fin de partie). Cf. big-walk-archipelago-notes.md, session
-    // du 2026-09-09 : GourdMap.Initialize() force GourdFlag.SetState(Hidden)
-    // pour tout gourd isVariantChallenge==true à CHAQUE (re)chargement de
-    // zone — un état purement local/session, jamais lu ni écrit dans
-    // SaveManager.
+    // Logic shared between the debug hotkey (Debug/DebugVariantGourdReveal)
+    // and the automation (Core/VariantGourdMapUnlocker): reveals "variant
+    // challenge" gourds (purple, normally unlocked after a first game
+    // completion) on the map. Cf. big-walk-archipelago-notes.md, session on
+    // 2026-09-09: GourdMap.Initialize() forces GourdFlag.SetState(Hidden)
+    // for every gourd with isVariantChallenge==true on EVERY zone
+    // (re)load — a purely local/session state, never read from or written
+    // to SaveManager.
     //
-    // CORRIGÉ (2026-09-09) : la première version invoquait directement l'event
-    // statique GourdMap.refreshFlag (Action<SaveablePropName, GourdState>).
-    // Isolé en jeu par test A/B : révéler un gourd violet via cet Invoke()
-    // avant de le résoudre provoquait, à chaque fois, un freeze total du jeu
-    // (aucune exception, aucun log) quelques dizaines de secondes plus tard au
-    // premier alt-tab — jamais reproduit sans cet appel (gourd normale, ou
-    // gourd violette découverte/résolue sans jamais appeler refreshFlag).
-    // Invoquer directement un delegate Il2Cpp statique depuis du code managé
-    // externe semble corrompre un état interne (probablement côté interop
-    // IL2CPP) qui ne se manifeste que plus tard. Fix : appeler
-    // GourdFlag.SetState(...) directement sur l'instance trouvée (un appel de
-    // méthode normal sur un composant, pas une invocation de delegate) — exactement
-    // ce que fait la méthode privée GourdMap.RefreshFlag en interne, donc tout
-    // aussi sûr côté jeu, sans passer par le point qui posait problème.
+    // FIXED (2026-09-09): the first version directly invoked the static
+    // event GourdMap.refreshFlag (Action<SaveablePropName, GourdState>).
+    // Isolated in-game via A/B testing: revealing a purple gourd through
+    // this Invoke() before resolving it reliably caused a total game
+    // freeze (no exception, no log) a few dozen seconds later at the first
+    // alt-tab — never reproduced without this call (normal gourd, or a
+    // purple gourd discovered/resolved without ever calling refreshFlag).
+    // Directly invoking a static Il2Cpp delegate from external managed code
+    // appears to corrupt some internal state (likely on the IL2CPP interop
+    // side) that only manifests later. Fix: call GourdFlag.SetState(...)
+    // directly on the found instance (a normal method call on a component,
+    // not a delegate invocation) — exactly what the private method
+    // GourdMap.RefreshFlag does internally, so just as safe on the game
+    // side, without going through the point that caused the problem.
     internal static class VariantGourdRevealer
     {
         internal static int RevealAll()

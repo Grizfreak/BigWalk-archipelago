@@ -2,78 +2,79 @@ using Mirror;
 
 namespace BigWalkArchipelago.Core
 {
-    // Point d'entrée unique pour matérialiser un item Archipelago reçu à
-    // distance (aujourd'hui : simulé par Debug/DebugItemSimulator ; demain :
-    // le vrai client Archipelago appellera la même méthode). Design tranché en
-    // session (cf. big-walk-archipelago-notes.md) : écrit directement dans
-    // SaveManager, sans jamais toucher le RewardGourd/Prop vivant en scène —
-    // Prop.Start() fera le vrai pin tout seul au prochain chargement de la
-    // zone concernée. Ça garde l'énigme physique intacte et solvable.
+    // Single entry point for materializing a remotely received Archipelago
+    // item (today: simulated by Debug/DebugItemSimulator; tomorrow: the
+    // real Archipelago client will call the same method). Design settled in
+    // session (cf. big-walk-archipelago-notes.md): writes directly to
+    // SaveManager, never touching the live RewardGourd/Prop in the scene —
+    // Prop.Start() will do the real pin by itself on the next load of the
+    // relevant zone. This keeps the physical puzzle intact and solvable.
     internal static class ItemApplier
     {
-        // Item gourd générique reçu par le réseau AP (cf. CORRECTION
-        // 2026-09-11, big-walk-archipelago-notes.md) : monnaie de progression
-        // pure pour les monuments, entièrement décorrélée de la résolution
-        // des puzzles. Ne doit JAMAIS écrire dans SaveManager au nom d'un
-        // gourdXxx précis ni piloter TryApplyLiveEffect — contrairement au
-        // modèle 1:1 encore utilisé pour les big keys (ApplyBigKeyItem
-        // ci-dessous). Son propre check de location continue d'être reporté
-        // uniquement par une résolution physique réelle en jeu
-        // (GourdStatePatch/SaveValuePatch, jamais touché ici).
+        // Generic gourd item received over the AP network (cf. FIX
+        // 2026-09-11, big-walk-archipelago-notes.md): pure progression
+        // currency for monuments, entirely decoupled from puzzle
+        // resolution. Must NEVER write to SaveManager under a specific
+        // gourdXxx name nor drive TryApplyLiveEffect — unlike the 1:1 model
+        // still used for big keys (ApplyBigKeyItem below). Its own location
+        // check continues to be reported only by an actual in-game physical
+        // resolution (GourdStatePatch/SaveValuePatch, never touched here).
         internal static bool ApplyGourdItem()
         {
             if (!NetworkServer.active)
             {
                 Plugin.Log.LogWarning(
-                    $"[{nameof(ItemApplier)}] Ignoré : gourd reçu alors qu'on n'est pas host.");
+                    $"[{nameof(ItemApplier)}] Ignored: gourd received while not host.");
                 return false;
             }
 
             ReceivedItemSpawner.SpawnCosmeticPickup();
 
-            Plugin.Log.LogInfo($"[{nameof(ItemApplier)}] Gourd générique appliqué (spawn cosmétique uniquement).");
+            Plugin.Log.LogInfo($"[{nameof(ItemApplier)}] Generic gourd applied (cosmetic spawn only).");
             return true;
         }
 
         internal static bool ApplyBigKeyItem(SaveablePropName propName)
         {
-            // Toute écriture de sauvegarde doit venir du host (modèle
-            // d'autorité déjà établi pour le reste du mod, cf. notes.md).
+            // Every save write must come from the host (authority model
+            // already established for the rest of the mod, cf. notes.md).
             if (!NetworkServer.active)
             {
                 Plugin.Log.LogWarning(
-                    $"[{nameof(ItemApplier)}] Ignoré : {propName} reçu alors qu'on n'est pas host.");
+                    $"[{nameof(ItemApplier)}] Ignored: {propName} received while not host.");
                 return false;
             }
 
             if (!GourdRegistry.TryGetHomeName(propName, out var homeName))
             {
                 Plugin.Log.LogWarning(
-                    $"[{nameof(ItemApplier)}] Aucun home connu pour {propName}, item ignoré.");
+                    $"[{nameof(ItemApplier)}] No known home for {propName}, item ignored.");
                 return false;
             }
 
-            // Marque la location comme déjà réglée AVANT d'écrire. Ne suffit
-            // pas de garder un flag pendant le seul appel synchrone ci-dessous :
-            // confirmé en test le 2026-09-07, Prop.Start() réécrit la même clé
-            // via le vrai SaveManager.SetIntValue du jeu au prochain chargement
-            // de zone (pour repinner le prop), et SaveValuePatch — qui ne peut
-            // pas distinguer cette réécriture différée d'une vraie résolution —
-            // reportait alors un check fantôme. Marquer ici couvre les deux cas
-            // (l'écriture immédiate ci-dessous ET celle, différée, de Prop.Start()).
+            // Marks the location as already settled BEFORE writing. Just
+            // keeping a flag during the single synchronous call below is
+            // not enough: confirmed in testing on 2026-09-07, Prop.Start()
+            // rewrites the same key via the game's real
+            // SaveManager.SetIntValue on the next zone load (to re-pin the
+            // prop), and SaveValuePatch — which cannot distinguish this
+            // deferred rewrite from a genuine resolution — would then
+            // report a phantom check. Marking here covers both cases (the
+            // immediate write below AND Prop.Start()'s deferred one).
             //
-            // Corrigé le 2026-09-07 (repéré en test, cf. discussion notes.md
-            // "logique locations/items à repenser") : TryMarkReported ne
-            // suffit pas seul, il faut aussi reporter le check. Avant ce fix,
-            // un item reçu AVANT toute résolution locale de cette location ne
-            // reportait jamais le check nulle part (ItemApplier marquait
-            // silencieusement sans appeler Plugin.Reporter.ReportCheck) — la
-            // location restait ensuite bloquée pour toujours (CheckTracker
-            // empêche tout report futur), donc son propre item randomisé
-            // n'était jamais envoyé à qui l'attend dans le multiworld. Même
-            // pattern que GourdStatePatch/SaveValuePatch : premier arrivé
-            // (résolution réelle OU item reçu) reporte le check une fois, peu
-            // importe lequel des deux c'est.
+            // Fixed on 2026-09-07 (spotted in testing, cf. notes.md
+            // discussion "locations/items logic to rethink"): TryMarkReported
+            // alone isn't enough, the check must also be reported. Before
+            // this fix, an item received BEFORE any local resolution of
+            // this location never reported the check anywhere (ItemApplier
+            // silently marked it without calling
+            // Plugin.Reporter.ReportCheck) — the location then stayed
+            // permanently blocked (CheckTracker prevents any future
+            // report), so its own randomized item was never sent to
+            // whoever was waiting for it in the multiworld. Same pattern as
+            // GourdStatePatch/SaveValuePatch: whichever comes first (real
+            // resolution OR received item) reports the check once, no
+            // matter which of the two it is.
             if (GourdRegistry.TryGetLocationId(propName, out var locationId)
                 && CheckTracker.TryMarkReported(locationId))
                 Plugin.Reporter.ReportCheck(locationId);
@@ -82,26 +83,26 @@ namespace BigWalkArchipelago.Core
 
             TryApplyLiveEffect(propName, homeName);
 
-            // Purement cosmétique/notification (cf. ReceivedItemSpawner) :
-            // la vraie persistance ci-dessus est déjà faite, un échec ici
-            // ne doit avoir aucune conséquence sur elle.
+            // Purely cosmetic/notification (cf. ReceivedItemSpawner): the
+            // real persistence above is already done, a failure here must
+            // have no consequence on it.
             ReceivedItemSpawner.SpawnCosmeticPickup();
 
-            Plugin.Log.LogInfo($"[{nameof(ItemApplier)}] Item appliqué : {propName} -> {homeName}.");
+            Plugin.Log.LogInfo($"[{nameof(ItemApplier)}] Item applied: {propName} -> {homeName}.");
             return true;
         }
 
-        // Effet instantané, en plus de l'écriture SaveManager ci-dessus —
-        // UNIQUEMENT pour les props sans composant RewardGourd (big keys,
-        // cf. big-walk-archipelago-notes.md, découvert en session de test le
-        // 2026-09-07). Les deux raisons qui interdisent le pin live pour un
-        // gourd ne s'appliquent pas à ces props : pas de GourdState/icône
-        // carte à désynchroniser (il n'y en a pas), et pas de puzzle local à
-        // garder solvable (le "check" d'une big key est le peck vers sa
-        // plinthe, pas une résolution répétable). Ne fait rien si la zone
-        // n'est pas chargée (prop introuvable) ou si un RewardGourd est
-        // présent : Prop.Start() prendra alors le relais au prochain
-        // chargement, exactement comme avant pour tous les cas.
+        // Instant effect, on top of the SaveManager write above — ONLY for
+        // props without a RewardGourd component (big keys, cf.
+        // big-walk-archipelago-notes.md, discovered during a test session
+        // on 2026-09-07). The two reasons that forbid a live pin for a
+        // gourd don't apply to these props: no GourdState/map icon to
+        // desync (there isn't one), and no local puzzle to keep solvable
+        // (a big key's "check" is the peck toward its plinth, not a
+        // repeatable resolution). Does nothing if the zone isn't loaded
+        // (prop not found) or if a RewardGourd is present: Prop.Start()
+        // will then take over on the next load, exactly as before in all
+        // cases.
         private static void TryApplyLiveEffect(SaveablePropName propName, SaveableHomeName homeName)
         {
             Prop targetProp = null;
@@ -126,7 +127,7 @@ namespace BigWalkArchipelago.Core
 
             targetProp.ServerSetPinned(propHome);
             Plugin.Log.LogInfo(
-                $"[{nameof(ItemApplier)}] Effet immédiat appliqué (pas de RewardGourd) : {propName} pinné en direct sur {homeName}.");
+                $"[{nameof(ItemApplier)}] Immediate effect applied (no RewardGourd): {propName} pinned live to {homeName}.");
         }
     }
 }

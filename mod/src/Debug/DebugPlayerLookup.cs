@@ -1,6 +1,6 @@
 namespace BigWalkArchipelago.Debug
 {
-    // Lookup partagé entre les outils de debug (DebugFlightTool, DebugGourdUnlocker).
+    // Lookup shared between the debug tools (DebugFlightTool, DebugGourdUnlocker).
     internal static class DebugPlayerLookup
     {
         internal static PlayerCharacter FindLocalPlayer()

@@ -4,32 +4,32 @@ using UnityEngine;
 
 namespace BigWalkArchipelago.Debug
 {
-    // Outil d'action (pas un diagnostic). Épingler un gourd cosmétique dans
-    // un vrai PropHome passe normalement par la même interaction manuelle
-    // qu'un vrai gourd (peck/maintien sur le "vice launch switch" du
-    // monument, cf. big-walk-archipelago-notes.md) — même piège que les
-    // cloches "N-hold" déjà rencontré (DebugPeckCombinatorForce) : fastidieux
-    // à tester seul, surtout en alternant avec la lecture des logs. Ce tool
-    // court-circuite l'interaction : trouve le gourd cosmétique le plus
-    // proche (Core.ReceivedItemSpawner.IsCosmeticClone) et le PropHome vide
-    // le plus proche, et appelle Prop.ServerSetPinned directement dessus —
-    // déclenche PropHome.onAnyChangeServer exactement comme un vrai pin,
-    // donc CosmeticMonumentFillTracker persiste normalement, sans traitement
-    // spécial nécessaire.
+    // Action tool (not a diagnostic). Pinning a cosmetic gourd into a real
+    // PropHome normally goes through the same manual interaction as a real
+    // gourd (peck/hold on the monument's "vice launch switch", cf.
+    // big-walk-archipelago-notes.md) — same pitfall as the "N-hold" bells
+    // already encountered (DebugPeckCombinatorForce): tedious to test alone,
+    // especially while alternating with reading the logs. This tool
+    // short-circuits the interaction: it finds the nearest cosmetic gourd
+    // (Core.ReceivedItemSpawner.IsCosmeticClone) and the nearest empty
+    // PropHome, and calls Prop.ServerSetPinned directly on it — this fires
+    // PropHome.onAnyChangeServer exactly like a real pin, so
+    // CosmeticMonumentFillTracker persists normally, with no special
+    // handling required.
     internal static class DebugCosmeticPinForce
     {
         internal static void ForceNearby(float radius)
         {
             if (!NetworkServer.active)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugCosmeticPinForce)}] Ignoré : pas host.");
+                Plugin.Log.LogInfo($"[{nameof(DebugCosmeticPinForce)}] Skipped: not host.");
                 return;
             }
 
             var localPlayer = DebugPlayerLookup.FindLocalPlayer();
             if (localPlayer == null)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugCosmeticPinForce)}] Joueur local introuvable.");
+                Plugin.Log.LogInfo($"[{nameof(DebugCosmeticPinForce)}] Local player not found.");
                 return;
             }
 
@@ -38,14 +38,14 @@ namespace BigWalkArchipelago.Debug
             var cosmeticProp = FindNearestCosmeticProp(origin, radius);
             if (cosmeticProp == null)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugCosmeticPinForce)}] Aucun gourd cosmétique à moins de {radius}m (en spawner un avec P d'abord ?).");
+                Plugin.Log.LogInfo($"[{nameof(DebugCosmeticPinForce)}] No cosmetic gourd within {radius}m (spawn one with P first?).");
                 return;
             }
 
             var propHome = FindNearestEmptyPropHome(origin, radius);
             if (propHome == null)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugCosmeticPinForce)}] Aucun PropHome vide à moins de {radius}m.");
+                Plugin.Log.LogInfo($"[{nameof(DebugCosmeticPinForce)}] No empty PropHome within {radius}m.");
                 return;
             }
 
@@ -56,7 +56,7 @@ namespace BigWalkArchipelago.Debug
             cosmeticProp.ServerSetPinned(propHome);
 
             Plugin.Log.LogInfo(
-                $"[{nameof(DebugCosmeticPinForce)}] {cosmeticProp.gameObject.name} épinglé dans {propHome.saveableHomeName}.");
+                $"[{nameof(DebugCosmeticPinForce)}] {cosmeticProp.gameObject.name} pinned into {propHome.saveableHomeName}.");
         }
 
         private static Prop FindNearestCosmeticProp(Vector3 origin, float radius)

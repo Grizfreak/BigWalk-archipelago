@@ -5,41 +5,41 @@ using UnityEngine;
 
 namespace BigWalkArchipelago.Core
 {
-    // Désactive la sphère noire bloquante du hub (entrée de la "deuxième fin"
-    // / postgame) dès la première session sur une save donnée. Décision
-    // utilisateur (cf. big-walk-archipelago-notes.md, session du 2026-09-11) :
-    // en vanilla, cette sphère ne se casse qu'après une première complétion
-    // du jeu — condition non identifiable avec certitude après plusieurs
-    // sessions d'investigation (Ghidra + dump en jeu), et l'hypothèse la plus
-    // prometteuse ("le remplissage de la plinthe bigKeyPlinthGoodbye2, juste
-    // derrière, déclenche la casse") s'est révélée être l'inverse : cette
-    // plinthe n'est accessible QUE si la sphère est déjà cassée. Plutôt que
-    // de continuer à chercher le vrai flag/mécanisme Peck, la sphère est
-    // simplement désactivée à chaque session : pas d'intérêt à rester
-    // fermée pour un monde Archipelago, même philosophie que ArchDoorUnlocker
-    // pour les raccourcis du hub.
+    // Disables the hub's blocking black sphere (entrance to the "second
+    // ending" / postgame) from the very first session on a given save.
+    // User decision (cf. big-walk-archipelago-notes.md, session on
+    // 2026-09-11): in vanilla, this sphere only breaks after a first full
+    // completion of the game — a condition that could not be identified
+    // with certainty after several investigation sessions (Ghidra + in-game
+    // dumps), and the most promising hypothesis ("filling the
+    // bigKeyPlinthGoodbye2 plinth, right behind it, triggers the break")
+    // turned out to be the reverse: that plinth is only accessible ONCE the
+    // sphere is already broken. Rather than continue hunting for the real
+    // flag/Peck mechanism, the sphere is simply disabled every session:
+    // there is no point in keeping it closed for an Archipelago world, the
+    // same philosophy as ArchDoorUnlocker for the hub shortcuts.
     //
-    // Différence clé avec ArchDoorUnlocker : là-bas, l'effet (une écriture
-    // TrackedPeckState/SaveManager) est persisté par le jeu lui-même, donc un
-    // flag "déjà fait une fois" suffit à ne plus jamais y retoucher. Ici,
-    // SetActive(false) est un état purement local à la session (rien n'est
-    // sauvegardé) : il faut donc le rejouer à CHAQUE démarrage, sans jamais
-    // se fier à un flag SaveManager pour sauter l'étape.
+    // Key difference from ArchDoorUnlocker: there, the effect (a
+    // TrackedPeckState/SaveManager write) is persisted by the game itself,
+    // so a single "already done once" flag is enough to never touch it
+    // again. Here, SetActive(false) is a state purely local to the session
+    // (nothing is saved): it must therefore be replayed on EVERY startup,
+    // never relying on a SaveManager flag to skip the step.
     //
-    // Ciblage par préfixe de nom, restreint à la sphère elle-même — PAS
-    // "Spawn_SecondEnding" tout court. Ce préfixe plus large avait été
-    // essayé en premier et attrapait aussi `Spawn_SecondEnding_Door (1)` :
-    // confirmé en jeu (2026-09-11) que ça désactivait la vraie porte
-    // d'entrée de la deuxième fin en plus de la sphère, ouvrant l'accès à
-    // cette zone dès le début de partie — pas voulu, seule la sphère doit
-    // disparaître, la progression réelle vers la deuxième fin (Gauntlet,
-    // cloches, etc.) doit rester intacte. `Spawn_SecondEnding_Sphere` cible
-    // donc précisément `Spawn_SecondEnding_Sphere_Whole` (mesh+collider de
-    // la sphère) sans toucher à `Spawn_SecondEnding_Door (1)` ni à quoi que
-    // ce soit d'autre du même ensemble scène.
+    // Targeting by name prefix, restricted to the sphere itself — NOT plain
+    // "Spawn_SecondEnding". This broader prefix was tried first and also
+    // caught `Spawn_SecondEnding_Door (1)`: confirmed in-game (2026-09-11)
+    // that it disabled the real entrance door to the second ending in
+    // addition to the sphere, opening access to that zone right from the
+    // start of the game — not intended, only the sphere should disappear,
+    // real progression toward the second ending (Gauntlet, bells, etc.)
+    // must remain intact. `Spawn_SecondEnding_Sphere` therefore precisely
+    // targets `Spawn_SecondEnding_Sphere_Whole` (the sphere's mesh+collider)
+    // without touching `Spawn_SecondEnding_Door (1)` or anything else in
+    // the same scene set.
     internal class SecondEndingSphereUnlocker : MonoBehaviour
     {
-        // Constructeur requis par Il2CppInterop pour tout type injecté en IL2CPP.
+        // Constructor required by Il2CppInterop for any type injected into IL2CPP.
         public SecondEndingSphereUnlocker(IntPtr ptr) : base(ptr)
         {
         }
@@ -53,15 +53,14 @@ namespace BigWalkArchipelago.Core
             if (_done)
                 return;
 
-            // Modèle d'autorité host, comme le reste du mod (cf. ItemApplier).
+            // Host authority model, like the rest of the mod (cf. ItemApplier).
             if (!NetworkServer.active || !WorldManager.isReadyForEffects)
                 return;
 
-            // Fixé dès la première frame où les deux conditions sont
-            // réunies : évite de re-scanner tous les Transform chargés à
-            // chaque frame pour le reste de la session, que la zone du hub
-            // soit chargée ou non (si elle ne l'est pas, rien à faire ici de
-            // toute façon).
+            // Latched on the very first frame both conditions are met:
+            // avoids re-scanning every loaded Transform every frame for the
+            // rest of the session, whether or not the hub zone is loaded
+            // (if it isn't, there's nothing to do here anyway).
             _done = true;
 
             var disabled = new List<string>();
@@ -85,12 +84,12 @@ namespace BigWalkArchipelago.Core
             if (disabled.Count == 0)
             {
                 Plugin.Log.LogInfo(
-                    $"[{nameof(SecondEndingSphereUnlocker)}] Aucun objet '{BlockingObjectNamePrefix}*' trouvé dans la zone actuelle (hub pas chargé ?).");
+                    $"[{nameof(SecondEndingSphereUnlocker)}] No object '{BlockingObjectNamePrefix}*' found in the current zone (hub not loaded?).");
                 return;
             }
 
             Plugin.Log.LogInfo(
-                $"[{nameof(SecondEndingSphereUnlocker)}] {disabled.Count} objet(s) désactivé(s) : {string.Join(", ", disabled)}.");
+                $"[{nameof(SecondEndingSphereUnlocker)}] {disabled.Count} object(s) disabled: {string.Join(", ", disabled)}.");
         }
     }
 }

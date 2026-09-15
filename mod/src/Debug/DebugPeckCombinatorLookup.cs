@@ -3,27 +3,28 @@ using UnityEngine;
 
 namespace BigWalkArchipelago.Debug
 {
-    // Diagnostic pur (aucune écriture). Suite de l'investigation des "cloches"
-    // de la zone de fin (cf. big-walk-archipelago-notes.md, section "bells") :
-    // PeckCombinator est le système générique qui combine plusieurs
-    // TrackedPeckState (ex. deux boutons pressés simultanément par 2 joueurs)
-    // via des PeckRule (systems[] + minimumMatches), et déclenche en sortie
-    // soit un TrackedPeckState direct (directControlSystem), soit deux
-    // PeckSwitch (onConditionMet/onConditionStop). Repéré en jeu (F9) près de
-    // GoodbyeChapel : un GameObject "NHoldLogic" porte justement un
-    // PeckSystemBlock + PeckCombinator, candidat naturel pour le mécanisme
-    // "deux boutons simultanés" des cloches. Ce tool inspecte directement ces
-    // références pour trouver la vraie clé SaveManager sans deviner.
+    // Pure diagnostic (no writes). Continuation of the investigation into
+    // the "bells" in the ending area (cf. big-walk-archipelago-notes.md,
+    // "bells" section): PeckCombinator is the generic system that combines
+    // several TrackedPeckState instances (e.g. two buttons pressed
+    // simultaneously by 2 players) via PeckRule entries (systems[] +
+    // minimumMatches), and triggers as output either a direct
+    // TrackedPeckState (directControlSystem) or two PeckSwitch
+    // (onConditionMet/onConditionStop). Spotted in-game (F9) near
+    // GoodbyeChapel: a GameObject named "NHoldLogic" carries exactly a
+    // PeckSystemBlock + PeckCombinator, a natural candidate for the bells'
+    // "two simultaneous buttons" mechanism. This tool inspects these
+    // references directly to find the real SaveManager key without guessing.
     //
-    // Durci le 2026-09-10 après un freeze (Windows "Application Hang", pas de
-    // crash/exception loggée) déclenché par un F7 près de VictoryLogic, dans
-    // une zone (Gauntlet) au câblage Peck plus dense que les salles de cloche
-    // déjà testées avec succès. Chaque combinator/référence est maintenant
-    // logué et enveloppé individuellement (try/catch) pour qu'une référence
-    // problématique interrompe seulement son propre bloc plutôt que tout le
-    // dump — filet de sécurité pour une vraie exception .NET (ex. accès à un
-    // objet Unity semi-détruit) ; n'aide pas contre un plantage natif dur,
-    // mais réduit le risque en journalisant chaque étape avant d'y toucher.
+    // Hardened on 2026-09-10 after a freeze (Windows "Application Hang", no
+    // crash/exception logged) triggered by an F7 near VictoryLogic, in an
+    // area (Gauntlet) with denser Peck wiring than the bell rooms already
+    // tested successfully. Each combinator/reference is now logged and
+    // wrapped individually (try/catch) so a problematic reference only
+    // interrupts its own block rather than the whole dump — a safety net for
+    // a genuine .NET exception (e.g. accessing a partially destroyed Unity
+    // object); it does not help against a hard native crash, but it reduces
+    // the risk by logging each step before touching it.
     internal static class DebugPeckCombinatorLookup
     {
         internal static void DumpNearby(float radius)
@@ -31,7 +32,7 @@ namespace BigWalkArchipelago.Debug
             var localPlayer = DebugPlayerLookup.FindLocalPlayer();
             if (localPlayer == null)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorLookup)}] Joueur local introuvable.");
+                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorLookup)}] Local player not found.");
                 return;
             }
 
@@ -41,7 +42,7 @@ namespace BigWalkArchipelago.Debug
             var all = UnityEngine.Object.FindObjectsByType<PeckCombinator>(FindObjectsSortMode.None);
             if (all == null || all.Length == 0)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorLookup)}] Aucun PeckCombinator trouvé dans la zone actuelle.");
+                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorLookup)}] No PeckCombinator found in the current area.");
                 return;
             }
 
@@ -57,16 +58,16 @@ namespace BigWalkArchipelago.Debug
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Log.LogWarning($"[{nameof(DebugPeckCombinatorLookup)}] PeckCombinator illisible (position) : {ex.Message}");
+                    Plugin.Log.LogWarning($"[{nameof(DebugPeckCombinatorLookup)}] Unreadable PeckCombinator (position): {ex.Message}");
                     continue;
                 }
 
                 if (sqrDistance > sqrRadius)
                     continue;
 
-                // Logué avant toute lecture des champs : si le reste plante,
-                // on sait au moins quel GameObject était en cours d'inspection.
-                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorLookup)}] {combinator.gameObject.name} (PeckCombinator) — début inspection.");
+                // Logged before reading any fields: if the rest crashes, we
+                // at least know which GameObject was being inspected.
+                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorLookup)}] {combinator.gameObject.name} (PeckCombinator) — starting inspection.");
 
                 try
                 {
@@ -75,7 +76,7 @@ namespace BigWalkArchipelago.Debug
                 catch (Exception ex)
                 {
                     Plugin.Log.LogWarning(
-                        $"[{nameof(DebugPeckCombinatorLookup)}] {combinator.gameObject.name} — exception pendant l'inspection, bloc ignoré : {ex}");
+                        $"[{nameof(DebugPeckCombinatorLookup)}] {combinator.gameObject.name} — exception during inspection, block skipped: {ex}");
                 }
             }
         }
@@ -89,7 +90,7 @@ namespace BigWalkArchipelago.Debug
             var rules = combinator.rules;
             if (rules == null || rules.Length == 0)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorLookup)}]   (aucune règle)");
+                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorLookup)}]   (no rule)");
                 return;
             }
 
@@ -98,9 +99,9 @@ namespace BigWalkArchipelago.Debug
                 try
                 {
                     var rule = rules[i];
-                    var maxDesc = rule.hasMaximum ? rule.maximumMatches.ToString() : "illimité";
+                    var maxDesc = rule.hasMaximum ? rule.maximumMatches.ToString() : "unlimited";
                     Plugin.Log.LogInfo(
-                        $"[{nameof(DebugPeckCombinatorLookup)}]   règle[{i}] — minimumMatches={rule.minimumMatches}, maximumMatches={maxDesc}, desiredState={rule.desiredState}");
+                        $"[{nameof(DebugPeckCombinatorLookup)}]   rule[{i}] — minimumMatches={rule.minimumMatches}, maximumMatches={maxDesc}, desiredState={rule.desiredState}");
 
                     var systems = rule.systems;
                     if (systems != null)
@@ -109,16 +110,17 @@ namespace BigWalkArchipelago.Debug
                             DescribeTrackedPeckState($"    systems[{s}]", systems[s]);
                     }
 
-                    // rule.block regroupe des TrackedPeckState par PeckSystemBlock
-                    // plutôt que directement dans systems[] — c'est le cas des
-                    // règles "N-hold" (ex. NHoldLogic 2/EndingGate) dont
-                    // systems[] est vide mais qui référencent quand même un
-                    // groupe de boutons (ex. "ButtonNHoldTwo") via ce champ.
+                    // rule.block groups TrackedPeckState instances by
+                    // PeckSystemBlock rather than directly in systems[] —
+                    // this is the case for "N-hold" rules (e.g. NHoldLogic
+                    // 2/EndingGate) whose systems[] is empty but which still
+                    // reference a group of buttons (e.g. "ButtonNHoldTwo")
+                    // via this field.
                     DescribeBlock("    rule.block", rule.block);
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Log.LogWarning($"[{nameof(DebugPeckCombinatorLookup)}]   règle[{i}] — exception, ignorée : {ex.Message}");
+                    Plugin.Log.LogWarning($"[{nameof(DebugPeckCombinatorLookup)}]   rule[{i}] — exception, ignored: {ex.Message}");
                 }
             }
         }
@@ -134,18 +136,18 @@ namespace BigWalkArchipelago.Debug
                 }
 
                 var saveIdentity = state.saveIdentity;
-                var saveGuid = saveIdentity != null ? saveIdentity.saveGuid : "<pas de SaveIdentity>";
+                var saveGuid = saveIdentity != null ? saveIdentity.saveGuid : "<no SaveIdentity>";
                 var savableSystem = state.savableSystem;
                 var key = savableSystem != SavableSystem.NotSavable ? savableSystem.ToString() : saveGuid;
                 var currentValue = SaveManager.GetIntValue(key, -12345, false);
 
                 Plugin.Log.LogInfo(
                     $"[{nameof(DebugPeckCombinatorLookup)}] {label}={state.gameObject.name} — savableSystem={savableSystem} — " +
-                    $"saveGuid={saveGuid} — clé réelle='{key}' — SaveManager[{key}]={currentValue}");
+                    $"saveGuid={saveGuid} — actual key='{key}' — SaveManager[{key}]={currentValue}");
             }
             catch (Exception ex)
             {
-                Plugin.Log.LogWarning($"[{nameof(DebugPeckCombinatorLookup)}] {label} — exception pendant la lecture, ignorée : {ex.Message}");
+                Plugin.Log.LogWarning($"[{nameof(DebugPeckCombinatorLookup)}] {label} — exception while reading, ignored: {ex.Message}");
             }
         }
 
@@ -164,7 +166,7 @@ namespace BigWalkArchipelago.Debug
                 var systems = block.systems;
                 if (systems == null || systems.Length == 0)
                 {
-                    Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorLookup)}] {label} — (aucun system dans le block)");
+                    Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorLookup)}] {label} — (no system in the block)");
                     return;
                 }
 
@@ -173,7 +175,7 @@ namespace BigWalkArchipelago.Debug
             }
             catch (Exception ex)
             {
-                Plugin.Log.LogWarning($"[{nameof(DebugPeckCombinatorLookup)}] {label} — exception pendant la lecture, ignorée : {ex.Message}");
+                Plugin.Log.LogWarning($"[{nameof(DebugPeckCombinatorLookup)}] {label} — exception while reading, ignored: {ex.Message}");
             }
         }
 
@@ -192,7 +194,7 @@ namespace BigWalkArchipelago.Debug
             }
             catch (Exception ex)
             {
-                Plugin.Log.LogWarning($"[{nameof(DebugPeckCombinatorLookup)}] {label} — exception pendant la lecture, ignorée : {ex.Message}");
+                Plugin.Log.LogWarning($"[{nameof(DebugPeckCombinatorLookup)}] {label} — exception while reading, ignored: {ex.Message}");
                 return;
             }
 

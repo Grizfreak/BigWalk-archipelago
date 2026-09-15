@@ -4,19 +4,19 @@ using UnityEngine;
 
 namespace BigWalkArchipelago.Debug
 {
-    // Dump la hiérarchie complète de l'écran d'hébergement (HostMenuConfirm)
-    // pendant qu'il est affiché — préalable demandé avant de toucher au vrai
-    // écran de création de partie (cf. big-walk-archipelago-notes.md, projet
-    // d'ajouter un champ host:port AP) : contrairement aux mécanismes de
-    // scène en jeu (Peck/PropHome), une UI Unity casse facilement si on
-    // clone/insère à l'aveugle (RectTransform/layout/navigation clavier) —
-    // on regarde d'abord le layout réel avant d'y toucher, même philosophie
-    // que DebugComponentLookup pour les mécanismes Peck inconnus.
+    // Dumps the full hierarchy of the hosting screen (HostMenuConfirm) while
+    // it is displayed — a prerequisite requested before touching the real
+    // game-creation screen (cf. big-walk-archipelago-notes.md, plan to add
+    // an AP host:port field): unlike in-game scene mechanisms (Peck/
+    // PropHome), a Unity UI breaks easily if you clone/insert blindly
+    // (RectTransform/layout/keyboard navigation) — we look at the real
+    // layout first before touching it, same philosophy as
+    // DebugComponentLookup for unknown Peck mechanisms.
     //
-    // Pas de filtre par proximité joueur ici (contrairement à
-    // DebugComponentLookup) : cet écran existe au menu principal, avant
-    // qu'un PlayerCharacter local existe. On part directement du
-    // GameObject racine de l'instance HostMenuConfirm active.
+    // No player-proximity filter here (unlike DebugComponentLookup): this
+    // screen exists in the main menu, before any local PlayerCharacter
+    // exists. We start directly from the root GameObject of the active
+    // HostMenuConfirm instance.
     internal static class DebugMenuLookup
     {
         internal static void DumpHostMenuConfirm()
@@ -25,11 +25,11 @@ namespace BigWalkArchipelago.Debug
             if (menu == null)
             {
                 Plugin.Log.LogInfo(
-                    $"[{nameof(DebugMenuLookup)}] Aucun HostMenuConfirm actif — ouvrir l'écran de création de partie d'abord.");
+                    $"[{nameof(DebugMenuLookup)}] No active HostMenuConfirm — open the game-creation screen first.");
                 return;
             }
 
-            Plugin.Log.LogInfo($"[{nameof(DebugMenuLookup)}] HostMenuConfirm trouvé sur '{menu.gameObject.name}'.");
+            Plugin.Log.LogInfo($"[{nameof(DebugMenuLookup)}] HostMenuConfirm found on '{menu.gameObject.name}'.");
             Plugin.Log.LogInfo(
                 $"[{nameof(DebugMenuLookup)}]   gameNameField -> '{DescribeGameObject(menu.gameNameField?.gameObject)}'");
             Plugin.Log.LogInfo(
@@ -37,9 +37,9 @@ namespace BigWalkArchipelago.Debug
             Plugin.Log.LogInfo(
                 $"[{nameof(DebugMenuLookup)}]   passwordRequired = {menu.passwordRequired}");
 
-            // Racine = le plus haut ancêtre avec un RectTransform (le Canvas
-            // ou l'écran lui-même) : on veut voir tout le panneau, pas juste
-            // le sous-arbre de HostMenuConfirm.
+            // Root = the highest ancestor with a RectTransform (the Canvas or
+            // the screen itself): we want to see the whole panel, not just
+            // HostMenuConfirm's subtree.
             var root = menu.transform;
             var current = root;
             var guard = 0;
@@ -60,7 +60,7 @@ namespace BigWalkArchipelago.Debug
                 : string.Empty;
 
             Plugin.Log.LogInfo(
-                $"[{nameof(DebugMenuLookup)}] {new string(' ', depth * 2)}{t.name} — composants: {DescribeComponents(t.gameObject)}{rectInfo}");
+                $"[{nameof(DebugMenuLookup)}] {new string(' ', depth * 2)}{t.name} — components: {DescribeComponents(t.gameObject)}{rectInfo}");
 
             for (var i = 0; i < t.childCount; i++)
                 Dump(t.GetChild(i), depth + 1);
@@ -68,7 +68,7 @@ namespace BigWalkArchipelago.Debug
 
         private static string DescribeGameObject(GameObject go)
         {
-            return go == null ? "<null>" : $"{go.name} (chemin: {DescribePath(go.transform)})";
+            return go == null ? "<null>" : $"{go.name} (path: {DescribePath(go.transform)})";
         }
 
         private static string DescribePath(Transform t)

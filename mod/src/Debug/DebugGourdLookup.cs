@@ -4,35 +4,35 @@ using UnityEngine;
 
 namespace BigWalkArchipelago.Debug
 {
-    // Lookup partagé entre les outils de debug (DebugGourdUnlocker, DebugItemSimulator).
+    // Lookup shared between the debug tools (DebugGourdUnlocker, DebugItemSimulator).
     internal static class DebugGourdLookup
     {
-        // Diagnostic pur (aucune écriture). Scanne Prop.allProps (pas
-        // RewardGourd) : confirmé en session de test le 2026-09-07, les big
-        // keys n'ont PAS de composant RewardGourd du tout (0 trouvée via
-        // FindObjectsByType<RewardGourd>, même en incluant les inactifs, alors
-        // que le joueur se tenait devant une clé) — donc contrairement à
-        // l'hypothèse initiale des notes ("même pipeline RewardGourd/Prop que
-        // les gourds"), une big key est un Prop nu (probablement avec un
-        // PeckSwitch onUseAsKey / PropGroup.BigKey, cf. big-walk-archipelago-notes.md),
-        // pas un RewardGourd avec un GourdState. Prop.allProps est le registre
-        // qui les couvre tous, gourds et big keys confondus.
+        // Pure diagnostic (no writes). Scans Prop.allProps (not RewardGourd):
+        // confirmed in a test session on 2026-09-07, big keys have NO
+        // RewardGourd component at all (0 found via
+        // FindObjectsByType<RewardGourd>, even including inactive ones, while
+        // the player was standing in front of a key) — so contrary to the
+        // notes' initial hypothesis ("same RewardGourd/Prop pipeline as
+        // gourds"), a big key is a bare Prop (probably with a PeckSwitch
+        // onUseAsKey / PropGroup.BigKey, cf. big-walk-archipelago-notes.md),
+        // not a RewardGourd with a GourdState. Prop.allProps is the registry
+        // that covers all of them, gourds and big keys alike.
         internal static void LogNearby(int count)
         {
             var all = Prop.allProps;
             if (all == null || all.Count == 0)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}] Aucun Prop trouvé dans la zone actuelle.");
+                Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}] No Prop found in the current area.");
                 return;
             }
 
             var localPlayer = DebugPlayerLookup.FindLocalPlayer();
             Vector3? playerPosition = localPlayer != null ? localPlayer.transform.position : (Vector3?)null;
 
-            // Prop.allProps est un Il2CppSystem.Collections.Generic.List<Prop>
-            // (pas un System.Collections.Generic.List<T>) : pas d'IEnumerable<T>
-            // côté interop, donc pas de LINQ directement dessus — on matérialise
-            // dans une vraie List<> .NET avant de trier/logger.
+            // Prop.allProps is an Il2CppSystem.Collections.Generic.List<Prop>
+            // (not a System.Collections.Generic.List<T>): no IEnumerable<T>
+            // on the interop side, so no LINQ directly on it — we materialize
+            // it into a real .NET List<> before sorting/logging.
             var entries = new List<(Prop prop, RewardGourd gourdComponent, bool active, bool saved, float sqrDistance)>();
             foreach (var prop in all)
             {
@@ -52,31 +52,32 @@ namespace BigWalkArchipelago.Debug
 
             entries.Sort((a, b) => a.sqrDistance.CompareTo(b.sqrDistance));
 
-            var playerLabel = playerPosition.HasValue ? playerPosition.Value.ToString() : "<joueur local introuvable>";
-            Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}] Position joueur : {playerLabel}");
-            Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}] {entries.Count} Prop savable dans la zone, les {Math.Min(count, entries.Count)} plus proches :");
+            var playerLabel = playerPosition.HasValue ? playerPosition.Value.ToString() : "<local player not found>";
+            Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}] Player position: {playerLabel}");
+            Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}] {entries.Count} savable Prop in the area, the {Math.Min(count, entries.Count)} nearest:");
             for (var i = 0; i < entries.Count && i < count; i++)
             {
                 var entry = entries[i];
                 var distance = playerPosition.HasValue ? Math.Sqrt(entry.sqrDistance).ToString("F1") : "?";
-                var gourdState = entry.gourdComponent != null ? entry.gourdComponent.gourdState.ToString() : "n/a (pas de RewardGourd)";
-                Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}]   {entry.prop.saveablePropName} — gourdState={gourdState} — déjà sauvegardé={entry.saved} — actif={entry.active} — distance={distance}m");
+                var gourdState = entry.gourdComponent != null ? entry.gourdComponent.gourdState.ToString() : "n/a (no RewardGourd)";
+                Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}]   {entry.prop.saveablePropName} — gourdState={gourdState} — already saved={entry.saved} — active={entry.active} — distance={distance}m");
             }
         }
 
-        // Diagnostic pur : liste les PropHome réellement enregistrés en scène
-        // (pas la liste brute de l'enum SaveableHomeName, qui peut contenir
-        // des valeurs de réserve/inutilisées — cf. gourdTesting/bigKeyTesting)
-        // dont le nom contient "monoument". Utile pour vérifier en jeu le
-        // vrai nombre de slots par monument (le joueur se souvient de 4 pour
-        // le tuto et 5 pour les tours, ce qui ne correspond pas au nombre brut
-        // trouvé dans l'enum — à confirmer avec les PropHome vraiment actifs).
+        // Pure diagnostic: lists the PropHome instances actually registered in
+        // the scene (not the raw SaveableHomeName enum list, which can
+        // contain reserved/unused values — cf. gourdTesting/bigKeyTesting)
+        // whose name contains "monoument" [sic, matches the game's own typo].
+        // Useful to verify in-game the real number of slots per monument (the
+        // player recalls 4 for the tutorial and 5 for the towers, which does
+        // not match the raw count found in the enum — to be confirmed against
+        // the PropHome instances that are actually active).
         internal static void LogMonumentHomes()
         {
             var all = PropHome.allPropHomes;
             if (all == null || all.Count == 0)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}] Aucun PropHome trouvé dans la zone actuelle.");
+                Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}] No PropHome found in the current area.");
                 return;
             }
 
@@ -87,19 +88,19 @@ namespace BigWalkArchipelago.Debug
                     matches.Add(home);
             }
 
-            Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}] {all.Count} PropHome au total dans la zone, {matches.Count} contenant 'monoument' :");
+            Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}] {all.Count} PropHome total in the area, {matches.Count} containing 'monoument':");
             foreach (var home in matches)
             {
-                var pinnedLabel = home.pinnedProp != null ? home.pinnedProp.saveablePropName.ToString() : "<vide>";
+                var pinnedLabel = home.pinnedProp != null ? home.pinnedProp.saveablePropName.ToString() : "<empty>";
                 Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}]   {home.saveableHomeName} — pinnedProp={pinnedLabel}");
             }
         }
 
-        // Lookup générique successeur de FindNearestLocked : couvre gourds ET
-        // big keys en se basant sur le signal canonique "pas encore écrit dans
-        // SaveManager" (le même que ItemApplier/CheckTracker utilisent déjà)
-        // plutôt que sur RewardGourd.gourdState, qui n'existe pas pour les big
-        // keys (cf. LogNearby ci-dessus).
+        // Generic lookup, successor to FindNearestLocked: covers both gourds
+        // AND big keys based on the canonical signal "not yet written to
+        // SaveManager" (the same one ItemApplier/CheckTracker already use)
+        // rather than RewardGourd.gourdState, which does not exist for big
+        // keys (cf. LogNearby above).
         internal static Prop FindNearestUncollectedProp()
         {
             var all = Prop.allProps;
@@ -140,8 +141,8 @@ namespace BigWalkArchipelago.Debug
             if (all == null || all.Length == 0)
                 return null;
 
-            // Préfère le plus proche du joueur local (plutôt qu'un ordre
-            // arbitraire) pour que l'effet soit visible/testable immédiatement.
+            // Prefers the one closest to the local player (rather than an
+            // arbitrary order) so the effect is immediately visible/testable.
             var localPlayer = DebugPlayerLookup.FindLocalPlayer();
             Vector3? playerPosition = localPlayer != null ? localPlayer.transform.position : (Vector3?)null;
 

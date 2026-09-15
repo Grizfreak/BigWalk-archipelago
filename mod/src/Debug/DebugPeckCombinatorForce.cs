@@ -3,18 +3,19 @@ using UnityEngine;
 
 namespace BigWalkArchipelago.Debug
 {
-    // Outil d'action (pas un diagnostic) : force directement l'état des
-    // TrackedPeckState qu'un PeckCombinator proche surveille (rule.systems[]
-    // ET rule.block.systems[], cf. DebugPeckCombinatorLookup/F7) à leur
-    // desiredState, au lieu de simuler des pressions de boutons.
+    // Action tool (not a diagnostic): directly forces the state of the
+    // TrackedPeckState instances a nearby PeckCombinator watches
+    // (rule.systems[] AND rule.block.systems[], cf.
+    // DebugPeckCombinatorLookup/F7) to their desiredState, instead of
+    // simulating button presses.
     //
-    // Raison d'être (cloche du sommet du Gauntlet, cf. big-walk-archipelago-
-    // notes.md) : les boutons "N-hold" semblent nécessiter un maintien
-    // continu à 2 joueurs, pas un simple tap — DebugPeckFire.Peck() (un
-    // événement discret) ne suffit pas et, pire, re-pecker le SEUL bouton
-    // trouvé à portée (le sien) le fait basculer plutôt que d'simuler le
-    // second joueur. TrackedPeckState.SetState(int) écrit l'état directement
-    // et court-circuite tout le mécanisme d'appui/maintien.
+    // Rationale (bell at the top of the Gauntlet, cf. big-walk-archipelago-
+    // notes.md): the "N-hold" buttons seem to require a continuous hold by 2
+    // players, not a simple tap — DebugPeckFire.Peck() (a discrete event) is
+    // not enough and, worse, re-pecking the ONLY button found in range (your
+    // own) toggles it instead of simulating the second player.
+    // TrackedPeckState.SetState(int) writes the state directly and
+    // short-circuits the entire press/hold mechanism.
     internal static class DebugPeckCombinatorForce
     {
         internal static void ForceNearby(float radius)
@@ -22,7 +23,7 @@ namespace BigWalkArchipelago.Debug
             var localPlayer = DebugPlayerLookup.FindLocalPlayer();
             if (localPlayer == null)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorForce)}] Joueur local introuvable.");
+                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorForce)}] Local player not found.");
                 return;
             }
 
@@ -32,7 +33,7 @@ namespace BigWalkArchipelago.Debug
             var all = UnityEngine.Object.FindObjectsByType<PeckCombinator>(FindObjectsSortMode.None);
             if (all == null || all.Length == 0)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorForce)}] Aucun PeckCombinator trouvé dans la zone actuelle.");
+                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorForce)}] No PeckCombinator found in the current area.");
                 return;
             }
 
@@ -48,14 +49,14 @@ namespace BigWalkArchipelago.Debug
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Log.LogWarning($"[{nameof(DebugPeckCombinatorForce)}] PeckCombinator illisible (position) : {ex.Message}");
+                    Plugin.Log.LogWarning($"[{nameof(DebugPeckCombinatorForce)}] Unreadable PeckCombinator (position): {ex.Message}");
                     continue;
                 }
 
                 if (sqrDistance > sqrRadius)
                     continue;
 
-                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorForce)}] {combinator.gameObject.name} (PeckCombinator) — début forçage.");
+                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorForce)}] {combinator.gameObject.name} (PeckCombinator) — starting force.");
 
                 try
                 {
@@ -64,7 +65,7 @@ namespace BigWalkArchipelago.Debug
                 catch (Exception ex)
                 {
                     Plugin.Log.LogWarning(
-                        $"[{nameof(DebugPeckCombinatorForce)}] {combinator.gameObject.name} — exception pendant le forçage, bloc ignoré : {ex}");
+                        $"[{nameof(DebugPeckCombinatorForce)}] {combinator.gameObject.name} — exception while forcing, block skipped: {ex}");
                 }
             }
         }
@@ -74,7 +75,7 @@ namespace BigWalkArchipelago.Debug
             var rules = combinator.rules;
             if (rules == null || rules.Length == 0)
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorForce)}]   (aucune règle)");
+                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorForce)}]   (no rule)");
                 return;
             }
 
@@ -83,7 +84,7 @@ namespace BigWalkArchipelago.Debug
                 try
                 {
                     var rule = rules[i];
-                    Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorForce)}]   règle[{i}] — desiredState cible={rule.desiredState}");
+                    Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorForce)}]   rule[{i}] — target desiredState={rule.desiredState}");
 
                     ForceState(rule.systems, rule.desiredState);
 
@@ -93,7 +94,7 @@ namespace BigWalkArchipelago.Debug
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Log.LogWarning($"[{nameof(DebugPeckCombinatorForce)}]   règle[{i}] — exception, ignorée : {ex.Message}");
+                    Plugin.Log.LogWarning($"[{nameof(DebugPeckCombinatorForce)}]   rule[{i}] — exception, ignored: {ex.Message}");
                 }
             }
         }
@@ -112,11 +113,11 @@ namespace BigWalkArchipelago.Debug
                 try
                 {
                     state.SetState(desiredState);
-                    Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorForce)}]     {state.gameObject.name}.SetState({desiredState}) appelé.");
+                    Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorForce)}]     {state.gameObject.name}.SetState({desiredState}) called.");
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Log.LogWarning($"[{nameof(DebugPeckCombinatorForce)}]     SetState exception, ignorée : {ex.Message}");
+                    Plugin.Log.LogWarning($"[{nameof(DebugPeckCombinatorForce)}]     SetState exception, ignored: {ex.Message}");
                 }
             }
         }

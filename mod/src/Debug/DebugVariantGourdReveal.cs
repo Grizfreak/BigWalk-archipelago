@@ -2,14 +2,14 @@ using BigWalkArchipelago.Core;
 
 namespace BigWalkArchipelago.Debug
 {
-    // Déclenchement manuel de Core/VariantGourdRevealer, pour tester sans
-    // attendre le prochain poll de Core/VariantGourdMapUnlocker.
+    // Manual trigger for Core/VariantGourdRevealer, to test without waiting
+    // for the next Core/VariantGourdMapUnlocker poll.
     internal static class DebugVariantGourdReveal
     {
         internal static void RevealAll()
         {
             var count = VariantGourdRevealer.RevealAll();
-            Plugin.Log.LogInfo($"[{nameof(DebugVariantGourdReveal)}] {count} gourd(s) variant challenge révélé(s) sur la carte.");
+            Plugin.Log.LogInfo($"[{nameof(DebugVariantGourdReveal)}] {count} variant challenge gourd(s) revealed on the map.");
         }
     }
 }
