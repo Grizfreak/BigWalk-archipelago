@@ -463,7 +463,18 @@ just an invisible write as `ItemApplier` did originally.
 
 **DECISION (2026-09-09)**: spawn at the **spawn zone/hub** (not dropped in
 front of the player wherever they are in the world) — settled by the
-player. This is consistent with the same day's "gourds = generic fillers"
+player.
+
+**REVISED (2026-09-15, player, after playing with it)**: in front of the
+player after all, whenever there is one standing in the world. In practice
+the hub rule meant walking back across the island to collect something the
+server had just handed over. The hub stays the fallback for the moments
+when nobody is really in the world yet (loading, menus), which is also the
+only checkable form of "are the players connected". Configurable
+(`Archipelago/SpawnGourdAtPlayer`), and kept to a short step ahead of the
+player rather than a generous one: placing props at computed offsets has
+already lost gourds in geometry twice, and the player is by definition
+standing somewhere valid. This is consistent with the same day's "gourds = generic fillers"
 decision (see below): a received generic filler item can logically appear
 as a physical, pickable object at the hub, rather than remaining a pure
 `SaveManager` abstraction.

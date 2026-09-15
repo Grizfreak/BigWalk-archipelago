@@ -69,6 +69,11 @@ namespace BigWalkArchipelago.Core
     {
         internal const string CosmeticNameSuffix = "(AP cosmetic)";
 
+        // A short step ahead, and a little above the ground so it drops
+        // rather than starting half-buried.
+        private const float PlayerSpawnDistance = 1.3f;
+        private const float PlayerSpawnLift = 0.6f;
+
         // Returns the created GameObject (or null on failure/no-op) — useful
         // for ad-hoc diagnostics (cf. DebugHotkeys); ItemApplier (real usage)
         // simply ignores the return value.
@@ -79,14 +84,14 @@ namespace BigWalkArchipelago.Core
 
             try
             {
-                var spawnPoint = FindSpawnPoint();
-                if (spawnPoint == null)
+                var resolved = ResolveSpawnPosition();
+                if (resolved == null)
                 {
-                    Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] No InventorySpawn loaded (outside the hub zone?), cosmetic spawn skipped.");
+                    Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] Nowhere to put a gourd yet (no player and no InventorySpawn loaded), cosmetic spawn skipped.");
                     return null;
                 }
 
-                var position = spawnPoint.GetNextSpawnPosition();
+                var position = resolved.Value;
                 var rewardGourd = CreateNeutralizedClone(position, Quaternion.identity);
                 if (rewardGourd == null)
                     return null;
@@ -446,6 +451,12 @@ namespace BigWalkArchipelago.Core
 
         private static Vector3? FindLocalPlayerPosition()
         {
+            var player = FindLocalPlayerCharacter();
+            return player != null ? player.transform.position : null;
+        }
+
+        private static PlayerCharacter FindLocalPlayerCharacter()
+        {
             var all = PlayerCharacter.allPlayerCharacters;
             if (all == null)
                 return null;
@@ -453,10 +464,46 @@ namespace BigWalkArchipelago.Core
             foreach (var pc in all)
             {
                 if (pc != null && pc.isLocalPlayer)
-                    return pc.transform.position;
+                    return pc;
             }
 
             return null;
+        }
+
+        // Where a received gourd actually lands.
+        //
+        // The original decision (2026-09-09) was the hub, deliberately, so a
+        // received item could not drop in some arbitrary corner of the map.
+        // In play that turned out to mean walking back across the island for
+        // something the server just handed you — so when there is a player
+        // standing in the world, the gourd now appears just in front of
+        // them instead (player request, 2026-09-15).
+        //
+        // The hub remains the answer whenever there is no player character
+        // to speak of: loading, the menu, or any moment the world is not
+        // really inhabited yet. That is the "if the players are connected"
+        // condition, expressed as the only thing actually checkable.
+        //
+        // Kept close on purpose. Placing props at a computed offset has
+        // already cost two rounds of gourds lost in geometry (see the
+        // session-start restore), and the further in front this reaches the
+        // more likely it is to reach through a wall. A short step is enough
+        // to be visible, and the player is by definition standing somewhere
+        // valid.
+        private static Vector3? ResolveSpawnPosition()
+        {
+            if (ModConfig.SpawnGourdAtPlayer.Value)
+            {
+                var player = FindLocalPlayerCharacter();
+                if (player != null)
+                {
+                    var t = player.transform;
+                    return t.position + t.forward * PlayerSpawnDistance + Vector3.up * PlayerSpawnLift;
+                }
+            }
+
+            var spawnPoint = FindSpawnPoint();
+            return spawnPoint != null ? spawnPoint.GetNextSpawnPosition() : null;
         }
 
         // Last template found, reused while it is still alive. Without this,
