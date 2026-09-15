@@ -41,15 +41,6 @@ class TestGreenDomeExcluded(BigWalkTestBase):
                          data.BASE_MONUMENT_SLOTS)
 
 
-class TestGreenDomeLimited(BigWalkTestBase):
-    options = {"green_dome_deposits": "limited"}
-    run_default_tests = False
-
-    def test_pool_counts_six_green_dome_slots(self) -> None:
-        self.assertEqual(len(self.get_items_by_name(data.GOURD_ITEM_NAME)),
-                         data.BASE_MONUMENT_SLOTS + 6)
-
-
 class TestKeyRequirementsAreCumulative(BigWalkTestBase):
     """
     A deposited gourd cannot be taken back out of a monument in the base game,

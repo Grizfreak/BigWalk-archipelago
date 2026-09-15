@@ -50,22 +50,17 @@ class DepositGoalAmount(Range):
 
 class GreenDomeDeposits(Choice):
     """
-    How the Green Dome tower's monument is handled. It is the postgame tower,
-    and by far the biggest: 15 deposit slots against 4-6 everywhere else.
+    Whether the Green Dome tower takes part. It is the postgame tower, and by
+    far the biggest: 15 deposit slots against 4-6 everywhere else.
 
-    - full: all 15 slots count. The Green Dome Key is in the pool and the item
-      pool holds 45 gourds.
-    - limited: only 6 slots count, for 36 gourds total. WARNING: this assumes
-      the Green Dome's monument can actually be completed with 6 gourds. That
-      has never been verified in this game, and if it is wrong the Green Dome
-      Key becomes impossible to obtain. Do not pick this without testing it.
-    - excluded: the Green Dome Key and its deposit location leave the world
-      entirely, for 30 gourds total. The safe way to cut the grind.
+    - full: it takes part. Its key is in the pool, its deposit is a location,
+      and the pool holds 45 gourds.
+    - excluded: its key and its deposit location leave the world entirely,
+      for 30 gourds. The way to cut the grind.
     """
 
     display_name = "Green Dome Deposits"
     option_full = 0
-    option_limited = 1
     option_excluded = 2
     default = 0
 

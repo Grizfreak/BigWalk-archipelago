@@ -22,16 +22,6 @@ class TestDepositMilestones(BigWalkTestBase):
         self.assertTrue(self.can_reach_location("Gourd Deposit 10"))
 
 
-class TestDepositMilestonesUneven(BigWalkTestBase):
-    """With 36 slots the last milestone is not a multiple of five."""
-
-    options = {"deposit_locations": "milestones", "green_dome_deposits": "limited"}
-    run_default_tests = False
-
-    def test_last_slot_still_gets_a_check(self) -> None:
-        self.assertEqual(self.world.deposit_amounts, (5, 10, 15, 20, 25, 30, 35, 36))
-
-
 class TestAllDeposits(BigWalkTestBase):
     options = {"deposit_locations": "all"}
     run_default_tests = False

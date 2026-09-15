@@ -42,9 +42,27 @@ than as fixed choices (the preference already stated on 2026-09-09):
   - **Reopen if the mod ever adds a way to retrieve a deposited gourd**
     (nothing suggests it should): that would invalidate the cumulative
     requirements above, not just relax them.
-- **Gourd pool size** → one `Gourd` item per monument slot in play (45, 36 or
-  30 via `green_dome_deposits`), which is what the "enough generic gourds"
+- **Gourd pool size** → one `Gourd` item per monument slot in play (45 or 30
+  via `green_dome_deposits`), which is what the "enough generic gourds"
   constraint below asked for.
+- **`green_dome_deposits: limited` REMOVED (2026-09-15)**, after the player
+  asked the right question about it. The option claimed the Green Dome's
+  monument could be completed with 6 gourds instead of 15 — an idea taken
+  from the third-party doc's `limit_green_dome_deposit_boxes`, which was a
+  setting of *their* apworld, not of the game. Nothing mod-side makes it
+  true: a monument is a `PropHomeBlock` that requires every one of its
+  homes filled. So the option did not limit anything, it only told the
+  logic to assume something false, and a seed could place a needed item in
+  a deposit location the players could never physically reach.
+  - Worth keeping in mind *why* it was harmless-looking: receiving a big
+    key auto-reports its own deposit location, so that location stays
+    checkable without ever filling the monument. The danger was narrow —
+    it only bites when the item sitting there is one you need — but narrow
+    is not safe.
+  - Moot under Option A anyway, as the player pointed out: deposits are
+    counted globally, so nothing ever requires filling one specific
+    monument. `full` and `excluded` cover the two real needs (all seven
+    towers, or skip the postgame grind).
 - **Radio stations** → locations, behind `radio_station_checks`.
 - **Key Cutters, bells as separate checks, per-tower monument locations** →
   still not implemented, still recorded below as leads.

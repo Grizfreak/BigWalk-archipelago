@@ -1,10 +1,8 @@
 # Big Walk — mod ↔ Archipelago contract
 
-*Written for whoever implements the mod's Archipelago network client (see
-`../mod/reverse-engineering-notes.md`, "Archipelago network client" — still the
-one missing piece). Companion to the Python world in [`bigwalk/`](bigwalk/):
-this file and `bigwalk/world.py`'s `fill_slot_data` are one unit, change them
-together.*
+*The contract between the Python world in [`bigwalk/`](bigwalk/) and the mod's
+Archipelago client in `../mod/src/Core/Net/`. This file and
+`bigwalk/world.py`'s `fill_slot_data` are one unit — change them together.*
 
 **Status (2026-09-15): implemented, and connecting from the running game.**
 The client lives in `../mod/src/Core/Net/`. The contract below is validated
@@ -14,9 +12,11 @@ starting-inventory item delivered on connect — and the mod has since been
 confirmed to load under BepInEx IL2CPP and reach a server from inside the
 game.
 
-Not yet exercised in-game, worth knowing before trusting a real run: the
-received-items cursor across a reconnect (§5), deposit thresholds (§7) and
-goal reporting (§6).
+Every path here has since been exercised in-game (2026-09-15): outgoing
+checks from real puzzles, item receipt, big keys, deposit thresholds, the
+`deposits` goal, the received-items cursor across a reconnect, surviving a
+dropped connection, and recovery on a brand-new save. What remains untested
+is listed in §10.
 
 ## 1. Connecting
 
@@ -48,9 +48,9 @@ Sent on every connection. Read it before applying anything.
 | `deposit_goal_amount` | int | Deposits needed to win when `goal == "deposits"`. Already clamped to what exists; use it as-is. |
 | `deposit_locations` | str | `"none"`, `"milestones"` or `"all"`. Informational — `deposit_location_amounts` is the authoritative list. |
 | `deposit_location_amounts` | int[] | Ascending deposit counts that are checks, e.g. `[5, 10, ..., 45]`. Possibly empty. |
-| `green_dome_deposits` | str | `"full"`, `"limited"` or `"excluded"`. |
+| `green_dome_deposits` | str | `"full"` or `"excluded"`. |
 | `radio_station_checks` | bool | Whether the seven radio stations are checks. |
-| `total_monument_slots` | int | Gourd items in circulation for this slot (30, 36 or 45). |
+| `total_monument_slots` | int | Gourd items in circulation for this slot (30 or 45). |
 | `big_keys_in_play` | str[] | `SaveablePropName` names of the big keys this slot uses. Six entries when the Green Dome is excluded. |
 | `location_id_base` | int | 8600000. See §3. |
 | `radio_id_offset` | int | 1000. |
@@ -103,9 +103,11 @@ nothing is listening for.
 
 What to do on receipt:
 
-- **`Gourd`** → `ItemApplier.ApplyGourdItem()`. Spawns a cosmetic prop at the
-  hub and nothing else: no `SaveManager` write, no check reported. This is the
-  only currency that fills monuments.
+- **`Gourd`** → `ItemApplier.ApplyGourdItem(toPlayer: true)`. Spawns a
+  cosmetic prop and nothing else: no `SaveManager` write, no check reported.
+  This is the only currency that fills monuments. One arriving during play
+  goes into the player's hands, or in front of them; the batch rebuilt at the
+  start of a session goes to the hub instead (`toPlayer: false`).
 - **A big key** → `ItemApplier.ApplyBigKeyItem(propName)`, where `propName`
   comes back from `id - B`. Writes the save, pins the key live into its plinth,
   and reports its own location (§7).
@@ -275,9 +277,12 @@ existed only to hedge this has been removed.*
 
 - **Does the tutorial drawbridge really gate the way out?** If it does not,
   `start_with_tutorial_key: false` becomes safe and the key can be shuffled.
-- **Can the Green Dome's monument be completed with fewer than 15 gourds?**
-  `green_dome_deposits: limited` assumes 6 works. If it does not, that setting
-  makes the Green Dome Key unobtainable. `full` and `excluded` are both safe.
+- ~~Can the Green Dome's monument be completed with fewer than 15 gourds?~~
+  **Settled by removing the question (2026-09-15)**: the `limited` option
+  claimed 6 would do, and nothing mod-side made that true — the monument is
+  a `PropHomeBlock` requiring every one of its homes filled. The option was
+  a promise the mod did not keep, so it is gone. `full` and `excluded` cover
+  the two real needs.
 - **Do `FmStation7/8/9` exist in the game at all?** The world assumes not
   (only seven were ever observed being written). If they turn out to be real,
   they are three missing checks — annoying, not seed-breaking.

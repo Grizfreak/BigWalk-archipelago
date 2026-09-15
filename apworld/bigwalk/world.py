@@ -71,10 +71,7 @@ class BigWalkWorld(World):
             self.green_dome_slots = 0
             self.towers = tuple(tower for tower in data.TOWERS if tower is not data.GREEN_DOME)
         else:
-            self.green_dome_slots = (
-                6 if green_dome == bigwalk_options.GreenDomeDeposits.option_limited
-                else data.GREEN_DOME.slots
-            )
+            self.green_dome_slots = data.GREEN_DOME.slots
             self.towers = data.TOWERS
 
         total_slots = sum(self.slots_for(tower) for tower in self.towers)
@@ -104,7 +101,10 @@ class BigWalkWorld(World):
             return tuple(range(1, total_slots + 1))
 
         # Milestones: every fifth deposit, plus the very last one so that
-        # filling every monument always lands on a check.
+        # filling every monument always lands on a check. That second part
+        # is defensive today — every total currently reachable (45, 30) is
+        # already a multiple of five — and exists so a future option that
+        # changes the totals cannot silently drop the final milestone.
         milestones = set(range(5, total_slots + 1, 5))
         milestones.add(total_slots)
         return tuple(sorted(milestones))

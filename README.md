@@ -24,6 +24,11 @@ monuments, softlocks, etc.) :
 [`apworld/design-decisions.md`](apworld/design-decisions.md) (à quoi doit
 ressembler le monde Archipelago).
 
+**Pour reprendre après une pause** :
+[`NEXT-SESSION.md`](NEXT-SESSION.md) — où en est le projet, ce qui reste à
+tester (solo puis à deux), les questions encore ouvertes et les pistes
+écartées.
+
 ## État d'avancement
 
 - [x] Mod : scaffolding, détection de checks (gourds/big keys), matérialisation
