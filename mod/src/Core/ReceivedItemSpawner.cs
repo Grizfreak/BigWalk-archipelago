@@ -77,14 +77,21 @@ namespace BigWalkArchipelago.Core
         // Returns the created GameObject (or null on failure/no-op) — useful
         // for ad-hoc diagnostics (cf. DebugHotkeys); ItemApplier (real usage)
         // simply ignores the return value.
-        internal static GameObject SpawnCosmeticPickup()
+        // toPlayer distinguishes the two ways a gourd can arrive, which
+        // want opposite things. One turning up mid-game is a gift: it
+        // belongs in the player's hands, or at worst at their feet. The
+        // dozens rebuilt at the start of a session are stock, and stock
+        // belongs at the hub — dropping them around whoever just loaded in
+        // would bury them, and the players are not necessarily at the hub
+        // when it happens (player's call, 2026-09-15).
+        internal static GameObject SpawnCosmeticPickup(bool toPlayer)
         {
             if (!NetworkServer.active)
                 return null;
 
             try
             {
-                var resolved = ResolveSpawnPosition();
+                var resolved = ResolveSpawnPosition(toPlayer);
                 if (resolved == null)
                 {
                     Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] Nowhere to put a gourd yet (no player and no InventorySpawn loaded), cosmetic spawn skipped.");
@@ -103,7 +110,7 @@ namespace BigWalkArchipelago.Core
                 // file.
                 rewardGourd.prop?.SetLoose();
 
-                var inHands = TryPutInHands(rewardGourd.prop);
+                var inHands = toPlayer && TryPutInHands(rewardGourd.prop);
 
                 Plugin.Log.LogInfo(
                     inHands
@@ -539,9 +546,9 @@ namespace BigWalkArchipelago.Core
         // more likely it is to reach through a wall. A short step is enough
         // to be visible, and the player is by definition standing somewhere
         // valid.
-        private static Vector3? ResolveSpawnPosition()
+        private static Vector3? ResolveSpawnPosition(bool toPlayer)
         {
-            if (ModConfig.SpawnGourdAtPlayer.Value)
+            if (toPlayer && ModConfig.SpawnGourdAtPlayer.Value)
             {
                 var player = FindLocalPlayerCharacter();
                 if (player != null)

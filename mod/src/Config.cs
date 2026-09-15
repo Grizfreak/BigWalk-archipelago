@@ -75,13 +75,13 @@ namespace BigWalkArchipelago
                 "Archipelago",
                 "SpawnGourdAtPlayer",
                 true,
-                "Drops a received gourd just in front of you instead of at the hub, so you do not have to walk back across the island for it. Falls back to the hub whenever there is no player in the world yet (loading, menus). Turn off to always use the hub, the original behaviour.");
+                "Drops a gourd received during play just in front of you instead of at the hub, so you do not have to walk back across the island for it. Only applies to gourds arriving mid-game: the batch rebuilt when a session starts always goes to the hub, since that is stock rather than a gift and the players are not necessarily near the hub when it happens. Falls back to the hub when there is no player in the world yet.");
 
             PutGourdInHands = file.Bind(
                 "Archipelago",
                 "PutGourdInHands",
                 true,
-                "Puts a received gourd straight into your hands when they are free and the game considers the prop safe to pick up; otherwise it just drops in front of you. Note that a gourd received inside a sealed puzzle room stays there until the next world load, hands or not — the game does not let you carry it out.");
+                "Puts a gourd received during play straight into your hands when they are free and the game considers the prop safe to pick up; otherwise it just drops in front of you. Never applies to the batch rebuilt at the start of a session. Note that a gourd received inside a sealed puzzle room stays there until the next world load, hands or not — the game does not let you carry it out.");
 
             ShowConnectionStatus = file.Bind(
                 "Archipelago",

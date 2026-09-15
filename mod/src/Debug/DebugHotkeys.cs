@@ -90,7 +90,7 @@ namespace BigWalkArchipelago.Debug
 
             if (ModConfig.SpawnCosmeticPickupKey.Value.IsDown())
             {
-                _lastCosmeticPickup = ReceivedItemSpawner.SpawnCosmeticPickup();
+                _lastCosmeticPickup = ReceivedItemSpawner.SpawnCosmeticPickup(toPlayer: true);
                 _lastCosmeticPickupCheckTime = _lastCosmeticPickup != null ? Time.time + CosmeticPickupRecheckDelaySeconds : -1f;
             }
 

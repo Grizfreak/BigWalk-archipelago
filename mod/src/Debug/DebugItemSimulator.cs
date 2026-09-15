@@ -56,7 +56,7 @@ namespace BigWalkArchipelago.Debug
             if (GourdRegistry.IsBigKey(propName))
                 ItemApplier.ApplyBigKeyItem(propName);
             else
-                ItemApplier.ApplyGourdItem();
+                ItemApplier.ApplyGourdItem(toPlayer: true);
         }
     }
 }

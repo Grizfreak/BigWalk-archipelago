@@ -474,7 +474,20 @@ only checkable form of "are the players connected". Configurable
 (`Archipelago/SpawnGourdAtPlayer`), and kept to a short step ahead of the
 player rather than a generous one: placing props at computed offsets has
 already lost gourds in geometry twice, and the player is by definition
-standing somewhere valid. This is consistent with the same day's "gourds = generic fillers"
+standing somewhere valid. It goes straight into their hands when those are
+free and the game's own `PlayerHands.IsSafeToPickUp` agrees
+(`Archipelago/PutGourdInHands`).
+
+**Scope, settled the same day**: this applies only to a gourd arriving
+**during play**. The batch rebuilt at the start of a session still goes to
+the hub — that is stock, not a gift, it can run to dozens, and the players
+are not necessarily anywhere near the hub when a world loads. Raining it on
+whoever just loaded in would bury them.
+
+**Known and not solved by any of this**: a gourd received inside a sealed
+puzzle room is stranded there for the session, in hand or on the floor
+alike, because the game will not let it be carried out. Recovered on the
+next world load, when the ledger recomputes received-minus-deposited. This is consistent with the same day's "gourds = generic fillers"
 decision (see below): a received generic filler item can logically appear
 as a physical, pickable object at the hub, rather than remaining a pure
 `SaveManager` abstraction.

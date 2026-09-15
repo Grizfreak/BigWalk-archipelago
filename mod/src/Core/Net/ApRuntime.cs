@@ -499,7 +499,10 @@ namespace BigWalkArchipelago.Core.Net
             // hub's InventorySpawn is not loaded yet, which resolves itself
             // a moment later, so this returns and tries again rather than
             // recording a gourd the player never got.
-            if (!ItemApplier.ApplyGourdItem())
+            // toPlayer: false — this is the session-start restock, which
+            // belongs at the hub rather than raining on whoever just
+            // loaded in, wherever they happen to be standing.
+            if (!ItemApplier.ApplyGourdItem(toPlayer: false))
             {
                 if (!_looseRestoreBlockedLogged)
                 {
@@ -580,7 +583,7 @@ namespace BigWalkArchipelago.Core.Net
             var itemId = item.ItemId;
 
             if (itemId == ApLocationIds.GourdItemId)
-                return ItemApplier.ApplyGourdItem();
+                return ItemApplier.ApplyGourdItem(toPlayer: true);
 
             if (ApLocationIds.TryResolveBigKeyItem(itemId, out var propName))
                 return ItemApplier.ApplyBigKeyItem(propName);
