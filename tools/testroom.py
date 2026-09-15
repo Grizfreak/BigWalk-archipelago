@@ -87,11 +87,16 @@ def generate(archipelago: Path, yaml_name: str, seed: int | None) -> Path:
     if not yaml_path.is_file():
         sys.exit(f"No such player file: {yaml_path}")
 
-    if OUTPUT.exists():
-        shutil.rmtree(OUTPUT)
-    OUTPUT.mkdir(parents=True)
+    # Deliberately does NOT wipe tools/out. Next to each seed lives its room
+    # state (AP_<seed>.apsave: what the server has already sent and
+    # received), and deleting that silently destroys the continuity of an
+    # ongoing test — which is exactly what you need to reconnect a save and
+    # watch the replay behave. Only the staging folder is rebuilt.
+    OUTPUT.mkdir(parents=True, exist_ok=True)
 
     staging = OUTPUT / "players"
+    if staging.exists():
+        shutil.rmtree(staging)
     staging.mkdir()
     shutil.copy2(yaml_path, staging / yaml_path.name)
 
@@ -158,14 +163,27 @@ def main() -> None:
     parser.add_argument("--archipelago", default=None,
                         help="path to an Archipelago checkout or install")
     parser.add_argument("--no-host", action="store_true", help="generate but do not host")
+    parser.add_argument("--resume", action="store_true",
+                        help="re-host the most recent seed instead of generating a new one, "
+                             "keeping the room's history so a save can reconnect to it")
     args = parser.parse_args()
 
     archipelago = find_archipelago(args.archipelago)
     print(f"Archipelago: {archipelago}")
 
-    build_and_install_apworld(archipelago)
-    archive = generate(archipelago, args.yaml, args.seed)
-    print(f"seed: {archive}")
+    if args.resume:
+        # Reconnecting a save only works against the room it was bound to:
+        # the cursor is keyed on (seed, slot), and the item history lives in
+        # that room's .apsave, not in the seed. A new seed is a new world.
+        existing = sorted(OUTPUT.glob("AP_*.zip"), key=lambda p: p.stat().st_mtime)
+        if not existing:
+            sys.exit(f"Nothing to resume: no seed in {OUTPUT}.")
+        archive = existing[-1]
+        print(f"resuming: {archive}")
+    else:
+        build_and_install_apworld(archipelago)
+        archive = generate(archipelago, args.yaml, args.seed)
+        print(f"seed: {archive}")
 
     if args.no_host:
         return
