@@ -45,6 +45,7 @@ namespace BigWalkArchipelago
             _harmony.PatchAll();
 
             AddComponent<Core.Net.ApRuntime>();
+            AddComponent<Core.Net.ApStatusOverlay>();
             AddComponent<Core.ArchDoorUnlocker>();
             AddComponent<Core.VariantGourdMapUnlocker>();
             AddComponent<Core.SecondEndingSphereUnlocker>();

@@ -17,6 +17,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<string> ArchipelagoHostPort;
         internal static ConfigEntry<string> CosmeticGourdColor;
         internal static ConfigEntry<float> CosmeticGourdRestoreInterval;
+        internal static ConfigEntry<bool> ShowConnectionStatus;
         internal static ConfigEntry<KeyboardShortcut> ToggleFlightKey;
         internal static ConfigEntry<KeyboardShortcut> UnlockNextKey;
         internal static ConfigEntry<KeyboardShortcut> SimulateReceivedItemKey;
@@ -67,6 +68,12 @@ namespace BigWalkArchipelago
                 "GourdRestoreInterval",
                 0.5f,
                 "Seconds between each gourd when a session start restores several at once. They are dropped one at a time on the game's own spawn point and left to settle, which is both what keeps them from ending up outside the playable area and what stops a heap of them grinding against each other. Lower is faster but piles them up harder.");
+
+            ShowConnectionStatus = file.Bind(
+                "Archipelago",
+                "ShowConnectionStatus",
+                true,
+                "Shows a line in the corner of the screen when Archipelago is not connected, and briefly when it connects. Only ever appears for the host, since nobody else connects. Turn off for a clean screen — the same information stays in the BepInEx log either way.");
 
             DebugModeEnabled = file.Bind(
                 "Debug",

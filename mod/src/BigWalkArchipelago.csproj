@@ -72,6 +72,12 @@
       <HintPath>..\lib\UnityEngine.UI.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- OnGUI, pour le témoin d'état Archipelago à l'écran
+         (cf. Core/Net/ApStatusOverlay.cs). -->
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>..\lib\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="Il2Cppmscorlib">
       <HintPath>..\lib\Il2Cppmscorlib.dll</HintPath>
       <Private>false</Private>

@@ -84,14 +84,64 @@ namespace BigWalkArchipelago.Core.Net
         private static bool _disabledNoticeLogged;
         private static string _lastConnectProblem = string.Empty;
 
+        // What Core/Net/ApStatusOverlay puts on screen, or null when there
+        // is nothing worth saying. Decided here rather than in the overlay
+        // so OnGUI — which Unity calls several times per frame — does no
+        // work in the common case, and so "is this worth interrupting the
+        // player for" stays one decision in one place.
+        internal static string StatusMessage { get; private set; }
+        internal static bool StatusIsWarning { get; private set; }
+
+        private const float ConnectedNoticeSeconds = 6f;
+
         internal static void QueueLocation(string locationName)
         {
             if (!string.IsNullOrEmpty(locationName))
                 PendingLocationNames.Enqueue(locationName);
         }
 
+        private static void RefreshStatusMessage()
+        {
+            // Nothing to say when Archipelago is switched off, and nothing
+            // to say to a player who is not the host: their client never
+            // connects by design, so an "disconnected" warning would be a
+            // lie.
+            if (!ModConfig.ArchipelagoEnabled.Value || !NetworkServer.active)
+            {
+                StatusMessage = null;
+                return;
+            }
+
+            switch (Connection.Status)
+            {
+                case ApConnection.ConnectionStatus.Connecting:
+                    StatusMessage = "Archipelago: connecting...";
+                    StatusIsWarning = false;
+                    break;
+
+                case ApConnection.ConnectionStatus.Connected:
+                    // Shown briefly, then out of the way: the point is to
+                    // confirm the details were right, not to sit there for
+                    // the rest of the run.
+                    StatusMessage = Time.unscaledTime - _connectedAt < ConnectedNoticeSeconds
+                        ? "Archipelago: connected"
+                        : null;
+                    StatusIsWarning = false;
+                    break;
+
+                default:
+                    StatusMessage = string.IsNullOrEmpty(Connection.LastError)
+                        ? "Archipelago: not connected"
+                        : $"Archipelago: disconnected - {Connection.LastError} (retrying)";
+                    StatusIsWarning = true;
+                    break;
+            }
+        }
+
         private void Update()
         {
+            RefreshStatusMessage();
+
             if (!ModConfig.ArchipelagoEnabled.Value)
             {
                 if (!_disabledNoticeLogged)

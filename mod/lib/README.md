@@ -34,6 +34,7 @@ lancement — PAS les dummy DLL) :
 - `Il2Cppmscorlib.dll` (étape 3) — `Il2CppSystem.Object`, base de `UnityEngine.Object`
 - `Unity.TextMeshPro.dll` (étape 4, 2026-09-15) — `TMP_InputField` (`HostMenuConfirm.gameNameField`/`passwordField`), pour `Debug/DebugMenuLookup.cs`
 - `UnityEngine.UI.dll` (étape 4, 2026-09-15) — `Selectable`, classe de base de `TMP_InputField`
+- `UnityEngine.IMGUIModule.dll` (étape 5, 2026-09-15) — `OnGUI`/`GUI.Label`, pour le témoin d'état Archipelago à l'écran (`Core/Net/ApStatusOverlay.cs`)
 
 Depuis `<jeu>\BepInEx\core\` (étape 3) :
 - `Il2CppInterop.Runtime.dll` — `Il2CppObjectBase`, base de `Il2CppSystem.Object`
