@@ -18,10 +18,17 @@ Cible `net6.0` pour matcher le runtime BepInEx IL2CPP embarqué dans le jeu
 
 ## Déploiement
 
-Copier `src/bin/Debug/net6.0/BigWalkArchipelago.dll` dans :
-```
-<dossier du jeu>/BepInEx/plugins/BigWalkArchipelago/
-```
+Copier **trois** DLL de `src/bin/Debug/net6.0/` dans
+`<dossier du jeu>/BepInEx/plugins/BigWalkArchipelago/` :
+
+- `BigWalkArchipelago.dll` — le mod
+- `Archipelago.MultiClient.Net.dll` — le client Archipelago officiel
+- `Newtonsoft.Json.dll` — embarqué par le paquet précédent
+
+Les deux dernières viennent du NuGet `Archipelago.MultiClient.Net` et sont
+copiées automatiquement dans la sortie de build. BepInEx résout les
+dépendances d'un plugin dans son propre dossier : oublier l'une des deux fait
+échouer le chargement du mod entier, pas seulement la connexion.
 
 Sur cette machine, le jeu est installé dans :
 ```
@@ -36,3 +43,15 @@ F:\SteamLibrary\steamapps\common\Big Walk\
 - [x] 3. Brancher `GourdStatePatch` sur `ICheckReporter`
 - [x] 4. `Debug/DebugFlightTool` (investigation `PlayerCheater`/`CameraCheatMover`)
 - [x] 5. `SaveValuePatch` en filet de sécurité
+- [x] 6. Client réseau Archipelago (`src/Core/Net/`) — connexion, réception
+      d'items, report des checks, goal. Contrat et validation :
+      [`../apworld/protocol.md`](../apworld/protocol.md)
+- [ ] 7. Tester une vraie session en jeu (le client n'a jamais tourné dans le
+      jeu, seulement contre un serveur AP réel)
+
+## Configuration Archipelago
+
+Section `[Archipelago]` du `.cfg` : `Enabled` (coupe la connexion et revient
+au simple log local des checks) et `HostPort` (mémorise la dernière adresse
+saisie). Le slot name et le mot de passe sont les deux champs de l'écran
+d'hébergement, relus depuis la sauvegarde.

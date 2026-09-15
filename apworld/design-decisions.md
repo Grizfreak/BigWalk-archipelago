@@ -9,11 +9,55 @@ work and how the mod (`mod/`) hooks them — the mechanisms these decisions
 rely on — see
 [`../mod/reverse-engineering-notes.md`](../mod/reverse-engineering-notes.md).
 
+## Status (2026-09-15) — the Python world is written
+
+The world exists: `bigwalk/`, generation validated on Archipelago 0.6.7 and
+0.6.8. What it actually implements, and the contract the mod must now meet, is
+in [`protocol.md`](protocol.md) — that file supersedes this one wherever the
+two disagree about the *current* design. This file stays what it has always
+been: the record of how each decision was reached, and what is still open.
+
+Decisions settled while writing the world, all of them as YAML options rather
+than as fixed choices (the preference already stated on 2026-09-09):
+
+- **Goal** → the `goal` option, `gauntlet` (default) / `ending` / `deposits`.
+- **Monument deposits** → Option A confirmed. Big key requirements are
+  cumulative in the logic, which follows from the point settled just below.
+  (A `deposit_logic` option briefly existed to hedge the question; it was
+  removed the same day once the answer was known.)
+- **A deposited gourd cannot be retrieved — RESOLVED (2026-09-15, player,
+  game knowledge)**: taking a gourd back out of a monument is simply not
+  possible in the base game. Same category of fact as the big-key/plinth
+  mapping: not decompilable, only knowable by someone who has played.
+  Consequences, all of them now baked in:
+  - Gourds are **spent**, not lent. A tower's key costs its own monument's
+    slots *on top of* every monument already filled, so the logic sorts the
+    towers by slot count and charges the running total (4, 9, 14, 19, 24, 30,
+    45). The last key costs the entire pool by construction.
+  - The looser "each key only costs its own monument" reading is not a
+    trade-off, it is wrong, and would generate unbeatable seeds.
+  - `CosmeticMonumentFillTracker.OnHomeChanged` still handles the unpin case
+    (writing `ap_home_<slot> = 0`). Harmless and worth keeping as defensive
+    code — but nothing in the world's logic may rely on it ever firing.
+  - **Reopen if the mod ever adds a way to retrieve a deposited gourd**
+    (nothing suggests it should): that would invalidate the cumulative
+    requirements above, not just relax them.
+- **Gourd pool size** → one `Gourd` item per monument slot in play (45, 36 or
+  30 via `green_dome_deposits`), which is what the "enough generic gourds"
+  constraint below asked for.
+- **Radio stations** → locations, behind `radio_station_checks`.
+- **Key Cutters, bells as separate checks, per-tower monument locations** →
+  still not implemented, still recorded below as leads.
+
 ## Open design decisions (block writing the Python world, not the C# mod)
 
-- **Goal** — blocked on a design decision (standard ending vs. N towers vs.
-  a combination of both, see the dedicated section below) before even
-  looking for the technical trigger.
+- **Goal** — **RESOLVED (2026-09-15)**: not a single choice but the `goal`
+  YAML option, exactly as the 2026-09-09 Jack5 reply suggested it need not be
+  exclusive. `gauntlet` (default, `GauntletComplete`), `ending` (`EndingGate`)
+  and `deposits` (N gourds deposited, aggregated). The first two need
+  `SaveValuePatch` widened to `SavableSystem`; the third needs no new
+  detection at all. Combining several goals with AND/OR was considered and
+  left out of the alpha.
 - **Gourd deposit box model** — likely a YAML option (global progressive /
   sequential per tower / per specific slot with no critical item), to be
   chosen while designing the Python world.

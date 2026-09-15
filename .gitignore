@@ -2,6 +2,13 @@
 [Bb]in/
 [Oo]bj/
 
+# Artefact généré par apworld/build.py, reconstructible en une commande.
+apworld/dist/
+
+# Caches Python (tests de l'apworld).
+__pycache__/
+*.py[cod]
+
 # DLL locales copiées depuis l'installation du jeu (voir mod/lib/README.md) —
 # jamais commitées : elles dépendent de la machine et de la version du jeu.
 mod/lib/*.dll

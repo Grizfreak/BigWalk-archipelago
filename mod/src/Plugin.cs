@@ -39,11 +39,12 @@ namespace BigWalkArchipelago
 
             ModConfig.Bind(base.Config);
 
-            Reporter = new LocalLogReporter();
+            Reporter = new Core.Net.ApReporter();
 
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll();
 
+            AddComponent<Core.Net.ApRuntime>();
             AddComponent<Core.ArchDoorUnlocker>();
             AddComponent<Core.VariantGourdMapUnlocker>();
             AddComponent<Core.SecondEndingSphereUnlocker>();

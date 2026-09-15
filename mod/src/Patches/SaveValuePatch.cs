@@ -1,5 +1,6 @@
 using System;
 using BigWalkArchipelago.Core;
+using BigWalkArchipelago.Core.Net;
 using HarmonyLib;
 
 namespace BigWalkArchipelago.Patches
@@ -28,16 +29,35 @@ namespace BigWalkArchipelago.Patches
             if (value == 0)
                 return;
 
-            if (!Enum.TryParse<SaveablePropName>(key, out var propName))
+            if (Enum.TryParse<SaveablePropName>(key, out var propName))
+            {
+                if (GourdRegistry.TryGetLocationId(propName, out var locationId)
+                    && CheckTracker.TryMarkReported(locationId))
+                    Plugin.Reporter.ReportCheck(locationId);
+
+                return;
+            }
+
+            // SavableSystem is the game's other key space in this same
+            // store: the radio stations (locations in the Archipelago world)
+            // and the two end-of-game flags live here. Everything else in
+            // that enum — hub shortcuts, lookout lights, gauntlet chambers,
+            // doors — is not a location, which is why this reports through
+            // GourdRegistry-style filtering rather than blanket-reporting
+            // every SavableSystem write.
+            if (!Enum.TryParse<SavableSystem>(key, out var system) || system == SavableSystem.NotSavable)
                 return;
 
-            if (!GourdRegistry.TryGetLocationId(propName, out var locationId))
+            ApGoalFlags.Latch(system);
+
+            // Only the ids the apworld actually defines resolve here (the
+            // seven named radio stations); ApRuntime then filters again
+            // against what this particular slot contains.
+            if (!ApLocationIds.TryResolveLocation(key, out _))
                 return;
 
-            if (!CheckTracker.TryMarkReported(locationId))
-                return;
-
-            Plugin.Reporter.ReportCheck(locationId);
+            if (CheckTracker.TryMarkReported(key))
+                Plugin.Reporter.ReportCheck(key);
         }
     }
 }

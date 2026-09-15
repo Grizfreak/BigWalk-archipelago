@@ -1,36 +1,73 @@
-# apworld/ (pas encore commencé)
+# apworld/
 
-Futur monde Python Archipelago (`worlds/bigwalk/`) pour *Big Walk*. Rien n'est
-codé ici pour l'instant — voir [`design-decisions.md`](design-decisions.md)
-pour l'état complet des décisions de conception et des blocages, et
-[`../mod/reverse-engineering-notes.md`](../mod/reverse-engineering-notes.md)
-pour le fonctionnement interne du jeu et du mod.
+Monde Python Archipelago pour *Big Walk*. Le code vit dans [`bigwalk/`](bigwalk/)
+et se package en `dist/bigwalk.apworld`.
 
-## Bloquants avant de commencer
+- [`protocol.md`](protocol.md) — **le contrat avec le mod** : ids de locations
+  et d'items, contenu de `slot_data`, ce que le client C# doit envoyer et
+  appliquer, et la liste du travail restant côté mod. À lire avant d'écrire le
+  client réseau.
+- [`design-decisions.md`](design-decisions.md) — l'historique des décisions de
+  conception (goal, modèle des monuments, softlocks, retours communauté).
+- [`../mod/reverse-engineering-notes.md`](../mod/reverse-engineering-notes.md) —
+  le fonctionnement interne du jeu dont tout ce qui suit dépend.
 
-- **Client réseau Archipelago côté mod** (`../mod/`) — rien ne se connecte
-  encore à un serveur AP. Le monde Python n'a rien à piloter sans lui.
-- Le reste (goal, modèle des monuments, big keys) est déjà tranché pour une
-  alpha — voir la section "Décisions de conception encore ouvertes" des notes.
+## État
 
-## Ce qui est déjà prêt côté mod pour ce monde
+- [x] Monde Python complet (locations, items, logique, options, docs, tests)
+- [x] Génération réelle validée : 3 slots, Archipelago 0.6.8 (source) et 0.6.7
+      (installation locale), `.apworld` packagé inclus
+- [ ] Client réseau Archipelago côté mod — rien ne se connecte encore, donc
+      une seed se génère mais ne se joue pas (cf. `protocol.md`)
 
-- `Core/ItemApplier.ApplyGourdItem()`/`ApplyBigKeyItem()` — les deux chemins
-  de réception d'item, prêts à être appelés par le futur client réseau.
-- `Core/CosmeticMonumentFillTracker.GetFilledMonumentCount()` — comptage
-  agrégé des monuments (Option A, décidée pour l'alpha).
-- L'écran d'hébergement du jeu expose déjà un slot name, un mot de passe
-  Archipelago et un champ host:port (`mod/src/Patches/HostMenuConfirmPatch.cs`)
-  — lisibles via `Core/ApSessionConfig.cs` une fois le client réseau écrit.
-
-## Structure attendue (à créer)
+## Build
 
 ```
-apworld/
-└── bigwalk/
-    ├── __init__.py       # World, create_regions/create_items/set_rules
-    ├── Items.py
-    ├── Locations.py
-    ├── Options.py        # dont le modèle de comptage des monuments (Option A)
-    └── test/
+python build.py
 ```
+
+Produit `dist/bigwalk.apworld`. À copier dans `custom_worlds/` d'une
+installation Archipelago (0.6.7 minimum).
+
+## Développement et tests
+
+Pour travailler avec les tests d'Archipelago, lier le dossier du monde dans un
+checkout source d'Archipelago plutôt que de copier :
+
+```
+mklink /J "<checkout>\worlds\bigwalk" "<ici>\apworld\bigwalk"
+```
+
+Puis, depuis le checkout :
+
+```
+set AP_TEST_WORLDS=bigwalk
+python -m pytest worlds/bigwalk/test -q     # tests du monde
+python -m pytest test/general -q            # conformité Archipelago
+```
+
+(Les tests `test/webhost` demandent Flask, absent de cette machine.)
+
+## Ce que fait le monde
+
+**Locations** — 58 énigmes, 7 dépôts de big key, 7 stations radio
+(optionnelles), et les dépôts de gourdes aux monuments (aucun, tous les 5, ou
+tous — option). Les dépôts sont comptés globalement, jamais par tour : c'est ce
+qui rend le modèle insensible au softlock identifié le 2026-09-11 (Option A).
+
+**Items** — un item générique `Gourd` en autant d'exemplaires qu'il y a de
+slots de monument en jeu (30, 36 ou 45), les 7 big keys en 1:1, et du filler
+sans effet. La clé du tutoriel est donnée au départ par défaut.
+
+**Logique** — une seule ressource conditionne quoi que ce soit : le nombre de
+gourdes reçues. Aucune énigme n'est bloquée (le mod ne verrouille rien), et la
+seule porte structurelle modélisée est la zone de fin, derrière la Black
+Monolith Key. Une gourde déposée ne peut pas être ressortie d'un monument
+(impossible dans le jeu de base), donc les coûts en gourdes des big keys sont
+cumulatifs : la dernière clé coûte tout le pool.
+
+**Goal** — `gauntlet` (défaut), `ending` ou `deposits`.
+
+Les hypothèses que la logique fait sans qu'elles aient été vérifiées en jeu
+sont listées à la fin de [`protocol.md`](protocol.md) — ce sont elles qui
+décident si une seed générée est réellement finissable.

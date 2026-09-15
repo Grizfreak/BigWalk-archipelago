@@ -96,6 +96,14 @@ namespace BigWalkArchipelago.Core
                 if (propName.ToString().Contains("Testing", StringComparison.OrdinalIgnoreCase))
                     continue;
 
+                // The only gourd-prefixed value with no matching valetXxx
+                // home, never observed in normal play, purpose unknown. The
+                // Archipelago world leaves it out (see apworld/protocol.md
+                // §3), so reporting it would send an id the server has no
+                // location for — a protocol error rather than a lost check.
+                if (propName == SaveablePropName.gourdSecretZoneVice)
+                    continue;
+
                 map[propName] = propName.ToString();
             }
 

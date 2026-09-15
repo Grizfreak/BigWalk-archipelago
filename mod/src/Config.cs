@@ -13,6 +13,7 @@ namespace BigWalkArchipelago
     internal static class ModConfig
     {
         internal static ConfigEntry<bool> DebugModeEnabled;
+        internal static ConfigEntry<bool> ArchipelagoEnabled;
         internal static ConfigEntry<string> ArchipelagoHostPort;
         internal static ConfigEntry<KeyboardShortcut> ToggleFlightKey;
         internal static ConfigEntry<KeyboardShortcut> UnlockNextKey;
@@ -41,6 +42,12 @@ namespace BigWalkArchipelago
 
         internal static void Bind(ConfigFile file)
         {
+            ArchipelagoEnabled = file.Bind(
+                "Archipelago",
+                "Enabled",
+                true,
+                "Connects to an Archipelago server when hosting a game. Disable to play with the mod's other features (hub shortcuts, purple gourds on the map, cosmetic spawns) while checks are only logged locally, as they were before the network client existed.");
+
             ArchipelagoHostPort = file.Bind(
                 "Archipelago",
                 "HostPort",

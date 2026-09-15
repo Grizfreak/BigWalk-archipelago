@@ -11,11 +11,41 @@ see [`../apworld/design-decisions.md`](../apworld/design-decisions.md).
 
 ### To implement on the mod side
 
-- **Archipelago network client** — the real missing piece: nothing connects
-  to an AP server today. Replace `LocalLogReporter` with a real
-  `ICheckReporter` implementation (AP protocol, WebSocket/JSON), and call
-  `ItemApplier` for real on item receipt (instead of the `DebugItemSimulator`
-  simulator).
+- **RESOLVED (2026-09-15) — Archipelago network client**, `src/Core/Net/`.
+  The long-standing "nothing connects to an AP server" blocker is closed.
+  Built on the official `Archipelago.MultiClient.Net` NuGet (6.7.1), which
+  turned out to have zero NuGet dependencies and to bundle its own
+  `Newtonsoft.Json` — so exactly 2 extra DLLs to deploy next to the plugin.
+  Full contract and file-by-file map: `apworld/protocol.md`.
+  - **Threading is the whole design constraint.** The client library raises
+    its events on its own network threads; every game touch is IL2CPP and
+    must be on Unity's main thread, where a violation is a native crash with
+    no managed stack. So `ApConnection` is deliberately inert (managed types
+    and concurrent queues only, never a game object) and `ApRuntime.Update()`
+    is the single place anything reaches the game. `TryConnectAndLogin` is
+    blocking too, hence connecting on a `Task` with the pump polling a
+    status flag — inline, it would freeze the game for the whole handshake
+    or the whole timeout on a bad address.
+  - **Per-session item queue**: the queue is recreated per connection and
+    the `ItemReceived` handler captures *its own* instance rather than
+    reading a field. A dying session dropping one stale item into the new
+    session's queue would shift the received-items count by one and make
+    `ApItemCursor` skip a real item permanently.
+  - **Reconnect resends every check this save knows** (`CheckTracker.
+    GetReportedLocationNames()`, new). `CheckTracker` is one-way by design,
+    so a check validated while the client was offline would otherwise never
+    be sent again and its multiworld item would be lost.
+  - **Validated end-to-end against a real Archipelago room** (local
+    `MultiServer.py` hosting a generated 2-slot Big Walk seed): login as game
+    `Big Walk`, slot_data round-trip with the expected CLR types (`Int64`/
+    `String`/`Boolean`/`JArray`), the 81 locations of a default slot, id
+    arithmetic confirmed on a puzzle/big key/radio/deposit, a check accepted
+    (81 missing → 80), and the precollected `Tutorial Key` delivered on
+    connect as item `8600300` — which also confirms
+    `ItemsHandlingFlags.AllItems` is required. Both deliberate exclusions
+    confirmed absent from the slot: `gourdSecretZoneVice` (8600290) and
+    `FmStation7` (8601037).
+  - **Never run inside the game yet** — that is the next test session.
 - **RESOLVED (2026-09-15)** — `ItemApplier` split into two paths, confirmed
   by reading `mod/src/Core/ItemApplier.cs`:
   - `ApplyGourdItem()` (no parameter) does nothing but

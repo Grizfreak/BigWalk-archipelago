@@ -7,8 +7,9 @@ Deux sous-projets distincts :
   le jeu : détection des checks, matérialisation des items reçus, écran
   d'hébergement étendu avec les identifiants Archipelago. Voir
   [`mod/architecture-mod.md`](mod/architecture-mod.md) pour la conception.
-- [`apworld/`](apworld/README.md) — futur monde Python Archipelago
-  (`worlds/bigwalk/`), pas encore commencé.
+- [`apworld/`](apworld/README.md) — monde Python Archipelago (`bigwalk`) :
+  locations, items, logique, options, et le contrat que le mod devra respecter
+  ([`apworld/protocol.md`](apworld/protocol.md)).
 
 Notes de rétro-ingénierie et décisions de conception (goal, modèle des
 monuments, softlocks, etc.) :
@@ -21,5 +22,10 @@ ressembler le monde Archipelago).
 
 - [x] Mod : scaffolding, détection de checks (gourds/big keys), matérialisation
       d'item reçu, écran d'hébergement avec champs Archipelago
-- [ ] Mod : vrai client réseau Archipelago (bloquant principal, cf. notes)
-- [ ] apworld : rien commencé, en attente du client réseau
+- [x] apworld : monde complet, génération validée sur Archipelago 0.6.7 et
+      0.6.8, `.apworld` packagé
+- [x] Mod : client réseau Archipelago (`mod/src/Core/Net/`) — connexion,
+      réception d'items, report des checks, goal. Validé contre une vraie
+      room Archipelago ; contrat dans [`apworld/protocol.md`](apworld/protocol.md)
+- [ ] Tester une session complète **dans le jeu** — le client n'y a encore
+      jamais tourné

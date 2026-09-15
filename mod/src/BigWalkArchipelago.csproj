@@ -14,11 +14,26 @@
     <AssemblyName>BigWalkArchipelago</AssemblyName>
     <RootNamespace>BigWalkArchipelago</RootNamespace>
 
-    <!-- Les DLL référencées ci-dessous existent déjà dans BepInEx/ et
-         BepInEx/interop/ au runtime : ne jamais les copier dans notre sortie. -->
-    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <!-- Les <Reference> ci-dessous portent toutes <Private>false</Private> :
+         elles existent déjà dans BepInEx/ et BepInEx/interop/ au runtime et ne
+         sont jamais copiées. Ce flag ne concerne donc que les PackageReference
+         NuGet (le client Archipelago), qui eux DOIVENT atterrir à côté du
+         plugin — BepInEx résout les dépendances d'un plugin dans son propre
+         dossier. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <EnableDefaultItems>true</EnableDefaultItems>
+
+    <!-- net6.0 est hors support côté SDK, mais c'est le runtime qu'embarque
+         BepInEx dans le jeu : l'avertissement n'a rien à nous apprendre. -->
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Client Archipelago officiel (C#). Aucune dépendance NuGet : le paquet
+         embarque son propre Newtonsoft.Json dans lib/net6.0/, donc exactement
+         2 DLL à déployer à côté du plugin (voir ../README.md). -->
+    <PackageReference Include="Archipelago.MultiClient.Net" Version="6.7.1" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- BepInEx core (IL2CPP) + Harmony — copiées depuis <jeu>/BepInEx/core/

@@ -1,0 +1,399 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using Mirror;
+using UnityEngine;
+
+namespace BigWalkArchipelago.Core.Net
+{
+    // The Archipelago client's main loop, and the only place in the mod where
+    // network state meets the game.
+    //
+    // Everything here runs on Unity's main thread, by construction: ApConnection
+    // parks incoming items in a concurrent queue and flips a status flag, and
+    // this Update() is what actually reads them and calls into IL2CPP. The
+    // split is not stylistic — touching a game object from one of the client
+    // library's network threads is a native crash with no managed stack.
+    //
+    // Host-only, like every write in this mod: Big Walk's save belongs to the
+    // host (Mirror [Server] authority), so a non-host client has nothing
+    // truthful to report and nothing it is allowed to apply.
+    internal class ApRuntime : MonoBehaviour
+    {
+        // Constructor required by Il2CppInterop for any type injected into IL2CPP.
+        public ApRuntime(IntPtr ptr) : base(ptr)
+        {
+        }
+
+        private const float RetryDelaySeconds = 10f;
+        private const float PollIntervalSeconds = 1f;
+
+        // Applying an item can spawn a physical prop, and a reconnection
+        // replays every item the slot ever received — on the new-save
+        // recovery path that is the entire run at once. Spread over frames
+        // so a reconnect never lands as a multi-second freeze.
+        private const int MaxItemsPerFrame = 4;
+
+        // ALL state below is static, and that is not laziness. This is a type
+        // injected into IL2CPP: the managed wrapper around the component is
+        // not guaranteed to be the same object for the component's whole
+        // life, so per-instance fields can silently come back reset. Most of
+        // the mod gets away with that (ArchDoorUnlocker's one "done" bool);
+        // here it would be a data-loss bug, because losing _seenItemCount
+        // mid-session makes the next replay re-apply items already applied —
+        // duplicating every gourd the slot ever received. Same reasoning as
+        // CosmeticMonumentFillTracker, which is static throughout for the
+        // same reason.
+
+        // Fed by ApReporter from the detection patches, drained below. A
+        // queue rather than a direct send so that a check reported while
+        // disconnected is never dropped on the floor mid-frame.
+        private static readonly ConcurrentQueue<string> PendingLocationNames = new();
+
+        private static readonly ApConnection Connection = new();
+        private static readonly List<long> SendBuffer = new();
+
+        // Position in the slot's ordered received-items list. _seen counts
+        // what this session has pulled off the queue; _applied is what this
+        // SAVE has already materialized (ApItemCursor). The gap between them
+        // is exactly the replay the server sends on every connection.
+        private static int _seenItemCount;
+        private static int _appliedItemCount;
+
+        private static int _lastReportedDepositCount = -1;
+        private static bool _goalSent;
+        private static float _retryTimer;
+        private static float _pollTimer;
+        private static bool _disabledNoticeLogged;
+        private static string _lastConnectProblem = string.Empty;
+
+        internal static void QueueLocation(string locationName)
+        {
+            if (!string.IsNullOrEmpty(locationName))
+                PendingLocationNames.Enqueue(locationName);
+        }
+
+        private void Update()
+        {
+            if (!ModConfig.ArchipelagoEnabled.Value)
+            {
+                if (!_disabledNoticeLogged)
+                {
+                    _disabledNoticeLogged = true;
+                    Plugin.Log.LogInfo(
+                        $"[{nameof(ApRuntime)}] Archipelago disabled in the config; checks are logged locally only.");
+                }
+
+                return;
+            }
+
+            // Not hosting: nothing to connect, and anything queued stays
+            // queued. This also covers the main menu, where there is no save
+            // to read a slot name out of yet.
+            if (!NetworkServer.active)
+                return;
+
+            switch (Connection.Status)
+            {
+                case ApConnection.ConnectionStatus.Idle:
+                case ApConnection.ConnectionStatus.Failed:
+                    TickReconnect();
+                    return;
+
+                case ApConnection.ConnectionStatus.Connecting:
+                    return;
+            }
+
+            if (_appliedItemCount < 0)
+                OnJustConnected();
+
+            // Quitting to the menu and hosting a *different* save leaves this
+            // session open and connected. Carrying on would apply that
+            // session's items into the new save using the old save's cursor,
+            // so the session is torn down and rebuilt from the new save.
+            if (HasSaveChanged())
+                return;
+
+            FlushPendingChecks();
+
+            // Applying an item spawns props and writes the save, so it waits
+            // for the same "safe to touch the world" signal the rest of the
+            // mod uses. Items simply stay queued until then.
+            if (WorldManager.isReadyForEffects)
+                DrainIncomingItems();
+
+            _pollTimer -= Time.unscaledDeltaTime;
+            if (_pollTimer > 0f)
+                return;
+
+            _pollTimer = PollIntervalSeconds;
+
+            if (WorldManager.isReadyForEffects)
+            {
+                ReportDeposits();
+                CheckGoal();
+            }
+        }
+
+        private static bool HasSaveChanged()
+        {
+            var save = SaveManager.instance != null ? SaveManager.instance.currentData : null;
+            if (save == null)
+                return false;
+
+            var uuid = !string.IsNullOrWhiteSpace(save.filenameUid) ? save.filenameUid : save.slotName;
+            if (string.IsNullOrEmpty(uuid) || uuid == Connection.SaveUuid)
+                return false;
+
+            Plugin.Log.LogInfo(
+                $"[{nameof(ApRuntime)}] A different save is now loaded; dropping the Archipelago session and reconnecting for it.");
+
+            Connection.Reset();
+            _appliedItemCount = -1;
+            _retryTimer = 0f;
+            return true;
+        }
+
+        private static void TickReconnect()
+        {
+            _retryTimer -= Time.unscaledDeltaTime;
+            if (_retryTimer > 0f)
+                return;
+
+            _retryTimer = RetryDelaySeconds;
+
+            if (Connection.Status == ApConnection.ConnectionStatus.Failed)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(ApRuntime)}] Archipelago connection lost or refused ({Connection.LastError}); retrying in {RetryDelaySeconds:0}s.");
+                Connection.Reset();
+            }
+
+            if (!ApEndpoint.TryResolve(out var endpoint, out var problem))
+            {
+                // Logged once per distinct cause rather than every retry: the
+                // usual case is simply "the player has not filled the address
+                // in yet", which would otherwise spam the log forever.
+                if (problem != _lastConnectProblem)
+                {
+                    _lastConnectProblem = problem;
+                    Plugin.Log.LogInfo($"[{nameof(ApRuntime)}] Not connecting: {problem}.");
+                }
+
+                return;
+            }
+
+            _lastConnectProblem = string.Empty;
+            Plugin.Log.LogInfo(
+                $"[{nameof(ApRuntime)}] Connecting to {endpoint.Host}:{endpoint.Port} as '{endpoint.SlotName}'...");
+
+            // Marks the session as "not yet initialised" so the first frame
+            // after a successful login runs OnJustConnected.
+            _appliedItemCount = -1;
+            Connection.BeginConnect(endpoint);
+        }
+
+        private static void OnJustConnected()
+        {
+            ApLocationIds.Configure(Connection.SlotData);
+
+            _seenItemCount = 0;
+            _appliedItemCount = ApItemCursor.SyncTo(Connection.SeedName, Connection.SlotName);
+            _lastReportedDepositCount = -1;
+
+            // A goal string this build cannot detect would otherwise leave
+            // the player unable to ever finish, with nothing in the log to
+            // say why. Refuse it loudly here, once, rather than silently
+            // polling for something that will never be true.
+            var goal = Connection.SlotData.Goal;
+            _goalSent = goal is not ("gauntlet" or "ending" or "deposits");
+            if (_goalSent)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(ApRuntime)}] This slot's goal is '{goal}', which this version of the mod cannot detect. "
+                    + "Goal completion will NOT be reported automatically — update the mod to match the apworld.");
+            }
+
+            Plugin.Log.LogInfo(
+                $"[{nameof(ApRuntime)}] Connected. {Connection.SlotData.Describe()}. "
+                + $"{_appliedItemCount} item(s) already applied to this save.");
+
+            ResendKnownChecks();
+        }
+
+        // Every check this save has ever reported is resent on connection.
+        //
+        // This is what makes a disconnection harmless. CheckTracker marks a
+        // location as reported permanently, in the save — so a check
+        // validated while the client was offline would otherwise never be
+        // sent again, and its item would stay lost to whoever was waiting for
+        // it in the multiworld. Resending the whole set costs one packet and
+        // the server deduplicates.
+        private static void ResendKnownChecks()
+        {
+            SendBuffer.Clear();
+
+            foreach (var locationName in CheckTracker.GetReportedLocationNames())
+            {
+                if (ApLocationIds.TryResolveLocation(locationName, out var id)
+                    && Connection.BelongsToSlot(id))
+                    SendBuffer.Add(id);
+            }
+
+            if (SendBuffer.Count == 0)
+                return;
+
+            Plugin.Log.LogInfo($"[{nameof(ApRuntime)}] Resending {SendBuffer.Count} check(s) already validated on this save.");
+            Connection.SendChecks(SendBuffer.ToArray());
+        }
+
+        private static void FlushPendingChecks()
+        {
+            SendBuffer.Clear();
+
+            while (PendingLocationNames.TryDequeue(out var locationName))
+            {
+                if (!ApLocationIds.TryResolveLocation(locationName, out var id))
+                {
+                    Plugin.Log.LogWarning(
+                        $"[{nameof(ApRuntime)}] No Archipelago id for '{locationName}', check dropped.");
+                    continue;
+                }
+
+                // The slot decides what exists, not the game: radio stations
+                // can be off, the Green Dome can be excluded. Sending an id
+                // this slot does not have is a protocol error, so it is
+                // filtered here rather than hoping the server is forgiving.
+                if (!Connection.BelongsToSlot(id))
+                    continue;
+
+                SendBuffer.Add(id);
+            }
+
+            if (SendBuffer.Count > 0)
+                Connection.SendChecks(SendBuffer.ToArray());
+        }
+
+        private static void DrainIncomingItems()
+        {
+            var appliedThisFrame = 0;
+
+            while (appliedThisFrame < MaxItemsPerFrame && Connection.TryDequeueItem(out var item))
+            {
+                _seenItemCount++;
+
+                // Already materialized into this save by an earlier session:
+                // this is the server's replay, not a new item. Skipping it is
+                // the entire reason ApItemCursor exists. Skipped items are
+                // free, so they do not count against the per-frame budget.
+                if (_seenItemCount <= _appliedItemCount)
+                    continue;
+
+                try
+                {
+                    Apply(item);
+                }
+                catch (Exception ex)
+                {
+                    // The item is already off the queue, so the cursor still
+                    // advances: stalling here would wedge every later item
+                    // behind this one forever. Recovering a genuinely lost
+                    // item is what the new-save replay path is for.
+                    Plugin.Log.LogError(
+                        $"[{nameof(ApRuntime)}] Failed to apply item {item.ItemId}: {ex}");
+                }
+
+                appliedThisFrame++;
+                _appliedItemCount = _seenItemCount;
+                ApItemCursor.Set(_appliedItemCount);
+            }
+        }
+
+        private static void Apply(Archipelago.MultiClient.Net.Models.ItemInfo item)
+        {
+            var itemId = item.ItemId;
+
+            if (itemId == ApLocationIds.GourdItemId)
+            {
+                ItemApplier.ApplyGourdItem();
+                return;
+            }
+
+            if (ApLocationIds.TryResolveBigKeyItem(itemId, out var propName))
+            {
+                ItemApplier.ApplyBigKeyItem(propName);
+                return;
+            }
+
+            // Filler, traps and anything a newer apworld invents: no effect,
+            // by design. Logged rather than silent so a genuinely unhandled
+            // item is visible in the log instead of looking like a bug in the
+            // multiworld.
+            Plugin.Log.LogInfo($"[{nameof(ApRuntime)}] Received '{item.ItemName}' ({itemId}): no in-game effect.");
+        }
+
+        // Monument deposits are counted across every monument together, never
+        // per tower — that global count is what makes it impossible for a bad
+        // distribution of gourds to lock a seed (Option A, see
+        // apworld/design-decisions.md).
+        //
+        // Reports thresholds crossed, and never un-reports: the count CAN go
+        // down in principle, and a check that has been sent stays sent.
+        private static void ReportDeposits()
+        {
+            var amounts = Connection.SlotData.DepositLocationAmounts;
+            if (amounts.Length == 0)
+                return;
+
+            var filled = CosmeticMonumentFillTracker.GetFilledMonumentCount();
+            if (filled <= _lastReportedDepositCount)
+                return;
+
+            _lastReportedDepositCount = filled;
+            SendBuffer.Clear();
+
+            foreach (var amount in amounts)
+            {
+                if (amount > filled)
+                    break;
+
+                var id = ApLocationIds.DepositLocationId(amount);
+                if (Connection.BelongsToSlot(id))
+                    SendBuffer.Add(id);
+            }
+
+            if (SendBuffer.Count > 0)
+                Connection.SendChecks(SendBuffer.ToArray());
+        }
+
+        private static void CheckGoal()
+        {
+            if (_goalSent || !IsGoalReached())
+                return;
+
+            _goalSent = true;
+            Connection.SendGoal();
+        }
+
+        private static bool IsGoalReached()
+        {
+            switch (Connection.SlotData.Goal)
+            {
+                case "gauntlet":
+                    return ApGoalFlags.IsLatched(SavableSystem.GauntletComplete);
+
+                case "ending":
+                    return ApGoalFlags.IsLatched(SavableSystem.EndingGate);
+
+                case "deposits":
+                    var target = Connection.SlotData.DepositGoalAmount;
+                    return target > 0 && CosmeticMonumentFillTracker.GetFilledMonumentCount() >= target;
+
+                default:
+                    // Unreachable: OnJustConnected already refused to arm
+                    // goal detection for a goal this build does not know.
+                    return false;
+            }
+        }
+    }
+}
