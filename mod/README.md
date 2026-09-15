@@ -46,8 +46,9 @@ F:\SteamLibrary\steamapps\common\Big Walk\
 - [x] 6. Client réseau Archipelago (`src/Core/Net/`) — connexion, réception
       d'items, report des checks, goal. Contrat et validation :
       [`../apworld/protocol.md`](../apworld/protocol.md)
-- [ ] 7. Tester une vraie session en jeu (le client n'a jamais tourné dans le
-      jeu, seulement contre un serveur AP réel)
+- [x] 7. Chargement et connexion depuis le jeu confirmés (2026-09-15)
+- [ ] 8. Éprouver les chemins restants : check sortant, item entrant, big key,
+      et reconnexion sans doublon de gourdes
 
 ## Configuration Archipelago
 

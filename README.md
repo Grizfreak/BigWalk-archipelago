@@ -33,5 +33,7 @@ ressembler le monde Archipelago).
 - [x] Mod : client réseau Archipelago (`mod/src/Core/Net/`) — connexion,
       réception d'items, report des checks, goal. Validé contre une vraie
       room Archipelago ; contrat dans [`apworld/protocol.md`](apworld/protocol.md)
-- [ ] Tester une session complète **dans le jeu** — le client n'y a encore
-      jamais tourné
+- [x] Le mod charge et **se connecte depuis le jeu** (confirmé le 2026-09-15)
+- [ ] Éprouver les quatre chemins en jeu : check sortant, item entrant,
+      big key, et surtout **reconnexion sans doublon de gourdes** (le curseur
+      d'items, cf. [`apworld/protocol.md`](apworld/protocol.md) §5)

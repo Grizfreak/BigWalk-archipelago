@@ -45,7 +45,16 @@ see [`../apworld/design-decisions.md`](../apworld/design-decisions.md).
     `ItemsHandlingFlags.AllItems` is required. Both deliberate exclusions
     confirmed absent from the slot: `gourdSecretZoneVice` (8600290) and
     `FmStation7` (8601037).
-  - **Never run inside the game yet** — that is the next test session.
+  - **CONFIRMED IN-GAME (2026-09-15, player): the mod loads and connects.**
+    The one genuine unknown is closed — BepInEx IL2CPP resolves
+    `Archipelago.MultiClient.Net` and its bundled `Newtonsoft.Json` from the
+    plugin folder, the managed client runs inside the game process, and a
+    session reaches the server from the hosting screen.
+  - **Still unexercised in-game**, in order of how much damage a bug would
+    do: the received-items cursor across a reconnect (nothing yet proves a
+    reconnection does *not* duplicate every gourd), deposit threshold
+    reporting, goal reporting, and an outgoing check from a real puzzle
+    resolution.
 - **RESOLVED (2026-09-15)** — `ItemApplier` split into two paths, confirmed
   by reading `mod/src/Core/ItemApplier.cs`:
   - `ApplyGourdItem()` (no parameter) does nothing but

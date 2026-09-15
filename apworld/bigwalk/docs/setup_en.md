@@ -11,8 +11,8 @@
 ## Status
 
 The mod connects to Archipelago on its own — there is no separate client to
-run while you play. It has been tested against a real Archipelago room but
-not yet through a full session in the game itself, so treat this as an alpha.
+run while you play. Connecting from inside the game works; a full run has
+not been played end to end yet, so treat this as an alpha.
 
 ## Installing the mod
 

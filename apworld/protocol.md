@@ -6,12 +6,17 @@ one missing piece). Companion to the Python world in [`bigwalk/`](bigwalk/):
 this file and `bigwalk/world.py`'s `fill_slot_data` are one unit, change them
 together.*
 
-**Status (2026-09-15): implemented.** The client lives in
-`../mod/src/Core/Net/` and the contract below is validated against a real
-Archipelago room — login as game `Big Walk`, slot_data round-trip, id
-arithmetic, a check accepted by the server, and the starting-inventory item
-delivered on connect. What has *not* happened yet is a session inside the
-running game; this document stays the specification both sides are held to.
+**Status (2026-09-15): implemented, and connecting from the running game.**
+The client lives in `../mod/src/Core/Net/`. The contract below is validated
+against a real Archipelago room — login as game `Big Walk`, slot_data
+round-trip, id arithmetic, a check accepted by the server, and the
+starting-inventory item delivered on connect — and the mod has since been
+confirmed to load under BepInEx IL2CPP and reach a server from inside the
+game.
+
+Not yet exercised in-game, worth knowing before trusting a real run: the
+received-items cursor across a reconnect (§5), deposit thresholds (§7) and
+goal reporting (§6).
 
 ## 1. Connecting
 
