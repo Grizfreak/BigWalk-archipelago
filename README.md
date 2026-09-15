@@ -34,6 +34,7 @@ ressembler le monde Archipelago).
       réception d'items, report des checks, goal. Validé contre une vraie
       room Archipelago ; contrat dans [`apworld/protocol.md`](apworld/protocol.md)
 - [x] Le mod charge et **se connecte depuis le jeu** (confirmé le 2026-09-15)
-- [ ] Éprouver les quatre chemins en jeu : check sortant, item entrant,
-      big key, et surtout **reconnexion sans doublon de gourdes** (le curseur
-      d'items, cf. [`apworld/protocol.md`](apworld/protocol.md) §5)
+- [x] Tous les chemins éprouvés en jeu : check sortant depuis une vraie
+      énigme, item entrant, big key, dépôts, goal, reconstruction des
+      gourdes, survie à une coupure réseau, et récupération sur save neuve
+- [ ] Partie complète de bout en bout, et première session à deux joueurs

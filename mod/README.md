@@ -47,8 +47,9 @@ F:\SteamLibrary\steamapps\common\Big Walk\
       d'items, report des checks, goal. Contrat et validation :
       [`../apworld/protocol.md`](../apworld/protocol.md)
 - [x] 7. Chargement et connexion depuis le jeu confirmés (2026-09-15)
-- [ ] 8. Éprouver les chemins restants : check sortant, item entrant, big key,
-      et reconnexion sans doublon de gourdes
+- [x] 8. Tous les chemins éprouvés en jeu (2026-09-15) : check sortant, items,
+      big keys, dépôts, goal, gourdes reconstruites, coupure réseau, save neuve
+- [ ] 9. Partie complète, et première session à deux joueurs
 
 ## Configuration Archipelago
 

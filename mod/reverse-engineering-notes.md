@@ -173,8 +173,34 @@ see [`../apworld/design-decisions.md`](../apworld/design-decisions.md).
       item(s) already applied` — and crucially the counters unchanged
       across the whole cycle (1 reconciliation, 28 spawns before and
       after), so no duplicated gourd and no replayed item.
-  - **Still unexercised in-game**: the new-save replay recovery path, and an
-    outgoing check from a real puzzle resolution.
+  - **New-save replay, CONFIRMED (2026-09-15)**: a brand-new save connected
+    to the same slot reported `0 item(s) already applied`, replayed the
+    slot's whole history and put all 33 gourds back. Monument deposits were
+    not restored, as documented and accepted.
+    - **Bug it exposed, fixed the same day**: the new save got neither its
+      hub shortcuts nor the true-ending sphere. `ArchDoorUnlocker` and
+      `SecondEndingSphereUnlocker` each latched a `_done` on their first
+      opportunity and never looked again for the life of the process, so a
+      second world loaded without relaunching the game was simply skipped.
+      Both now arm on the transition into a ready world. Predates the
+      network client entirely — it could not show up until switching saves
+      mid-process became part of testing.
+  - **Outgoing check from a real puzzle, CONFIRMED (2026-09-15)** — the
+    last unexercised path. Solving a puzzle in-game logged
+    `[Check] gourdHighButton` and the server independently showed exactly
+    8 of 81 locations checked: High Button (the puzzle just solved), plus
+    the 7 the save already knew about and resent on connecting. Every one
+    accounted for.
+    - **Measure it on a room that has not been goaled.** A first attempt
+      proved nothing: the goal had triggered the server's auto-release, so
+      all 101 locations of that slot were already checked and any question
+      of the form "is this one checked?" answered yes. The save was fine;
+      the room was saturated.
+    - **Minor, noted not fixed**: `ap_reported_*` is not scoped to a seed,
+      so a save reconnected to a *different* seed resends checks it earned
+      elsewhere (seen here: 7 checks carried into a fresh room). Harmless
+      in real use, where a save belongs to one seed — a testing artifact
+      worth knowing about before reading a check count.
 - **RESOLVED (2026-09-15)** — `ItemApplier` split into two paths, confirmed
   by reading `mod/src/Core/ItemApplier.cs`:
   - `ApplyGourdItem()` (no parameter) does nothing but
