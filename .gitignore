@@ -5,6 +5,9 @@
 # Artefact généré par apworld/build.py, reconstructible en une commande.
 apworld/dist/
 
+# Seeds jetables produites par tools/testroom.py.
+tools/out/
+
 # Caches Python (tests de l'apworld).
 __pycache__/
 *.py[cod]

@@ -11,6 +11,12 @@ Deux sous-projets distincts :
   locations, items, logique, options, et le contrat que le mod devra respecter
   ([`apworld/protocol.md`](apworld/protocol.md)).
 
+- [`tools/`](tools/) — outillage de test. `python tools/testroom.py`
+  reconstruit l'apworld, génère une seed depuis `tools/players/` et héberge
+  la room, avec les identifiants à saisir en jeu affichés à l'écran.
+  `solo-smoke.yaml` est taillé pour valider la chaîne en quelques minutes en
+  solo, `solo-full.yaml` est une vraie partie.
+
 Notes de rétro-ingénierie et décisions de conception (goal, modèle des
 monuments, softlocks, etc.) :
 [`mod/reverse-engineering-notes.md`](mod/reverse-engineering-notes.md)

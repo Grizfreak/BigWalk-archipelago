@@ -27,7 +27,9 @@ namespace BigWalkArchipelago.Patches
     [HarmonyPatch(typeof(HostMenuConfirm), nameof(HostMenuConfirm.OnEnable))]
     internal static class HostMenuConfirmPatch
     {
-        private const string HostPortRowName = "ApHostPortRow";
+        // Also looked up by HostMenuConfirmStartPatch, to flash this field
+        // when the connection test fails.
+        internal const string HostPortRowName = "ApHostPortRow";
         private const float HalfRowWidth = 399.42f;
         private const float ColumnOffsetX = 489.4f; // Password -> LastPlayed, measured via DebugMenuLookup
 

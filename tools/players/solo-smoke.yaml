@@ -1,0 +1,21 @@
+# Fastest possible end-to-end check of the mod <-> server contract.
+#
+# Tuned for one person with Debug.Enabled = true, not for playing:
+#   - deposit_locations: all  -> the very FIRST gourd deposited is already a
+#     check, instead of having to reach the fifth milestone
+#   - goal: deposits, 5       -> the goal is reachable in minutes, without
+#     going anywhere near the Gauntlet or a two-player bell
+#   - green_dome_deposits: excluded -> 30 gourds instead of 45, and no
+#     15-slot postgame monument in the way
+#
+# IMPORTANT: the in-game save must be named exactly like `name` below — the
+# hosting screen's first field is both the save name and the AP slot name.
+name: BigWalk
+game: Big Walk
+Big Walk:
+  goal: deposits
+  deposit_goal_amount: 5
+  deposit_locations: all
+  green_dome_deposits: excluded
+  radio_station_checks: true
+  start_with_tutorial_key: true

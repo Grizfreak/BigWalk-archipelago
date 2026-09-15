@@ -820,11 +820,22 @@ to intercept them).
   section of the `.cfg`, for disk persistence): pre-filled with
   `archipelago.gg:` on the very first launch, then remembers the last value
   entered from one session to the next (player request).
-- **Still open, explicitly waiting on the network client** (no code to
-  write before it): actually test the AP connection before allowing
-  "Continue" (player's idea — blocked on the client, which doesn't exist
-  yet; planned to patch `ActionStart` to launch an async test and reuse the
-  warning-flash mechanism already in place for empty name/password).
+- **RESOLVED (2026-09-15) — connection tested before "Continue"**, now that
+  the network client exists: `Patches/HostMenuConfirmStartPatch.cs` +
+  `Core/Net/ApConnectionTest.cs`. A Harmony prefix on `ActionStart` fires a
+  throwaway login (`ItemsHandlingFlags.NoItems`, `requestSlotData: false`,
+  disconnected immediately so it never competes with `ApRuntime`'s real
+  session) and holds the screen; a postfix on `Update` continues
+  automatically once it answers. Uses the game's own `InputWarningFlasher.
+  Flash()` on failure, as planned.
+  - **Design rule it is built around: it can never prevent hosting.** A
+    failed probe flashes, logs the reason, and the next press hosts anyway
+    — an unreachable AP server is not a reason to be unable to launch the
+    game, and neither is a bug in this patch. `OnEnable` resets the verdict
+    (including a previous bypass, which was consent for that attempt only).
+  - Both paths validated against a live local room: a correct slot logs in
+    in ~0.2s, a mistyped one comes back with the genuinely useful *"The slot
+    name did not match any slot on the server."* rather than a timeout.
 
 Nothing to reopen UI-side for now, everything holds until the real AP
 network client exists and needs to read `ApSessionConfig.HostAndPort`/the

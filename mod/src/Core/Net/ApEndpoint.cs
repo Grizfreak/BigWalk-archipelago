@@ -40,16 +40,6 @@ namespace BigWalkArchipelago.Core.Net
         {
             endpoint = default;
 
-            var raw = ApSessionConfig.HostAndPort;
-            if (string.IsNullOrWhiteSpace(raw))
-                raw = ModConfig.ArchipelagoHostPort.Value;
-
-            if (!TryParseHostPort(raw, out var host, out var port))
-            {
-                problem = $"no usable Archipelago address (got '{raw}')";
-                return false;
-            }
-
             var save = SaveManager.instance != null ? SaveManager.instance.currentData : null;
             if (save == null)
             {
@@ -57,19 +47,48 @@ namespace BigWalkArchipelago.Core.Net
                 return false;
             }
 
-            var slotName = save.slotName;
+            // filenameUid is the game's own per-save identifier, so the same
+            // save reconnects under the same uuid and the server recognises
+            // it as the same client rather than a new one each time.
+            var uuid = !string.IsNullOrWhiteSpace(save.filenameUid) ? save.filenameUid : save.slotName;
+
+            return TryBuild(CurrentHostAndPort(), save.slotName, save.password, uuid, out endpoint, out problem);
+        }
+
+        // Used from the hosting screen, where the player is still typing and
+        // the save being configured is not the loaded one: the values come
+        // straight from the three input fields rather than from SaveData.
+        internal static bool TryResolveFromFields(string rawHostPort, string slotName, string password,
+                                                  out ApEndpoint endpoint, out string problem)
+        {
+            return TryBuild(rawHostPort, slotName, password, slotName, out endpoint, out problem);
+        }
+
+        internal static string CurrentHostAndPort()
+        {
+            var raw = ApSessionConfig.HostAndPort;
+            return string.IsNullOrWhiteSpace(raw) ? ModConfig.ArchipelagoHostPort.Value : raw;
+        }
+
+        private static bool TryBuild(string rawHostPort, string slotName, string password, string uuid,
+                                     out ApEndpoint endpoint, out string problem)
+        {
+            endpoint = default;
+
+            if (!TryParseHostPort(rawHostPort, out var host, out var port))
+            {
+                problem = $"no usable Archipelago address (got '{rawHostPort}')";
+                return false;
+            }
+
             if (string.IsNullOrWhiteSpace(slotName))
             {
                 problem = "the slot name (the save's name field on the hosting screen) is empty";
                 return false;
             }
 
-            // filenameUid is the game's own per-save identifier, so the same
-            // save reconnects under the same uuid and the server recognises
-            // it as the same client rather than a new one each time.
-            var uuid = !string.IsNullOrWhiteSpace(save.filenameUid) ? save.filenameUid : slotName;
-
-            endpoint = new ApEndpoint(host, port, slotName.Trim(), save.password ?? string.Empty, uuid);
+            endpoint = new ApEndpoint(host, port, slotName.Trim(), password ?? string.Empty,
+                                      string.IsNullOrWhiteSpace(uuid) ? slotName.Trim() : uuid);
             problem = string.Empty;
             return true;
         }

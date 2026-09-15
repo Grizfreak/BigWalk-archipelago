@@ -1,0 +1,9 @@
+# The real thing, one slot: default options, so the Gauntlet goal and all 45
+# gourds. Use this once solo-smoke.yaml has proven the plumbing works.
+#
+# IMPORTANT: the in-game save must be named exactly like `name` below — the
+# hosting screen's first field is both the save name and the AP slot name.
+name: BigWalk
+game: Big Walk
+Big Walk:
+  {}

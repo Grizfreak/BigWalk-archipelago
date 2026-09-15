@@ -208,14 +208,11 @@ All of it lives in `../mod/src/Core/Net/`, plus small edits elsewhere.
 | `SaveValuePatch` | Widened to `SavableSystem`: radio stations and the goal latch. |
 | `GourdRegistry` | `gourdSecretZoneVice` dropped, per §3. |
 | `ModConfig.ArchipelagoEnabled` | Off switch, to keep playing with the mod's other features and local-only check logging. |
+| `ApConnectionTest.cs` + `HostMenuConfirmStartPatch.cs` | Verifies the details on the hosting screen before the session starts (a throwaway `NoItems` login, closed immediately). Never blocks hosting: a failure flashes the field and the next press goes through. |
 
 `ICheckReporter` did **not** need an id-based overload after all: deposit
 thresholds have no enum name, but `ApRuntime` derives their ids from the
 deposit count itself, so nothing has to route a raw id through the reporter.
-
-Still open, unchanged: **`HostMenuConfirmPatch`** could test the connection
-before allowing "Continue" (the idea noted on 2026-09-15). Now unblocked —
-`ApEndpoint` + `ApConnection` are all it needs.
 
 ## 10. Assumptions the logic makes that nobody has verified in-game
 
