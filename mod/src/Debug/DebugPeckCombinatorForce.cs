@@ -37,6 +37,17 @@ namespace BigWalkArchipelago.Debug
                 return;
             }
 
+            // Says what is actually around before filtering. Without this
+            // the method had a completely silent exit — every combinator out
+            // of range simply `continue`d and it returned having logged
+            // nothing at all, which is indistinguishable from "the key did
+            // nothing". That cost an hour on 2026-09-18, chasing a keyboard
+            // problem that did not exist: the tool worked, the puzzle's
+            // combinator was just further than the radius.
+            var nearestName = string.Empty;
+            var nearestDistance = float.MaxValue;
+            var inRange = 0;
+
             foreach (var combinator in all)
             {
                 if (combinator == null)
@@ -53,9 +64,17 @@ namespace BigWalkArchipelago.Debug
                     continue;
                 }
 
+                var distance = Mathf.Sqrt(sqrDistance);
+                if (distance < nearestDistance)
+                {
+                    nearestDistance = distance;
+                    nearestName = combinator.gameObject.name;
+                }
+
                 if (sqrDistance > sqrRadius)
                     continue;
 
+                inRange++;
                 Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorForce)}] {combinator.gameObject.name} (PeckCombinator) — starting force.");
 
                 try
@@ -68,6 +87,11 @@ namespace BigWalkArchipelago.Debug
                         $"[{nameof(DebugPeckCombinatorForce)}] {combinator.gameObject.name} — exception while forcing, block skipped: {ex}");
                 }
             }
+
+            if (inRange == 0)
+                Plugin.Log.LogInfo(
+                    $"[{nameof(DebugPeckCombinatorForce)}] {all.Length} PeckCombinator(s) in the scene, none within {radius:0}m."
+                    + (nearestName.Length > 0 ? $" Nearest: '{nearestName}' at {nearestDistance:0.0}m." : string.Empty));
         }
 
         private static void ForceCombinator(PeckCombinator combinator)

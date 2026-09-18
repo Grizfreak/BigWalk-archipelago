@@ -50,7 +50,11 @@ namespace BigWalkArchipelago.Debug
                 DebugGourdLookup.LogMonumentHomes();
 
             if (ModConfig.DumpNearbyCombinatorKey.Value.IsDown())
+            {
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Combinator lookup key pressed; calling LogNearby...");
                 DebugPeckCombinatorLookup.DumpNearby(30f);
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] LogNearby returned.");
+            }
 
             if (ModConfig.DumpAllSaveEntriesKey.Value.IsDown())
                 DebugSaveDump.DumpAll();
@@ -79,8 +83,28 @@ namespace BigWalkArchipelago.Debug
             if (ModConfig.FireRemotePeckSwitchKey.Value.IsDown())
                 DebugPeckFire.FireByName(ModConfig.RemotePeckSwitchName.Value);
 
+            // Polled with IsPressed, not IsDown: this one is a hold, and
+            // the tool needs the frames in between, plus the release.
+            DebugTrackedStateHold.Update(
+                ModConfig.HoldTrackedStateKey.Value.IsPressed(),
+                ModConfig.HoldTrackedStateName.Value,
+                ModConfig.HoldTrackedStateValue.Value,
+                30f);
+
             if (ModConfig.ForceNearbyCombinatorKey.Value.IsDown())
-                DebugPeckCombinatorForce.ForceNearby(30f);
+            {
+                // Logged BEFORE the call, and on purpose. On 2026-09-18 four
+                // different keys bound to the two PeckCombinator tools
+                // produced nothing at all — no output, no exception — while
+                // other debug keys in the same Update answered normally.
+                // "The tool printed nothing" has two very different causes
+                // (the key was never seen, or the call died before its first
+                // log line) and no way to tell them apart from the outside.
+                // This line does exactly that and nothing else.
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Combinator force key pressed; calling ForceNearby...");
+                DebugPeckCombinatorForce.ForceNearby(120f);
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] ForceNearby returned.");
+            }
 
             if (ModConfig.ForceEndingFlagsKey.Value.IsDown())
                 DebugForceEndingFlags.ForceAll();
