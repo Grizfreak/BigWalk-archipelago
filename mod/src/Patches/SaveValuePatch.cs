@@ -24,6 +24,13 @@ namespace BigWalkArchipelago.Patches
     {
         private static void Postfix(string key, int value)
         {
+            // The two goal flags are looked at FIRST, and for every value
+            // including zero: the chapel door's state is the signal there,
+            // and a transition to zero may well be the one that matters
+            // (cf. ApGoalFlags) — the zero filter below would hide it.
+            if (Enum.TryParse<SavableSystem>(key, out var goalSystem))
+                ApGoalFlags.Observe(goalSystem, value);
+
             // value == 0 means "unpinned" (cf. Prop.SavePropHome in the
             // notes): this is never a check, potentially a removal.
             if (value == 0)
@@ -47,8 +54,6 @@ namespace BigWalkArchipelago.Patches
             // every SavableSystem write.
             if (!Enum.TryParse<SavableSystem>(key, out var system) || system == SavableSystem.NotSavable)
                 return;
-
-            ApGoalFlags.Latch(system);
 
             // Only the ids the apworld actually defines resolve here (the
             // seven named radio stations); ApRuntime then filters again

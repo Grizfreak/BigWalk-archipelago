@@ -32,7 +32,7 @@ namespace BigWalkArchipelago.Debug
 
         internal static void ForceAll()
         {
-            Plugin.Log.LogInfo($"[{nameof(DebugForceEndingFlags)}] Forcing EndingGate, GauntletComplete, and the 7 big keys...");
+            Plugin.Log.LogInfo($"[{nameof(DebugForceEndingFlags)}] Pinning the 7 big keys...");
 
             foreach (var bigKey in BigKeys)
             {
@@ -40,10 +40,22 @@ namespace BigWalkArchipelago.Debug
                 Plugin.Log.LogInfo($"[{nameof(DebugForceEndingFlags)}]   {bigKey} -> {(applied ? "OK" : "failed (see warning above)")}");
             }
 
-            SaveManager.SetIntValue("EndingGate", 1);
-            SaveManager.SetIntValue("GauntletComplete", 1);
-
-            Plugin.Log.LogInfo($"[{nameof(DebugForceEndingFlags)}] Done. SaveManager[EndingGate]={SaveManager.GetIntValue("EndingGate", -12345, false)}, SaveManager[GauntletComplete]={SaveManager.GetIntValue("GauntletComplete", -12345, false)}.");
+            // The two goal flags are NO LONGER written here, and the name of
+            // this tool is now a little wrong.
+            //
+            // It wrote them to test the 2026-09-10 hub-sphere hypothesis,
+            // which has long since been answered. What it kept doing was
+            // latching an Archipelago goal by accident: GauntletComplete is
+            // absent from a fresh save, so it has no load baseline, and the
+            // first write during play is taken — correctly — for the real
+            // thing (cf. ApGoalFlags). A player pressing this key to get the
+            // seven big keys was silently completing their own gauntlet
+            // goal; it happened on 2026-09-18.
+            //
+            // Pinning the big keys is the part that is actually useful, and
+            // it goes through ItemApplier like a genuine item, so nothing
+            // here fakes progress any more.
+            Plugin.Log.LogInfo($"[{nameof(DebugForceEndingFlags)}] Done. The goal flags are deliberately left alone — reach them in-game.");
         }
     }
 }
