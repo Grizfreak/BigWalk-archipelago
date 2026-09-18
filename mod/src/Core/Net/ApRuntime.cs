@@ -230,7 +230,20 @@ namespace BigWalkArchipelago.Core.Net
             if (worldReady && !_worldWasReady)
                 OnWorldBecameReady();
 
+            // The goal flags baseline themselves from the writes the game
+            // makes WHILE a world loads, so the moment to forget the old
+            // world's baseline is when it goes away, not when the next one
+            // is ready — by then the writes that matter have already been
+            // seen (cf. ApGoalFlags).
+            if (!worldReady && _worldWasReady)
+                ApGoalFlags.OnWorldUnloaded();
+
             _worldWasReady = worldReady;
+
+            // A gourd spawned last tick and meant for the player's hands is
+            // handed over now, a frame after its spawn went out on the wire
+            // (cf. ReceivedItemSpawner.DrainPendingHandover).
+            ReceivedItemSpawner.DrainPendingHandover();
 
             // Not hosting: nothing to connect, and anything queued stays
             // queued. This also covers the main menu, where there is no save
@@ -635,7 +648,20 @@ namespace BigWalkArchipelago.Core.Net
             var itemId = item.ItemId;
 
             if (itemId == ApLocationIds.GourdItemId)
-                return ItemApplier.ApplyGourdItem(toPlayer: true);
+                // Into the hands only once the session has settled. The
+                // startup burst — everything the server replays on connect,
+                // plus anything earned while this save was offline — belongs
+                // at the spawn like the reconciliation's own restock: the
+                // players walk through there on every launch anyway, and
+                // filling someone's hands during a loading screen is both
+                // startling and, with two players, a good way to have one of
+                // them holding something before they have control.
+                //
+                // _looseGourdsRestored is precisely that line: the
+                // reconciliation refuses to run while Connection.HasPendingItems,
+                // so it only latches once the whole burst is through.
+                // Anything applied after it is genuinely live.
+                return ItemApplier.ApplyGourdItem(toPlayer: _looseGourdsRestored);
 
             if (ApLocationIds.TryResolveBigKeyItem(itemId, out var propName))
                 return ItemApplier.ApplyBigKeyItem(propName);

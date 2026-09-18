@@ -54,6 +54,8 @@ namespace BigWalkArchipelago
             AddComponent<Core.VariantGourdMapUnlocker>();
             AddComponent<Core.SecondEndingSphereUnlocker>();
             AddComponent<Core.CosmeticMonumentFillTracker>();
+            AddComponent<Core.CosmeticGourdSpawnHandler>();
+            AddComponent<Core.StaleHeldPropReleaser>();
 
             if (ModConfig.DebugModeEnabled.Value)
             {

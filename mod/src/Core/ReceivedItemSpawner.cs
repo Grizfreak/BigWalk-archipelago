@@ -110,12 +110,26 @@ namespace BigWalkArchipelago.Core
                 // file.
                 rewardGourd.prop?.SetLoose();
 
-                var inHands = toPlayer && TryPutInHands(rewardGourd.prop);
+                // Handing it over is deferred by a frame rather than done
+                // here. Putting it in the hands now would put the spawn of
+                // this gourd and the player's "is holding it" SyncVar in the
+                // same frame, and the other client resolves that SyncVar's
+                // reference by netId: if it lands before the spawn has been
+                // applied there, the reference comes back null and
+                // PlayerNetworking.OnSetHeld throws on it — taking the rest
+                // of that player's SyncVar batch down with it (the "read 62
+                // bytes / hash mismatch" seen in co-op on 2026-09-15).
+                //
+                // Deferring is right whether or not that race is what caused
+                // it: the two facts have no ordering guarantee between them,
+                // and one frame is not perceptible. What the frame does NOT
+                // buy is certainty that the guest has processed the spawn by
+                // then — only that the server sent it first.
+                if (toPlayer && ModConfig.PutGourdInHands.Value)
+                    _pendingHandover = rewardGourd.prop;
 
                 Plugin.Log.LogInfo(
-                    inHands
-                        ? $"[{nameof(ReceivedItemSpawner)}] Cosmetic gourd spawned and handed to the player."
-                        : $"[{nameof(ReceivedItemSpawner)}] Cosmetic gourd spawned at {rewardGourd.transform.position}.");
+                    $"[{nameof(ReceivedItemSpawner)}] Cosmetic gourd spawned at {rewardGourd.transform.position}.");
                 return rewardGourd.gameObject;
             }
             catch (Exception ex)
@@ -259,7 +273,24 @@ namespace BigWalkArchipelago.Core
         private static RewardGourd _pendingColorRefresh;
         private static bool _colorSettingsLogged;
 
-        private static RewardGourd CreateNeutralizedClone(Vector3 position, Quaternion rotation)
+        // The assetId the cosmetic clones are spawned under. Mirror
+        // identifies a scene object by its sceneId and a dynamically spawned
+        // one by its assetId, looked up in the client's registered-prefab
+        // table; a clone of a scene object has neither that a remote client
+        // can resolve, which is why the spawn used to fail there with
+        // "did you forget to add it to the NetworkManager?" while working
+        // perfectly on the host — where nothing has to be instantiated
+        // because the object is already local. Ours is a constant of our
+        // own, matched by the handler CosmeticGourdSpawnHandler registers on
+        // every client; the value is arbitrary, only the fact that both ends
+        // agree on it matters.
+        internal const uint CosmeticAssetId = 0xB16_9A00;
+
+        // Builds the clone WITHOUT spawning it. Split out so a client can
+        // run exactly the same construction from its spawn handler: the
+        // server no longer ships the object, it ships the instruction to
+        // build one, and each machine builds its own from its own scene.
+        internal static RewardGourd BuildNeutralizedClone(Vector3 position, Quaternion rotation)
         {
             var template = FindTemplate();
             if (template == null)
@@ -364,9 +395,29 @@ namespace BigWalkArchipelago.Core
             if (cloneIdentity != null)
                 GetPrivatePropertySetter<NetworkIdentity>(nameof(NetworkIdentity.SpawnedFromInstantiate))?.Invoke(cloneIdentity, new object[] { false });
 
-            NetworkServer.Spawn(clone);
-
             RefreshCosmeticColor();
+
+            return rewardGourd;
+        }
+
+        private static RewardGourd CreateNeutralizedClone(Vector3 position, Quaternion rotation)
+        {
+            var rewardGourd = BuildNeutralizedClone(position, rotation);
+            if (rewardGourd == null)
+                return null;
+
+            // The assetId overload, rather than setting the property first:
+            // NetworkIdentity.assetId has an internal setter, and Mirror
+            // offers this exactly so a caller can say what a dynamically
+            // spawned object should be identified as.
+            NetworkServer.Spawn(rewardGourd.gameObject, CosmeticAssetId);
+
+            // The netId is what the other player's client will be asked to
+            // resolve when this gourd ends up in someone's hands, so it is
+            // worth being able to line it up against their log.
+            var identity = rewardGourd.GetComponent<NetworkIdentity>();
+            Plugin.Log.LogInfo(
+                $"[{nameof(ReceivedItemSpawner)}] Cosmetic gourd spawned on the network (netId {(identity != null ? identity.netId : 0)}).");
 
             return rewardGourd;
         }
@@ -444,14 +495,16 @@ namespace BigWalkArchipelago.Core
             return destroyed;
         }
 
-        // Destroying a prop out of someone's hands would leave the hands
-        // believing they still hold it, so it is dropped first.
+        // Destroying OR hiding a prop out of someone's hands would leave the
+        // hands believing they still hold it, so it is dropped first. Also
+        // called by GourdStatePatch, which hits exactly that case on the
+        // puzzles whose gourd goes Loose on pickup.
         //
         // Drop takes a PlayerHeldInformation, which is a struct carrying a
         // NetworkIdentity — so the parameterless-looking `Drop()` passes one
         // with a null identity and the game dereferences it. The type's own
         // constructor takes the prop, which is what it wants.
-        private static void ReleaseFromHands(Prop prop)
+        internal static void ReleaseFromHands(Prop prop)
         {
             var players = PlayerCharacter.allPlayerCharacters;
             if (prop == null || players == null)
@@ -588,18 +641,88 @@ namespace BigWalkArchipelago.Core
         // not let you carry it out. That is recovered on the next world
         // load — the ledger recomputes received-minus-deposited and puts it
         // back — but not before.
+        // Set by SpawnCosmeticPickup, consumed one tick later by ApRuntime.
+        // A single slot rather than a queue: hands hold one thing, so a
+        // second gourd arriving before the first is handed over would not
+        // have been picked up anyway.
+        private static Prop _pendingHandover;
+
+        // Called from ApRuntime's Update, which already ticks on the host.
+        internal static void DrainPendingHandover()
+        {
+            var prop = _pendingHandover;
+            if (prop == null)
+                return;
+
+            _pendingHandover = null;
+
+            if (TryPutInHands(prop))
+                Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] Cosmetic gourd handed to the player.");
+        }
+
+        // Runs on the host, and every PickUp here is a server-side call by
+        // design. playerHeldInformation is a SyncVar written by the server,
+        // so this is the only place from which a player — any player — can
+        // truthfully be given something to hold.
+        //
+        // The first attempt at handing a gourd to somebody else did it the
+        // other way round, on each client for itself, and produced a plain
+        // desync: the host saw the gourd in their own hands and the guest
+        // saw the SAME gourd in theirs (in co-op, 2026-09-16). A client
+        // calling PickUp only convinces itself.
         private static bool TryPutInHands(Prop prop)
         {
-            if (prop == null || !ModConfig.PutGourdInHands.Value)
+            if (prop == null || !ModConfig.PutGourdInHands.Value || !NetworkServer.active)
                 return false;
 
             try
             {
-                var hands = FindLocalPlayerCharacter()?.hands;
-                if (hands == null || hands.isHoldingSomething || !hands.IsSafeToPickUp(prop))
+                // The local player first: the gourd arrived for the host, it
+                // spawned at their feet, and handing it to somebody across
+                // the hub when the host could simply take it would be
+                // surprising.
+                var local = FindLocalPlayerCharacter();
+                if (TryGiveTo(local, prop))
+                    return true;
+
+                var radius = ModConfig.CosmeticGourdHandoverRadius.Value;
+                if (radius <= 0f)
                     return false;
 
-                hands.PickUp(prop);
+                // Otherwise the nearest other player with free hands, within
+                // the radius. Nearest rather than first found, so that with
+                // three players it goes to whoever is actually standing
+                // there rather than to whichever one the engine happens to
+                // list first.
+                var origin = prop.transform.position;
+                PlayerCharacter best = null;
+                var bestDistance = float.MaxValue;
+
+                var players = PlayerCharacter.allPlayerCharacters;
+                if (players == null)
+                    return false;
+
+                foreach (var pc in players)
+                {
+                    if (pc == null || pc == local || pc.hands == null || pc.hands.isHoldingSomething)
+                        continue;
+
+                    var distance = Vector3.Distance(origin, pc.transform.position);
+                    if (distance > radius || distance >= bestDistance)
+                        continue;
+
+                    best = pc;
+                    bestDistance = distance;
+                }
+
+                if (best == null)
+                    return false;
+
+                if (!TryGiveTo(best, prop))
+                    return false;
+
+                Plugin.Log.LogInfo(
+                    $"[{nameof(ReceivedItemSpawner)}] Hands full, so the gourd went to another player {bestDistance:0.0}m away.");
                 return true;
             }
             catch (Exception ex)
@@ -610,6 +733,16 @@ namespace BigWalkArchipelago.Core
                 Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] Could not hand the gourd over: {ex.Message}");
                 return false;
             }
+        }
+
+        private static bool TryGiveTo(PlayerCharacter player, Prop prop)
+        {
+            var hands = player != null ? player.hands : null;
+            if (hands == null || hands.isHoldingSomething || !hands.IsSafeToPickUp(prop))
+                return false;
+
+            hands.PickUp(prop);
+            return true;
         }
 
         private static PlayerCharacter FindLocalPlayerCharacter()

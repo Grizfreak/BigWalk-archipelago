@@ -82,6 +82,17 @@ namespace BigWalkArchipelago.Patches
 
             __instance.ServerSetGourdState(GourdFlag.GourdState.Hidden);
 
+            // Not every puzzle releases its gourd into an empty room. On the
+            // ones whose gourd is sealed in a box and freed by a remote
+            // button, the Loose transition happens ON PICKUP — the player is
+            // already holding the prop when this runs, and hiding it below
+            // would leave their hands pointing at a disabled object.
+            // Observed in co-op on 2026-09-15 with gourdTelescopeToBox: the
+            // gourd stayed in the host's hands (and only theirs — the
+            // UnSpawn did its job for the other player) until they tried to
+            // drop it, which is what severed the reference.
+            ReceivedItemSpawner.ReleaseFromHands(prop);
+
             NetworkServer.UnSpawn(__instance.gameObject);
             __instance.gameObject.SetActive(false);
         }

@@ -12,6 +12,10 @@ namespace BigWalkArchipelago
     // instance, not this static class.
     internal static class ModConfig
     {
+        internal static ConfigEntry<float> CosmeticGourdHandoverRadius;
+        internal static ConfigEntry<KeyboardShortcut> HoldTrackedStateKey;
+        internal static ConfigEntry<string> HoldTrackedStateName;
+        internal static ConfigEntry<int> HoldTrackedStateValue;
         internal static ConfigEntry<bool> DebugModeEnabled;
         internal static ConfigEntry<bool> ArchipelagoEnabled;
         internal static ConfigEntry<string> ArchipelagoHostPort;
@@ -95,6 +99,30 @@ namespace BigWalkArchipelago
                 "ShowConnectionStatus",
                 true,
                 "Shows a line in the corner of the screen when Archipelago is not connected, and briefly when it connects. Only ever appears for the host, since nobody else connects. Turn off for a clean screen — the same information stays in the BepInEx log either way.");
+
+            CosmeticGourdHandoverRadius = file.Bind(
+                "Archipelago",
+                "HandoverRadius",
+                8f,
+                "How far, in metres, a gourd arriving during play will look for another player to hand itself to when your own hands are full. The nearest player with free hands within this distance gets it; if nobody qualifies it just drops on the ground as before. 0 means only you ever get handed one.");
+
+            HoldTrackedStateKey = file.Bind(
+                "Debug",
+                "HoldTrackedStateKey",
+                new KeyboardShortcut(KeyCode.Keypad4),
+                "Holds down the nearest matching TrackedPeckState for as long as this key is held — a sustained hold, not a tap. For the sealed-box puzzles, whose door is opened by a momentary push button a second player would normally keep pressed (only has an effect if Debug.Enabled is active).");
+
+            HoldTrackedStateName = file.Bind(
+                "Debug",
+                "HoldTrackedStateName",
+                "BasicPushButton",
+                "Substring (case-insensitive) of the name of the TrackedPeckState that HoldTrackedStateKey holds. Only the NEAREST match is touched: this default is a generic name shared by buttons all over the world, and forcing every match would press buttons in puzzles you are nowhere near. Find the right name with DumpPeckSwitchTargetKey.");
+
+            HoldTrackedStateValue = file.Bind(
+                "Debug",
+                "HoldTrackedStateValue",
+                1,
+                "The state to hold it at. 1 is 'pressed' for a push button (its PeckSwitchTrigger writes 1, its UpSwitch writes 0).");
 
             DebugModeEnabled = file.Bind(
                 "Debug",
