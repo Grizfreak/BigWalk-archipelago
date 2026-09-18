@@ -15,7 +15,11 @@ namespace BigWalkArchipelago
     [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
     public class Plugin : BasePlugin
     {
-        public const string PluginGuid = "com.antonin.bigwalk.archipelago";
+        // Sert aussi de nom au fichier de config (BepInEx\config\<guid>.cfg)
+        // et d'identifiant Harmony : le changer renomme le .cfg, dont les
+        // valeurs déjà saisies (HostPort, notamment) sont alors reperdues au
+        // profit d'un fichier neuf — renommer l'ancien à la main si besoin.
+        public const string PluginGuid = "com.grizfreak.bigwalk.archipelago";
         public const string PluginName = "Big Walk Archipelago";
         public const string PluginVersion = "0.1.0";
 

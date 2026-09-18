@@ -45,7 +45,17 @@ namespace BigWalkArchipelago.Patches
             // optional: if it's still filled in, its value is still
             // written/transmitted normally (ActionStart doesn't condition
             // the write on anything else).
-            __instance.passwordRequired = false;
+            //
+            // Set through reflection, and NOT as a plain
+            // `__instance.passwordRequired = false`: the member does not
+            // exist on every build of the game. On 1.48 (binaries of
+            // 2026-08-10) it is absent, and a direct assignment throws
+            // MissingMethodException when the JIT compiles this Postfix —
+            // that is, on entry, before any try block below could catch it,
+            // taking the whole field injection down with it. Observed
+            // 2026-09-15: the hosting screen simply had no Archipelago
+            // field, with only a trampoline error in the log.
+            TrySetPasswordOptional(__instance);
 
             try
             {
@@ -55,6 +65,46 @@ namespace BigWalkArchipelago.Patches
             {
                 Plugin.Log.LogWarning(
                     $"[{nameof(HostMenuConfirmPatch)}] Failed to inject the host:port field, ignored: {ex.Message}");
+            }
+        }
+
+        // Isolated in its own method so the member lookup stays dynamic: it
+        // resolves on the build actually running, and its absence is a
+        // no-op rather than a crash. Il2CppInterop exposes IL2CPP fields as
+        // managed properties, hence the property lookup first — the field
+        // fallback covers a build where it is generated differently.
+        private static void TrySetPasswordOptional(HostMenuConfirm menu)
+        {
+            const string MemberName = "passwordRequired";
+
+            try
+            {
+                var property = AccessTools.Property(typeof(HostMenuConfirm), MemberName);
+                if (property != null && property.CanWrite)
+                {
+                    property.SetValue(menu, false, null);
+                    return;
+                }
+
+                var field = AccessTools.Field(typeof(HostMenuConfirm), MemberName);
+                if (field != null)
+                {
+                    field.SetValue(menu, false);
+                    return;
+                }
+
+                // Nothing is broken by this: the password field then stays
+                // mandatory on this build, so the player types anything to
+                // get past the screen. The Archipelago password is a
+                // separate matter (it is the same field, relabelled, and an
+                // empty AP password is accepted either way).
+                Plugin.Log.LogInfo(
+                    $"[{nameof(HostMenuConfirmPatch)}] '{MemberName}' absent on this build of the game: the password stays mandatory on the hosting screen.");
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(HostMenuConfirmPatch)}] Could not make the password optional, ignored: {ex.Message}");
             }
         }
 

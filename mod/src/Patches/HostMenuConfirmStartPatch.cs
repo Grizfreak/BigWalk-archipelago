@@ -1,3 +1,4 @@
+using System;
 using BigWalkArchipelago.Core.Net;
 using HarmonyLib;
 
@@ -91,8 +92,32 @@ namespace BigWalkArchipelago.Patches
                         Plugin.Log.LogWarning(
                             $"[{nameof(HostMenuConfirmStartPatch)}] Archipelago connection failed: {ApConnectionTest.LastError}. "
                             + "Check the address, the slot name and the password — or press Continue again to host anyway.");
-                        Flash(__instance);
+                        TryFlash(__instance);
                         break;
+                }
+            }
+
+            // Flash() is kept in its own method and called through here so
+            // that its failure stays a missing animation rather than an
+            // exception escaping this Update postfix — i.e. once per frame,
+            // exactly when a connection has just failed and the player needs
+            // the log to be readable.
+            //
+            // It fails outright on older builds of the game: gameNameFlasher
+            // and the InputWarningFlasher type are both absent on 1.48
+            // (verified against its interop assembly, 2026-09-15), so the
+            // JIT cannot even compile Flash there. The warning in the log
+            // above says everything this animation says.
+            private static void TryFlash(HostMenuConfirm menu)
+            {
+                try
+                {
+                    Flash(menu);
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogInfo(
+                        $"[{nameof(HostMenuConfirmStartPatch)}] No warning flash on this build of the game: {ex.Message}");
                 }
             }
 
