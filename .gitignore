@@ -8,6 +8,10 @@ apworld/dist/
 # Seeds jetables produites par tools/testroom.py.
 tools/out/
 
+# Zips livrables produits par tools/package-mod.ps1 (~40 Mo, reconstructibles
+# en une commande, et contiennent une copie de BepInEx).
+dist/
+
 # Caches Python (tests de l'apworld).
 __pycache__/
 *.py[cod]

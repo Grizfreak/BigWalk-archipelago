@@ -1,0 +1,21 @@
+# The two-player test pass: fast to set up, and deliberately on a slot name
+# of its own.
+#
+# A fresh slot name forces a fresh in-game save, which is the point. Reusing
+# the previous one would drag along `ap_flag_GauntletComplete` (latched by
+# PageDown on 2026-09-15) and its `ap_reported_*` keys, which are not scoped
+# to a seed and would resend checks earned in another room — skewing every
+# count being measured.
+#
+# Options as in solo-smoke: the first gourd deposited is already a check,
+# the goal is minutes away, and the 15-slot postgame monument is out of the
+# way.
+name: CoopWalk
+game: Big Walk
+Big Walk:
+  goal: deposits
+  deposit_goal_amount: 5
+  deposit_locations: all
+  green_dome_deposits: excluded
+  radio_station_checks: true
+  start_with_tutorial_key: true

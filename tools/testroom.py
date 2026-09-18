@@ -107,12 +107,23 @@ def generate(archipelago: Path, yaml_name: str, seed: int | None) -> Path:
     if seed is not None:
         command += ["--seed", str(seed)]
 
+    # Which zip is the one just produced: the one that was not there
+    # before. Sorting the folder and taking the last entry looked
+    # equivalent and is not — the names carry a random seed, so their
+    # alphabetical order says nothing about age. On 2026-09-15 that quietly
+    # hosted a three-hour-old seed, complete with its .apsave and the items
+    # already sent in it, while announcing the new one on screen.
+    before = {path.name for path in OUTPUT.glob("AP_*.zip")}
     run(command, cwd=archipelago)
 
-    archives = sorted(OUTPUT.glob("*.zip"))
-    if not archives:
-        sys.exit("Generation reported success but produced no archive.")
-    return archives[-1]
+    produced = [path for path in OUTPUT.glob("AP_*.zip") if path.name not in before]
+    if not produced:
+        sys.exit("Generation reported success but produced no new archive.")
+    if len(produced) > 1:
+        # Never expected with one YAML, but picking blind here would bring
+        # back exactly the bug above.
+        sys.exit("Generation produced several archives: " + ", ".join(p.name for p in produced))
+    return produced[0]
 
 
 def generator_command(archipelago: Path) -> list[str]:
@@ -127,8 +138,19 @@ def server_command(archipelago: Path) -> list[str]:
     return [str(archipelago / "ArchipelagoServer.exe")]
 
 
+def read_slot_name(yaml_name: str) -> str:
+    # The slot name is the YAML's `name:`, and the in-game save must match it
+    # exactly. Read rather than assumed: the files in tools/players no longer
+    # all share one slot name, and printing the wrong one sends you to type a
+    # save name the server will reject.
+    for line in (PLAYERS / yaml_name).read_text(encoding="utf-8").splitlines():
+        if line.startswith("name:"):
+            return line.split(":", 1)[1].strip()
+    sys.exit(f"No `name:` found in {yaml_name}; cannot tell what to call the save.")
+
+
 def print_cheat_sheet(yaml_name: str, port: int) -> None:
-    slot = "BigWalk"  # every file in tools/players uses this slot name
+    slot = read_slot_name(yaml_name)
     print()
     print("=" * 70)
     print("In the game's hosting screen:")

@@ -1,0 +1,23 @@
+# Aimed at one question: does the `ending` goal still fire on its own the
+# instant the world loads?
+#
+# That bug (found in co-op on 2026-09-15) came from ApGoalFlags latching on
+# the first non-zero write to EndingGate, which the game makes at world load
+# — so the seed was goaled before the player had moved. With the fix in
+# place this room must stay UNGOALED at the hosting screen, and only finish
+# when the chapel is actually reached.
+#
+# Deliberately the `ending` goal and nothing else exotic: a goal=deposits
+# room would hide the bug it is meant to expose.
+#
+# IMPORTANT: the in-game save must be named exactly like `name` below, and
+# must be a BRAND-NEW save — a save that already carries ap_flag_EndingGate
+# short-circuits the detection entirely and shows nothing.
+name: EndingWalk
+game: Big Walk
+Big Walk:
+  goal: ending
+  deposit_locations: all
+  green_dome_deposits: excluded
+  radio_station_checks: true
+  start_with_tutorial_key: true
