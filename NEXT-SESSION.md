@@ -8,111 +8,57 @@ is shaped the way it is); [`apworld/protocol.md`](apworld/protocol.md) is
 the contract between the two. This file is the short version and the
 to-do list.*
 
-## The one thing left: a second co-op session
+## Co-op is done
 
-Everything that can be verified by one person has been. What remains needs
-a second machine, and **only** a second machine — see "Why two local
-instances do not work" below.
+Everything that needed a second machine has been exercised, on 2026-09-20,
+with both installs deployed from the same build (`tools/deploy-mod.ps1`
+prints the hash and says whether they match — use it, three tests were
+wasted in one weekend on a guest running older code).
 
-Before asking someone to sit down for it, make sure of three things, or the
-session will answer the wrong questions:
+Confirmed with a second player:
 
-1. **Both machines run the same build.** `tools/deploy-mod.ps1` builds and
-   deploys to every known install in one command — the host
-   (`F:\Games\Big Walk`) and the second machine, reachable over the LAN at
-   `F:\shared\Big Walk` — then prints one SHA-256 and says whether they
-   match. That line is the point of the script: identical hashes mean a
-   behavioural difference between the two machines is a real bug; different
-   hashes mean there is nothing to conclude. Three tests were wasted in one
-   weekend on a guest running an older build.
+- A gourd the host receives appears **in the host's hands** on the guest's
+  screen, with the right colour and gravity.
+- A gourd arriving while the host's hands are full goes to the nearest
+  player with free hands, and both players see it in the right pair.
+- **Ctrl+R works while the guest is holding one**, from either side.
+- The guest **deposits into a monument** and the host records it
+  (`ap_home_monoumentIntroSlot0 = 1`), the server credits the check, and
+  an item comes back for it.
+- The guest **leaves and rejoins**: their gourds are rebuilt.
+- The **Archipelago server dying** does not break the Mirror session — the
+  host simply gets a notice on screen.
+- A gourd taken from a sealed box by the guest is released from their
+  hands by `StaleHeldPropReleaser`.
 
-   `tools/package-mod.ps1` is still what you send to someone whose folder
-   you cannot reach: it carries BepInEx, which deploy-mod.ps1 does not.
-2. **Same game version on both sides.** The mod is compiled against a newer
-   interop than 1.48 and resolves by name at runtime; a mismatch surfaces as
-   MissingMethodException, not as a compile error. Both current installs are
-   on the 1.48 binaries of 2026-08-10.
-3. **A room that is not goaled.** The server's auto-release checks every
-   location, so a goaled room makes every measurement meaningless.
-   `python tools/testroom.py --yaml coop-test.yaml` gives a fresh one on the
-   slot name `CoopWalk`.
+## What is left, all of it solo
 
-### T1 — Does the guest see a gourd in the HOST's hands?
+1. **The radio stations.** Seven locations that have never fired once in
+   the life of this project. The detection was widened into
+   `SaveValuePatch` for them and that code has never executed. Turn a
+   station on, expect `[Check] FmStation…`. The largest blind spot left.
+2. **The `deposits` goal.** Deposits are detected and credited, but
+   `Goal reported to the server` has never appeared for this goal. Deposit
+   five gourds. Do it LAST on any given room: the auto-release then checks
+   every location and the room is finished as a measuring instrument.
+3. **The `gauntlet` goal.** It is the apworld's DEFAULT, so it is the path
+   most players will take, and it has never been reached legitimately —
+   only latched by accident by the old PageDown, which no longer writes
+   those flags. Needs a room of its own.
+4. **`Archipelago/Enabled = false`.** The mod should fall back to logging
+   checks locally and break nothing. Never tried.
 
-Host's hands free, `/send CoopWalk Gourd` in the room console.
+## Small findings worth keeping
 
-Expected: the guest sees it in the host's hands, and **no**
-`PlayerNetworking.OnSetHeld` NullReferenceException or `OnDeserialize size
-mismatch` in their log.
+**Deposit checks are invisible in the log.** `ApRuntime.ReportDeposits`
+sends its location ids straight to the connection instead of going through
+`Plugin.Reporter.ReportCheck`, so no `[Check]` line is ever written for
+one. They work — the returning item is the only evidence — but they cannot
+be verified by reading the log, which is how every other check is checked.
+Worth routing through the reporter, if only for that.
 
-If the guest sees it in their OWN hands instead, they are running a build
-older than 2026-09-18 — that was `CosmeticGourdAutoPickup`, since removed.
-
-If the exception is still there, compare the two logs:
-`Cosmetic gourd spawned on the network (netId N)` on the host against
-`Cosmetic gourd built at (…)` on the guest. If the guest's line comes
-first, the object is there in time and the problem is what it is missing,
-not when it arrives — the one-frame deferral of the hand-over would then be
-the wrong fix, and should be reconsidered rather than extended.
-
-### T2 — Does the gourd fall, on the guest's screen?
-
-Same spawn, watched by the guest. It must drop under gravity, not hang in
-mid-air.
-
-This is the client-side `Prop.SetLoose()` added on 2026-09-18 and **never
-executed once**: the host never runs its own spawn handler (host mode
-instantiates nothing), so the entire guest-side build path is unexercised.
-Treat a failure here as new ground, not a regression.
-
-### T3 — Does a gourd reach a player who is not the host?
-
-Host's hands FULL, guest standing within 8m (`HandoverRadius`),
-`/send CoopWalk Gourd`.
-
-Expected on the host:
-`Hands full, so the gourd went to another player 3.2m away.`
-and the gourd in the guest's hands, seen by both.
-
-**This is the only item whose answer is genuinely unknown.** The reasoning
-is that `playerHeldInformation` is a SyncVar written by the server, so a
-host-side `PickUp` on a remote player should replicate. That is a
-reasoning, not an observation — and the symmetric reasoning about `Drop`
-turned out to be wrong on 2026-09-15, probably because the object was being
-unspawned in the same breath, which confounded that test.
-
-If it fails, there is no channel left to ask the guest's own machine to do
-it. A custom network message is closed to us (Il2CppInterop will not
-marshal a delegate taking a non-blittable struct, which is what sank the
-first spawn handler), and a client-side `PickUp` only convinces itself. The
-honest move would be to drop the feature and let the gourd lie on the
-ground, rather than keep a desync.
-
-### T4 — Physics on release, guest side
-
-The guest holds a gourd and drops it. Suspected to be a consequence of the
-SyncVar stream desynchronising after the `OnSetHeld` exception in T1; if T1
-passes and this still fails, it is a separate lead and needs its own
-investigation.
-
-## Done, and confirmed in-game
-
-Solo, on the 2026-09-18 build: the startup burst lands at the spawn and
-never in anyone's hands; a gourd received during play is handed over a
-frame later; a sealed-box puzzle reports its check and the gourd leaves the
-player's hands.
-
-Co-op, 2026-09-15/16: the guest's mod registers the spawn handler and the
-gourds now spawn for them; a gourd taken from a sealed box by the GUEST is
-released from their hands by `StaleHeldPropReleaser`.
-
-The `ending` goal, end to end: `EndingGate` goes **1 -> 2** when the chapel
-opens, and that transition is what reports the goal. Its resting value is
-already 1, which is why the old "first non-zero write" rule fired on the
-first frame of every session.
-
-The hosting screen works on game build 1.48, where `passwordRequired`,
-`gameNameFlasher` and `InputWarningFlasher` do not exist.
+**BigTV owns F7 through F11** and wins every collision. Debug keys bound
+there are simply never reached; the numeric keypad is free.
 
 ## Why two local instances do not work
 
@@ -169,6 +115,17 @@ went into remapping keys for a problem that did not exist.
 **Debug hotkeys collide across mods.** BigTV owns F7 through F11 and wins;
 our tools bound to those keys were simply never reached. The numeric keypad
 is free and proven to work here.
+
+**When the question is "what does this function do", it has a static
+answer — go and read it.** A full day went into inferring the pick-up
+chain from method names (`PickUp`, `Drop`, `SetLoose`, `SetHeld`), one
+in-game two-machine round trip per guess. Ghidra is in this repo, the
+project is already analysed, and `analyzeHeadless` with a Java script
+(this Ghidra has no Python) decompiled the answer in twenty minutes:
+`PlayerHands.PickUp` and `Prop.SetHeld` are both purely local, and the
+server half of the game's own Command, `UserCode_CmdPickUp`, writes
+`NetworkplayerHeldInformation` — the only field another machine sees. The
+guess being tested at the time would have changed nothing.
 
 **When something only misbehaves for the second player, suspect authority
 before suspecting the network.** Three separate bugs this weekend were the
