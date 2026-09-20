@@ -17,14 +17,21 @@ instances do not work" below.
 Before asking someone to sit down for it, make sure of three things, or the
 session will answer the wrong questions:
 
-1. **They have the current zip.** `tools/package-mod.ps1` produces
-   `dist/BigWalkArchipelago-<version>-<date>.zip` in one command. A build
-   older than 2026-09-18 10:20 still contains `CosmeticGourdAutoPickup`,
-   which steals the host's gourds and reproduces a bug that is already
-   fixed.
+1. **Both machines run the same build.** `tools/deploy-mod.ps1` builds and
+   deploys to every known install in one command — the host
+   (`F:\Games\Big Walk`) and the second machine, reachable over the LAN at
+   `F:\shared\Big Walk` — then prints one SHA-256 and says whether they
+   match. That line is the point of the script: identical hashes mean a
+   behavioural difference between the two machines is a real bug; different
+   hashes mean there is nothing to conclude. Three tests were wasted in one
+   weekend on a guest running an older build.
+
+   `tools/package-mod.ps1` is still what you send to someone whose folder
+   you cannot reach: it carries BepInEx, which deploy-mod.ps1 does not.
 2. **Same game version on both sides.** The mod is compiled against a newer
    interop than 1.48 and resolves by name at runtime; a mismatch surfaces as
-   MissingMethodException, not as a compile error.
+   MissingMethodException, not as a compile error. Both current installs are
+   on the 1.48 binaries of 2026-08-10.
 3. **A room that is not goaled.** The server's auto-release checks every
    location, so a goaled room makes every measurement meaningless.
    `python tools/testroom.py --yaml coop-test.yaml` gives a fresh one on the
