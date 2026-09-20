@@ -63,7 +63,19 @@ namespace BigWalkArchipelago.Core
         // the next frame (see DrainPendingLoose). Static because the handler
         // Mirror calls is static, and there is only ever one of these
         // components.
-        private static readonly List<Prop> PendingLoose = new();
+        private static readonly List<RewardGourd> PendingSpawned = new();
+
+        // When each pending clone stops being watched, by instance id.
+        private static readonly Dictionary<int, float> SettleDeadline = new();
+
+        // How long a freshly built clone is given to be claimed by its
+        // holder before it is dropped on the floor. It has to cover a round
+        // trip: the host spawns on one frame and picks up on the next, and
+        // the SyncVar saying so only reaches this machine some frames after
+        // that. Generous on purpose — the cost of waiting is a gourd that
+        // hangs still for a moment, the cost of being early is a gourd
+        // snatched out of someone's hands.
+        private const float SettleSeconds = 3f;
 
         private void Update()
         {
@@ -177,13 +189,74 @@ namespace BigWalkArchipelago.Core
         [HideFromIl2Cpp]
         private static void DrainPendingLoose()
         {
-            if (PendingLoose.Count == 0)
+            if (PendingSpawned.Count == 0)
                 return;
 
-            foreach (var prop in PendingLoose)
+            var now = Time.time;
+            var doneWith = new List<RewardGourd>();
+
+            foreach (var rewardGourd in PendingSpawned)
             {
+                if (rewardGourd == null)
+                {
+                    doneWith.Add(rewardGourd);
+                    continue;
+                }
+
+                var prop = rewardGourd.prop;
                 if (prop == null)
                     continue;
+
+                // The netId is the whole question. "This player is holding
+                // object N" travels as a netId, so a clone Mirror never
+                // registered cannot be the N in that sentence — and nothing
+                // would be logged as an error, which is exactly what we see.
+                // Printed with the holder so the two machines' logs can be
+                // laid side by side.
+                var id = rewardGourd.GetInstanceID();
+                if (!SettleDeadline.TryGetValue(id, out var deadline))
+                {
+                    deadline = now + SettleSeconds;
+                    SettleDeadline[id] = deadline;
+
+                    // Once, on the first pass over a new clone: Mirror ran
+                    // its spawn payload over the object after the handler
+                    // returned and took the colour with it. Re-applying it
+                    // every frame of the watch would be pure waste.
+                    ReceivedItemSpawner.ReapplyCosmeticLook(rewardGourd);
+                }
+
+                // Claimed by someone: leave it alone for good. SetLoose is
+                // what stops a clone hanging in mid-air, but it is also the
+                // exact opposite of being held.
+                var holder = FindHolderName(prop);
+                if (holder != null)
+                {
+                    var identity = rewardGourd.GetComponent<Mirror.NetworkIdentity>();
+                    Plugin.Log.LogInfo(
+                        $"[{nameof(CosmeticGourdSpawnHandler)}] netId {(identity != null ? identity.netId : 0)} claimed by {holder}; leaving its physics alone.");
+                    doneWith.Add(rewardGourd);
+                    continue;
+                }
+
+                // Still nobody's, and out of time: it really is lying
+                // around, so let it fall.
+                //
+                // The first version asked this question ONE frame after the
+                // spawn and acted on the answer immediately, which was
+                // always going to be wrong: one frame is how long the host
+                // takes to SEND the hand-over, not how long this machine
+                // takes to receive it. Every gourd was therefore dropped
+                // just before being told it was held, and no player ever saw
+                // anything in anyone's hands (co-op, 2026-09-20; the netIds
+                // matched on both sides, which is what ruled out everything
+                // else).
+                if (now < deadline)
+                    continue;
+
+                var timedOutIdentity = rewardGourd.GetComponent<Mirror.NetworkIdentity>();
+                Plugin.Log.LogInfo(
+                    $"[{nameof(CosmeticGourdSpawnHandler)}] netId {(timedOutIdentity != null ? timedOutIdentity.netId : 0)} unclaimed after {SettleSeconds:0}s; dropping it.");
 
                 try
                 {
@@ -194,9 +267,83 @@ namespace BigWalkArchipelago.Core
                     Plugin.Log.LogWarning(
                         $"[{nameof(CosmeticGourdSpawnHandler)}] Could not let go of a cosmetic gourd physically: {ex.Message}");
                 }
+
+                doneWith.Add(rewardGourd);
             }
 
-            PendingLoose.Clear();
+            foreach (var done in doneWith)
+            {
+                PendingSpawned.Remove(done);
+                if (done != null)
+                    SettleDeadline.Remove(done.GetInstanceID());
+            }
+        }
+
+        // Asks BOTH places a hold can be recorded, because they are not the
+        // same place on every machine.
+        //
+        // PlayerHands.heldProp is the local, gameplay-side answer: it is set
+        // on the machine whose player did the picking up. PlayerNetworking.
+        // playerHeldInformation is the networked one — a SyncVar carrying a
+        // NetworkIdentity — and on a remote client it may well be the only
+        // one that is filled in, since nothing there ever ran PickUp.
+        //
+        // Looking only at heldProp is what made this machine report "held by
+        // nobody" for three full seconds while the host was plainly holding
+        // the gourd (co-op, 2026-09-20). The netIds matched on both sides,
+        // so the object and the message were never in doubt — the question
+        // was being put to the wrong field.
+        [HideFromIl2Cpp]
+        private static string FindHolderName(Prop prop)
+        {
+            var players = PlayerCharacter.allPlayerCharacters;
+            if (players == null || prop == null)
+                return null;
+
+            var propIdentity = prop.GetComponent<Mirror.NetworkIdentity>();
+
+            foreach (var pc in players)
+            {
+                if (pc == null)
+                    continue;
+
+                if (pc.hands != null && pc.hands.heldProp == prop)
+                    return pc.gameObject.name;
+
+                var networking = pc.playerNetworking;
+                if (networking == null || propIdentity == null)
+                    continue;
+
+                try
+                {
+                    var held = networking.playerHeldInformation;
+                    if (held.identity != null && held.identity == propIdentity)
+                        return $"{pc.gameObject.name} (via SyncVar)";
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning(
+                        $"[{nameof(CosmeticGourdSpawnHandler)}] Could not read a player's held information: {ex.Message}");
+                }
+            }
+
+            return null;
+        }
+
+        [HideFromIl2Cpp]
+        private static bool IsHeldByAnyone(Prop prop)
+        {
+            var players = PlayerCharacter.allPlayerCharacters;
+            if (players == null)
+                return false;
+
+            foreach (var pc in players)
+            {
+                if (pc != null && pc.hands != null && pc.hands.heldProp == prop)
+                    return true;
+            }
+
+            return false;
         }
 
         // Mirror hands over where to put it and takes back the object to
@@ -218,8 +365,7 @@ namespace BigWalkArchipelago.Core
                     Plugin.Log.LogInfo(
                         $"[{nameof(CosmeticGourdSpawnHandler)}] Cosmetic gourd built at {position}.");
 
-                    if (rewardGourd.prop != null)
-                        PendingLoose.Add(rewardGourd.prop);
+                    PendingSpawned.Add(rewardGourd);
 
                     return rewardGourd.gameObject;
                 }

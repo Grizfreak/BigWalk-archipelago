@@ -241,6 +241,26 @@ namespace BigWalkArchipelago.Core
             }
         }
 
+        // Re-applies the cosmetic look after Mirror has finished spawning the
+        // object on a client.
+        //
+        // BuildNeutralizedClone already colours the clone, and on the host
+        // that is enough. On a client it is not: the handler returns the
+        // object and Mirror THEN runs the spawn payload over it —
+        // OnStartClient, the gourdState SyncVar, the RewardGourd's own
+        // initialisation — which puts the template's appearance back. The
+        // gourd came out glaring white instead of orange on the second
+        // player's screen (co-op, 2026-09-20) while looking correct on the
+        // host, which is exactly the shape of "something ran after us".
+        internal static void ReapplyCosmeticLook(RewardGourd rewardGourd)
+        {
+            if (rewardGourd == null)
+                return;
+
+            ApplyCosmeticColor(rewardGourd);
+            RefreshCosmeticColor();
+        }
+
         // Logged once per session: if the colour above does not take, these
         // are the shader properties the game actually drives, and the next
         // fix can target one by name instead of guessing.
@@ -656,8 +676,14 @@ namespace BigWalkArchipelago.Core
 
             _pendingHandover = null;
 
+            // With the netId, so this line can be matched against the other
+            // machine's "Clone settled: netId N" — the only way to tell
+            // "the guest never got the object" from "the guest got a
+            // different object" apart.
+            var identity = prop.GetComponent<NetworkIdentity>();
             if (TryPutInHands(prop))
-                Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] Cosmetic gourd handed to the player.");
+                Plugin.Log.LogInfo(
+                    $"[{nameof(ReceivedItemSpawner)}] Cosmetic gourd handed over (netId {(identity != null ? identity.netId : 0)}).");
         }
 
         // Runs on the host, and every PickUp here is a server-side call by
@@ -735,14 +761,80 @@ namespace BigWalkArchipelago.Core
             }
         }
 
+        // PickUp, then a check that it actually took on the network — and
+        // Prop.SetHeld as a fallback if it did not.
+        //
+        // PlayerHands.PickUp alone leaves the other player seeing nothing at
+        // all. Measured on 2026-09-20 with both logs side by side: the clone
+        // existed on the guest under the SAME netId the host had handed
+        // over, and stayed unclaimed for three full seconds — neither
+        // hands.heldProp nor the playerHeldInformation SyncVar ever pointed
+        // at it there. So PickUp is the local, input-side half of picking
+        // something up, and is not by itself what publishes the hold.
+        //
+        // Prop.SetHeld(PlayerCharacter) is its counterpart on the Prop, the
+        // sibling of the SetLoose and SetFixed this file already relies on.
+        // It is called only when PickUp has visibly failed to set the
+        // SyncVar, so on a build where PickUp does the whole job nothing
+        // changes.
         private static bool TryGiveTo(PlayerCharacter player, Prop prop)
         {
             var hands = player != null ? player.hands : null;
             if (hands == null || hands.isHoldingSomething || !hands.IsSafeToPickUp(prop))
                 return false;
 
+            // Local effects, on this machine.
             hands.PickUp(prop);
+
+            // And the one write that other machines can see. Decompiled from
+            // the game on 2026-09-20 rather than guessed at, after a day of
+            // guessing: PlayerNetworking.UserCode_CmdPickUp — the SERVER
+            // side of the game's own pick-up Command — validates with
+            // IsSafeToPickUp and then does exactly this, sets
+            // NetworkplayerHeldInformation. Neither PlayerHands.PickUp nor
+            // Prop.SetHeld touches it; both are purely local, which is why
+            // the guest saw the clone under the right netId and still
+            // reported it unheld for three seconds.
+            //
+            // A Command cannot be sent on another client's behalf, and does
+            // not need to be: this is a SyncVar, and writing it is the
+            // server's prerogative.
+            try
+            {
+                player.playerNetworking.NetworkplayerHeldInformation = new PlayerHeldInformation(prop);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(ReceivedItemSpawner)}] Could not publish the hold to the other players: {ex.Message}");
+            }
+
+            if (!HoldIsPublished(player, prop))
+                Plugin.Log.LogWarning(
+                    $"[{nameof(ReceivedItemSpawner)}] The hold did not take on the network; the other player will not see this gourd in anyone's hands.");
+
             return true;
+        }
+
+        // "Published" means the networked field, not the local one: that is
+        // the only one another machine can read.
+        private static bool HoldIsPublished(PlayerCharacter player, Prop prop)
+        {
+            try
+            {
+                var networking = player.playerNetworking;
+                var identity = prop.GetComponent<NetworkIdentity>();
+                if (networking == null || identity == null)
+                    return false;
+
+                var held = networking.playerHeldInformation;
+                return held.identity != null && held.identity == identity;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] Could not read the published hold: {ex.Message}");
+                return false;
+            }
         }
 
         private static PlayerCharacter FindLocalPlayerCharacter()
