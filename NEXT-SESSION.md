@@ -124,15 +124,12 @@ All of it in play, on a real server, with the log to match:
 5. **Reload the world** with a feature granted: `KeyFeatures.RearmFromLedger`
    should re-open it, because nothing in the game persists these.
 
-### The one assumption left unmeasured
+### The assumption that was left unmeasured, and no longer is
 
-**Is every key-cutting station reachable without a big key?** The 25 cut
-locations all sit in the overworld on that assumption — the same assumption
-this world made about the whole island until it turned out to be false and
-made seeds unbeatable. Ctrl+K now lists every `UnlockTrailStation` sorted by
-distance for exactly this: stand past the chairlift, read them, then stand
-somewhere plainly open and read them again. If one is gated, its tower's cuts
-move to that region in `apworld/bigwalk/locations.py`.
+**Is every key-cutting station reachable without a big key? Yes** — all five
+trails, confirmed in play on 2026-09-21. The 25 cut locations stay in the
+overworld, and this was the last thing left in this world that could still
+have made a seed unbeatable.
 
 ## Task 2 — the island's objects as items
 
@@ -257,9 +254,6 @@ is "does this replicate to a second client", and it has only one.
 - ~~**Do `FmStation7/8/9` exist at all?**~~ **Settled (2026-09-21)**: they
   exist in `SavableSystem` (37–39), and nothing suggests they are wired to
   anything. Left out, on both sides.
-- **Is every key-cutting station reachable without a big key?** See Task 1.
-  Unmeasured, and of the same shape as the bug that broke seeds on
-  2026-09-21.
 - **`ap_reported_*` is not scoped to a seed**, so a save reconnected to a
   *different* seed resends checks earned elsewhere. Harmless in real use,
   where a save belongs to one seed — but it will skew a count during

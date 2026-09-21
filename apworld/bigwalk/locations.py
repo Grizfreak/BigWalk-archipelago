@@ -83,15 +83,17 @@ def create_all_locations(world: BigWalkWorld) -> None:
 
     # The 25 cut segments, in the overworld beside the deposit they lead to.
     #
-    # UNVERIFIED, and knowingly so: nobody has stood in the gated zones and
-    # checked where the cutting stations are. The claim being made is that
-    # every `UnlockTrailStation` is reachable without any big key, which is
-    # the same claim this file made about the whole island until 2026-09-21,
-    # when it turned out to be false and made seeds unbeatable. The mod's
-    # Ctrl+K dump now lists every station sorted by distance to the player,
-    # which is exactly how the chairlift question was settled — if a station
-    # turns out to sit behind a door, its tower's cuts belong in that door's
-    # region, and this is the line to change.
+    # VERIFIED IN PLAY (2026-09-21): every one of the five cutting trails is
+    # reachable without any big key. This was the last thing in this world
+    # that could still have made a seed unbeatable, and it deserved checking
+    # rather than assuming — the identical claim about the puzzles turned
+    # out to be false earlier the same day, and cost a seed-breaking bug.
+    #
+    # If a future update moves a trail, the mod's Ctrl+K dump lists every
+    # `UnlockTrailStation` sorted by distance to the player, which is how
+    # both this question and the chairlift one were settled: stand in the
+    # gated zone, read the distances, then stand somewhere plainly open and
+    # read them again. This is the line that would change.
     overworld.add_locations(
         {name: LOCATION_NAME_TO_ID[name]
          for tower in world.towers for name in data.cut_locations(tower)},

@@ -335,15 +335,10 @@ existed only to hedge this has been removed.*
 - **Does the tutorial drawbridge really gate the way out?** If it does not,
   `start_with_tutorial_key: false` becomes safe and the Drawbridge can be
   shuffled.
-- **Is every key-cutting station reachable without a big key?** The 25 cut
-  locations added in §12 all sit in the overworld, on that assumption. It is
-  the same assumption this world made about the whole island until
-  2026-09-21, when it turned out to be false and made seeds unbeatable — so
-  it deserves the same treatment rather than the benefit of the doubt. The
-  mod's Ctrl+K dump now lists every `UnlockTrailStation` sorted by distance
-  to the player, which is exactly how the chairlift question was settled:
-  stand in the gated zone, read the distances, then stand somewhere plainly
-  open and read them again.
+- ~~**Is every key-cutting station reachable without a big key?**~~
+  **Settled in play (2026-09-21): yes**, all five trails. The 25 cut
+  locations therefore stay in the overworld. This was the last assumption
+  left in this world that could still have made a seed unbeatable.
 - ~~Can the Green Dome's monument be completed with fewer than 15 gourds?~~
   **Settled by removing the question (2026-09-15)**: the `limited` option
   claimed 6 would do, and nothing mod-side made that true — the monument is

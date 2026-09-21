@@ -440,12 +440,11 @@ first pass all stand.
 
 ## Open points carried forward
 
-**One assumption left unmeasured**, and deliberately flagged rather than
-quietly taken: the 25 cut locations all sit in the overworld, which assumes
-every cutting station is reachable without a big key. That is the same
-assumption that turned out to be false for the puzzles on 2026-09-21 and made
-seeds unbeatable, so it deserves the same measurement — the Ctrl+K dump now
-lists every `UnlockTrailStation` sorted by distance for exactly that.
+**That assumption is now measured.** The 25 cut locations sit in the
+overworld because every one of the five cutting trails is reachable without
+a big key — confirmed in play on 2026-09-21. It was worth checking rather
+than assuming: the identical claim about the puzzles turned out to be false
+earlier the same day and had made seeds unbeatable.
 
 ## Explicitly set aside
 
