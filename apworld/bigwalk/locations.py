@@ -41,13 +41,32 @@ class BigWalkLocation(Location):
     game = "Big Walk"
 
 
+def gated_regions() -> dict[str, str]:
+    """
+    Which region each location behind a big key belongs in, keyed by location
+    name. Everything not in here lives in the overworld.
+
+    Built from data.py rather than listed here, because the membership is
+    measured in game (see the "What sits behind a big key" section there) and
+    two places holding the same list is how they drift apart.
+    """
+    mapping = {name: regions.CHAIRLIFT_ZONE for name in data.chairlift_locations()}
+    mapping.update({name: regions.TUNNEL_ZONE for name in data.tunnel_locations()})
+    return mapping
+
+
 def create_all_locations(world: BigWalkWorld) -> None:
     overworld = world.get_region(world.origin_region_name)
+    gated = gated_regions()
 
-    overworld.add_locations(
-        {puzzle.location_name: LOCATION_NAME_TO_ID[puzzle.location_name] for puzzle in data.PUZZLES},
-        BigWalkLocation,
-    )
+    def place(location_names: list[str]) -> None:
+        """Puts each location in its own region, which is the overworld unless
+        a big key stands between the players and it."""
+        for name in location_names:
+            region = world.get_region(gated.get(name, world.origin_region_name))
+            region.add_locations({name: LOCATION_NAME_TO_ID[name]}, BigWalkLocation)
+
+    place([puzzle.location_name for puzzle in data.PUZZLES])
 
     # A key deposit sits at the foot of its own tower, all of which are open
     # from the start: nothing in the game locks a tower's entrance, and the mod
@@ -59,11 +78,7 @@ def create_all_locations(world: BigWalkWorld) -> None:
     )
 
     if world.options.radio_station_checks:
-        overworld.add_locations(
-            {station.location_name: LOCATION_NAME_TO_ID[station.location_name]
-             for station in data.RADIO_STATIONS},
-            BigWalkLocation,
-        )
+        place([station.location_name for station in data.RADIO_STATIONS])
 
     overworld.add_locations(
         {data.deposit_location_name(amount): LOCATION_NAME_TO_ID[data.deposit_location_name(amount)]

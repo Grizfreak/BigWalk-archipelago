@@ -86,6 +86,19 @@ def set_entrance_rules(world: BigWalkWorld) -> None:
         Has(data.BLACK_MONOLITH.item_name),
     )
 
+    # Found in play on 2026-09-21, and the reason this world had a
+    # seed-breaking bug: the chairlift and the tunnels are not scenery, they
+    # are doors. Without these two rules nothing stopped generation putting
+    # the Green Cup Key past the chairlift it opens.
+    world.set_rule(
+        world.get_entrance(regions.CHAIRLIFT_ENTRANCE),
+        Has(data.GREEN_CUP.item_name),
+    )
+    world.set_rule(
+        world.get_entrance(regions.TUNNEL_ENTRANCE),
+        Has(data.YELLOW_TWIST.item_name),
+    )
+
 
 def set_completion_rule(world: BigWalkWorld) -> None:
     if world.options.goal == Goal.option_deposits:

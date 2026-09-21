@@ -22,9 +22,15 @@ class TestDefaultPool(BigWalkTestBase):
         self.assertTrue(self.can_reach_location("Drawbridge Key Deposit"))
 
     def test_puzzles_need_nothing(self) -> None:
-        # No received item ever gates a puzzle: solving one is always possible.
-        self.assertTrue(self.can_reach_location("Cabin Fever"))
-        self.assertTrue(self.can_reach_location("Poet and Pontiff"))
+        # No received item gates a puzzle *by being a puzzle*: solving one is
+        # always possible once you can stand in front of it. The exception is
+        # geography, not logic — the purple gourds are past the chairlift, so
+        # they are excluded here and covered by test_regions.py instead.
+        gated = set(data.chairlift_locations()) | set(data.tunnel_locations())
+        for puzzle in data.PUZZLES:
+            if puzzle.location_name in gated:
+                continue
+            self.assertTrue(self.can_reach_location(puzzle.location_name), puzzle.location_name)
 
 
 class TestGreenDomeExcluded(BigWalkTestBase):

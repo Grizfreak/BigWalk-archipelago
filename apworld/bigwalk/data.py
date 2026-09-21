@@ -172,6 +172,12 @@ TOWERS: tuple[Tower, ...] = (
 GREEN_DOME = TOWERS[-1]
 """The Green Dome tower (`bigKeyOverflow`), the postgame/true-ending key."""
 
+GREEN_CUP = TOWERS[2]
+"""The Green Cup tower (`bigKeyGreenZone`); its key opens the chairlift."""
+
+YELLOW_TWIST = TOWERS[4]
+"""The Yellow Twist tower (`bigKeyYellowZone`); its key opens the tunnels."""
+
 BLACK_MONOLITH = TOWERS[5]
 """The Black Monolith tower (`bigKeyBoss`); its key opens the way to the ending."""
 
@@ -234,6 +240,50 @@ RADIO_STATIONS: tuple[RadioStation, ...] = (
     RadioStation("FmStationAFJ", 35, "Radio Station: Mallets", "Radio Music: Mallets"),
     RadioStation("FmStationFourthSpace", 36, "Radio Station: Breathwork", "Radio Music: Breathwork"),
 )
+
+# --------------------------------------------------------------------------
+# What sits behind a big key
+# --------------------------------------------------------------------------
+# Found in play on 2026-09-21, and it is why regions.py gained two regions.
+# Until then the world claimed the island was open apart from the ending,
+# which let generation place the Green Cup Key behind the chairlift that key
+# opens — an unbeatable seed, not a rough edge.
+#
+# These lists hold the game's own identifiers (`prop_name` for a puzzle,
+# `system_name` for a station), not the player-facing names, so a later
+# rename cannot silently empty them.
+#
+# STILL TO MEASURE. The mod's Ctrl+V dump prints every loaded RewardGourd
+# with its `isVariantChallenge` flag; pressed past the chairlift and again
+# somewhere plainly open, the difference is exactly CHAIRLIFT_PUZZLES. Until
+# it is filled these stay empty, and an empty gate changes nothing — which is
+# the honest state, rather than a guess that would look like logic.
+
+CHAIRLIFT_PUZZLES: tuple[str, ...] = ()
+"""`SaveablePropName` of each puzzle past the chairlift — the purple gourds."""
+
+CHAIRLIFT_RADIO: str | None = None
+"""`SavableSystem` of the station past the chairlift, or None if there is none."""
+
+TUNNEL_RADIO: str | None = None
+"""`SavableSystem` of the station past the tunnels, or None if there is none."""
+
+
+def chairlift_locations() -> tuple[str, ...]:
+    """Player-facing names of every location behind the Green Cup Key."""
+    return _locations_for(CHAIRLIFT_PUZZLES, CHAIRLIFT_RADIO)
+
+
+def tunnel_locations() -> tuple[str, ...]:
+    """Player-facing names of every location behind the Yellow Twist Key."""
+    return _locations_for((), TUNNEL_RADIO)
+
+
+def _locations_for(puzzle_prop_names: tuple[str, ...], radio_system: str | None) -> tuple[str, ...]:
+    names = [puzzle.location_name for puzzle in PUZZLES if puzzle.prop_name in puzzle_prop_names]
+    names += [station.location_name for station in RADIO_STATIONS if station.system_name == radio_system]
+    return tuple(names)
+
 
 # --------------------------------------------------------------------------
 # Goal flags (SavableSystem)
