@@ -49,6 +49,8 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> ToggleNeverCullKey;
         internal static ConfigEntry<KeyboardShortcut> ForceCosmeticPinKey;
         internal static ConfigEntry<KeyboardShortcut> DumpHostMenuConfirmKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpRadioKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpKeysKey;
 
         internal static void Bind(ConfigFile file)
         {
@@ -273,6 +275,18 @@ namespace BigWalkArchipelago
                 "DumpHostMenuConfirmKey",
                 new KeyboardShortcut(KeyCode.M),
                 "Dumps the full hierarchy of the hosting screen (HostMenuConfirm) — press while on this screen, before coding an addition of the AP host:port field on it (only has an effect if Debug.Enabled is active).");
+
+            DumpRadioKey = file.Bind(
+                "Debug",
+                "DumpRadioKey",
+                new KeyboardShortcut(KeyCode.B, KeyCode.LeftControl),
+                "Logs the radio dial (FmRadioManager.stationTrackGroups, one line per slot with its unlock state), every BroadcastStation currently loaded with the SavableSystem its peck system writes, and this save's station ledger. Answers the one question the decompilation could not: whether the dial is ordered like the FmStation* enum, which is what Core/RadioStations.cs falls back on when no tower is loaded. Letter + LeftControl because that is the only key format proven to register reliably in this game (only has an effect if Debug.Enabled is active).");
+
+            DumpKeysKey = file.Bind(
+                "Debug",
+                "DumpKeysKey",
+                new KeyboardShortcut(KeyCode.K, KeyCode.LeftControl),
+                "Logs everything the \"big keys as forage checks\" design needs: every KeyBlank loaded (which key, how many segments and which are cut, its finishedPropGroup), every big-key plinth with the PropGroup it accepts and the TrackedPeckState it drives when filled, and what each key prop currently carries. Answers how many locations the apworld would gain, whether skipping RefreshPropGroup is enough to keep an uncut key out of its socket, and whether a feature switch exists separately from the key (only has an effect if Debug.Enabled is active).");
         }
     }
 }

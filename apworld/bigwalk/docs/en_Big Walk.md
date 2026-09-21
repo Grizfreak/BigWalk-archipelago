@@ -23,6 +23,16 @@ Big keys work the other way around from gourds: each one is still itself. A
 "Red Funnel Key" received from the multiworld really is the Red Funnel's key,
 and the mod places it in its plinth for you, opening the door on the spot.
 
+The radio works like the puzzles rather than like the keys. Switching a station
+on at its tower sends the check, but the music stays off until the matching
+Radio Music item reaches you — so a station, like a gourd, is something another
+player gives you. Turn `radio_station_items` off in your YAML to keep the
+vanilla radio, where switching a station on plays it straight away.
+
+One wrinkle if you are not the host: only the host's game talks to Archipelago,
+so only the host's radio waits for the item. A guest hears a station as soon as
+somebody switches it on.
+
 A few things are handed to you for free so a randomized run does not start
 behind a wall: the hub shortcuts are open from the first session on a save,
 purple postgame gourds show on the map from the start, and the sphere that
@@ -57,6 +67,9 @@ Items:
 - **Gourd** — the generic monument currency. There are exactly as many as there
   are monument slots in play.
 - The 7 big keys.
+- The 7 Radio Music items, each of which starts one station playing
+  (optional). They are named after the music itself: the game's dial shows
+  numbers and no names, so this is the only place a station is ever named.
 - Postcards, souvenir pebbles and novelty keychains, which do nothing at all.
 
 ## Which items can be in another player's world?
@@ -73,4 +86,5 @@ keep one open.
 
 A gourd drops at the hub as a physical prop you can pick up and carry. A big
 key goes straight into its plinth, and whatever that key opens opens
-immediately. Everything else is silent.
+immediately. A Radio Music item starts its station playing, wherever you are — and it
+stays available for the rest of the run. Everything else is silent.

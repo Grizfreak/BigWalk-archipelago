@@ -1,0 +1,29 @@
+# The radio-as-an-item pass. A slot name of its own, and it matters twice
+# over.
+#
+# `ap_reported_*` is not scoped to a seed, and the solo session of 2026-09-21
+# already reported all seven `FmStation*`. Reusing that save would mean step 2
+# of the test — switch a station on, watch the check go out — silently does
+# nothing, because CheckTracker is one-way and persistent. A fresh slot name
+# forces a fresh save, which is the only way to see the check fire.
+#
+# It also starts `ap_radio_*` empty, so every station is suppressed at the
+# outset and the music is something the server has to hand over.
+#
+# `radio_station_items` is written out even though it is the default: it is
+# the thing under test, and a YAML that states it can be diffed against one
+# that turns it off.
+#
+# Otherwise tuned like solo-smoke: the first gourd deposited is already a
+# check, the goal is minutes away, and the 15-slot postgame monument is out
+# of the way — the room is scaffolding here, not the point.
+name: RadioWalk
+game: Big Walk
+Big Walk:
+  goal: deposits
+  deposit_goal_amount: 5
+  deposit_locations: all
+  green_dome_deposits: excluded
+  radio_station_checks: true
+  radio_station_items: true
+  start_with_tutorial_key: true

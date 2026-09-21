@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 ITEM_NAME_TO_ID: dict[str, int] = {
     data.GOURD_ITEM_NAME: data.BASE_ID + 1,
     **{tower.item_name: data.key_item_id(tower) for tower in data.TOWERS},
+    **{station.item_name: data.radio_item_id(station) for station in data.RADIO_STATIONS},
     **{name: data.BASE_ID + offset for name, offset in data.FILLER_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.TRAP_ITEMS},
 }
@@ -24,8 +25,11 @@ ITEM_NAME_TO_ID: dict[str, int] = {
 FILLER_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.FILLER_ITEMS)
 TRAP_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.TRAP_ITEMS)
 
+RADIO_ITEM_NAMES: tuple[str, ...] = tuple(station.item_name for station in data.RADIO_STATIONS)
+
 ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Big Keys": {tower.item_name for tower in data.TOWERS},
+    "Radio Music": set(RADIO_ITEM_NAMES),
     "Filler": set(FILLER_ITEM_NAMES),
     "Traps": set(TRAP_ITEM_NAMES),
 }
@@ -44,6 +48,9 @@ def classification_for(name: str) -> ItemClassification:
         return ItemClassification.progression
     if name in TRAP_ITEM_NAMES:
         return ItemClassification.trap
+    # A Radio Music item starts a piece of music playing and nothing else: no
+    # rule in this world or any other can ever require one, so it is filler
+    # that happens to do something, not a useful item.
     return ItemClassification.filler
 
 
@@ -68,6 +75,11 @@ def create_all_items(world: BigWalkWorld) -> None:
             world.push_precollected(world.create_item(tower.item_name))
             continue
         pool.append(world.create_item(tower.item_name))
+
+    # Seven Radio Music items displace seven filler rather than adding to the
+    # pool: the count below is what balances it, so nothing special is needed.
+    if world.options.radio_station_items:
+        pool += [world.create_item(station.item_name) for station in data.RADIO_STATIONS]
 
     unfilled = len(world.multiworld.get_unfilled_locations(world.player))
     pool += [world.create_filler() for _ in range(unfilled - len(pool))]

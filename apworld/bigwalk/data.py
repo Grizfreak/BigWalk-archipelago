@@ -190,24 +190,49 @@ MAX_MONUMENT_SLOTS = BASE_MONUMENT_SLOTS + GREEN_DOME.slots
 # the ones with real names. FmStation7/8/9 look like unused placeholders, so
 # they are left out: a location the game can never check makes a seed
 # unbeatable, which is a far worse failure than three missing checks.
+#
+# A station is both a location and an item. Switching one on in the game is
+# the check; the music itself only starts once the matching item arrives, so
+# the radio stops being the one check in this world that rewards itself. The
+# mod suppresses the local unlock for exactly as long as the item is missing
+# (see ../protocol.md and the BroadcastStation notes in the mod).
 
 
 class RadioStation(NamedTuple):
     system_name: str
     """`SavableSystem` enum name, the literal `SaveManager` key the game writes."""
     system_value: int
-    """`SavableSystem` enum value; location id is BASE_ID + RADIO_ID_OFFSET + this."""
+    """`SavableSystem` enum value; both ids are BASE_ID + RADIO_ID_OFFSET + this."""
     location_name: str
+    """Player-facing name of the location "this station was switched on"."""
+    item_name: str
+    """Player-facing name of the item that actually starts the music playing."""
 
+
+# NAMES DO NOT FOLLOW THE ENUM. Measured in game on 2026-09-21 (the mod's
+# Ctrl+B dump): the `FmStation*` names are internal labels that mostly do not
+# describe the music the station plays. `FmStationBreathwork` broadcasts
+# `musicGroup_bobby`, `FmStationFourthSpace` broadcasts `musicGroup_breathwork`,
+# `FmStationSleuthFm` broadcasts `musicGroup_FourthSpace`, and so on — only
+# DanceFm and JourneyBeat line up with their own name.
+#
+# The names below are therefore taken from the MusicGroup each station really
+# plays, because that is what the player receives. The game itself shows no
+# station names at all (the radio dial displays numbers), so nothing in the
+# world contradicts this choice — it is an Archipelago convention, and the
+# honest one.
+#
+# `system_name` stays the enum value: it is the SaveManager key and the id
+# arithmetic, and it must never be "corrected" to match the display name.
 
 RADIO_STATIONS: tuple[RadioStation, ...] = (
-    RadioStation("FmStationSleuthFm", 30, "Radio Station: Sleuth FM"),
-    RadioStation("FmStationKosmische", 31, "Radio Station: Kosmische"),
-    RadioStation("FmStationDanceFm", 32, "Radio Station: Dance FM"),
-    RadioStation("FmStationBreathwork", 33, "Radio Station: Breathwork"),
-    RadioStation("FmStationJourneyBeat", 34, "Radio Station: Journey Beat"),
-    RadioStation("FmStationAFJ", 35, "Radio Station: AFJ"),
-    RadioStation("FmStationFourthSpace", 36, "Radio Station: Fourth Space"),
+    RadioStation("FmStationSleuthFm", 30, "Radio Station: Fourth Space", "Radio Music: Fourth Space"),
+    RadioStation("FmStationKosmische", 31, "Radio Station: Bristol", "Radio Music: Bristol"),
+    RadioStation("FmStationDanceFm", 32, "Radio Station: Dance FM", "Radio Music: Dance FM"),
+    RadioStation("FmStationBreathwork", 33, "Radio Station: Bobby", "Radio Music: Bobby"),
+    RadioStation("FmStationJourneyBeat", 34, "Radio Station: Journey Beat", "Radio Music: Journey Beat"),
+    RadioStation("FmStationAFJ", 35, "Radio Station: Mallets", "Radio Music: Mallets"),
+    RadioStation("FmStationFourthSpace", 36, "Radio Station: Breathwork", "Radio Music: Breathwork"),
 )
 
 # --------------------------------------------------------------------------
@@ -227,10 +252,10 @@ GAUNTLET_COMPLETE_SYSTEM = "GauntletComplete"
 # --------------------------------------------------------------------------
 # Filler and traps
 # --------------------------------------------------------------------------
-# The mod materializes exactly two things today: a generic cosmetic gourd and a
-# big key. Everything below is inert by design — the client applies no effect
-# for it — so these names exist purely to fill the pool with something readable
-# for the other players in the multiworld.
+# The mod materializes three things today: a generic cosmetic gourd, a big key
+# and a radio station. Everything below is inert by design — the client applies
+# no effect for it — so these names exist purely to fill the pool with something
+# readable for the other players in the multiworld.
 
 FILLER_ITEMS: tuple[tuple[str, int], ...] = (
     ("Postcard", 9_001),
@@ -260,6 +285,14 @@ def key_item_id(tower: Tower) -> int:
 
 
 def radio_location_id(station: RadioStation) -> int:
+    return BASE_ID + RADIO_ID_OFFSET + station.system_value
+
+
+def radio_item_id(station: RadioStation) -> int:
+    # Same number as the location, as for the big keys above: item ids and
+    # location ids are separate namespaces in Archipelago, and reusing the
+    # game's own enum value in both keeps the mod's arithmetic to one rule
+    # per category instead of two.
     return BASE_ID + RADIO_ID_OFFSET + station.system_value
 
 

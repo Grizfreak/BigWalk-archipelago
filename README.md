@@ -42,4 +42,8 @@ tester (solo puis à deux), les questions encore ouvertes et les pistes
 - [x] Tous les chemins éprouvés en jeu : check sortant depuis une vraie
       énigme, item entrant, big key, dépôts, goal, reconstruction des
       gourdes, survie à une coupure réseau, et récupération sur save neuve
-- [ ] Partie complète de bout en bout, et première session à deux joueurs
+- [x] Session à deux joueurs (2026-09-20) et les trois goals confirmés de
+      bout en bout (2026-09-21) : `gauntlet`, `ending`, `deposits`
+- [x] Stations radio en items (2026-09-21) — éprouvé en jeu de bout en bout :
+      suppression locale, octroi par l'item, survie au ré-hébergement et au
+      redémarrage. Cf. `apworld/protocol.md` §11

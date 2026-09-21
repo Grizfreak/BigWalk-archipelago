@@ -402,6 +402,8 @@ see [`../apworld/design-decisions.md`](../apworld/design-decisions.md).
   `Enum.TryParse<SavableSystem>` (in addition to `SaveablePropName` already
   handled), report a check when it matches. No item materialization needed
   (detection only). (Design decision: see `apworld/design-decisions.md`.)
+  **RESOLVED (2026-09-21)**: the seven checks fired in game on 2026-09-20, and
+  the stations have since become items as well — see "The radio" below.
 - **`Config.cs`** — add the AP server config entries (address, slot name,
   password) once the network client exists; possibly expose this in the
   in-game hosting menu rather than a `.cfg` file — **RESOLVED (2026-09-15)**,
@@ -1862,6 +1864,195 @@ search on nearby components, then inspecting `PeckDevHelper.
 unlockRules`/`fireWith*` fields, then `TrackedPeckState.savableSystem`/
 `saveIdentity`, then `PeckSwitch.trackedStateSystem` — the Unity reference
 assigned in the editor, not deducible by proximity).
+
+## The radio — how a station is unlocked (decompiled 2026-09-21)
+
+Written before touching the game, for once, and it paid: the question this
+started from ("does writing `FmStation*` back to 0 stop the music?") has a flat
+answer of **no**, and one decompilation session was cheaper than the full test
+cycle that would have found that out.
+
+The cast:
+
+| Class | Role |
+|---|---|
+| `BroadcastStation` | The tower. Holds `musicGroup`, a `peckSystemReference`, and the tower's own radio prop. |
+| `FmRadioManager` | Scene singleton. `stationTrackGroups` (the dial), `_stationStates`, `_stationUnlockTimes`, the static `onChange`/`onUnlock` actions. |
+| `FmRadioPlayer` | The portable radio: tuning (`OnPeck`), static, and `OnUnlock(int stationIndex)`. |
+| `TrackedPeckState` | The generic "peck state that persists". Its `savableSystem` field is what writes `FmStationXxx` to `SaveManager`. |
+
+`BroadcastStation.Awake` subscribes `Unlock` to `peckSystemReference` and
+`OnSpawn` to the radio prop; `OnSpawn` finds this station's index in
+`stationTrackGroups` and tunes the tower's radio to it.
+
+Three findings, each of which changed the design:
+
+1. **`BroadcastStation.Unlock(PeckContext)` is an inlined copy of
+   `FmRadioManager.Unlock(MusicGroup)`** — the compiler inlined it, so it does
+   not call it. Both walk `stationTrackGroups` for the matching `MusicGroup`,
+   set `_stationStates[i] = 1` and `_stationUnlockTimes[i] = NetworkTime.time`,
+   then fire `onChange` and `onUnlock(i)`. Patching `FmRadioManager.Unlock`
+   would therefore suppress nothing. The mirror image is useful: the mod can
+   call `FmRadioManager.Unlock` to grant a station without re-entering its own
+   patch on `BroadcastStation.Unlock`.
+
+2. **Neither writes to the save**, and `FmRadioManager.Initialize` only
+   allocates the two arrays — it reads nothing back. The persistence is one
+   level up: the station's `TrackedPeckState` writes `FmStationXxx` through
+   `SaveManager.SetIntValue`, which is exactly where `SaveValuePatch` already
+   sees the check. A station comes back after a restart because that peck state
+   re-asserts its saved value on load and re-fires its effects.
+
+3. **There is no relock.** `_stationStates[i]` is only ever set to true.
+   Nothing anywhere turns a station off, which is why writing the save key back
+   to 0 does nothing at all and why suppression has to happen *before* the
+   unlock — a Harmony prefix on `BroadcastStation.Unlock` returning false.
+
+Consequence worth keeping in mind for anything else built on this manager: the
+unlock state lives in RAM only. It does not survive a world reload, and a world
+reload does not need the process to restart.
+
+`FmStation7/8/9` do exist in `SavableSystem` (37–39). Nothing suggests they are
+wired to anything, and the apworld leaves them out.
+
+Addresses (Steam build of 2026-09-07, `mod/gh-pj/`; the game played is 1.48, so
+treat them as indicative and confirm members against the interop assembly):
+
+```
+FmRadioManager.Unlock         0x000000018046EA00
+FmRadioManager.Initialize     0x000000018046E660
+FmRadioManager.GetUnlockState 0x000000018046E7A0
+BroadcastStation.Awake        0x000000018046E040
+BroadcastStation.OnSpawn      0x000000018046E270
+BroadcastStation.Unlock       0x000000018046E370
+```
+
+**Settled in game on 2026-09-21 (Ctrl+B): `stationTrackGroups` is NOT ordered
+like the `FmStation*` enum**, and the names do not match either.
+
+| dial | MusicGroup | station that owns it |
+|---|---|---|
+| 0 | `musicGroup_bobby` | FmStationBreathwork |
+| 1 | `musicGroup_FourthSpace` | FmStationSleuthFm |
+| 2 | `musicGroup_breathwork` | FmStationFourthSpace |
+| 3 | `musicGroup_JourneyBeat` | FmStationJourneyBeat |
+| 4 | `musicGroup_DanceFM` | FmStationDanceFm |
+| 5 | `musicGroup_Mallets` | FmStationAFJ |
+| 6 | `musicGroup_Bristol` | FmStationKosmische |
+
+One of the seven lines up. The enum names are internal labels that do not
+describe the music the station plays, and the game shows no station names to
+the player at all — the dial displays numbers. The index fallback was removed
+and replaced by a dial position learned from the world and kept per save.
+
+All seven `BroadcastStation` instances were loaded simultaneously in that
+session, so the authoritative path may in practice always be available; the
+learned cache exists because "may in practice" is not a guarantee.
+
+**`FmRadioManager.instance` throws rather than returning null** when there is
+no instance — an `Il2CppException` wrapping a `NullReferenceException` from
+`get_instance`. It crossed the IL2CPP-to-managed trampoline out of
+`ApRuntime.Update()` and aborted the rest of `OnJustConnected`. Every access
+now goes through `RadioStations.TryGetManager`. Assume the same of any other
+IL2CPP singleton property until proven otherwise.
+
+## The big keys — cutting, and what actually opens a door (decompiled 2026-09-21)
+
+Investigated the same way as the radio, and it changed the design twice.
+
+`KeyBlank : NetworkBehaviour` (dump l.212816) is the cutting mechanism:
+
+```
+SyncList<bool> cuts;              // one entry per segment to cut
+KeyBlankCover[] covers;           // the visual husk, per station
+Prop prop;                        // the key itself -> saveablePropName
+PropGroup finishedPropGroup;
+bool startFinished;               // debug
+void OnBite(int stationIndex);    // cosmetic: advances that cover's stage
+void ServerCutSegment(int index); // the cut, server-side
+void RefreshPropGroup();
+```
+
+- **`RefreshPropGroup` is the single gate.** Its body looks for a `false` in
+  `cuts` and **returns if it finds one**; only when every segment is cut does
+  it add `finishedPropGroup` to `prop.propGroups`. That list is what a
+  `PropHome` matches against its own `pinGroup`, so an unfinished key cannot
+  be placed.
+- **`PropGroup` backs this up**: `BigKey = 32` vs `BigKeyComplete = 36`, and
+  `BigKeyEnding = 35` vs `BigKeyEndingComplete = 37`. `BigKeyOverflow = 38`
+  has no Complete variant, which suggests the Green Dome key is not cut at
+  all.
+- **`cuts` is not persisted.** No `SaveManager` call anywhere in `KeyBlank`,
+  `OnStartClient` included — it is pure Mirror runtime state. A key cut but
+  not placed comes back blank after a reload. Vanilla behaviour, and harmless
+  for checks, which `CheckTracker` keeps to once per save.
+- **`ServerCutSegment(int)` is the check hook**: host-side, one call per
+  segment, and `KeyBlank.prop.saveablePropName` names the tower.
+
+### What opens a door, and why there is no feature flag
+
+`SavableSystem` has **no entry** for the map room, the chairlift, the train or
+the tunnels. Their persistence *is* "the key is in its plinth"
+(`SaveManager[bigKeyRedZone] = bigKeyPlinthMapRoom`, restored by
+`Prop.Start()` on the next load). So granting a feature without a key means
+the mod keeps its own ledger and re-applies on every world — the shape
+`Core/RadioStations.cs` already has.
+
+Two candidate switches, both public and both dumped by `Debug.DumpKeysKey`:
+`PropHome.pinDirectControlSystem` (on the plinth) and
+`PropHomeBlock.isFullDirectControlSystem` (on the block watching it,
+alongside `PropHome[] homes`).
+
+**Do not reach for `PeckDevHelper.Trigger(UnlockRules{map:true})`.** The
+rules struct does carry `unlocks`/`lights`/`chairlift`/`train`/`bell`/
+`tunnel`/`map`/`gourd`, which map cleanly onto the four coloured towers — but
+`Trigger` broadcasts to a whole category. `ArchDoorUnlocker` documents
+`Trigger(unlocks)` also writing `EndingGate`, the seven `FmStation*` and the
+four `LookoutLight*`, confirmed across several save files. Target the
+`TrackedPeckState` and call `SetState(1)`, as `ArchDoorUnlocker` does.
+
+Addresses (Steam build of 2026-09-07, indicative — confirm against the
+interop assembly):
+
+```
+KeyBlank.OnBite            0x000000018048FD50
+KeyBlank.OnPinUpdated      0x000000018048FE20
+KeyBlank.OnCutsUpdated     0x000000018048FF40
+KeyBlank.RefreshPropGroup  0x000000018048FFC0
+KeyBlank.OnStartClient     0x000000018048F660
+```
+
+**Measured in game on 2026-09-21 (Ctrl+K).** Nine `KeyBlank` instances, all
+loaded at once — no streaming to work around.
+
+| key | segments | finishedPropGroup |
+|---|---|---|
+| `bigKeyIntro` (drawbridge) | **5** | BigKeyComplete |
+| `bigKeyRedZone` / `Green` / `Blue` / `Yellow` | **5** each | BigKeyComplete |
+| `bigKeyBoss` (Black Monolith) | **none**, `covers=0`, born finished | BigKeyEndingComplete |
+| `bigKeyOverflow` (Green Dome) | **none**, born finished | BigKeyOverflow |
+
+So exactly **25 cut steps**, on the drawbridge and the four coloured towers.
+The `BigKeyEndingComplete` group exists but the ending key starts with it
+already in `propGroups`, so it is not cut.
+
+**Every plinth's `pinGroup` is the Complete variant** (`BigKeyComplete` for
+the intro and the four colours, `BigKeyEndingComplete` for the ending,
+`BigKeyOverflow` for the Green Dome), and an uncut key carries
+`[BigKey, GoesInBackpack, PoseLimitBig]`. Skipping `RefreshPropGroup` is
+therefore suppression enough: the socket simply does not accept the key.
+
+**No `PropHomeBlock` watches a big-key plinth** — all seven reported none. The
+monument blocks are elsewhere. What each plinth does have is a
+`PropHome.pinDirectControlSystem`: non-null, but with an empty label and
+`savableSystem = NotSavable`, which confirms a mod-side ledger would be needed
+to persist a feature unlock.
+
+**A trap for whoever implements this**: on a brand-new save `bigKeyIntro`
+already reads `[XXXXX] 5 cut` with `BigKeyComplete` in `propGroups`. That is
+`ItemApplier.ApplyBigKeyItem` pinning the precollected Tutorial Key —
+**pinning a key marks its blank complete**. Hook the cut checks naively and
+the drawbridge's five would all fire at connection time.
 
 ## Reference files
 

@@ -17,8 +17,11 @@ et se package en `dist/bigwalk.apworld`.
 - [x] Monde Python complet (locations, items, logique, options, docs, tests)
 - [x] Génération réelle validée : 3 slots, Archipelago 0.6.8 (source) et 0.6.7
       (installation locale), `.apworld` packagé inclus
-- [ ] Client réseau Archipelago côté mod — rien ne se connecte encore, donc
-      une seed se génère mais ne se joue pas (cf. `protocol.md`)
+- [x] Client réseau Archipelago côté mod — connecté et joué en solo comme à
+      deux (cf. `protocol.md`)
+- [x] Stations radio en items (`radio_station_items`, 2026-09-21) : les deux
+      moitiés écrites, la génération validée, et la chaîne complète éprouvée
+      en jeu (cf. `protocol.md` §11)
 
 ## Build
 
@@ -56,8 +59,9 @@ tous — option). Les dépôts sont comptés globalement, jamais par tour : c'es
 qui rend le modèle insensible au softlock identifié le 2026-09-11 (Option A).
 
 **Items** — un item générique `Gourd` en autant d'exemplaires qu'il y a de
-slots de monument en jeu (30, 36 ou 45), les 7 big keys en 1:1, et du filler
-sans effet. La clé du tutoriel est donnée au départ par défaut.
+slots de monument en jeu (30, 36 ou 45), les 7 big keys en 1:1, les 7
+`Radio Music: …` qui rendent chaque station audible (option), et du
+filler sans effet. La clé du tutoriel est donnée au départ par défaut.
 
 **Logique** — une seule ressource conditionne quoi que ce soit : le nombre de
 gourdes reçues. Aucune énigme n'est bloquée (le mod ne verrouille rien), et la

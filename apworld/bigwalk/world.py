@@ -145,6 +145,12 @@ class BigWalkWorld(World):
             "green_dome_deposits": self.options.green_dome_deposits.current_key,
             "radio_station_checks": bool(self.options.radio_station_checks),
 
+            # The mod suppresses the game's own radio unlock only while this
+            # is true. An older mod that does not read the field keeps the
+            # vanilla radio and simply gets seven items it ignores, which is
+            # the harmless direction for the mismatch to fall.
+            "radio_station_items": bool(self.options.radio_station_items),
+
             # Everything the mod needs to know which checks exist and how many
             # gourds are in circulation, without re-deriving it from options.
             "total_monument_slots": self.gourd_count,

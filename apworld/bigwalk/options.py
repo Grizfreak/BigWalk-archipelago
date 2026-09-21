@@ -89,6 +89,30 @@ class RadioStationChecks(DefaultOnToggle):
     display_name = "Radio Station Checks"
 
 
+class RadioStationItems(DefaultOnToggle):
+    """
+    Shuffle the radio music itself into the item pool.
+
+    Switching a station on in the game still awards its check, but the music
+    only starts playing once the matching Radio Music item arrives — so the
+    radio behaves like every other check in this world instead of rewarding
+    itself. Seven Radio Music items enter the pool, replacing seven filler.
+
+    Stations are named after the music they actually play, which is not what
+    the game's internal names suggest. The radio dial shows numbers and no
+    names at all, so there is nothing in the world to contradict.
+
+    Turn this off for the vanilla radio, where switching a station on unlocks
+    its music on the spot.
+
+    Only the Archipelago host is affected. Nobody else in the session runs the
+    Archipelago client, so a guest hears a station the moment it is switched
+    on, whether or not the host has received it.
+    """
+
+    display_name = "Radio Station Items"
+
+
 class StartWithTutorialKey(DefaultOnToggle):
     """
     Start with the Tutorial Key instead of shuffling it into the pool.
@@ -124,6 +148,7 @@ class BigWalkOptions(PerGameCommonOptions):
     green_dome_deposits: GreenDomeDeposits
     deposit_locations: DepositLocations
     radio_station_checks: RadioStationChecks
+    radio_station_items: RadioStationItems
     start_with_tutorial_key: StartWithTutorialKey
     trap_fill_percentage: TrapFillPercentage
     start_inventory_from_pool: StartInventoryPool
@@ -132,6 +157,7 @@ class BigWalkOptions(PerGameCommonOptions):
 option_groups = [
     OptionGroup("Goal", [Goal, DepositGoalAmount]),
     OptionGroup("Locations", [DepositLocations, RadioStationChecks]),
+    OptionGroup("Radio", [RadioStationItems]),
     OptionGroup("Gourds and Keys", [GreenDomeDeposits, StartWithTutorialKey]),
 ]
 
@@ -142,6 +168,7 @@ option_presets = {
         "green_dome_deposits": GreenDomeDeposits.option_full,
         "deposit_locations": DepositLocations.option_all,
         "radio_station_checks": True,
+        "radio_station_items": True,
     },
     # Trimmed down: no postgame tower, fewer deposits to grind out.
     "Short": {
@@ -149,5 +176,6 @@ option_presets = {
         "green_dome_deposits": GreenDomeDeposits.option_excluded,
         "deposit_locations": DepositLocations.option_milestones,
         "radio_station_checks": True,
+        "radio_station_items": True,
     },
 }

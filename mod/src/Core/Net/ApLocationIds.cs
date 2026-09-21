@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using BigWalkArchipelago.Core;
 
 namespace BigWalkArchipelago.Core.Net
 {
@@ -25,21 +25,12 @@ namespace BigWalkArchipelago.Core.Net
         private static long _depositOffset = DefaultDepositOffset;
         private static long _gourdItemId = DefaultGourdItemId;
 
-        // The seven radio stations that exist in the real game. SavableSystem
-        // also declares FmStation7/8/9, but only seven were ever observed
-        // being written together by the game's own dev helper and only these
-        // seven have real names — the apworld leaves the other three out, so
-        // reporting them here would just produce ids nothing listens for.
-        private static readonly HashSet<SavableSystem> RadioStations = new()
-        {
-            SavableSystem.FmStationSleuthFm,
-            SavableSystem.FmStationKosmische,
-            SavableSystem.FmStationDanceFm,
-            SavableSystem.FmStationBreathwork,
-            SavableSystem.FmStationJourneyBeat,
-            SavableSystem.FmStationAFJ,
-            SavableSystem.FmStationFourthSpace,
-        };
+        // Which SavableSystem values are real stations lives in
+        // Core/RadioStations.cs, next to the code that unlocks them —
+        // SavableSystem also declares FmStation7/8/9, which the apworld leaves
+        // out (no names, never seen written), so an id resolving to one of
+        // those would be a check nothing listens for and an item nothing can
+        // grant. One list, asked twice.
 
         internal static long GourdItemId => _gourdItemId;
 
@@ -69,7 +60,7 @@ namespace BigWalkArchipelago.Core.Net
             }
 
             if (Enum.TryParse<SavableSystem>(locationName, out var system)
-                && RadioStations.Contains(system))
+                && RadioStations.IsRealStation(system))
             {
                 locationId = _base + _radioOffset + (long)system;
                 return true;
@@ -82,6 +73,30 @@ namespace BigWalkArchipelago.Core.Net
         internal static long DepositLocationId(int depositedCount)
         {
             return _base + _depositOffset + depositedCount;
+        }
+
+        // A Broadcast item carries the station's SavableSystem value in the
+        // same slot its location id does — item and location ids are separate
+        // namespaces in Archipelago, so the apworld reuses the number rather
+        // than inventing a second rule (see apworld/protocol.md §4). Anything
+        // that does not land on one of the seven real stations is not ours.
+        internal static bool TryResolveRadioItem(long itemId, out SavableSystem system)
+        {
+            var value = itemId - _base - _radioOffset;
+            system = SavableSystem.NotSavable;
+
+            if (value < 0 || value > int.MaxValue)
+                return false;
+
+            if (!Enum.IsDefined(typeof(SavableSystem), (int)value))
+                return false;
+
+            var candidate = (SavableSystem)(int)value;
+            if (!RadioStations.IsRealStation(candidate))
+                return false;
+
+            system = candidate;
+            return true;
         }
 
         // Received big keys are 1:1 with a SaveablePropName, so the item id

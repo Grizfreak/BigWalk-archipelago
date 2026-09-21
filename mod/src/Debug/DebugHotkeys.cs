@@ -126,6 +126,23 @@ namespace BigWalkArchipelago.Debug
 
             if (ModConfig.DumpHostMenuConfirmKey.Value.IsDown())
                 DebugMenuLookup.DumpHostMenuConfirm();
+
+            if (ModConfig.DumpRadioKey.Value.IsDown())
+            {
+                // Bracketed, like the combinator key above: "the tool printed
+                // nothing" and "the key was never seen" look identical from
+                // the outside, and hours went into that confusion twice.
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Radio dump key pressed; calling Dump...");
+                DebugRadioLookup.Dump();
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Dump returned.");
+            }
+
+            if (ModConfig.DumpKeysKey.Value.IsDown())
+            {
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Big key dump key pressed; calling Dump...");
+                DebugKeyLookup.Dump();
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Dump returned.");
+            }
         }
 
         private void RecheckCosmeticPickup()

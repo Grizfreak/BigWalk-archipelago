@@ -8,36 +8,150 @@ is shaped the way it is); [`apworld/protocol.md`](apworld/protocol.md) is
 the contract between the two. This file is the short version and the
 to-do list.*
 
-**Start here: the test list is empty.** Every path that could be verified
-has been, solo and with a second player — the summary is further down under
-"What has been confirmed". The next piece of work is the radio item, the
-section immediately below, and it begins in Ghidra rather than in game.
+**Start here: one in-game session settles two things at once.** The
+radio-as-an-item feature is written on both sides and nothing about it has
+run in the game yet — written-but-unverified is the riskiest state anything
+in this repo can be in. In the same session, one press of **Ctrl+K** near
+the drawbridge and a coloured tower grounds the whole big-key design in real
+numbers instead of a third-party document. Do both, then decide whether to
+package or keep building.
 
 **Before touching anything in game**: `tools/deploy-mod.ps1` builds and
 deploys to every install, then prints one hash and says whether they match.
 Three co-op tests were wasted in one weekend on a guest running older code.
 
-## Decided, not yet built: radio music as an Archipelago item
+## Written, not yet tested: the radio as an Archipelago item
 
-Turning a station on reports the check AND grants the station. Every other
-check in this world grants nothing locally — gourds are hidden and
-unspawned, big keys arrive from Archipelago — so the radio is the only one
-that rewards itself. Not a bug: nothing breaks and the seed stays
-beatable. An inconsistency.
+Switching a station on used to report its check AND grant the station — the
+only check in this world that rewarded itself. Both halves now exist:
 
-The work is two halves that must ship together, because it changes the
-contract in `protocol.md`: seven `Radio Station: …` items in the apworld
-with seven fewer filler to balance (the stations are already clean data,
-`data.py` RADIO_STATIONS), and on the mod side suppressing the local
-unlock the way GourdStatePatch suppresses a gourd, plus writing the flag
-when the item arrives.
+- **apworld** — seven `Radio Music: …` items behind the new
+  `radio_station_items` option (default on), displacing seven filler. 148
+  tests green, and a real seed generates and places all seven.
+- **mod** — `Core/RadioStations.cs` (the `ap_radio_*` ledger and the live
+  unlock) and `Patches/BroadcastStationUnlockPatch.cs` (a prefix that skips
+  the game's own unlock). Wired into `ApRuntime`.
 
-**Start in Ghidra, not in-game**: who reads `FmStation*`, and does writing
-it back to 0 actually stop the music and leave the radio in a sane state?
-That is one decompilation against one full test cycle — see the lesson at
-the bottom of this file. The scripts and the exact invocation are in
-[`tools/ghidra/`](tools/ghidra/README.md); `FindCallers.java "FmStation"`
-is the first thing to run.
+The design rests on three decompiled facts, all written up in
+[`apworld/protocol.md`](apworld/protocol.md) §11. The one that matters most
+for testing: **the unlock lives in RAM only** — nothing writes it to the
+save, and nothing can turn a station off. So a granted station has to be
+re-applied to every world that loads, which is the part most likely to be
+wrong.
+
+### The test, in order
+
+Run a room with `tools/testroom.py`, then in game:
+
+1. **Ctrl+B first** (`Debug.Enabled = true` required). It prints the dial,
+   every loaded `BroadcastStation` with the `SavableSystem` its peck system
+   writes, and the ledger. This is what answers **the one open question**:
+   is `FmRadioManager.stationTrackGroups` ordered like the `FmStation*`
+   enum? The mod prefers the `BroadcastStation` pairing, which is
+   authoritative, and falls back on that ordering when no tower is loaded.
+   If the two columns disagree, the fallback has to go and the mapping has
+   to be learned and cached in the save instead.
+2. **Switch a station on.** Expected: the check goes out, the music does
+   **not** start, and the log says `… switched on; its music waits for the
+   Archipelago item`.
+3. **`/send <slot> Radio Music: Bobby`** from the server console.
+   Expected: the music starts, wherever you are standing.
+4. **Quit to the menu and host the same save again.** Expected: the station
+   is still playing. This is the RAM-only fact being exercised —
+   `RearmFromLedger` on the world becoming ready.
+5. **Restart the process and reconnect.** Expected: still playing. Different
+   code path from 4: the server replays the item but the cursor skips it, so
+   the second `RearmFromLedger` call — the one in `OnJustConnected` — is the
+   only thing that puts it back.
+6. **With a second player**, confirm the accepted wrinkle rather than being
+   surprised by it: the guest hears a station as soon as it is switched on,
+   because only the host runs an Archipelago client. Documented in the
+   option text and in `design-decisions.md`.
+
+### While you are in there: Ctrl+K, twice
+
+Thirty seconds, and it unblocks the whole next feature. Press it once near
+the **drawbridge** and once near a **coloured tower**, and read off:
+
+- how many segments each `KeyBlank` has, and which towers have one at all
+  (the player recalls the drawbridge plus the four coloured towers, four or
+  five holes; `PropGroup` hints the black key may be cut too);
+- whether each plinth's `pinGroup` is the `Complete` variant — which decides
+  whether skipping `RefreshPropGroup` is suppression enough;
+- what `TrackedPeckState` each plinth drives, and whether it carries a
+  `savableSystem` of its own (expected: it does not, which is what forces a
+  mod-side ledger).
+
+The design these answer is written up in `apworld/design-decisions.md`
+("LEAD UNDER DESIGN, 2026-09-21") and the mechanism in
+`mod/reverse-engineering-notes.md`.
+
+## Then: the release
+
+Nothing else is known to be missing. `tools/package-mod.ps1` already
+produces the players' zip, the debug module is off by default
+(`Debug.Enabled = false`), and `apworld/build.py` packages the world.
+
+One decision left, and it is yours: **the version numbers**. Everything
+currently says 0.1.0 — `Plugin.PluginVersion`, the `.csproj`, and both
+`archipelago.json` and `WORLD_VERSION`. Nothing has shipped publicly yet, so
+0.1.0 as the first release is coherent; the alternative is calling the radio
+work a 0.2.0. The mod only *warns* on a `world_version` mismatch, so the two
+do not have to move together, but they have so far.
+
+## After that: big keys as forage checks
+
+Designed on 2026-09-21, nothing written yet beyond the Ctrl+K dump. The full
+reasoning is in `apworld/design-decisions.md`; in four lines:
+
+- **Locations** = cutting each segment (postfix on
+  `KeyBlank.ServerCutSegment`), roughly 20–25 of them.
+- **Suppression** = prefix on `KeyBlank.RefreshPropGroup` while the item is
+  missing, so an uncut key cannot enter its plinth.
+- **Item** = the *feature* unlock (map room, chairlift, train, tunnels) via
+  the plinth's `TrackedPeckState` plus an `ap_*` ledger re-applied on every
+  world — the shape `Core/RadioStations.cs` now has.
+- **Never** anchor a location on "this tower's monument is full": that is
+  Option C, and the arithmetic makes every key cost the whole gourd pool.
+
+It removes the §8 self-report quirk and the key item's redundancy. It is also
+a content change big enough to deserve its own test cycle — after a release,
+not before.
+
+## The idea raised on 2026-09-21: other objects as items
+
+The question was whether the flare guns, walkie-talkies and other objects
+lying around the island could become real filler, instead of the inert
+Postcard / Souvenir Pebble / Novelty Keychain. What the dump says:
+
+- **There is no class for them.** No `FlareGun`, no `WalkieTalkie`.
+  (`FlareDriver` is a lens-flare renderer, nothing to do with it.) They are
+  plain `Prop` prefabs, told apart by their prefab and by what their
+  `useHeldSwitch` is wired to — so `il2cpp.cs` cannot enumerate them. Only
+  an in-game dump can.
+- **The walkie-talkie is identifiable**: `Prop.radioVoiceAssigner` is a
+  first-class field on `Prop`, so any prop carrying one is a walkie-talkie.
+- **They have no `SaveablePropName`.** That enum holds only gourds, big keys,
+  valets and dev-test values. So there is no "you have unlocked the flare
+  gun" flag anywhere, and nothing to key a *location* on the way the puzzles
+  are keyed.
+- **But there is a per-prop identity**: `Prop.savablePropGuid`, with
+  `canSaveHomeWithGuid`, `SaveData.inventory` (a `List<string>`) and
+  `SaveManager.GetIsInInventory(guid)`. That is how the game remembers which
+  props are in the hub's inventory zone — a stable id per prop, which is
+  exactly what a location would need.
+
+So, two very different amounts of work:
+
+- **As filler items — cheap and plausible.** Receiving one spawns a copy,
+  using the same clone-an-existing-instance technique
+  `ReceivedItemSpawner` already uses for gourds. Same constraint as gourds:
+  an instance has to be loaded to clone from. Copies would accumulate, which
+  for a party object is arguably the point.
+- **As checks — a project of its own.** It needs the guids enumerated in
+  game, a decision about what "found it" means for an object that is simply
+  lying there, and a way to remove the original so the check is not free.
+  Not before a release.
 
 ## What has been confirmed
 
@@ -99,17 +213,22 @@ is "does this replicate to a second client", and it has only one.
 
 ## Open questions that could still bite
 
+- **Is the radio dial ordered like the enum?** See the test above. It is the
+  one assumption the radio feature makes that the binary could not settle.
 - **Does the tutorial drawbridge really gate the way out?** The world
   precollects the Tutorial Key on that assumption
   (`start_with_tutorial_key`). If it is wrong, the key can be shuffled.
 - **Are all 58 puzzles reachable without any big key?** The region graph
   assumes the map is open apart from the ending.
-- **Do `FmStation7/8/9` exist at all?** Assumed not, and left out.
+- ~~**Do `FmStation7/8/9` exist at all?**~~ **Settled (2026-09-21)**: they
+  exist in `SavableSystem` (37–39), and nothing suggests they are wired to
+  anything. Left out, on both sides.
 - **`ap_reported_*` is not scoped to a seed**, so a save reconnected to a
   *different* seed resends checks earned elsewhere. Harmless in real use,
   where a save belongs to one seed — but it will skew a count during
-  testing. This is why `coop-test.yaml` uses a slot name of its own.
-- **Radio stations** (seven locations) have still never fired once.
+  testing. This is why `coop-test.yaml` uses a slot name of its own. Note
+  that `ap_radio_*` **is** handled: the ledger is cleared when the item
+  cursor resets.
 
 ## Leads deliberately not taken
 
@@ -119,6 +238,7 @@ is "does this replicate to a second client", and it has only one.
 - **Traps.** The item and the YAML option exist, the effect does not.
 - **Per-tower monument locations (Option C/D)**, the big-key decomposition,
   and Key Cutters as checks.
+- **Props as checks** (flare guns, walkie-talkies) — see above.
 
 ## Lessons worth carrying over
 
@@ -126,6 +246,16 @@ is "does this replicate to a second client", and it has only one.
 failed an assertion and wrote nothing; `dotnet build` then compiled the
 unchanged source and reported success, which read as confirmation. The
 change was believed done for two days. Check the file, not the build status.
+
+**A build does not prove a Harmony patch will bind, either.** A patch
+targeting a method by string name compiles whatever the string says and
+throws at `PatchAll`, taking the whole plugin down. Il2CppInterop re-emits
+the game's private methods as public, so `nameof(BroadcastStation.Unlock)`
+works and the compiler checks it. Arguments go by index (`__0`) rather than
+by name, since parameter names survive into the interop assembly only by
+convention. There is a metadata probe for settling this kind of question
+without launching anything — `System.Reflection.Metadata` over
+`mod/lib/Assembly-CSharp.dll` lists a type's real members in seconds.
 
 **A tool that says nothing when it finds nothing costs more than it saves.**
 `DebugPeckCombinatorForce` returned silently when everything was out of
@@ -138,10 +268,11 @@ reached. Beyond that, four plain keys — End, Keypad1, Keypad2, F1 — have
 never once registered, while Keypad0, Keypad4, F2, F4, F5, Delete and
 Ctrl+R all work. NumLock was the obvious suspect and is ruled out, since
 the keypad answers. No explanation, and it is not worth inventing one:
-**`<letter> + LeftControl` is the proven format** (it is what Ctrl+R uses),
-so bind new tools that way. Hours went into this, twice, because "the tool
-printed nothing" and "the key was never seen" look identical from outside
-— which is why both combinator keys now log before and after the call.
+**`<letter> + LeftControl` is the proven format** (it is what Ctrl+R uses,
+and now Ctrl+B), so bind new tools that way. Hours went into this, twice,
+because "the tool printed nothing" and "the key was never seen" look
+identical from outside — which is why both combinator keys, and the radio
+dump, log before and after the call.
 
 **Ctrl+G is a sledgehammer.** At the 120m radius it forced fifteen
 combinators in one press, `PosesBlockedSystem` and `TurnStileSystem`
@@ -157,6 +288,15 @@ project is already analysed, and `analyzeHeadless` with a Java script
 server half of the game's own Command, `UserCode_CmdPickUp`, writes
 `NetworkplayerHeldInformation` — the only field another machine sees. The
 guess being tested at the time would have changed nothing.
+
+**The radio proved the same point twice over.** The question this session
+opened with was "does writing `FmStation*` back to 0 stop the music?" — an
+hour of decompilation answered *no*, and more usefully explained why: the
+manager never reads the save and has no relock at all. A full test cycle
+would have returned "it does not work" and nothing else. It also caught a
+trap no amount of testing would have named: `BroadcastStation.Unlock` is an
+**inlined copy** of `FmRadioManager.Unlock`, so patching the obvious target
+would have suppressed nothing, silently.
 
 **When something only misbehaves for the second player, suspect authority
 before suspecting the network.** Three separate bugs this weekend were the

@@ -19,6 +19,13 @@ namespace BigWalkArchipelago.Core.Net
         internal string Goal { get; private set; } = "gauntlet";
         internal int DepositGoalAmount { get; private set; }
         internal bool RadioStationChecks { get; private set; } = true;
+
+        // Defaults to FALSE where the others default to their common value,
+        // and deliberately: this one decides whether the mod takes something
+        // away from the player. An apworld too old to send the field is one
+        // with no Broadcast items in its pool, so suppressing the radio for it
+        // would make seven stations permanently unreachable.
+        internal bool RadioStationItems { get; private set; }
         internal int TotalMonumentSlots { get; private set; }
         internal int[] DepositLocationAmounts { get; private set; } = Array.Empty<int>();
 
@@ -41,6 +48,7 @@ namespace BigWalkArchipelago.Core.Net
             data.Goal = GetString(raw, "goal", data.Goal);
             data.DepositGoalAmount = GetInt(raw, "deposit_goal_amount", data.DepositGoalAmount);
             data.RadioStationChecks = GetBool(raw, "radio_station_checks", data.RadioStationChecks);
+            data.RadioStationItems = GetBool(raw, "radio_station_items", data.RadioStationItems);
             data.TotalMonumentSlots = GetInt(raw, "total_monument_slots", data.TotalMonumentSlots);
             data.DepositLocationAmounts = GetIntArray(raw, "deposit_location_amounts");
 
@@ -58,7 +66,8 @@ namespace BigWalkArchipelago.Core.Net
                    + (Goal == "deposits" ? $" ({DepositGoalAmount} deposits)" : string.Empty)
                    + $", {TotalMonumentSlots} monument slots"
                    + $", {DepositLocationAmounts.Length} deposit check(s)"
-                   + $", radio checks {(RadioStationChecks ? "on" : "off")}";
+                   + $", radio checks {(RadioStationChecks ? "on" : "off")}"
+                   + $", radio items {(RadioStationItems ? "on" : "off")}";
         }
 
         private static string GetString(Dictionary<string, object> raw, string key, string fallback)

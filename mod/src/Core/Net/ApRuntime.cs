@@ -311,6 +311,10 @@ namespace BigWalkArchipelago.Core.Net
             {
                 ReportDeposits();
                 CheckGoal();
+
+                // Returns immediately once nothing is pending, which is the
+                // case for all but the first seconds of a world.
+                RadioStations.TickPending();
             }
         }
 
@@ -321,6 +325,11 @@ namespace BigWalkArchipelago.Core.Net
         // change.
         private static void OnWorldBecameReady()
         {
+            // The radio unlock lives in RAM only (see Core/RadioStations.cs),
+            // so a granted station has to be put back into every new world —
+            // exactly like the loose gourds below, and for the same reason.
+            RadioStations.RearmFromLedger();
+
             _looseGourdsRestored = false;
             _looseRestoreBlockedLogged = false;
             _reconciliationLogged = false;
@@ -392,8 +401,21 @@ namespace BigWalkArchipelago.Core.Net
         {
             ApLocationIds.Configure(Connection.SlotData);
 
+            // Read before the cursor below, because the patch that suppresses
+            // the game's own radio unlock consults it on every peck and a
+            // world can already be loaded when this runs.
+            RadioStations.Configure(Connection.SlotData.RadioStationItems);
+
             _seenItemCount = 0;
             _appliedItemCount = ApItemCursor.SyncTo(Connection.SeedName, Connection.SlotName);
+
+            // A cursor back at zero means this save has just been bound to a
+            // different (seed, slot) and everything is about to replay. The
+            // stations it was granted under the old binding go with it —
+            // otherwise the save keeps music the new seed has not given it.
+            if (_appliedItemCount == 0)
+                RadioStations.ClearLedger();
+
             _lastReportedDepositCount = -1;
             // Deliberately does NOT reset the loose-gourd state. That
             // describes the world — what is currently lying on the ground —
@@ -426,7 +448,22 @@ namespace BigWalkArchipelago.Core.Net
                 $"[{nameof(ApRuntime)}] Connected. {Connection.SlotData.Describe()}. "
                 + $"{_appliedItemCount} item(s) already applied to this save.");
 
+            // ResendKnownChecks FIRST, and that order is not cosmetic. On
+            // 2026-09-21 RearmFromLedger threw out of here — FmRadioManager's
+            // instance property raises rather than returning null when no
+            // world is loaded, which is the normal state at connection time —
+            // and the exception crossed the IL2CPP trampoline, taking the rest
+            // of this method with it. The checks this save had already
+            // validated were never resent, silently. The throw is fixed at
+            // source, and the resend is no longer behind anything that could
+            // reintroduce it.
             ResendKnownChecks();
+
+            // Covers connecting into a world that is already loaded: the
+            // stations already applied to this save are replayed by the server
+            // but skipped by the cursor, so this is the only thing that would
+            // ever start their music again.
+            RadioStations.RearmFromLedger();
         }
 
         // Every check this save has ever reported is resent on connection.
@@ -665,6 +702,13 @@ namespace BigWalkArchipelago.Core.Net
 
             if (ApLocationIds.TryResolveBigKeyItem(itemId, out var propName))
                 return ItemApplier.ApplyBigKeyItem(propName);
+
+            // Checked before the big key would ever see it: the two ranges do
+            // not overlap, but a Broadcast is the one item whose effect lives
+            // entirely outside SaveManager's prop keys, so it gets its own
+            // resolver rather than a special case inside ItemApplier.
+            if (ApLocationIds.TryResolveRadioItem(itemId, out var station))
+                return RadioStations.Grant(station);
 
             // Filler, traps and anything a newer apworld invents: no effect,
             // by design. Logged rather than silent so a genuinely unhandled

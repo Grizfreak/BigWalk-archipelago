@@ -50,6 +50,7 @@ Sent on every connection. Read it before applying anything.
 | `deposit_location_amounts` | int[] | Ascending deposit counts that are checks, e.g. `[5, 10, ..., 45]`. Possibly empty. |
 | `green_dome_deposits` | str | `"full"` or `"excluded"`. |
 | `radio_station_checks` | bool | Whether the seven radio stations are checks. |
+| `radio_station_items` | bool | Whether the music is shuffled too. While true the mod suppresses the game's own station unlock until the matching item arrives (§11). **Default to false** when the field is absent: an apworld too old to send it has no Radio Music items in its pool, so suppressing would make seven stations permanently silent. |
 | `total_monument_slots` | int | Gourd items in circulation for this slot (30 or 45). |
 | `big_keys_in_play` | str[] | `SaveablePropName` names of the big keys this slot uses. Six entries when the Green Dome is excluded. |
 | `location_id_base` | int | 8600000. See §3. |
@@ -98,6 +99,7 @@ nothing is listening for.
 |---|---|---|
 | `Gourd` | 8600001 | = `total_monument_slots` |
 | Big keys | `B + (int)SaveablePropName` (300–306) | 6 or 7 |
+| Radio Music | `B + 1000 + (int)SavableSystem` (30–36) | 7, or 0 when `radio_station_items` is false |
 | Filler (Postcard, Souvenir Pebble, Novelty Keychain) | 8609001–8609003 | rest of the pool |
 | Trap (Untied Shoelace) | 8609101 | 0 by default |
 
@@ -111,9 +113,17 @@ What to do on receipt:
 - **A big key** → `ItemApplier.ApplyBigKeyItem(propName)`, where `propName`
   comes back from `id - B`. Writes the save, pins the key live into its plinth,
   and reports its own location (§7).
+- **A Radio Music item** → `RadioStations.Grant(system)`, where `system` comes back
+  from `id - B - 1000`. Records the grant in the save and starts the music.
+  See §11 for why it needs both halves.
 - **Anything else, known or unknown** → ignore silently. Filler has no effect
   by design, traps have no implementation yet, and an unknown id is a newer
   apworld talking to an older mod.
+
+Note that a Radio Music item's id is the same number as its location id, exactly
+as a big key's is. Archipelago keeps the two namespaces apart, and reusing the
+game's own enum value in both is what lets the mod derive either with one rule
+instead of shipping a table.
 
 ## 5. Replaying items on reconnect — the one thing that must not be naive
 
@@ -213,9 +223,13 @@ prevents most repeats anyway.
 `SaveValuePatch` and arrive through `Plugin.Reporter.ReportCheck`. Nothing to
 add beyond turning the name into an id.
 
-**Radio stations** need `SaveValuePatch` widened to also try
+**Radio stations** go through `SaveValuePatch`, widened to try
 `Enum.TryParse<SavableSystem>` alongside `SaveablePropName`. Report only when
 `slot_data.radio_station_checks` is true.
+
+The check is unaffected by the music being suppressed (§11), and that is not a
+coincidence: the save write it reads comes from the station's
+`TrackedPeckState`, one level above the unlock the mod skips.
 
 **Gourd deposits** have no detection wired yet.
 `CosmeticMonumentFillTracker.GetFilledMonumentCount()` returns the aggregated
@@ -254,6 +268,8 @@ All of it lives in `../mod/src/Core/Net/`, plus small edits elsewhere.
 | `ApLocationIds.cs` | The §3/§4 arithmetic, with the offsets taken from slot_data. |
 | `ApItemCursor.cs` | The §5 cursor. |
 | `ApGoalFlags.cs` | Latches `EndingGate`/`GauntletComplete` on first non-zero write. |
+| `../RadioStations.cs` | §11: the station ledger (`ap_radio_*`), the learned dial (`ap_radio_dial_*`), and the live unlock. |
+| `../../Patches/BroadcastStationUnlockPatch.cs` | §11: suppresses the game's own unlock. |
 | `ApReporter.cs` | `ICheckReporter` that still logs, and queues for `ApRuntime`. |
 | `CheckTracker.GetReportedLocationNames()` | Lets §7's reconnect resend everything this save already validated. |
 | `SaveValuePatch` | Widened to `SavableSystem`: radio stations and the goal latch. |
@@ -290,3 +306,67 @@ existed only to hedge this has been removed.*
   map is open apart from the ending. If some tower turns out to be genuinely
   locked behind a key, its puzzles need a region of their own, which in turn
   needs the puzzle → tower mapping nobody has established yet.
+
+## 11. Radio stations as items
+
+*Added 2026-09-21, together with the `radio_station_items` option. Turning a
+station on used to report its check **and** grant the station — the only check
+in this world that rewarded itself, since gourds are hidden and unspawned and
+big keys arrive from Archipelago. Nothing broke and no seed was ever
+unbeatable; it was an inconsistency, and this is the fix.*
+
+The mod's half rests on three facts about the game, decompiled rather than
+guessed (Ghidra, `../mod/reverse-engineering-notes.md`):
+
+1. **`BroadcastStation.Unlock(PeckContext)` is an inlined copy of
+   `FmRadioManager.Unlock(MusicGroup)`**, not a call to it. Patching
+   `FmRadioManager.Unlock` would suppress nothing — and, usefully, the mod can
+   call it to grant a station without re-entering its own patch.
+2. **Neither writes to the save.** Persistence is one level up, in the
+   station's `TrackedPeckState` (`savableSystem = FmStationXxx`), which is
+   exactly where `SaveValuePatch` reads the check. Suppressing the unlock
+   therefore costs no check.
+3. **There is no relock.** `FmRadioManager._stationStates[i]` is only ever set
+   to true and the manager never reads the save back. Writing `FmStationXxx`
+   to 0 — the obvious first idea, and the one this work started from — stops
+   nothing.
+
+So suppression is a Harmony prefix on `BroadcastStation.Unlock` that returns
+false, and the grant is a direct `FmRadioManager.Unlock(musicGroup)`.
+
+Fact 3 has a second consequence that is easy to miss: **the unlock lives in RAM
+and nowhere else**, so a granted station has to be re-applied to every world
+that loads. A world reload does not need the process to restart — quitting to
+the menu and hosting again is enough. The grant is therefore persisted under
+`ap_radio_<SavableSystem>` and replayed from that ledger on two occasions: a
+world becoming ready, and a connection established while a world is *already*
+loaded. The second is not optional, because the server's replay of those items
+is precisely what the §5 cursor skips.
+
+Finding the `MusicGroup` for a station has an authoritative answer and a
+fallback:
+
+- the `BroadcastStation` in the world holds both the `MusicGroup` and, through
+  `peckSystemReference.peckSystem.savableSystem`, the save key — the pairing
+  comes from the game's own data. It is also the one that may not be loaded:
+  the towers stream in with the world.
+- otherwise the dial position **this save has learned**, kept under
+  `ap_radio_dial_<SavableSystem>` as position + 1 (0 meaning never learned).
+  Every time the towers are loaded the mod writes down where each one sits, so
+  a later session can unlock a station with no tower in sight.
+
+**What used to be there, and why it is gone.** The fallback was
+`stationTrackGroups[(int)system - 30]`, assuming the dial is ordered like the
+`FmStation*` block. Settled in game on 2026-09-21: **it is not**. The dial
+reads bobby / FourthSpace / breathwork / JourneyBeat / DanceFM / Mallets /
+Bristol, while the stations owning those groups are Breathwork / SleuthFm /
+FourthSpace / JourneyBeat / DanceFm / AFJ / Kosmische — one of seven lines up.
+The fallback would have unlocked a different station, silently, and only in
+the case it existed for. Never derive a dial position from the enum.
+
+**Only the host suppresses.** Nobody else in the session runs an Archipelago
+client, so a guest cannot know which stations the slot has received. Their
+radio stays vanilla: they hear a station as soon as it is switched on, while
+the host waits for the item. The alternative — a guest whose radio can never
+play anything at all — is worse. The apworld option says so, so that nobody
+meets it for the first time in play.

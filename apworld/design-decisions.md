@@ -281,6 +281,109 @@ than as fixed choices (the preference already stated on 2026-09-09):
   investigated technically — to examine during the bell test session, once
   on site.
 
+## DECISION SETTLED (2026-09-21) — the radio stations become items too
+
+The problem, in one line: **switching a station on reported the check AND
+granted the station**. Every other check in this world grants nothing locally
+— gourds are hidden and unspawned, big keys arrive from Archipelago — so the
+radio was the only one that rewarded itself. Nothing broke, no seed was ever
+unbeatable, and it stayed that way for a fortnight. It was an inconsistency,
+not a bug, and it is now fixed.
+
+**What was decided**
+
+- Seven `Radio Music: …` items, one per station, ids
+  `BASE_ID + RADIO_ID_OFFSET + system_value` — the same numbers as the
+  stations' own locations, exactly as the big keys already do it. They
+  displace seven filler rather than growing the pool.
+- Classified **filler**, not useful. A Radio Music item starts a piece of
+  music and nothing else; no rule in this world or any other could ever
+  require one.
+- **Named after the music, not after the enum** (2026-09-21, measured in
+  game). `FmStationBreathwork` broadcasts `musicGroup_bobby`,
+  `FmStationFourthSpace` broadcasts `musicGroup_breathwork`,
+  `FmStationSleuthFm` broadcasts `musicGroup_FourthSpace` — only DanceFm and
+  JourneyBeat match their own label. The game's dial shows numbers and no
+  names, so nothing in the world contradicts the choice, and naming an item
+  after music it does not play would have been a plain lie. The `Radio Music:`
+  prefix is there so a player reading the item in a multiworld feed knows it
+  is a tune and not a key.
+- A **separate option**, `radio_station_items`, rather than folding it into
+  `radio_station_checks`. The two are genuinely different wishes: a player may
+  want seven more checks without losing their music, or the music shuffled
+  without the extra checks. Both default on.
+
+**Why a separate option and not simply always on**
+
+Because this is the one place the mod *takes something away* from the player.
+That deserves a switch, and it also decides the safe default on the mod side:
+`ApSlotData.RadioStationItems` falls back to **false** when the field is
+absent, where every other flag falls back to its common value. An apworld too
+old to send the field has no Radio Music items in its pool, so suppressing the
+radio for it would leave seven stations permanently silent with nothing able
+to unlock them.
+
+**The co-op wrinkle, accepted knowingly**
+
+`FmRadioManager` is local to each machine and never replicated; a guest's
+station lights up because the *peck state* is networked, not the unlock. Only
+the host runs an Archipelago client, so only the host can know which stations
+the slot has received. The guest's radio therefore stays vanilla: they hear a
+station the moment somebody switches it on, while the host waits for the item.
+
+Considered and rejected: suppressing on every machine and having the host
+re-drive the networked peck state to re-fire the effect. It would need the
+tower loaded, the peck state is already at its unlocked value so the write may
+be swallowed as a repeat, and the failure mode — a guest whose radio can never
+play anything at all — is much worse than a cosmetic difference between two
+players' speakers. Stated in the option text so no one meets it in play.
+
+## LEAD UNDER DESIGN (2026-09-21) — big keys: forage checks, and an item that unlocks the feature
+
+Raised by the player, and it resolves a collision this world has carried from
+the start. **One physical act carries three roles today**: pinning the key in
+its plinth is the location, the effect of the item, and what opens the door.
+Because applying the item consumes the plinth, the location can only ever be
+checked by the mod itself — that is what §8 of `protocol.md` calls a
+deliberate quirk. It also makes the key item redundant for its recipient: the
+monument releases the key locally as soon as the gourds are there, so the door
+opens whether or not Archipelago ever sends the key.
+
+The game separates the acts by itself (`KeyBlank`, see
+`../mod/reverse-engineering-notes.md`), which suggests:
+
+| Role | Act |
+|---|---|
+| Locations | cutting each segment — postfix on `KeyBlank.ServerCutSegment(int)` |
+| Suppression | prefix on `KeyBlank.RefreshPropGroup` while the item is missing |
+| Item | the **feature** unlock, via the plinth's `TrackedPeckState` + a mod ledger |
+| Key prop | a pure check carrier, like a puzzle's gourd |
+
+**The trap to avoid**: do not anchor a location on "this tower's monument is
+full". That is Option C, rejected on 2026-09-15, and there is no cheap
+mitigation — the mod does not direct where gourds go, so guaranteeing S slots
+are fillable whatever the distribution would require `(total - S) + S = 45`
+gourds, i.e. every key costing the whole pool. Anchoring on the cutting
+escapes it: the rule becomes `Has("<Tower> Key")`, with no per-monument
+dependency, and **Option A stays intact**.
+
+**What it would cost**: roughly 20–25 new locations, a rewrite of
+`ItemApplier.ApplyBigKeyItem` (from "pin the prop" to "grant the feature"),
+and a second `ap_*` ledger re-applied on every world — the shape
+`Core/RadioStations.cs` now has, which is why this became plausible only
+after the radio work.
+
+**What it would remove**: the §8 self-report quirk, and the key item's
+redundancy.
+
+**Blocked on numbers, not on decisions.** `Debug.DumpKeysKey` (Ctrl+K) was
+written on 2026-09-21 to settle the three unknowns in one in-game pass: how
+many segments per key, which towers have a `KeyBlank` (the player recalls the
+drawbridge plus the four coloured towers, four or five holes each; the
+`PropGroup` enum hints the black key may be cut too), and whether each
+plinth's `pinGroup` is the `Complete` variant — which decides whether skipping
+`RefreshPropGroup` is suppression enough.
+
 ## Explicitly set aside
 
 - **Key Cutters** — decided not to explore, an uninteresting intermediate
