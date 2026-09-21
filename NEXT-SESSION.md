@@ -1,6 +1,6 @@
 # Where this stands, and what to do next
 
-*Written at the end of the session of 2026-09-18. The detail lives in
+*Written at the end of the session of 2026-09-21. The detail lives in
 [`mod/reverse-engineering-notes.md`](mod/reverse-engineering-notes.md) (how
 the game works and what the mod does to it) and
 [`apworld/design-decisions.md`](apworld/design-decisions.md) (why the world
@@ -8,14 +8,40 @@ is shaped the way it is); [`apworld/protocol.md`](apworld/protocol.md) is
 the contract between the two. This file is the short version and the
 to-do list.*
 
-## Co-op is done
+**Start here: the test list is empty.** Every path that could be verified
+has been, solo and with a second player — the summary is further down under
+"What has been confirmed". The next piece of work is the radio item, the
+section immediately below, and it begins in Ghidra rather than in game.
 
-Everything that needed a second machine has been exercised, on 2026-09-20,
-with both installs deployed from the same build (`tools/deploy-mod.ps1`
-prints the hash and says whether they match — use it, three tests were
-wasted in one weekend on a guest running older code).
+**Before touching anything in game**: `tools/deploy-mod.ps1` builds and
+deploys to every install, then prints one hash and says whether they match.
+Three co-op tests were wasted in one weekend on a guest running older code.
 
-Confirmed with a second player:
+## Decided, not yet built: radio music as an Archipelago item
+
+Turning a station on reports the check AND grants the station. Every other
+check in this world grants nothing locally — gourds are hidden and
+unspawned, big keys arrive from Archipelago — so the radio is the only one
+that rewards itself. Not a bug: nothing breaks and the seed stays
+beatable. An inconsistency.
+
+The work is two halves that must ship together, because it changes the
+contract in `protocol.md`: seven `Radio Station: …` items in the apworld
+with seven fewer filler to balance (the stations are already clean data,
+`data.py` RADIO_STATIONS), and on the mod side suppressing the local
+unlock the way GourdStatePatch suppresses a gourd, plus writing the flag
+when the item arrives.
+
+**Start in Ghidra, not in-game**: who reads `FmStation*`, and does writing
+it back to 0 actually stop the music and leave the radio in a sane state?
+That is one decompilation against one full test cycle — see the lesson at
+the bottom of this file. The scripts and the exact invocation are in
+[`tools/ghidra/`](tools/ghidra/README.md); `FindCallers.java "FmStation"`
+is the first thing to run.
+
+## What has been confirmed
+
+### With a second player (2026-09-20)
 
 - A gourd the host receives appears **in the host's hands** on the guest's
   screen, with the right colour and gravity.
@@ -31,9 +57,7 @@ Confirmed with a second player:
 - A gourd taken from a sealed box by the guest is released from their
   hands by `StaleHeldPropReleaser`.
 
-## Everything on the list has now been tested
-
-The solo half, on 2026-09-21:
+### Solo (2026-09-21)
 
 - **Radio stations fire.** `[Check] FmStationBreathwork` — seven locations
   that had never triggered once in the life of the project, working first
@@ -55,26 +79,6 @@ The solo half, on 2026-09-21:
 
 All three goals are now confirmed end to end — `ending` (EndingGate 1 -> 2),
 `deposits`, and `gauntlet`.
-
-## Decided, not yet built: radio music as an Archipelago item
-
-Turning a station on reports the check AND grants the station. Every other
-check in this world grants nothing locally — gourds are hidden and
-unspawned, big keys arrive from Archipelago — so the radio is the only one
-that rewards itself. Not a bug: nothing breaks and the seed stays
-beatable. An inconsistency.
-
-The work is two halves that must ship together, because it changes the
-contract in `protocol.md`: seven `Radio Station: …` items in the apworld
-with seven fewer filler to balance (the stations are already clean data,
-`data.py` RADIO_STATIONS), and on the mod side suppressing the local
-unlock the way GourdStatePatch suppresses a gourd, plus writing the flag
-when the item arrives.
-
-**Start in Ghidra, not in-game**: who reads `FmStation*`, and does writing
-it back to 0 actually stop the music and leave the radio in a sane state?
-That is one decompilation against one full test cycle — see the lesson at
-the bottom of this file.
 
 ## Why two local instances do not work
 
