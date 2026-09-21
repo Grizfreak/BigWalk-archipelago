@@ -106,7 +106,17 @@ All of it in play, on a real server, with the log to match:
    for a key already loose. `PropHome.CheckShepherd` calling
    `PropShepherd.DoShepherd` is the named suspect; Ghidra resolves no
    caller, because IL2CPP dispatches indirectly.
-- **Co-op has not been tried** for any of this.
+- **Co-op has not been tried** for any of this, and it is now the largest
+   unknown left in the project. The test plan is in
+   [`COOP-TESTS.md`](COOP-TESTS.md), ordered by risk, with four predictions
+   stated up front — two of which are expected to FAIL: a guest can probably
+   pick up a key the mod has locked (`PropHome.blockGrabbing` is a plain bool
+   with no `[SyncVar]`), and a key delivered to the hub probably stays at its
+   tower on their screen (a Prop's physics is local to each machine, as the
+   mid-air gourd of 2026-09-16 established). The one that must hold is the
+   first test in that file: if a guest cutting a segment does not fire the
+   check on the host, it is lost forever and the seed is silently
+   unwinnable.
 
 ### The rest of what to do in game, in order
 
