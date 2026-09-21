@@ -31,34 +31,50 @@ Confirmed with a second player:
 - A gourd taken from a sealed box by the guest is released from their
   hands by `StaleHeldPropReleaser`.
 
-## What is left, all of it solo
+## Everything on the list has now been tested
 
-1. **The radio stations.** Seven locations that have never fired once in
-   the life of this project. The detection was widened into
-   `SaveValuePatch` for them and that code has never executed. Turn a
-   station on, expect `[Check] FmStation…`. The largest blind spot left.
-2. **The `deposits` goal.** Deposits are detected and credited, but
-   `Goal reported to the server` has never appeared for this goal. Deposit
-   five gourds. Do it LAST on any given room: the auto-release then checks
-   every location and the room is finished as a measuring instrument.
-3. **The `gauntlet` goal.** It is the apworld's DEFAULT, so it is the path
-   most players will take, and it has never been reached legitimately —
-   only latched by accident by the old PageDown, which no longer writes
-   those flags. Needs a room of its own.
-4. **`Archipelago/Enabled = false`.** The mod should fall back to logging
-   checks locally and break nothing. Never tried.
+The solo half, on 2026-09-21:
 
-## Small findings worth keeping
+- **Radio stations fire.** `[Check] FmStationBreathwork` — seven locations
+  that had never triggered once in the life of the project, working first
+  try on code that had never executed.
+- **`Archipelago/Enabled = false`** falls back cleanly:
+  `Archipelago disabled in the config; checks are logged locally only`,
+  zero connection attempts, zero errors, and every other component still
+  running.
+- **The `deposits` goal** reports. Worth noting what the counting showed:
+  only four deposits happened in that session for a threshold of five —
+  the fifth was the guest's, from the day before, restored at load. The
+  count is cumulative across sessions, which is the intended model and had
+  never been demonstrated.
+- **The `gauntlet` goal** reports — the apworld's DEFAULT, and the path
+  most players will take, reached legitimately for the first time.
+  `GauntletComplete changed during play (unknown -> 1)`, latched in the
+  middle of a Ctrl+G, right after `NHoldLogic 2` was forced: the bell's
+  N-hold, which is exactly what DebugPeckCombinatorForce was written for.
 
-**Deposit checks are invisible in the log.** `ApRuntime.ReportDeposits`
-sends its location ids straight to the connection instead of going through
-`Plugin.Reporter.ReportCheck`, so no `[Check]` line is ever written for
-one. They work — the returning item is the only evidence — but they cannot
-be verified by reading the log, which is how every other check is checked.
-Worth routing through the reporter, if only for that.
+All three goals are now confirmed end to end — `ending` (EndingGate 1 -> 2),
+`deposits`, and `gauntlet`.
 
-**BigTV owns F7 through F11** and wins every collision. Debug keys bound
-there are simply never reached; the numeric keypad is free.
+## Decided, not yet built: radio music as an Archipelago item
+
+Turning a station on reports the check AND grants the station. Every other
+check in this world grants nothing locally — gourds are hidden and
+unspawned, big keys arrive from Archipelago — so the radio is the only one
+that rewards itself. Not a bug: nothing breaks and the seed stays
+beatable. An inconsistency.
+
+The work is two halves that must ship together, because it changes the
+contract in `protocol.md`: seven `Radio Station: …` items in the apworld
+with seven fewer filler to balance (the stations are already clean data,
+`data.py` RADIO_STATIONS), and on the mod side suppressing the local
+unlock the way GourdStatePatch suppresses a gourd, plus writing the flag
+when the item arrives.
+
+**Start in Ghidra, not in-game**: who reads `FmStation*`, and does writing
+it back to 0 actually stop the music and leave the radio in a sane state?
+That is one decompilation against one full test cycle — see the lesson at
+the bottom of this file.
 
 ## Why two local instances do not work
 
@@ -112,9 +128,20 @@ change was believed done for two days. Check the file, not the build status.
 range, which is indistinguishable from a key that does not work — an hour
 went into remapping keys for a problem that did not exist.
 
-**Debug hotkeys collide across mods.** BigTV owns F7 through F11 and wins;
-our tools bound to those keys were simply never reached. The numeric keypad
-is free and proven to work here.
+**Debug hotkeys are unreliable, and not only through collisions.** BigTV
+owns F7 through F11 and wins every one, so tools bound there are never
+reached. Beyond that, four plain keys — End, Keypad1, Keypad2, F1 — have
+never once registered, while Keypad0, Keypad4, F2, F4, F5, Delete and
+Ctrl+R all work. NumLock was the obvious suspect and is ruled out, since
+the keypad answers. No explanation, and it is not worth inventing one:
+**`<letter> + LeftControl` is the proven format** (it is what Ctrl+R uses),
+so bind new tools that way. Hours went into this, twice, because "the tool
+printed nothing" and "the key was never seen" look identical from outside
+— which is why both combinator keys now log before and after the call.
+
+**Ctrl+G is a sledgehammer.** At the 120m radius it forced fifteen
+combinators in one press, `PosesBlockedSystem` and `TurnStileSystem`
+included. Fine on a test room, wrong on a save anyone cares about.
 
 **When the question is "what does this function do", it has a static
 answer — go and read it.** A full day went into inferring the pick-up

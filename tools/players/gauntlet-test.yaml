@@ -1,0 +1,18 @@
+# The `gauntlet` goal, which is the apworld's DEFAULT and has never once been
+# reached legitimately — only latched by accident by the old PageDown, which
+# no longer writes those flags.
+#
+# Expect to need Debug.Enabled: the bell at the top of the Gauntlet is an
+# "N-hold" mechanism built for two players holding buttons at once, which is
+# precisely what DebugPeckCombinatorForce (Keypad2) exists for.
+#
+# A slot name of its own, because ap_reported_* is not scoped to a seed and a
+# save reused across rooms resends checks earned elsewhere.
+name: GauntletWalk
+game: Big Walk
+Big Walk:
+  goal: gauntlet
+  deposit_locations: all
+  green_dome_deposits: excluded
+  radio_station_checks: true
+  start_with_tutorial_key: true
