@@ -80,7 +80,7 @@ namespace BigWalkArchipelago.Debug
             }
         }
 
-        private static string DescribePath(Transform t)
+        internal static string DescribePath(Transform t)
         {
             var names = new List<string>();
             var current = t.parent;
@@ -114,7 +114,7 @@ namespace BigWalkArchipelago.Debug
             }
         }
 
-        private static string DescribeComponents(GameObject go)
+        internal static string DescribeComponents(GameObject go)
         {
             var components = go.GetComponents<Component>();
             var names = new StringBuilder();

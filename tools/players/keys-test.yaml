@@ -1,0 +1,32 @@
+# The big-keys-as-features pass. A slot name of its own, for the same two
+# reasons the radio pass needed one.
+#
+# `ap_reported_*` is not scoped to a seed, so any save that has already placed
+# a big key has already reported that deposit location — and CheckTracker is
+# one-way and persistent, so reusing it would make step 3 of the test silently
+# do nothing. The same goes for the 25 new cut locations the moment one key has
+# been cut under this build. A fresh slot name forces a fresh save, which is
+# the only way to watch a check actually fire.
+#
+# It also starts `ap_feature_*` empty, so all seven doors are shut at the
+# outset and every one of them is something the server has to hand over. That
+# is the whole thing under test.
+#
+# `start_with_tutorial_key` is left ON deliberately, and it doubles as the
+# first end-to-end check of the feature path: the Drawbridge is precollected,
+# so it arrives as a starting item the instant the client connects. If
+# `[KeyFeatures] bigKeyIntro granted and open.` is not in the log within a
+# second of connecting, nothing further needs testing.
+#
+# `deposit_locations: all` so that every gourd deposited is a check, and the
+# 15-slot postgame monument is out of the way. The room is scaffolding here.
+name: KeyWalk
+game: Big Walk
+Big Walk:
+  goal: deposits
+  deposit_goal_amount: 5
+  deposit_locations: all
+  green_dome_deposits: excluded
+  radio_station_checks: true
+  radio_station_items: true
+  start_with_tutorial_key: true
