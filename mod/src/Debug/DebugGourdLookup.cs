@@ -91,7 +91,17 @@ namespace BigWalkArchipelago.Debug
             var all = UnityEngine.Object.FindObjectsByType<RewardGourd>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None);
 
+            var localPlayer = DebugPlayerLookup.FindLocalPlayer();
+            Vector3? playerPosition = localPlayer != null ? localPlayer.transform.position : (Vector3?)null;
+
+            // Sorted by distance, and that is the whole correction of
+            // 2026-09-21: the first version of this printed presence, and
+            // presence turned out to be useless because the game loads every
+            // gourd everywhere — two presses in two different zones returned
+            // byte-identical lists. Only distance says where something is.
+            var entries = new List<(string name, bool variant, bool known, string state, float distance)>();
             var variants = 0;
+
             foreach (var gourd in all)
             {
                 if (gourd == null)
@@ -104,17 +114,28 @@ namespace BigWalkArchipelago.Debug
                 if (gourd.isVariantChallenge)
                     variants++;
 
+                var distance = playerPosition.HasValue && prop != null
+                    ? Vector3.Distance(prop.transform.position, playerPosition.Value)
+                    : -1f;
+
+                entries.Add((propName, gourd.isVariantChallenge, known, gourd.gourdState.ToString(), distance));
+            }
+
+            entries.Sort((a, b) => a.distance.CompareTo(b.distance));
+
+            foreach (var entry in entries)
+            {
                 Plugin.Log.LogInfo(
-                    $"[{nameof(DebugGourdLookup)}]   {propName} | variantChallenge={gourd.isVariantChallenge} "
-                    + $"| isALocation={known} | state={gourd.gourdState}");
+                    $"[{nameof(DebugGourdLookup)}]   {entry.distance.ToString("0.0").PadLeft(7)}m  {entry.name} "
+                    + $"| variantChallenge={entry.variant} | isALocation={entry.known} | state={entry.state}");
             }
 
             // The counts matter more than the lines: "none here" and "the key
             // did not register" must never look alike.
             Plugin.Log.LogInfo(
-                $"[{nameof(DebugGourdLookup)}] {all.Length} RewardGourd(s) loaded here, {variants} of them purple"
-                + " (variantChallenge)."
-                + (all.Length == 0 ? " Nothing loaded — walk into the zone and press again." : string.Empty));
+                $"[{nameof(DebugGourdLookup)}] {all.Length} RewardGourd(s) in the world, {variants} of them purple"
+                + " (variantChallenge), nearest first"
+                + (playerPosition.HasValue ? "." : " — NO LOCAL PLAYER FOUND, so every distance is meaningless."));
         }
 
         internal static void LogMonumentHomes()

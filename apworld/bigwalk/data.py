@@ -253,20 +253,51 @@ RADIO_STATIONS: tuple[RadioStation, ...] = (
 # `system_name` for a station), not the player-facing names, so a later
 # rename cannot silently empty them.
 #
-# STILL TO MEASURE. The mod's Ctrl+V dump prints every loaded RewardGourd
-# with its `isVariantChallenge` flag; pressed past the chairlift and again
-# somewhere plainly open, the difference is exactly CHAIRLIFT_PUZZLES. Until
-# it is filled these stay empty, and an empty gate changes nothing — which is
-# the honest state, rather than a guess that would look like logic.
+# MEASURED IN GAME on 2026-09-21, standing in each zone, with the mod's Ctrl+V
+# and Ctrl+B dumps sorted by distance to the player. Presence was useless —
+# the game instantiates every gourd and every station everywhere, so two dumps
+# taken in two different zones came back byte-identical. Only distance answers
+# "what is in here".
 
-CHAIRLIFT_PUZZLES: tuple[str, ...] = ()
-"""`SaveablePropName` of each puzzle past the chairlift — the purple gourds."""
+CHAIRLIFT_PUZZLES: tuple[str, ...] = (
+    "gourdCannonballCommute",
+    "gourdCharadesRooms",
+    "gourdDancerAndSelecter",
+    "gourdPoetAndPontiff",
+    "gourdCenturionSeance",
+    "gourdCabinFeverLong",
+    "gourdSpeedObby",
+)
+"""
+`SaveablePropName` of each puzzle past the chairlift: the seven purple
+"variant challenge" gourds, and exactly those.
 
-CHAIRLIFT_RADIO: str | None = None
-"""`SavableSystem` of the station past the chairlift, or None if there is none."""
+They were 57m to 293m from the player standing in the zone, and they are the
+only seven `isVariantChallenge` gourds in the game. Four ordinary gourds sit
+in the same band of distance — gourdTrapRoom, gourdPerspectiveCounting,
+gourdMemoryBombs and gourdSignalFlags, 225m to 320m — and the player confirmed
+all four are reachable without the chairlift, so they stay in the overworld.
+Distance alone does not draw this boundary; it only narrows the question.
+"""
 
-TUNNEL_RADIO: str | None = None
-"""`SavableSystem` of the station past the tunnels, or None if there is none."""
+CHAIRLIFT_RADIO: str | None = "FmStationSleuthFm"
+"""
+`SavableSystem` of the station past the chairlift.
+
+129m away with the next one at 548m. Note that it is dial position 2, not 7 —
+a first recollection of "position 7" would have gated FmStationKosmische, which
+the same dump put 1189m away, the furthest of the seven.
+"""
+
+TUNNEL_RADIO: str | None = "FmStationDanceFm"
+"""
+`SavableSystem` of the station past the tunnels.
+
+7.6m away with the next at 252m, and independently confirmed from the server
+side: claiming it printed `RadioWalk sent Novelty Keychain to RadioWalk (Radio
+Station: Dance FM)`. That name means the same station in the old naming and the
+new one, so it pins the mapping with no room for doubt.
+"""
 
 
 def chairlift_locations() -> tuple[str, ...]:

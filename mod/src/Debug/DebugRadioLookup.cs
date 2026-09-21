@@ -89,10 +89,26 @@ namespace BigWalkArchipelago.Debug
                 $"[{nameof(DebugRadioLookup)}] BroadcastStation instances loaded: {stations.Length}"
                 + (stations.Length == 0 ? " (the towers stream in with the world; walk nearer one)" : string.Empty));
 
+            var localPlayer = DebugPlayerLookup.FindLocalPlayer();
+            Vector3? playerPosition = localPlayer != null ? localPlayer.transform.position : (Vector3?)null;
+            if (!playerPosition.HasValue)
+            {
+                Plugin.Log.LogInfo(
+                    $"[{nameof(DebugRadioLookup)}] NO LOCAL PLAYER FOUND — the distances below are meaningless.");
+            }
+
             foreach (var station in stations)
             {
                 if (station == null)
                     continue;
+
+                // Distance, because presence says nothing: every station is
+                // loaded everywhere, so two dumps taken in two different zones
+                // came back identical (2026-09-21). Which station stands in a
+                // gated zone is a question about where it is.
+                var distance = playerPosition.HasValue
+                    ? Vector3.Distance(station.transform.position, playerPosition.Value)
+                    : -1f;
 
                 var groupName = station.musicGroup != null ? station.musicGroup.name : "<null>";
                 var peckSystem = station.peckSystemReference.peckSystem;
@@ -102,7 +118,7 @@ namespace BigWalkArchipelago.Debug
                 var saved = known ? SaveManager.GetIntValue(system.ToString(), 0, false) : 0;
 
                 Plugin.Log.LogInfo(
-                    $"[{nameof(DebugRadioLookup)}]   '{station.name}' | musicGroup '{groupName}' "
+                    $"[{nameof(DebugRadioLookup)}]   {distance.ToString("0.0").PadLeft(7)}m  musicGroup '{groupName}' "
                     + $"| savableSystem {systemName} | known={known} learnedDialPos={dialIndex} "
                     + $"| SaveManager value={saved} | granted={(known && RadioStations.IsGranted(system))}");
             }
