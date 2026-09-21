@@ -126,6 +126,52 @@ namespace BigWalkArchipelago.Debug
                 + $"Clear {nameof(ModConfig.BigKeyDoorName)} to take the nearest one.");
         }
 
+        // The FEATURE item, through the path a real one takes.
+        //
+        // ForceBigKeyDoorKey drives the door's TrackedPeckState directly, which
+        // proves the mechanism but bypasses `Core/KeyFeatures`: no ledger entry
+        // is written, so the door is shut again after a world reload and the
+        // forcing is indistinguishable from a grant while the world is up. That
+        // distinction cost a confusing test on 2026-09-21, where a door forced
+        // earlier in the session looked like a key opening it.
+        //
+        // This calls `KeyFeatures.Grant`, so it writes the ledger and survives a
+        // reload — which is the half worth testing.
+        internal static void GrantFeature(string nameFilter)
+        {
+            if (!NetworkServer.active)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(DebugBigKeyDoorForce)}] Not the host: nothing done.");
+                return;
+            }
+
+            if (!KeyFeatures.FeaturesInPlay)
+            {
+                Plugin.Log.LogInfo(
+                    $"[{nameof(DebugBigKeyDoorForce)}] This slot does not have big key features as items "
+                    + "(slot_data big_key_features is off), so there is nothing to grant.");
+                return;
+            }
+
+            foreach (var candidate in Collect())
+            {
+                if (!string.IsNullOrEmpty(nameFilter)
+                    && !candidate.PropName.ToString().Contains(nameFilter, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                Plugin.Log.LogInfo(
+                    $"[{nameof(DebugBigKeyDoorForce)}] Granting the FEATURE {candidate.PropName} opens "
+                    + $"(plinth {candidate.HomeName}); its key is a separate item.");
+                KeyFeatures.Grant(candidate.PropName);
+                return;
+            }
+
+            Plugin.Log.LogInfo(
+                $"[{nameof(DebugBigKeyDoorForce)}] No big key matches '{nameFilter}'. "
+                + $"Clear {nameof(ModConfig.BigKeyDoorName)} to take the nearest one.");
+        }
+
         // Every big key, with whatever of its wiring is currently resolvable.
         // Deliberately collected even when incomplete: a key whose plinth is
         // not loaded still belongs in the printed table, because the table is

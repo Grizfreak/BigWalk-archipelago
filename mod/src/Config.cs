@@ -53,6 +53,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> DumpKeysKey;
         internal static ConfigEntry<KeyboardShortcut> ForceBigKeyDoorKey;
         internal static ConfigEntry<KeyboardShortcut> GrantBigKeyItemKey;
+        internal static ConfigEntry<KeyboardShortcut> GrantBigKeyFeatureKey;
         internal static ConfigEntry<string> BigKeyDoorName;
         internal static ConfigEntry<bool> ColorBigKeys;
         internal static ConfigEntry<string> KeyColorProperty;
@@ -318,6 +319,12 @@ namespace BigWalkArchipelago
                 "GrantBigKeyItemKey",
                 new KeyboardShortcut(KeyCode.G, KeyCode.LeftControl),
                 "Simulates receiving the big KEY item for one tower (Core/KeyCustody.Grant), which unlocks that key from its stone and drops it at the spawn point. Not the same thing as the feature item that opens its door — that one is Ctrl+D, or F4. Uses BigKeyDoorName to choose, or the nearest plinth when that is empty. Needed because the keys are shuffled into the multiworld like everything else, so they no longer arrive on their own (only has an effect if Debug.Enabled is active).");
+
+            GrantBigKeyFeatureKey = file.Bind(
+                "Debug",
+                "GrantBigKeyFeatureKey",
+                new KeyboardShortcut(KeyCode.F, KeyCode.LeftControl),
+                "Simulates receiving the FEATURE item for one tower (Core/KeyFeatures.Grant) — the map room, the chairlift, the train. Unlike ForceBigKeyDoorKey, which drives the door's state directly and bypasses the ledger, this takes the path a real Archipelago item takes and therefore also tests that the door reopens after a world reload. Uses BigKeyDoorName to choose, or the nearest plinth when that is empty. F4 is no substitute: it targets the nearest uncollected prop, which is rarely the one you are standing in front of (only has an effect if Debug.Enabled is active).");
 
             BigKeyDoorName = file.Bind(
                 "Debug",

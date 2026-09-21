@@ -158,6 +158,13 @@ namespace BigWalkArchipelago.Debug
                 Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] GrantOne returned.");
             }
 
+            if (ModConfig.GrantBigKeyFeatureKey.Value.IsDown())
+            {
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Big key feature key pressed; calling GrantFeature...");
+                DebugBigKeyDoorForce.GrantFeature(ModConfig.BigKeyDoorName.Value);
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] GrantFeature returned.");
+            }
+
             if (ModConfig.DumpPropsKey.Value.IsDown())
             {
                 Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Prop inventory key pressed; calling Dump...");
