@@ -872,7 +872,7 @@ namespace BigWalkArchipelago.Core
         // more likely it is to reach through a wall. A short step is enough
         // to be visible, and the player is by definition standing somewhere
         // valid.
-        private static Vector3? ResolveSpawnPosition(bool toPlayer)
+        internal static Vector3? ResolveSpawnPosition(bool toPlayer)
         {
             if (toPlayer && ModConfig.SpawnGourdAtPlayer.Value)
             {

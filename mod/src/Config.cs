@@ -51,6 +51,11 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> DumpHostMenuConfirmKey;
         internal static ConfigEntry<KeyboardShortcut> DumpRadioKey;
         internal static ConfigEntry<KeyboardShortcut> DumpKeysKey;
+        internal static ConfigEntry<KeyboardShortcut> ForceBigKeyDoorKey;
+        internal static ConfigEntry<KeyboardShortcut> GrantBigKeyItemKey;
+        internal static ConfigEntry<string> BigKeyDoorName;
+        internal static ConfigEntry<bool> ColorBigKeys;
+        internal static ConfigEntry<string> KeyColorProperty;
         internal static ConfigEntry<KeyboardShortcut> DumpPropsKey;
         internal static ConfigEntry<KeyboardShortcut> DumpGourdRosterKey;
 
@@ -73,6 +78,18 @@ namespace BigWalkArchipelago
                 "GourdColor",
                 "#FFA62B",
                 "Colour of the gourds received from Archipelago, as an HTML hex string (e.g. #FFA62B). Applied through the game's own variant-challenge colouring, so they stand out from the gourds sitting in puzzles. Leave empty to keep whatever the cloned template looked like.");
+
+            ColorBigKeys = file.Bind(
+                "Archipelago",
+                "ColorBigKeys",
+                true,
+                "Tints the five identical yellow big keys — the drawbridge and the four coloured towers — so they can be told apart once they start arriving from Archipelago and piling up at the spawn point. The Black Monolith and Green Dome keys are left alone: they already have models of their own, and repainting them would destroy the one distinction the game gives you for free.");
+
+            KeyColorProperty = file.Bind(
+                "Archipelago",
+                "KeyColorProperty",
+                "_TintColor",
+                "Shader colour properties the tint above is written to, comma-separated. Measured in game on 2026-09-21: the keys run 'househouse/VertexColors', which declares _TintColor, _TintMask0 to _TintMask3, and _EmissionColor — and NOT the _RColor the Black Monolith key's own helper uses, which is why the first attempt silently painted nothing. _TintColor multiplies the mesh's baked vertex colours, which is the classic setup for a shader by that name. If a key still comes out yellow, add the masks (_TintColor,_TintMask0,_TintMask1,_TintMask2,_TintMask3) and see which one owns its body.");
 
             CosmeticGourdRestoreInterval = file.Bind(
                 "Archipelago",
@@ -289,6 +306,24 @@ namespace BigWalkArchipelago
                 "DumpKeysKey",
                 new KeyboardShortcut(KeyCode.K, KeyCode.LeftControl),
                 "Logs everything the \"big keys as forage checks\" design needs: every KeyBlank loaded (which key, how many segments and which are cut, its finishedPropGroup), every big-key plinth with the PropGroup it accepts and the TrackedPeckState it drives when filled, and what each key prop currently carries. Answers how many locations the apworld would gain, whether skipping RefreshPropGroup is enough to keep an uncut key out of its socket, and whether a feature switch exists separately from the key (only has an effect if Debug.Enabled is active).");
+
+            ForceBigKeyDoorKey = file.Bind(
+                "Debug",
+                "ForceBigKeyDoorKey",
+                new KeyboardShortcut(KeyCode.D, KeyCode.LeftControl),
+                "Opens a big-key door without the key, by driving the TrackedPeckState the key itself carries in taggedPinSystems for its plinth's PropGroup — which is what Prop.SetPinDirectControlSystem does when a key goes in, and what a received feature item will do instead. Takes the key whose plinth is nearest unless BigKeyDoorName says otherwise, and prints all seven with their distances either way. Letter + LeftControl because that is the only key format proven to register reliably in this game (only has an effect if Debug.Enabled is active).");
+
+            GrantBigKeyItemKey = file.Bind(
+                "Debug",
+                "GrantBigKeyItemKey",
+                new KeyboardShortcut(KeyCode.G, KeyCode.LeftControl),
+                "Simulates receiving the big KEY item for one tower (Core/KeyCustody.Grant), which unlocks that key from its stone and drops it at the spawn point. Not the same thing as the feature item that opens its door — that one is Ctrl+D, or F4. Uses BigKeyDoorName to choose, or the nearest plinth when that is empty. Needed because the keys are shuffled into the multiworld like everything else, so they no longer arrive on their own (only has an effect if Debug.Enabled is active).");
+
+            BigKeyDoorName = file.Bind(
+                "Debug",
+                "BigKeyDoorName",
+                "",
+                "Substring (case-insensitive) of the SaveablePropName of the big key whose door ForceBigKeyDoorKey should open — bigKeyGreenZone, bigKeyIntro, and so on. Empty = whichever plinth is nearest. An escape hatch for the case where the plinths turn out to be instantiated everywhere, like the key blanks are, and distance stops meaning anything.");
 
             DumpPropsKey = file.Bind(
                 "Debug",

@@ -26,12 +26,30 @@ namespace BigWalkArchipelago.Core.Net
         // with no Broadcast items in its pool, so suppressing the radio for it
         // would make seven stations permanently unreachable.
         internal bool RadioStationItems { get; private set; }
+
+        // FALSE by default for the same reason, and it is the more important
+        // of the two. While this is on, placing a big key no longer opens its
+        // door — the feature arrives as its own item instead (see
+        // Core/KeyFeatures.cs). An apworld too old to send the field has no
+        // feature items in its pool, so suppressing the doors for it would
+        // make every one of them permanently shut: not a rough edge, an
+        // unfinishable seed.
+        internal bool BigKeyFeatures { get; private set; }
+
+        // FALSE by default, for the mirror-image reason. While this is on
+        // the mod holds every big key locked in its stone until the matching
+        // item arrives. An apworld too old to send the field puts no keys in
+        // its pool, so locking them would leave all seven unobtainable and
+        // the seed unfinishable.
+        internal bool BigKeyItems { get; private set; }
         internal int TotalMonumentSlots { get; private set; }
         internal int[] DepositLocationAmounts { get; private set; } = Array.Empty<int>();
 
         internal long LocationIdBase { get; private set; } = ApLocationIds.DefaultBase;
         internal long RadioIdOffset { get; private set; } = ApLocationIds.DefaultRadioOffset;
         internal long DepositIdOffset { get; private set; } = ApLocationIds.DefaultDepositOffset;
+        internal long CutIdOffset { get; private set; } = ApLocationIds.DefaultCutOffset;
+        internal long KeyItemIdOffset { get; private set; } = ApLocationIds.DefaultKeyItemOffset;
         internal long GourdItemId { get; private set; } = ApLocationIds.DefaultGourdItemId;
 
         internal static ApSlotData From(Dictionary<string, object> raw)
@@ -49,12 +67,16 @@ namespace BigWalkArchipelago.Core.Net
             data.DepositGoalAmount = GetInt(raw, "deposit_goal_amount", data.DepositGoalAmount);
             data.RadioStationChecks = GetBool(raw, "radio_station_checks", data.RadioStationChecks);
             data.RadioStationItems = GetBool(raw, "radio_station_items", data.RadioStationItems);
+            data.BigKeyFeatures = GetBool(raw, "big_key_features", data.BigKeyFeatures);
+            data.BigKeyItems = GetBool(raw, "big_key_items", data.BigKeyItems);
             data.TotalMonumentSlots = GetInt(raw, "total_monument_slots", data.TotalMonumentSlots);
             data.DepositLocationAmounts = GetIntArray(raw, "deposit_location_amounts");
 
             data.LocationIdBase = GetInt(raw, "location_id_base", (int)data.LocationIdBase);
             data.RadioIdOffset = GetInt(raw, "radio_id_offset", (int)data.RadioIdOffset);
             data.DepositIdOffset = GetInt(raw, "deposit_id_offset", (int)data.DepositIdOffset);
+            data.CutIdOffset = GetInt(raw, "cut_id_offset", (int)data.CutIdOffset);
+            data.KeyItemIdOffset = GetInt(raw, "key_item_id_offset", (int)data.KeyItemIdOffset);
             data.GourdItemId = GetInt(raw, "gourd_item_id", (int)data.GourdItemId);
 
             return data;
@@ -67,7 +89,9 @@ namespace BigWalkArchipelago.Core.Net
                    + $", {TotalMonumentSlots} monument slots"
                    + $", {DepositLocationAmounts.Length} deposit check(s)"
                    + $", radio checks {(RadioStationChecks ? "on" : "off")}"
-                   + $", radio items {(RadioStationItems ? "on" : "off")}";
+                   + $", radio items {(RadioStationItems ? "on" : "off")}"
+                   + $", big key features {(BigKeyFeatures ? "on" : "off")}"
+                   + $", big keys as items {(BigKeyItems ? "on" : "off")}";
         }
 
         private static string GetString(Dictionary<string, object> raw, string key, string fallback)

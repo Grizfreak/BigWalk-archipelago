@@ -45,7 +45,35 @@ namespace BigWalkArchipelago.Core
             return true;
         }
 
+        // A big key item, under either of the two models this mod supports.
+        //
+        // The one in play today is the feature: what arrives from Archipelago
+        // is the map room, the chairlift, the train, the tunnels, the
+        // drawbridge, the dam or the Green Dome, and the key itself is just a
+        // check carrier the player fores and places freely. Nothing is pinned
+        // here and no location is reported here — placing the key is a
+        // genuine player act again, and SaveValuePatch already sees it, since
+        // the game's own Prop.SavePropHome writes the plinth under the key's
+        // SaveablePropName.
+        //
+        // The other is the original 1:1 model, kept below for any seed whose
+        // apworld is too old to send `big_key_features`. There the item WAS
+        // the pin: it wrote the save, pinned the key live into its plinth and
+        // reported that location on the player's behalf, because applying the
+        // item consumed the plinth and the players could never have placed
+        // the key by hand afterwards (apworld/protocol.md §8 called it a
+        // deliberate quirk). Removing it rather than keeping it would make
+        // those seeds unbeatable, since their logic charges no gourds for a
+        // precollected Tutorial Key's deposit on exactly that assumption.
         internal static bool ApplyBigKeyItem(SaveablePropName propName)
+        {
+            if (KeyFeatures.FeaturesInPlay)
+                return KeyFeatures.Grant(propName);
+
+            return ApplyBigKeyPin(propName);
+        }
+
+        private static bool ApplyBigKeyPin(SaveablePropName propName)
         {
             // Every save write must come from the host (authority model
             // already established for the rest of the mod, cf. notes.md).
@@ -141,7 +169,7 @@ namespace BigWalkArchipelago.Core
             if (targetProp.GetComponent<RewardGourd>() != null)
                 return;
 
-            var propHome = PropHome.GetSaveableHome(homeName);
+            var propHome = GourdRegistry.TryGetHome(homeName);
             if (propHome == null)
                 return;
 

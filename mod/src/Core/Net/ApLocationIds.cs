@@ -18,12 +18,35 @@ namespace BigWalkArchipelago.Core.Net
         internal const long DefaultBase = 8_600_000;
         internal const long DefaultRadioOffset = 1_000;
         internal const long DefaultDepositOffset = 2_000;
+        internal const long DefaultCutOffset = 3_000;
+
+        // The KEY items, which are a different thing from the FEATURE items
+        // even though both are one-per-tower. A feature id is `B + propName`
+        // and opens a door; a key id is `B + 4000 + propName` and is the
+        // physical key a player carries, cuts and places. They had to stop
+        // sharing a number the moment the keys became items of their own.
+        internal const long DefaultKeyItemOffset = 4_000;
         internal const long DefaultGourdItemId = DefaultBase + 1;
 
         private static long _base = DefaultBase;
         private static long _radioOffset = DefaultRadioOffset;
         private static long _depositOffset = DefaultDepositOffset;
+        private static long _cutOffset = DefaultCutOffset;
+        private static long _keyItemOffset = DefaultKeyItemOffset;
         private static long _gourdItemId = DefaultGourdItemId;
+
+        // A cut segment has no identifier of the game's own — `cuts` is an
+        // anonymous Mirror SyncList of bools — so one is made here out of the
+        // two things that do identify it: the key it belongs to and its index
+        // in that list. The separator is a character no C# enum name can
+        // contain, which is what lets TryResolveLocation tell a cut from the
+        // plain `SaveablePropName` of the key's own placement location.
+        private const string CutSeparator = "#cut";
+
+        // Room for ten segments per key, which is twice what the widest one
+        // has. Spacing them by the key's own enum value keeps the arithmetic
+        // to one line on the Python side too (apworld/protocol.md §3).
+        private const long CutStride = 10;
 
         // Which SavableSystem values are real stations lives in
         // Core/RadioStations.cs, next to the code that unlocks them —
@@ -42,6 +65,8 @@ namespace BigWalkArchipelago.Core.Net
             _base = slotData.LocationIdBase;
             _radioOffset = slotData.RadioIdOffset;
             _depositOffset = slotData.DepositIdOffset;
+            _cutOffset = slotData.CutIdOffset;
+            _keyItemOffset = slotData.KeyItemIdOffset;
             _gourdItemId = slotData.GourdItemId;
         }
 
@@ -66,8 +91,41 @@ namespace BigWalkArchipelago.Core.Net
                 return true;
             }
 
+            if (TryResolveCut(locationName, out locationId))
+                return true;
+
             locationId = 0;
             return false;
+        }
+
+        // The name a cut segment is reported and remembered under. Kept here
+        // rather than in the patch that produces it, next to the parsing that
+        // has to undo it: the two are one format, and CheckTracker replays
+        // these strings from the save on every connection, so a change to one
+        // without the other silently loses every cut this save ever made.
+        internal static string CutLocationName(SaveablePropName propName, int index)
+        {
+            return $"{propName}{CutSeparator}{index}";
+        }
+
+        private static bool TryResolveCut(string locationName, out long locationId)
+        {
+            locationId = 0;
+
+            var separator = locationName.IndexOf(CutSeparator, StringComparison.Ordinal);
+            if (separator <= 0)
+                return false;
+
+            if (!int.TryParse(locationName.Substring(separator + CutSeparator.Length), out var index)
+                || index < 0 || index >= CutStride)
+                return false;
+
+            if (!Enum.TryParse<SaveablePropName>(locationName.Substring(0, separator), out var propName)
+                || !GourdRegistry.IsBigKey(propName))
+                return false;
+
+            locationId = _base + _cutOffset + (long)propName * CutStride + index;
+            return true;
         }
 
         internal static long DepositLocationId(int depositedCount)
@@ -99,6 +157,16 @@ namespace BigWalkArchipelago.Core.Net
             return true;
         }
 
+        // The physical key for a tower, as opposed to the door it fits.
+        // Same shape as TryResolveBigKeyItem below, one offset apart, and
+        // deliberately a separate method rather than a flag: a caller that
+        // confused the two would hand a door to KeyCustody or a key to
+        // KeyFeatures, and both would look like nothing happening.
+        internal static bool TryResolveKeyItem(long itemId, out SaveablePropName propName)
+        {
+            return TryResolveProp(itemId - _base - _keyItemOffset, out propName);
+        }
+
         // Received big keys are 1:1 with a SaveablePropName, so the item id
         // carries the enum value directly and this is just the inverse of
         // ApLocationIds' own arithmetic. Anything that does not land on a
@@ -106,7 +174,11 @@ namespace BigWalkArchipelago.Core.Net
         // item echoed back) and the caller ignores it.
         internal static bool TryResolveBigKeyItem(long itemId, out SaveablePropName propName)
         {
-            var value = itemId - _base;
+            return TryResolveProp(itemId - _base, out propName);
+        }
+
+        private static bool TryResolveProp(long value, out SaveablePropName propName)
+        {
             propName = SaveablePropName.notSavable;
 
             if (value < 0 || value > int.MaxValue)

@@ -127,6 +127,16 @@ namespace BigWalkArchipelago.Core.Net
         // of. A world reload already fixes that; this makes the same fix
         // available without one, and covers any future placement mishap
         // the same way.
+        // Ctrl+R also brings back a stranded key, at the player's request:
+        // same promise as for a gourd, since a key already in its plinth is
+        // a check already sent and is left exactly where it is.
+        internal static void ResyncKeys()
+        {
+            var moved = KeyCustody.ResyncToSpawn();
+            if (moved > 0)
+                Plugin.Log.LogInfo($"[{nameof(ApRuntime)}] {moved} big key(s) sent back to the spawn point.");
+        }
+
         internal static void ResyncGourds()
         {
             if (!NetworkServer.active)
@@ -201,11 +211,21 @@ namespace BigWalkArchipelago.Core.Net
         {
             RefreshStatusMessage();
 
+            // Every frame, and ahead of the early returns: a key that has just
+            // been delivered is being pulled back to its tower by the game,
+            // and a poll once a second is far too coarse to hold it. Returns
+            // immediately when nothing has just been delivered, which is all
+            // of the time.
+            KeyCustody.SettleDelivered();
+
             // Read before the early returns below so the key always gets
             // an answer in the log, even when the mod is in a state where
             // it will decline to act.
             if (ModConfig.ResyncGourdsKey.Value.IsDown())
+            {
                 ResyncGourds();
+                ResyncKeys();
+            }
 
             if (!ModConfig.ArchipelagoEnabled.Value)
             {
@@ -312,9 +332,15 @@ namespace BigWalkArchipelago.Core.Net
                 ReportDeposits();
                 CheckGoal();
 
-                // Returns immediately once nothing is pending, which is the
-                // case for all but the first seconds of a world.
+                // Both return immediately once nothing is pending, which is
+                // the case for all but the first seconds of a world.
                 RadioStations.TickPending();
+                KeyFeatures.TickPending();
+
+                // Not "pending" like the other two: this one also holds the
+                // lock on every key the slot has not been given, so it has
+                // work to do for as long as the session lasts.
+                KeyCustody.Tick();
             }
         }
 
@@ -329,6 +355,14 @@ namespace BigWalkArchipelago.Core.Net
             // so a granted station has to be put back into every new world —
             // exactly like the loose gourds below, and for the same reason.
             RadioStations.RearmFromLedger();
+
+            // And the doors, for a reason that is worth stating because it is
+            // not the same one: the game's persistence for these features IS
+            // the key sitting in its plinth, which this world stops happening.
+            // With the key inert, nothing else carries a door across a reload
+            // (see Core/KeyFeatures.cs).
+            KeyFeatures.RearmFromLedger();
+            KeyCustody.RearmFromLedger();
 
             _looseGourdsRestored = false;
             _looseRestoreBlockedLogged = false;
@@ -406,6 +440,11 @@ namespace BigWalkArchipelago.Core.Net
             // world can already be loaded when this runs.
             RadioStations.Configure(Connection.SlotData.RadioStationItems);
 
+            // Read here for the same reason, and it matters more: the patch
+            // that stops a key opening its door consults this on every pin.
+            KeyFeatures.Configure(Connection.SlotData.BigKeyFeatures);
+            KeyCustody.Configure(Connection.SlotData.BigKeyItems);
+
             _seenItemCount = 0;
             _appliedItemCount = ApItemCursor.SyncTo(Connection.SeedName, Connection.SlotName);
 
@@ -414,7 +453,11 @@ namespace BigWalkArchipelago.Core.Net
             // stations it was granted under the old binding go with it —
             // otherwise the save keeps music the new seed has not given it.
             if (_appliedItemCount == 0)
+            {
                 RadioStations.ClearLedger();
+                KeyFeatures.ClearLedger();
+                KeyCustody.ClearLedger();
+            }
 
             _lastReportedDepositCount = -1;
             // Deliberately does NOT reset the loose-gourd state. That
@@ -460,10 +503,12 @@ namespace BigWalkArchipelago.Core.Net
             ResendKnownChecks();
 
             // Covers connecting into a world that is already loaded: the
-            // stations already applied to this save are replayed by the server
-            // but skipped by the cursor, so this is the only thing that would
-            // ever start their music again.
+            // stations and doors already applied to this save are replayed by
+            // the server but skipped by the cursor, so this is the only thing
+            // that would ever start their music, or open them, again.
             RadioStations.RearmFromLedger();
+            KeyFeatures.RearmFromLedger();
+            KeyCustody.RearmFromLedger();
         }
 
         // Every check this save has ever reported is resent on connection.
@@ -699,6 +744,11 @@ namespace BigWalkArchipelago.Core.Net
                 // so it only latches once the whole burst is through.
                 // Anything applied after it is genuinely live.
                 return ItemApplier.ApplyGourdItem(toPlayer: _looseGourdsRestored);
+
+            // The KEY before the DOOR, because the two ranges are one offset
+            // apart and a key id would otherwise never be reached.
+            if (ApLocationIds.TryResolveKeyItem(itemId, out var keyName))
+                return KeyCustody.Grant(keyName);
 
             if (ApLocationIds.TryResolveBigKeyItem(itemId, out var propName))
                 return ItemApplier.ApplyBigKeyItem(propName);
