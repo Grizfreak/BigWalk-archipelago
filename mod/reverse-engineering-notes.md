@@ -1986,8 +1986,20 @@ void RefreshPropGroup();
   `OnStartClient` included — it is pure Mirror runtime state. A key cut but
   not placed comes back blank after a reload. Vanilla behaviour, and harmless
   for checks, which `CheckTracker` keeps to once per save.
-- **`ServerCutSegment(int)` is the check hook**: host-side, one call per
-  segment, and `KeyBlank.prop.saveablePropName` names the tower.
+- ~~**`ServerCutSegment(int)` is the check hook**~~ — **it is not, and it
+  cannot be (2026-09-21).** It has **no code address** in the il2cpp export,
+  while `OnBite`, `OnPinUpdated`, `OnCutsUpdated`, `RefreshPropGroup` and
+  `OnStartClient` all have one and the 32 bytes between the two nearest are
+  padding, not a body. It was inlined into its caller
+  (`UnlockTrailStation.OnCutPeck`, which does have one). A Harmony patch on
+  it would have bound to something nothing calls and reported nothing, in
+  silence — the same trap `BroadcastStation.Unlock` set for the radio. The
+  hook used instead is **`OnCutsUpdated(SyncList<bool>.Operation, int, bool,
+  bool)`**: it has a body, it is the game's own notification for this exact
+  change, and `__instance.prop.saveablePropName` still names the tower while
+  the index names the segment. Report on `false -> true` only — `cuts` is
+  sized at runtime, so a world load appends its entries one at a time and the
+  callback fires once per append.
 
 ### What opens a door, and why there is no feature flag
 
@@ -1998,10 +2010,13 @@ the tunnels. Their persistence *is* "the key is in its plinth"
 the mod keeps its own ledger and re-applies on every world — the shape
 `Core/RadioStations.cs` already has.
 
-Two candidate switches, both public and both dumped by `Debug.DumpKeysKey`:
-`PropHome.pinDirectControlSystem` (on the plinth) and
-`PropHomeBlock.isFullDirectControlSystem` (on the block watching it,
-alongside `PropHome[] homes`).
+*Superseded — see "what DOES open them" below.* The two candidates this
+paragraph proposed, `PropHome.pinDirectControlSystem` and
+`PropHomeBlock.isFullDirectControlSystem`, are both on the **plinth**, and
+that is precisely why neither is the answer: the feature hangs off the key,
+in `Prop.taggedPinSystems`. The conclusion above about a mod-side ledger
+stands, and for the reason given — no `SavableSystem` entry exists for these
+features, so a granted one must be re-applied to every world that loads.
 
 **Do not reach for `PeckDevHelper.Trigger(UnlockRules{map:true})`.** The
 rules struct does carry `unlocks`/`lights`/`chairlift`/`train`/`bell`/
@@ -2091,7 +2106,7 @@ puzzle machinery does not apply to them at all.
 
 ## The big-key doors — what does NOT open them (2026-09-21)
 
-Measured with Ctrl+K, and both candidates died:
+Measured with Ctrl+K, and all three candidates died:
 
 - **No `PropHomeBlock` watches a big-key plinth.** All seven report none.
 - **No plinth fires a `PeckSwitch` on pin.** All seven report
@@ -2100,17 +2115,125 @@ Measured with Ctrl+K, and both candidates died:
   loaded, 49 carry `needsKey`; 48 are `SalonBrush` and one is `StickyCurse`.
   Not one is keyed on `BigKey`, `BigKeyComplete` or any variant.
 
-What remains, and the lead for whoever picks this up:
+All three were eliminated for the same reason, and it is worth naming because
+it is what cost the time: **they were all looking at the socket.**
 
-- `PropHome.pinDirectControlSystem` — non-null on every plinth, but with an
-  empty `label` and `savableSystem = NotSavable`. Driving it with `SetState(1)`
-  is untested.
-- **`PropHome.onPinServer` and `onChangeServer`** — plain C# delegates rather
-  than PeckSwitches, already named elsewhere in this document as where the
-  plinth's game effect hangs. The Ctrl+K dump never looked at them because it
-  only inspected `PeckSwitch` fields. **Look here first**: a delegate's
-  subscribers are what a dump would have to enumerate, which is harder than
-  reading a field but is where the evidence points.
+## The big-key doors — what DOES open them (2026-09-21, ANSWERED)
+
+**The wiring is on the plug, not on the socket.**
+`Prop.SetPinDirectControlSystem(PropHome home, bool pinned)` — decompiled
+(`0x1803C6B10`), not inferred — drives three `TrackedPeckState`s in order:
+
+```
+1. home.pinDirectControlSystem        // the plinth is occupied
+2. this.pinDirectControlSystem        // the prop is pinned
+3. foreach (pair in this.taggedPinSystems)
+       if (pair.propGroup == home.pinGroup)
+           pair.peckSystem.SetState(context)   // THE FEATURE
+```
+
+```
+Prop.pinDirectControlSystem   TrackedPeckState            // 0x268
+Prop.taggedPinSystems         PropGroupPeckSystemPair[]   // 0x270
+
+struct PropGroupPeckSystemPair { PropGroup propGroup; TrackedPeckState peckSystem; }
+```
+
+That third loop is the door, and it explains every negative result above at
+once: nothing needs to hang off the plinth, because the key carries its own
+table of "which state do I drive when placed into a home of group X". It
+also explains why the plinth's `pinDirectControlSystem` is a dead end — empty
+label, `NotSavable`, identical on all seven — it is the generic "something is
+in me" state, not the feature.
+
+**Implications, both directions:**
+
+- **Granting** a feature without a key is `SetState(1)` on that pair's
+  `peckSystem`, found from the key prop and the plinth's `pinGroup`. Same call
+  `ArchDoorUnlocker` already makes for the hub shortcuts.
+- **Suppressing** it is emptying `taggedPinSystems` around the call and
+  restoring it after, which leaves (1) and (2) running so the key still
+  visibly sits in its socket. **Empty, not null**: the loop has no null guard
+  and the disassembly's null path jumps straight to a throw.
+- **Co-op needs nothing extra.** Peck state is networked and
+  `SetPinDirectControlSystem` is server-side already, so the host grants and
+  the guest sees it. This is strictly better than the radio, whose
+  `FmRadioManager` is local to each machine.
+
+See `Core/KeyFeatures.cs`, `Patches/PropTaggedPinPatch.cs` and
+`../apworld/protocol.md` §12.
+
+### Two leads that died on the way, recorded so nobody walks them again
+
+- **`KeyDependantPeckSwitch`** (`station` / `propHome` / `onPlaceBlank` /
+  `onPlaceCut`) reads exactly like the answer, and is not one: its `Awake`
+  and `OnPin` have no code address in the export while `UnlockTrailStation`'s
+  `Awake` — its immediate neighbour — has one. Unused in any shipped scene.
+- **`PropHome.onPinServer` / `onChangeServer`**, the lead this document
+  recommended following first. They are real, but they are not where the
+  feature hangs, and enumerating a delegate's subscribers in IL2CPP would
+  have been a great deal of work to arrive at the same place. Reading the one
+  function that fires on a pin was twenty minutes.
+
+## What holds a big key back (measured 2026-09-21)
+
+For the question "how can Archipelago hand a player a key", once the keys
+became items rather than a reward for filling a monument.
+
+**One bool, on the home the key sits in.** All seven report
+`blockGrabbing = true` — six of them in a `PropHome` called `KeyStoneHome`,
+and `bigKeyIntro` in a `BigKeyHome`. The game's own release is a
+`PeckEffectPropHomeSettings`:
+
+```
+PeckEffectPropHomeSettings
+    PropHome        propHome;          // or propHomeBlock
+    PeckSystemReference systemReference;
+    PropHomeSetting[] settingsPerState;
+
+struct PropHomeSetting { bool blockPlacingMask, blockPlacingValue,
+                              blockGrabbingMask, blockGrabbingValue; }
+```
+
+For `bigKeyOverflow` the dump named the whole mechanism in one line: the
+effect is `KeyStoneGrabbableState`, driven from a TrackedPeckState whose
+label IS its documentation — `0 - locked, 1 - animating, 2 - grabbable`, on
+`KeyScrewLogic` — with `settingsPerState[2]` writing
+`blockGrabbing := false`.
+
+The other six matched nothing, by `propHome` or by `propHomeBlock`. Most
+likely streaming: the dump was taken from the tutorial and those towers are
+300m to 900m away. **It does not matter**, and that is the point of the
+approach chosen: the mod re-asserts the bool on a poll rather than
+intercepting whatever flips it. Which is just as well, because
+`PeckEffectPropHomeSettings.Apply` and `OnPeck` have **no code address** in
+the export while `Awake` does — inlined, so a patch would bind to nothing,
+exactly like `ServerCutSegment`.
+
+`Prop.ServerSetUnpinned()` is in the same category — named in the 1.48
+interop assembly, no address in the export — and was therefore called under
+a guard with a playable fallback. **It works**, verified in play: the key
+unpinned, moved to the spawn point, settled under gravity 1.3m lower and
+stayed there, `activeInHierarchy` and `isVisible` both true. One earlier
+attempt had it vanish on the spot and that remains unexplained — nothing
+about the delivery changed between the two runs, only the diagnostic
+around it.
+
+## Two game APIs that THROW instead of returning null
+
+Both found the same way, both having crossed the IL2CPP-to-managed
+trampoline and killed the rest of a method on the way out:
+
+- **`FmRadioManager.instance`** (2026-09-21) — took `ResendKnownChecks` with
+  it out of `OnJustConnected`.
+- **`PropHome.GetSaveableHome(name)`** (2026-09-21) — raises a
+  `NullReferenceException` when no world is loaded, which is the NORMAL
+  state at connection time, not an edge case. Everything in the mod now
+  goes through `GourdRegistry.TryGetHome`.
+
+Worth assuming of any `static` accessor in this game until proven
+otherwise: a scene singleton reached before its scene exists is a throw,
+not a null.
 
 ## Reference files
 

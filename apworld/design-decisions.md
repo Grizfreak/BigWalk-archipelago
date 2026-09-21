@@ -385,20 +385,75 @@ segments each on the drawbridge and the four coloured towers. The Black
 Monolith and Green Dome keys are born finished and have no cutting, so they
 have no forage locations — only their deposit, and their feature item.
 
-**The one open question, now central.** Which switch actually opens a door?
-The Ctrl+K dump ruled out a `PropHomeBlock` on the plinths (all seven reported
-none). Two candidates remain, and the same dump now prints both: the plinth's
-own `onPin`/`onUnpin` `PeckSwitch` and its `pinDirectControlSystem`, and any
-`PeckSwitch` carrying `needsKey` + `keyType` — the game's own "cannot be used
-without the right key" mechanism, which a switch keyed on `BigKeyComplete`
-would be by construction. Whichever it is, it is both what must stop firing on
-pin and what the item must drive, so one answer settles both halves.
+**The one open question — ANSWERED (2026-09-21).** Which switch actually opens
+a door? None of the ones anybody looked for. Every candidate was a component
+of the *plinth*, and all of them came back empty: no `PropHomeBlock` watches a
+big-key plinth, no plinth fires a `PeckSwitch` on pin, and of 2833 loaded
+`PeckSwitch` instances not one is keyed on a big key.
+
+**The wiring is on the key.** `Prop.taggedPinSystems` is a
+`(PropGroup, TrackedPeckState)[]` carried by the prop itself, and
+`Prop.SetPinDirectControlSystem` fires the entry whose group matches the
+home's `pinGroup`. One answer settles both halves exactly as hoped: that is
+what must stop firing on pin, and it is what the item drives instead. Full
+detail in `../mod/reverse-engineering-notes.md` and `protocol.md` §12.
+
+**Implemented 2026-09-21**: `Core/KeyFeatures.cs` (grant + `ap_feature_*`
+ledger), `Patches/PropTaggedPinPatch.cs` (suppression),
+`Patches/KeyBlankCutPatch.cs` (the 25 cut checks, off `OnCutsUpdated` —
+`ServerCutSegment` turned out to be inlined and unpatchable), and the apworld
+side in `bigwalk/`. The item names are the features: Drawbridge, Map Room,
+Chairlift, Train, Tunnels, Dam, Green Dome.
+
+## CORRECTION (2026-09-21, same day) — the keys are items, not a reward for gourds
+
+The decision above made the FEATURE an item and left the KEY exactly where
+the vanilla game puts it: released by filling that tower's monument. The
+player corrected it the moment it was playable — *"ce n'est pas parce que
+les clés reviennent à leur emplacement initiaux qu'elles doivent être
+débloquées par l'action de ranger n gourdes"*. A key should arrive from
+the multiworld and spawn like a gourd, with the same physics and the same
+Ctrl+R recovery.
+
+**What changed**
+
+- **Seven more items**, the keys themselves, named after the feature they
+  fit (`Chairlift Key`, `Map Room Key`) so that they match their own
+  locations and nothing has to be memorised. Ids at `B + 4000 + prop_value`,
+  because `B + prop_value` was already the feature's.
+- **A monument buys nothing but its own deposit checks.** The mod holds
+  every key locked (`blockGrabbing`) until its item arrives.
+- **The rules change kind.** A tower's five cuts and its placement all rest
+  on `Has(<Feature> Key)`. `gourd_requirements` — the cumulative count that
+  charged each key deposit — is deleted rather than left computed and
+  unread.
+- **`start_with_tutorial_key` precollects the Drawbridge, not the key.**
+  Leaving the tutorial is the feature's job; the key is six checks, and
+  handing it over would be handing over checks.
+
+**What did NOT change, and that is the point of asking rather than
+assuming**: the key stays a check carrier. Placing it opens nothing, the
+door is still its own item, and the 25 cut checks survive because the key
+arrives uncut. Both were put to the player as explicit choices, and both
+were kept — so the suppression, the ledger and the cut hook built for the
+first pass all stand.
+
+## Open points carried forward
+
+**One assumption left unmeasured**, and deliberately flagged rather than
+quietly taken: the 25 cut locations all sit in the overworld, which assumes
+every cutting station is reachable without a big key. That is the same
+assumption that turned out to be false for the puzzles on 2026-09-21 and made
+seeds unbeatable, so it deserves the same measurement — the Ctrl+K dump now
+lists every `UnlockTrailStation` sorted by distance for exactly that.
 
 ## Explicitly set aside
 
-- **Key Cutters** — decided not to explore, an uninteresting intermediate
-  step as a separate check. **To reconsider (2026-09-11)** if the big-key
-  decomposition lead (5 cuts + 1 placement) above moves forward.
+- ~~**Key Cutters**~~ — **reconsidered and taken (2026-09-21)**, exactly as
+  that note allowed for: the decomposition moved forward, so the five cuts per
+  tower are checks after all. Twenty-five of them, and what made them worth
+  having is not the cutting itself but that they let the key become a pure
+  check carrier — which is what freed the item to be the feature.
 
 (`lock_map_room` and the Poet&Priest/Poet&Pontiff doors are an unidentified
 mod mechanism, not an apworld design question — see

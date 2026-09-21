@@ -1,6 +1,6 @@
 # Where this stands, and what to do next
 
-*Written at the end of the session of 2026-09-21. The detail lives in
+*Written at the end of the session of 2026-09-21 (second half). The detail lives in
 [`mod/reverse-engineering-notes.md`](mod/reverse-engineering-notes.md) (how
 the game works and what the mod does to it) and
 [`apworld/design-decisions.md`](apworld/design-decisions.md) (why the world
@@ -8,12 +8,11 @@ is shaped the way it is); [`apworld/protocol.md`](apworld/protocol.md) is
 the contract between the two. This file is the short version and the
 to-do list.*
 
-**Start here: two features, both measured, neither built.** Everything that
-was in flight has landed — the radio is an item and was exercised in game, and
-the seed-breaking gate found in play on 2026-09-21 is fixed and verified. What
-remains before a release is the work below, and it is implementation rather
-than exploration: the hard questions were answered with dumps, and the answers
-are in `mod/reverse-engineering-notes.md`.
+**Start here: the big keys are BUILT but have never been run in game.** Task 1
+below is written, compiles, deploys, and its apworld half passes 175 tests and
+generates a real seed — but not one line of it has executed inside Big Walk.
+That is the single most valuable hour available: everything else in this file
+is either untouched (Task 2) or a decision rather than work.
 
 **Before touching anything in game**: `tools/deploy-mod.ps1` builds and
 deploys to every install, then prints one hash and says whether they match.
@@ -25,32 +24,115 @@ Presence tells you nothing about location — two dumps taken in two different
 zones came back byte-identical. Every dump that asks "what is in this area"
 must sort by distance to the player. Ctrl+V and Ctrl+B already do.
 
-## Task 1 — big keys: forage checks, and an item that is the feature
+## Task 1 — big keys: BUILT AND EXERCISED IN GAME
 
-Decided in full (`apworld/design-decisions.md`, "DECISION SETTLED (2026-09-21)
-— big keys"). The model:
+The model (`apworld/design-decisions.md`, `apworld/protocol.md` §12):
 
-- **Locations**: the 25 cut segments, plus the 7 existing deposit locations.
-- **Item**: the feature itself — map room, chairlift, train, tunnels,
-  drawbridge, dam, Green Dome.
+- **Locations**: the 25 cut segments, plus the 7 deposit locations. 32 in all.
+- **Item**: the feature itself — Drawbridge, Map Room, Chairlift, Train,
+  Tunnels, Dam, Green Dome.
 - **The key**: a check carrier. Placed in its receptacle it is inert.
 
-Because placing is inert, **nothing about cutting or placing needs
-suppressing**. The player does both freely and both are checks. The only thing
-that must stop happening is the door opening when the key goes in.
+### What opens a door — ANSWERED, and it was none of the three candidates
 
-Measured, so no longer in doubt: five segments each on the drawbridge and the
-four coloured towers (25); the Black Monolith and Green Dome keys are born
-finished and have none; every plinth's `pinGroup` is the `Complete` variant.
-One trap recorded — pinning a key marks its blank complete, so a naive hook on
-`ServerCutSegment` would fire the drawbridge's five checks at connection time.
+All three eliminated candidates were components of the **plinth**, and that is
+why they all came back empty. The wiring is on the **key**:
+`Prop.taggedPinSystems` is a `(PropGroup, TrackedPeckState)[]` carried by the
+prop, and `Prop.SetPinDirectControlSystem` fires the entry whose group matches
+the home's `pinGroup`. Decompiled at `0x1803C6B10` — twenty minutes, against
+a lead this file had been recommending since September that would have taken
+far longer to reach the same place. Full detail in
+`mod/reverse-engineering-notes.md`, "what DOES open them".
 
-**The one thing still unknown: what actually opens a door.** Three candidates
-are eliminated (no `PropHomeBlock` on the plinths, no `onPin` PeckSwitch, no
-switch anywhere keyed on a big key — see the notes). The lead to follow is
-`PropHome.onPinServer` / `onChangeServer`, plain C# delegates that this
-document has named as the plinth's effect point since September and that the
-Ctrl+K dump never looked at, because it only read `PeckSwitch` fields.
+### What was built
+
+| Piece | Where |
+|---|---|
+| Grant a feature, ledger it under `ap_feature_*`, re-apply on every world | `mod/src/Core/KeyFeatures.cs` |
+| Stop a placed key opening its door, and nothing else | `mod/src/Patches/PropTaggedPinPatch.cs` |
+| The 25 cut checks | `mod/src/Patches/KeyBlankCutPatch.cs` |
+| `big_key_features` + `cut_id_offset` in slot_data | `ApSlotData.cs`, `world.py` |
+| 25 locations, 7 renamed items, cut rules, no more Tutorial Key special case | `apworld/bigwalk/` |
+| Ctrl+D: open a door with no key (the same call the item makes) | `mod/src/Debug/DebugBigKeyDoorForce.cs` |
+
+Two findings worth keeping, both of which would have cost a session each:
+
+- **`ServerCutSegment` is un-patchable.** No code address in the export while
+  every neighbour in `KeyBlank` has one — inlined into its caller. This file
+  named it as the check hook; it would have bound to something nothing calls
+  and reported nothing, in silence. The hook is `OnCutsUpdated`.
+- **The connection-time burst trap dissolved** rather than needing a
+  workaround. It existed because the mod pinned the precollected Tutorial Key;
+  the mod now pins nothing, so a key in its plinth is one the players carried
+  there and its five cuts are genuinely theirs.
+
+### What the session of 2026-09-21 actually confirmed
+
+All of it in play, on a real server, with the log to match:
+
+- the door opens from its item (`[KeyFeatures] bigKeyIntro is now open.`);
+- the five cut checks fire one per segment;
+- placing a key does NOT open its door (`its door was held back`);
+- a key item unlocks its key, unpins it and drops it at the spawn point;
+- the keys come out tinted, one colour each.
+
+**Four traps were sprung and are worth carrying forward.**
+
+1. **The door is on the key's HOME, not on the key.** A decompiled reading
+   of `Prop.SetPinDirectControlSystem` put the feature in
+   `Prop.taggedPinSystems`; measurement found that array EMPTY on all seven
+   keys. Of the three states that function drives, only the home's
+   `pinDirectControlSystem` is non-null for a big key — and driving it
+   opened the drawbridge with no key in the plinth.
+2. **`systemRefences` predicts nothing.** The intro plinth's state reported
+   ZERO effects registered and opened its door anyway. A diagnostic written
+   that day claimed otherwise and would have talked the next reader out of
+   the right answer.
+3. **A `MaterialPropertyBlock` never complains about a property the shader
+   does not declare.** Writing `_RColor` — a real name, measured on the
+   Black Monolith key — painted five keys, reported success, and changed
+   nothing. The keys run `househouse/VertexColors`, whose tint is
+   `_TintColor`. And since that tint MULTIPLIES, white is the identity and
+   grey merely dims: only a saturated hue moves a yellow key off yellow.
+4. **Three static accessors THROW instead of returning null** when no world
+   is loaded — `FmRadioManager.instance`, `PropHome.GetSaveableHome` and
+   `Prop.allProps` — and connection time is exactly when there is no world.
+   Treat it as the rule for this game, not as a surprise.
+
+### What is left to watch
+
+- **The key is fetched home once after the unpin**, and putting it back on
+   the next frame settles it — measured as `put back 1 time(s)`, and `0`
+   for a key already loose. `PropHome.CheckShepherd` calling
+   `PropShepherd.DoShepherd` is the named suspect; Ghidra resolves no
+   caller, because IL2CPP dispatches indirectly.
+- **Co-op has not been tried** for any of this.
+
+### The rest of what to do in game, in order
+
+1. **Ctrl+K** at a tower. Under each key it now prints `taggedPinSystems` and
+   marks `<== MATCHES PLINTH` the entry whose group is the plinth's. If that
+   line is missing for every key, the mechanism is wrong and everything above
+   rests on it — stop and re-read the decompilation.
+2. **Ctrl+D** next to a door, with no key in the plinth. It drives exactly
+   that state. A door that opens is the feature working, one call short of
+   `KeyFeatures` doing it on an item.
+3. **Place a key with `big_key_features` on** and check the door stays shut
+   while the key still visibly sits in its socket. Then send yourself the
+   matching item (F4 / `Debug.SimulateReceivedItemKey`) and watch it open.
+4. **Cut a segment** and look for `[KeyBlankCutPatch] Segment N cut out of X`.
+5. **Reload the world** with a feature granted: `KeyFeatures.RearmFromLedger`
+   should re-open it, because nothing in the game persists these.
+
+### The one assumption left unmeasured
+
+**Is every key-cutting station reachable without a big key?** The 25 cut
+locations all sit in the overworld on that assumption — the same assumption
+this world made about the whole island until it turned out to be false and
+made seeds unbeatable. Ctrl+K now lists every `UnlockTrailStation` sorted by
+distance for exactly this: stand past the chairlift, read them, then stand
+somewhere plainly open and read them again. If one is gated, its tower's cuts
+move to that region in `apworld/bigwalk/locations.py`.
 
 ## Task 2 — the island's objects as items
 
@@ -74,10 +156,24 @@ something.
 `tools/package-mod.ps1` produces the players' zip, the debug module is off by
 default (`Debug.Enabled = false`), and `apworld/build.py` packages the world.
 
-One decision left, and it is yours: **the version numbers**. Everything says
-0.1.0 — `Plugin.PluginVersion`, the `.csproj`, `archipelago.json` and
+One decision left, and it is yours: **the version numbers**. Everything still
+says 0.1.0 — `Plugin.PluginVersion`, the `.csproj`, `archipelago.json` and
 `WORLD_VERSION`. Nothing has shipped publicly, so 0.1.0 as the first release
 is coherent; the alternative is calling this a 0.2.0.
+
+It matters slightly more than it did. A mod older than today's talking to
+today's apworld ignores `big_key_features`, so it pins keys as before AND
+never reports the 25 cut checks — which makes a seed unbeatable if anything
+needed sits on one. The mismatch only warns today. Bumping both halves
+together is what makes that warning readable.
+
+Also worth a moment before shipping, because it is baked into the data
+package and awkward to change afterwards: **the seven item names are bare
+nouns** — `Drawbridge`, `Map Room`, `Chairlift`, `Train`, `Tunnels`, `Dam`,
+`Green Dome`. The radio items carry a `Radio Music:` prefix because `Bobby`
+alone would be cryptic in a multiworld feed; `Chairlift` is not. If you would
+rather they read `Feature: Chairlift`, it is one table in
+`apworld/bigwalk/data.py`.
 
 Not done and worth one session if you want it before shipping: **the radio in
 co-op**. The accepted wrinkle is that a guest hears a station as soon as it is
@@ -161,6 +257,9 @@ is "does this replicate to a second client", and it has only one.
 - ~~**Do `FmStation7/8/9` exist at all?**~~ **Settled (2026-09-21)**: they
   exist in `SavableSystem` (37–39), and nothing suggests they are wired to
   anything. Left out, on both sides.
+- **Is every key-cutting station reachable without a big key?** See Task 1.
+  Unmeasured, and of the same shape as the bug that broke seeds on
+  2026-09-21.
 - **`ap_reported_*` is not scoped to a seed**, so a save reconnected to a
   *different* seed resends checks earned elsewhere. Harmless in real use,
   where a save belongs to one seed — but it will skew a count during
@@ -174,8 +273,10 @@ is "does this replicate to a second client", and it has only one.
   recovers its deposits instead of only its items.
 - **A real in-world button for the gourd resync** instead of Ctrl+R.
 - **Traps.** The item and the YAML option exist, the effect does not.
-- **Per-tower monument locations (Option C/D)**, the big-key decomposition,
-  and Key Cutters as checks.
+- **Per-tower monument locations (Option C/D)**.
+- ~~**The big-key decomposition, and Key Cutters as checks**~~ — both built on
+  2026-09-21, as Task 1 above. The five cuts per tower ARE the Key Cutters
+  lead, reached from the other end.
 - ~~**Props as checks**~~ — promoted to Task 2 above, now that the inventory
   exists and every candidate turns out to carry a `savablePropGuid`.
 

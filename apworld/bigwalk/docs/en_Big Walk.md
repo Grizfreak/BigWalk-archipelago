@@ -14,14 +14,23 @@ arrive at the hub as ordinary, pickable props, and they are generic: any gourd
 fits any monument slot.
 
 That changes what the towers' monuments are for. Filling one is no longer the
-reward for clearing that tower's puzzles; it is how you spend the gourds
-Archipelago gives you. A full monument still releases its big key, and placing
-that key still opens what it always opened — the map room, the chairlift, the
-train, the tunnels, the way to the ending.
+reward for clearing that tower's puzzles, and it no longer releases that
+tower's key either: it is simply how you spend the gourds Archipelago gives
+you, and every deposit is a check.
 
-Big keys work the other way around from gourds: each one is still itself. A
-"Red Funnel Key" received from the multiworld really is the Red Funnel's key,
-and the mod places it in its plinth for you, opening the door on the spot.
+**The keys are items too.** A big key arrives from the multiworld and drops
+at the spawn point like a gourd, uncut, tinted so you can tell one from
+another — they are otherwise the same yellow blank. What a key is FOR is
+unchanged: you carry it along its cutting trail, and every one of the five
+segments you cut is a check, as is placing the finished key in its
+receptacle. That is 32 checks across the seven towers, all of them earned by
+hand.
+
+**And the key no longer opens anything.** The chairlift, the train, the map
+room, the tunnels, the drawbridge, the dam and the Green Dome are separate
+items. So the two halves come apart: you might be riding the chairlift long
+before its key reaches you, or cut all five of that key's segments and still
+be waiting on someone else to send you the ride.
 
 The radio works like the puzzles rather than like the keys. Switching a station
 on at its tower sends the check, but the music stays off until the matching
@@ -57,6 +66,9 @@ Locations:
 
 - Each of the 58 puzzles, when you solve it.
 - Each of the 7 big keys, when it goes into its plinth.
+- Each of the 25 key segments, as you cut it. Five each on the drawbridge and
+  the four coloured towers; the Black Monolith and Green Dome keys come
+  already finished and have none.
 - Each of the 7 radio stations, when you turn it on (optional).
 - Depositing gourds into monuments — every deposit, every fifth one, or none
   (optional). Deposits are counted across all monuments together, so it never
@@ -66,7 +78,12 @@ Items:
 
 - **Gourd** — the generic monument currency. There are exactly as many as there
   are monument slots in play.
-- The 7 big keys.
+- The 7 features a big key used to open: **Drawbridge**, **Map Room**,
+  **Chairlift**, **Train**, **Tunnels**, **Dam** and **Green Dome**. These
+  are what actually open the island.
+- The 7 big keys themselves — **Chairlift Key**, **Map Room Key** and so on,
+  each named after the feature it fits. A key opens nothing; it is worth six
+  checks, and it is the only way to reach them.
 - The 7 Radio Music items, each of which starts one station playing
   (optional). They are named after the music itself: the game's dial shows
   numbers and no names, so this is the only place a station is ever named.
@@ -84,7 +101,17 @@ keep one open.
 
 ## When the player receives an item, what happens?
 
-A gourd drops at the hub as a physical prop you can pick up and carry. A big
-key goes straight into its plinth, and whatever that key opens opens
-immediately. A Radio Music item starts its station playing, wherever you are — and it
-stays available for the rest of the run. Everything else is silent.
+A gourd drops at the hub as a physical prop you can pick up and carry, and so
+does a big key — uncut, and tinted to tell it from the others. A feature
+opens on the spot, wherever you are and whatever the matching key is doing:
+the chairlift simply starts running. A Radio Music item starts its station
+playing, wherever you are, and it stays available for the rest of the run.
+Everything else is silent.
+
+`Ctrl+R` brings back anything of yours that has ended up somewhere you
+cannot reach — gourds and keys alike. A key already placed in its receptacle
+is left where it is, because that check has already been sent.
+
+Both the features and the radio are re-applied every time you load the world,
+because the game has nowhere of its own to record them. If a door you own is
+shut for a moment after a load, give it a second.
