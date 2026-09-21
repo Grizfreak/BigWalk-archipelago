@@ -115,16 +115,22 @@ class RadioStationItems(DefaultOnToggle):
 
 class StartWithTutorialKey(DefaultOnToggle):
     """
-    Start with the Tutorial Key instead of shuffling it into the pool.
+    Start with the Drawbridge already open instead of shuffling it in.
 
-    The drawbridge this key opens is believed to be what lets you leave the
-    tutorial area. If that is true and the key is shuffled, a seed can lock you
-    in the tutorial with nothing to do, so the safe default is to hand it over
-    up front. Turn this off only once you have confirmed you can walk out of
-    the tutorial without it.
+    The tutorial's drawbridge is believed to be what lets you leave the
+    tutorial area. If that is true and it is shuffled, a seed can lock you in
+    the tutorial with nothing to do, so the safe default is to hand it over up
+    front. Turn this off only once you have confirmed you can walk out of the
+    tutorial without it.
+
+    It costs you no check either way: the tutorial key itself stays in its
+    tower, and carrying it to its plinth is still a location like any other.
+
+    The YAML key still says "tutorial key", for compatibility with existing
+    files written when the item was the key rather than the drawbridge.
     """
 
-    display_name = "Start With Tutorial Key"
+    display_name = "Start With Drawbridge Open"
 
 
 class TrapFillPercentage(Range):

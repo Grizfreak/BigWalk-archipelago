@@ -23,8 +23,22 @@ BASE_ID = 8_600_000
 
 RADIO_ID_OFFSET = 1_000
 DEPOSIT_ID_OFFSET = 2_000
+CUT_ID_OFFSET = 3_000
+KEY_ITEM_ID_OFFSET = 4_000
 # 9_000 and above is the item-only range for things the game has no enum for
 # (filler, traps); see FILLER_ITEMS / TRAP_ITEMS at the bottom of this file.
+
+CUT_STRIDE = 10
+"""
+Ids reserved per big key for its cut segments: `BASE_ID + CUT_ID_OFFSET +
+prop_value * CUT_STRIDE + index`.
+
+Ten where the widest key has five, so the block can absorb a longer key
+without every id below it moving. With `prop_value` in 300..306 the range
+works out to 6000..6064 above BASE_ID, which sits clear of the puzzles
+(100..159), the keys (300..306), the deposits (2001..2045), the radio
+(1030..1036) and the item-only 9000s.
+"""
 
 GOURD_ITEM_NAME = "Gourd"
 
@@ -134,7 +148,17 @@ class Tower(NamedTuple):
     prop_value: int
     """`SaveablePropName` enum value; item id and location id are BASE_ID + this."""
     item_name: str
-    """Player-facing name of the big key item."""
+    """
+    Player-facing name of the item that is the FEATURE this tower's key
+    opens — the chairlift, the train, the map room.
+
+    The physical key is a SECOND item, named from this one by
+    `key_item_name()`. The two are different things and always have been:
+    a key is a check carrier the players cut and place, and a feature is
+    what actually opens. Keeping the key's name derived from the feature's
+    is what stops a player having to learn that the Green Cup tower is the
+    chairlift one.
+    """
     location_name: str
     """Player-facing name of the location "this key was placed in its plinth"."""
     plinth_name: str
@@ -143,27 +167,53 @@ class Tower(NamedTuple):
     """`SaveableHomeName` prefix of the monument whose slots unlock this key."""
     slots: int
     """Number of monument slots for this tower (F6 count, matches the doc)."""
+    segments: int
+    """
+    Segments that must be cut out of this tower's key blank, each one a check.
+
+    Measured in game on 2026-09-21 with the mod's Ctrl+K dump, not taken from
+    the third-party document: five each on the drawbridge and the four
+    coloured towers, and **none** on the Black Monolith and Green Dome keys,
+    which are born finished with `covers = 0` and their Complete PropGroup
+    already in `propGroups`. 25 in all.
+    """
 
 
-TUTORIAL_KEY_ITEM_NAME = "Tutorial Key"
-GREEN_DOME_KEY_ITEM_NAME = "Green Dome Key"
+# THE ITEM IS THE FEATURE, NOT THE KEY (decided 2026-09-21, see
+# ../design-decisions.md). One physical act used to carry three roles at once:
+# pinning a key in its plinth was the location, the effect of the item, and
+# what opened the door. The three are now split — the 25 cut segments and the
+# 7 placements are locations, the key is an inert check carrier the player
+# fores and places freely, and what arrives from Archipelago is the map room,
+# the chairlift, the train, the tunnels, the drawbridge, the dam or the Green
+# Dome itself.
+#
+# So these names are things, not keys. "Chairlift" is what the player receives
+# and "Chairlift Key Deposit" is where they put the key that no longer opens
+# it — the pairing is deliberate, and the old "Green Cup Key" style of name
+# would now be a lie about what the item does.
+DRAWBRIDGE_ITEM_NAME = "Drawbridge"
+GREEN_DOME_ITEM_NAME = "Green Dome"
 
 TOWERS: tuple[Tower, ...] = (
-    Tower("bigKeyIntro", 300, TUTORIAL_KEY_ITEM_NAME, "Drawbridge Key Deposit",
-          "bigKeyPlinthIntro", "monoumentIntro", 4),
-    Tower("bigKeyRedZone", 301, "Red Funnel Key", "Map Room Key Deposit",
-          "bigKeyPlinthMapRoom", "monoument0", 5),
-    Tower("bigKeyGreenZone", 302, "Green Cup Key", "Chairlift Key Deposit",
-          "bigKeyPlinthSkiLift", "monoument1", 5),
-    Tower("bigKeyBlueZone", 303, "Blue Castle Key", "Train Station Key Deposit",
-          "bigKeyPlinthTrain", "monoument2", 5),
-    Tower("bigKeyYellowZone", 304, "Yellow Twist Key", "Tunnel Key Deposit",
-          "bigKeyPlinthTunnels", "monoument3", 5),
-    Tower("bigKeyBoss", 305, "Black Monolith Key", "Dam Key Deposit",
-          "bigKeyPlinthEnding", "monoumentFinal", 6),
-    Tower("bigKeyOverflow", 306, GREEN_DOME_KEY_ITEM_NAME, "Goodbye Keyhole Key Deposit",
-          "bigKeyPlinthGoodbye2", "monoumentOverflow", 15),
+    Tower("bigKeyIntro", 300, DRAWBRIDGE_ITEM_NAME, "Drawbridge Key Deposit",
+          "bigKeyPlinthIntro", "monoumentIntro", 4, 5),
+    Tower("bigKeyRedZone", 301, "Map Room", "Map Room Key Deposit",
+          "bigKeyPlinthMapRoom", "monoument0", 5, 5),
+    Tower("bigKeyGreenZone", 302, "Chairlift", "Chairlift Key Deposit",
+          "bigKeyPlinthSkiLift", "monoument1", 5, 5),
+    Tower("bigKeyBlueZone", 303, "Train", "Train Station Key Deposit",
+          "bigKeyPlinthTrain", "monoument2", 5, 5),
+    Tower("bigKeyYellowZone", 304, "Tunnels", "Tunnel Key Deposit",
+          "bigKeyPlinthTunnels", "monoument3", 5, 5),
+    Tower("bigKeyBoss", 305, "Dam", "Dam Key Deposit",
+          "bigKeyPlinthEnding", "monoumentFinal", 6, 0),
+    Tower("bigKeyOverflow", 306, GREEN_DOME_ITEM_NAME, "Goodbye Keyhole Key Deposit",
+          "bigKeyPlinthGoodbye2", "monoumentOverflow", 15, 0),
 )
+
+TOTAL_CUT_SEGMENTS = sum(tower.segments for tower in TOWERS)
+"""25 — the drawbridge and the four coloured towers, five each."""
 
 # monoument0-3 are known to be the four five-slot towers, but which of the four
 # is Red/Green/Blue/Yellow was never established in-game. It does not matter
@@ -361,8 +411,42 @@ def key_deposit_location_id(tower: Tower) -> int:
     return BASE_ID + tower.prop_value
 
 
-def key_item_id(tower: Tower) -> int:
+def feature_item_id(tower: Tower) -> int:
+    """The door: map room, chairlift, train, tunnels, drawbridge, dam, dome."""
     return BASE_ID + tower.prop_value
+
+
+def key_item_name(tower: Tower) -> str:
+    """
+    The physical key a player carries, cuts and places.
+
+    Named after the feature rather than after the tower ("Chairlift Key",
+    not "Green Cup Key") so that it matches its own locations — `Chairlift
+    Key Cut 1` and `Chairlift Key Deposit` — and so that nothing has to be
+    memorised to know where a key belongs.
+    """
+    return f"{tower.item_name} Key"
+
+
+def key_item_id(tower: Tower) -> int:
+    return BASE_ID + KEY_ITEM_ID_OFFSET + tower.prop_value
+
+
+def cut_location_name(tower: Tower, index: int) -> str:
+    """Player-facing name of "the Nth segment of this key was cut".
+
+    Numbered from 1 for the player; the mod counts the SyncList from 0, which
+    is what `cut_location_id` undoes.
+    """
+    return f"{tower.item_name} Key Cut {index + 1}"
+
+
+def cut_location_id(tower: Tower, index: int) -> int:
+    return BASE_ID + CUT_ID_OFFSET + tower.prop_value * CUT_STRIDE + index
+
+
+def cut_locations(tower: Tower) -> tuple[str, ...]:
+    return tuple(cut_location_name(tower, index) for index in range(tower.segments))
 
 
 def radio_location_id(station: RadioStation) -> int:

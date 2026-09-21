@@ -59,9 +59,6 @@ class BigWalkWorld(World):
     deposit_amounts: tuple[int, ...]
     """Deposit counts that are locations, e.g. (5, 10, ..., 45)."""
 
-    key_requirements: dict[str, int]
-    """Gourds each tower's key deposit costs, keyed by big key `SaveablePropName`."""
-
     deposit_goal: int
     """Gourds required to win when the goal is `deposits` (clamped to what exists)."""
 
@@ -78,7 +75,6 @@ class BigWalkWorld(World):
         self.gourd_count = total_slots
 
         self.deposit_amounts = self._pick_deposit_amounts(total_slots)
-        self.key_requirements = rules.gourd_requirements(self)
 
         self.deposit_goal = min(self.options.deposit_goal_amount.value, total_slots)
         if (self.options.goal == bigwalk_options.Goal.option_deposits
@@ -151,6 +147,22 @@ class BigWalkWorld(World):
             # the harmless direction for the mismatch to fall.
             "radio_station_items": bool(self.options.radio_station_items),
 
+            # Not an option: it is the model this world is built on. The mod
+            # stops a placed key from opening its door only while this is
+            # true, and grants the feature when its item arrives instead. It
+            # travels as a field rather than being assumed so that a mod too
+            # old to read it keeps the vanilla doors — the harmless direction,
+            # since the alternative is seven doors that can never open.
+            "big_key_features": True,
+
+            # Likewise not an option. While this is true the mod holds every
+            # big key locked in its stone until the matching item arrives, so
+            # filling a monument no longer releases one. A mod too old to read
+            # it keeps the vanilla release and simply gets seven items it
+            # ignores — the harmless direction, since the alternative is seven
+            # keys that can never be obtained.
+            "big_key_items": True,
+
             # Everything the mod needs to know which checks exist and how many
             # gourds are in circulation, without re-deriving it from options.
             "total_monument_slots": self.gourd_count,
@@ -162,5 +174,7 @@ class BigWalkWorld(World):
             "location_id_base": data.BASE_ID,
             "radio_id_offset": data.RADIO_ID_OFFSET,
             "deposit_id_offset": data.DEPOSIT_ID_OFFSET,
+            "cut_id_offset": data.CUT_ID_OFFSET,
+            "key_item_id_offset": data.KEY_ITEM_ID_OFFSET,
             "gourd_item_id": items.ITEM_NAME_TO_ID[data.GOURD_ITEM_NAME],
         }

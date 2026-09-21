@@ -22,6 +22,8 @@ LOCATION_NAME_TO_ID: dict[str, int] = {
     **{puzzle.location_name: data.puzzle_location_id(puzzle) for puzzle in data.PUZZLES},
     **{tower.location_name: data.key_deposit_location_id(tower) for tower in data.TOWERS},
     **{station.location_name: data.radio_location_id(station) for station in data.RADIO_STATIONS},
+    **{data.cut_location_name(tower, index): data.cut_location_id(tower, index)
+       for tower in data.TOWERS for index in range(tower.segments)},
     **{data.deposit_location_name(amount): data.deposit_location_id(amount)
        for amount in range(1, data.MAX_MONUMENT_SLOTS + 1)},
 }
@@ -29,6 +31,8 @@ LOCATION_NAME_TO_ID: dict[str, int] = {
 LOCATION_NAME_GROUPS: dict[str, set[str]] = {
     "Puzzles": {puzzle.location_name for puzzle in data.PUZZLES},
     "Key Deposits": {tower.location_name for tower in data.TOWERS},
+    "Key Cuts": {data.cut_location_name(tower, index)
+                 for tower in data.TOWERS for index in range(tower.segments)},
     "Radio Stations": {station.location_name for station in data.RADIO_STATIONS},
     "Gourd Deposits": {data.deposit_location_name(amount)
                        for amount in range(1, data.MAX_MONUMENT_SLOTS + 1)},
@@ -74,6 +78,23 @@ def create_all_locations(world: BigWalkWorld) -> None:
     # these locations is the gourd count in rules.py, not where they are.
     overworld.add_locations(
         {tower.location_name: LOCATION_NAME_TO_ID[tower.location_name] for tower in world.towers},
+        BigWalkLocation,
+    )
+
+    # The 25 cut segments, in the overworld beside the deposit they lead to.
+    #
+    # UNVERIFIED, and knowingly so: nobody has stood in the gated zones and
+    # checked where the cutting stations are. The claim being made is that
+    # every `UnlockTrailStation` is reachable without any big key, which is
+    # the same claim this file made about the whole island until 2026-09-21,
+    # when it turned out to be false and made seeds unbeatable. The mod's
+    # Ctrl+K dump now lists every station sorted by distance to the player,
+    # which is exactly how the chairlift question was settled — if a station
+    # turns out to sit behind a door, its tower's cuts belong in that door's
+    # region, and this is the line to change.
+    overworld.add_locations(
+        {name: LOCATION_NAME_TO_ID[name]
+         for tower in world.towers for name in data.cut_locations(tower)},
         BigWalkLocation,
     )
 

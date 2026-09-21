@@ -21,52 +21,50 @@ if TYPE_CHECKING:
     from .world import BigWalkWorld
 
 
-def gourd_requirements(world: BigWalkWorld) -> dict[str, int]:
-    """
-    How many `Gourd` items each tower's key deposit costs, keyed by the big
-    key's `SaveablePropName`.
-
-    A tower's key only appears once its monument is full, and a gourd deposited
-    into a monument **cannot be taken back out** — confirmed by the player, it
-    is simply not possible in the base game. So gourds are spent, not lent: a
-    monument's slots are paid for on top of every monument already filled, and
-    the last key costs every gourd in the pool.
-
-    The towers are therefore sorted by slot count and charged the running
-    total. That sort is a logic device, not a claim about play order: it just
-    says a player who has filled k monuments has paid at least for the k
-    cheapest ones.
-    """
-    requirements: dict[str, int] = {}
-    running_total = 0
-    for tower in sorted(world.towers, key=world.slots_for):
-        running_total += world.slots_for(tower)
-        requirements[tower.prop_name] = running_total
-    return requirements
+# WHAT USED TO BE HERE, and why it is gone (2026-09-21).
+#
+# `gourd_requirements` charged each tower's key deposit a running total of
+# gourds, because a tower's key only appeared once its monument was full and
+# a deposited gourd cannot be taken back out. That was a faithful model of
+# the vanilla game, and this world no longer plays it: the keys are
+# Archipelago items that spawn like gourds, and a full monument buys nothing
+# but its own deposit check. Cutting and placing a key needs the key, and
+# the key alone.
+#
+# Nothing else in the world used the cumulative count, so it is removed
+# rather than left computed and unread.
 
 
 def set_all_rules(world: BigWalkWorld) -> None:
     set_key_deposit_rules(world)
+    set_key_cut_rules(world)
     set_gourd_deposit_rules(world)
     set_entrance_rules(world)
     set_completion_rule(world)
 
 
 def set_key_deposit_rules(world: BigWalkWorld) -> None:
+    """Placing a key in its receptacle needs that key, and nothing else."""
     for tower in world.towers:
-        if tower.item_name == data.TUTORIAL_KEY_ITEM_NAME and world.options.start_with_tutorial_key:
-            # The mod pins a received big key straight into its plinth and
-            # reports that location itself, because doing so consumes the
-            # plinth and the players could never place the key by hand
-            # afterwards. A precollected Tutorial Key therefore checks its own
-            # deposit the moment the client connects, before a single gourd
-            # exists — so requiring gourds for it would be a lie.
-            continue
-
         world.set_rule(
             world.get_location(tower.location_name),
-            Has(data.GOURD_ITEM_NAME, count=world.key_requirements[tower.prop_name]),
+            Has(data.key_item_name(tower)),
         )
+
+
+def set_key_cut_rules(world: BigWalkWorld) -> None:
+    """
+    Each cut segment costs what its tower's deposit costs.
+
+    Cutting a key physically requires holding it, and a key is now an
+    Archipelago item rather than something a full monument hands over. So
+    all six of a tower's locations — its five cuts and its placement — rest
+    on the same single requirement, and no gourd is involved anywhere.
+    """
+    for tower in world.towers:
+        requirement = Has(data.key_item_name(tower))
+        for name in data.cut_locations(tower):
+            world.set_rule(world.get_location(name), requirement)
 
 
 def set_gourd_deposit_rules(world: BigWalkWorld) -> None:
