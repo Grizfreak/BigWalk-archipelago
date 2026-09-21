@@ -44,15 +44,31 @@ namespace BigWalkArchipelago.Core
     // be tried without a rebuild.
     internal static class KeyColours
     {
-        // SATURATED HUES ONLY, and that is not a matter of taste. `_TintColor`
-        // MULTIPLIES the mesh's baked vertex colours, so white is the identity
-        // and grey merely dims: the drawbridge key was first given `#C8C8C8`
-        // and came out looking exactly as yellow as before, just darker. Only a
-        // hue can move a yellow key off yellow.
+        // WHAT A MULTIPLY TINT CAN AND CANNOT REACH, learned one wrong colour at
+        // a time and worth stating once.
         //
-        // The four coloured towers take their own colours, which is both
-        // legible and already true of the towers themselves. The drawbridge has
-        // no colour of its own, so it takes the one nothing else uses.
+        // `_TintColor` MULTIPLIES the mesh's baked vertex colours, and that base
+        // is yellow — which is to say its blue channel is almost zero. So:
+        //
+        //   - white is the IDENTITY and grey merely DIMS. `#C8C8C8` came out
+        //     looking exactly as yellow as before, just darker.
+        //   - blue and cyan are UNREACHABLE. Nothing multiplied by a near-zero
+        //     blue channel becomes blue: `#28D8D8` came out green.
+        //   - purple lands close to red, close enough to be mistaken for the red
+        //     key at a glance.
+        //   - BLACK is exact, and it is the one colour that always is — zero
+        //     times anything is zero.
+        //
+        // The reachable gamut on these keys therefore runs from red through
+        // orange and yellow to green, plus black. The four coloured towers take
+        // the closest thing to their own colour, which is legible because it is
+        // already true of the towers. The drawbridge takes black, being the one
+        // value that owes nothing to the base.
+        //
+        // NOTE for anyone rebalancing this: the blue tower's `#3A78E0` cannot
+        // come out blue either, for the same reason. It reads as a dark olive.
+        // That is still distinct from the others, which is all that is asked of
+        // it, but it is not blue and no value in this table can make it so.
         //
         // The two that already look different are left alone: the Black
         // Monolith's key and the Green Dome's are the secret-ending and chapel
@@ -60,7 +76,7 @@ namespace BigWalkArchipelago.Core
         // distinction the game already gives the player.
         private static readonly Dictionary<SaveablePropName, string> Palette = new()
         {
-            { SaveablePropName.bigKeyIntro, "#A64AE0" },
+            { SaveablePropName.bigKeyIntro, "#1E1E1E" },
             { SaveablePropName.bigKeyRedZone, "#E03A3A" },
             { SaveablePropName.bigKeyGreenZone, "#3ACF63" },
             { SaveablePropName.bigKeyBlueZone, "#3A78E0" },
