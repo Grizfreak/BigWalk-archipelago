@@ -143,6 +143,20 @@ namespace BigWalkArchipelago.Debug
                 DebugKeyLookup.Dump();
                 Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Dump returned.");
             }
+
+            if (ModConfig.DumpPropsKey.Value.IsDown())
+            {
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Prop inventory key pressed; calling Dump...");
+                DebugPropLookup.Dump();
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Dump returned.");
+            }
+
+            if (ModConfig.DumpGourdRosterKey.Value.IsDown())
+            {
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Gourd roster key pressed; calling LogAllLoaded...");
+                DebugGourdLookup.LogAllLoaded();
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] LogAllLoaded returned.");
+            }
         }
 
         private void RecheckCosmeticPickup()

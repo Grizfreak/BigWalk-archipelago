@@ -72,6 +72,51 @@ namespace BigWalkArchipelago.Debug
         // player recalls 4 for the tutorial and 5 for the towers, which does
         // not match the raw count found in the enum — to be confirmed against
         // the PropHome instances that are actually active).
+        // Every RewardGourd currently loaded, with the one property the
+        // Archipelago logic turns out to need: isVariantChallenge.
+        //
+        // Why it exists (2026-09-21): the player found that the purple gourds
+        // and one radio station sit behind the chairlift, so they cannot be
+        // reached before the Green Cup Key. The world's region graph assumes
+        // the island is open apart from the ending, which makes that a real
+        // seed-breaking bug rather than a rough edge. Fixing it needs the list
+        // of which puzzles are gated, and a purple gourd is exactly a
+        // RewardGourd with isVariantChallenge set — so this prints the roster
+        // wherever it is pressed.
+        //
+        // Press it in the gated zone and again somewhere plainly open: the
+        // difference between the two lists is the set that needs a region.
+        internal static void LogAllLoaded()
+        {
+            var all = UnityEngine.Object.FindObjectsByType<RewardGourd>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+
+            var variants = 0;
+            foreach (var gourd in all)
+            {
+                if (gourd == null)
+                    continue;
+
+                var prop = gourd.prop;
+                var propName = prop != null ? prop.saveablePropName.ToString() : "<no prop>";
+                var known = prop != null && Core.GourdRegistry.TryGetLocationId(prop.saveablePropName, out _);
+
+                if (gourd.isVariantChallenge)
+                    variants++;
+
+                Plugin.Log.LogInfo(
+                    $"[{nameof(DebugGourdLookup)}]   {propName} | variantChallenge={gourd.isVariantChallenge} "
+                    + $"| isALocation={known} | state={gourd.gourdState}");
+            }
+
+            // The counts matter more than the lines: "none here" and "the key
+            // did not register" must never look alike.
+            Plugin.Log.LogInfo(
+                $"[{nameof(DebugGourdLookup)}] {all.Length} RewardGourd(s) loaded here, {variants} of them purple"
+                + " (variantChallenge)."
+                + (all.Length == 0 ? " Nothing loaded — walk into the zone and press again." : string.Empty));
+        }
+
         internal static void LogMonumentHomes()
         {
             var all = PropHome.allPropHomes;

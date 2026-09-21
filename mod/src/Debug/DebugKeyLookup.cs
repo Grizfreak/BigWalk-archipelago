@@ -47,6 +47,7 @@ namespace BigWalkArchipelago.Debug
 
             DumpKeyBlanks();
             DumpPlinths();
+            DumpKeyedSwitches();
             DumpKeyProps();
 
             Plugin.Log.LogInfo($"[{nameof(DebugKeyLookup)}] === end of big key dump ===");
@@ -152,7 +153,55 @@ namespace BigWalkArchipelago.Debug
                 Plugin.Log.LogInfo(
                     $"[{nameof(DebugKeyLookup)}]   plinth {homeName} ({propName}) | pinGroup {home.pinGroup} "
                     + $"| pinDirectControlSystem {pinSystem} | isFull -> {blockSystem}");
+
+                // The switches the plinth fires when a key goes in or comes
+                // out. With the key made inert on placement, whatever these
+                // drive is precisely what has to stop happening — and what
+                // the Archipelago item has to drive instead.
+                Plugin.Log.LogInfo(
+                    $"[{nameof(DebugKeyLookup)}]       onPin {DescribeSwitch(home.onPin)} "
+                    + $"| onUnpin {DescribeSwitch(home.onUnpin)}");
             }
+        }
+
+        // Every switch in the world that demands a key to operate.
+        //
+        // `PeckSwitch.needsKey` + `keyType` (a PropGroup) is the game's own
+        // "this cannot be used without the right key" mechanism, and it is a
+        // far better candidate for the door than the plinth: a switch keyed on
+        // BigKeyComplete is, by construction, the thing a finished key opens.
+        // If the doors turn out to live here rather than behind the plinth's
+        // pin, both halves of the design — making the key inert and letting
+        // Archipelago open the door — point at this one switch.
+        private static void DumpKeyedSwitches()
+        {
+            var switches = UnityEngine.Object.FindObjectsByType<PeckSwitch>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+
+            var found = 0;
+            foreach (var peckSwitch in switches)
+            {
+                if (peckSwitch == null || !peckSwitch.needsKey)
+                    continue;
+
+                found++;
+                Plugin.Log.LogInfo(
+                    $"[{nameof(DebugKeyLookup)}]   keyed switch '{peckSwitch.name}' | keyType {peckSwitch.keyType} "
+                    + $"| drives {Describe(peckSwitch.trackedStateSystem)} "
+                    + $"| mode {peckSwitch.stateMode} specific={peckSwitch.specificState}");
+            }
+
+            Plugin.Log.LogInfo(
+                $"[{nameof(DebugKeyLookup)}] {found} switch(es) requiring a key, out of {switches.Length} loaded."
+                + (found == 0 ? " None here — the doors may be plinth-driven after all." : string.Empty));
+        }
+
+        private static string DescribeSwitch(PeckSwitch peckSwitch)
+        {
+            if (peckSwitch == null)
+                return "<none>";
+
+            return $"'{peckSwitch.name}' -> {Describe(peckSwitch.trackedStateSystem)}";
         }
 
         // What each key prop carries right now, and what the save says about

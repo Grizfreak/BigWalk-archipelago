@@ -338,51 +338,61 @@ be swallowed as a repeat, and the failure mode — a guest whose radio can never
 play anything at all — is much worse than a cosmetic difference between two
 players' speakers. Stated in the option text so no one meets it in play.
 
-## LEAD UNDER DESIGN (2026-09-21) — big keys: forage checks, and an item that unlocks the feature
+## DECISION SETTLED (2026-09-21) — big keys: forage checks, and an item that is the feature
 
 Raised by the player, and it resolves a collision this world has carried from
-the start. **One physical act carries three roles today**: pinning the key in
-its plinth is the location, the effect of the item, and what opens the door.
-Because applying the item consumes the plinth, the location can only ever be
-checked by the mod itself — that is what §8 of `protocol.md` calls a
-deliberate quirk. It also makes the key item redundant for its recipient: the
-monument releases the key locally as soon as the gourds are there, so the door
-opens whether or not Archipelago ever sends the key.
+the start. **One physical act carried three roles**: pinning the key in its
+plinth was the location, the effect of the item, and what opened the door.
+Because applying the item consumed the plinth, the location could only ever be
+checked by the mod itself — §8 of `protocol.md` calls that a deliberate quirk.
+It also made the key item redundant: the monument released the key locally as
+soon as the gourds were there, so the door opened whether or not Archipelago
+ever sent the key.
 
-The game separates the acts by itself (`KeyBlank`, see
-`../mod/reverse-engineering-notes.md`), which suggests:
+**What was decided**
 
 | Role | Act |
 |---|---|
-| Locations | cutting each segment — postfix on `KeyBlank.ServerCutSegment(int)` |
-| Suppression | prefix on `KeyBlank.RefreshPropGroup` while the item is missing |
-| Item | the **feature** unlock, via the plinth's `TrackedPeckState` + a mod ledger |
-| Key prop | a pure check carrier, like a puzzle's gourd |
+| Locations | the 25 cut segments, **plus** placing the key in its receptacle (the 7 existing deposit locations) — 32 in all |
+| Item | the **feature** itself: the map room, the chairlift, the train, the tunnels, the drawbridge, the dam, the Green Dome |
+| The key | a check carrier. Placing it in its receptacle is a check and **nothing else** — the key becomes an inert object once placed |
 
-**The trap to avoid**: do not anchor a location on "this tower's monument is
-full". That is Option C, rejected on 2026-09-15, and there is no cheap
-mitigation — the mod does not direct where gourds go, so guaranteeing S slots
-are fillable whatever the distribution would require `(total - S) + S = 45`
-gourds, i.e. every key costing the whole pool. Anchoring on the cutting
-escapes it: the rule becomes `Has("<Tower> Key")`, with no per-monument
-dependency, and **Option A stays intact**.
+The consequence that makes this simple: **nothing about cutting or placing
+needs suppressing.** The player fores the key and places it freely, exactly as
+in the vanilla game, and both are checks — the same shape as a puzzle whose
+gourd is a check. The only thing that must stop happening is the door opening
+when the key goes in.
 
-**What it would cost**: roughly 20–25 new locations, a rewrite of
-`ItemApplier.ApplyBigKeyItem` (from "pin the prop" to "grant the feature"),
-and a second `ap_*` ledger re-applied on every world — the shape
-`Core/RadioStations.cs` now has, which is why this became plausible only
-after the radio work.
+**What it removes**
 
-**What it would remove**: the §8 self-report quirk, and the key item's
-redundancy.
+- §8's self-report: the deposit location becomes a genuine player act again,
+  so `ItemApplier` stops reporting it on the mod's behalf.
+- The special case in `rules.py` for a precollected Tutorial Key. Its deposit
+  location gets the same gourd requirement as any other, because the mod no
+  longer pins it at connection time.
+- The key item's redundancy. Without it the door stays shut, whatever the
+  player does with the key.
 
-**Blocked on numbers, not on decisions.** `Debug.DumpKeysKey` (Ctrl+K) was
-written on 2026-09-21 to settle the three unknowns in one in-game pass: how
-many segments per key, which towers have a `KeyBlank` (the player recalls the
-drawbridge plus the four coloured towers, four or five holes each; the
-`PropGroup` enum hints the black key may be cut too), and whether each
-plinth's `pinGroup` is the `Complete` variant — which decides whether skipping
-`RefreshPropGroup` is suppression enough.
+**Logic: no new risk.** A forage location physically needs that tower's
+monument full, which is the same property the existing deposit location
+already has — the rule there is the global cumulative count, sorted
+cheapest-first. The forage locations take the same rule as their tower's
+deposit. This is **not** Option C reopening: nothing requires a *specific*
+monument that the current world does not already require.
+
+**Counts, measured in game rather than assumed** (Ctrl+K, 2026-09-21): five
+segments each on the drawbridge and the four coloured towers. The Black
+Monolith and Green Dome keys are born finished and have no cutting, so they
+have no forage locations — only their deposit, and their feature item.
+
+**The one open question, now central.** Which switch actually opens a door?
+The Ctrl+K dump ruled out a `PropHomeBlock` on the plinths (all seven reported
+none). Two candidates remain, and the same dump now prints both: the plinth's
+own `onPin`/`onUnpin` `PeckSwitch` and its `pinDirectControlSystem`, and any
+`PeckSwitch` carrying `needsKey` + `keyType` — the game's own "cannot be used
+without the right key" mechanism, which a switch keyed on `BigKeyComplete`
+would be by construction. Whichever it is, it is both what must stop firing on
+pin and what the item must drive, so one answer settles both halves.
 
 ## Explicitly set aside
 

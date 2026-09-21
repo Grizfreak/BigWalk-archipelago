@@ -51,6 +51,8 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> DumpHostMenuConfirmKey;
         internal static ConfigEntry<KeyboardShortcut> DumpRadioKey;
         internal static ConfigEntry<KeyboardShortcut> DumpKeysKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpPropsKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpGourdRosterKey;
 
         internal static void Bind(ConfigFile file)
         {
@@ -287,6 +289,18 @@ namespace BigWalkArchipelago
                 "DumpKeysKey",
                 new KeyboardShortcut(KeyCode.K, KeyCode.LeftControl),
                 "Logs everything the \"big keys as forage checks\" design needs: every KeyBlank loaded (which key, how many segments and which are cut, its finishedPropGroup), every big-key plinth with the PropGroup it accepts and the TrackedPeckState it drives when filled, and what each key prop currently carries. Answers how many locations the apworld would gain, whether skipping RefreshPropGroup is enough to keep an uncut key out of its socket, and whether a feature switch exists separately from the key (only has an effect if Debug.Enabled is active).");
+
+            DumpPropsKey = file.Bind(
+                "Debug",
+                "DumpPropsKey",
+                new KeyboardShortcut(KeyCode.J, KeyCode.LeftControl),
+                "Lists the objects loaded around you that could plausibly become Archipelago items — the ones carrying a savablePropGuid (the game's own per-prop identity, and the only thing a location could be keyed on), a radioVoiceAssigner (a walkie-talkie) or a use-while-held switch. The binary names none of these: they are plain Prop prefabs, so only the running game can inventory them (only has an effect if Debug.Enabled is active).");
+
+            DumpGourdRosterKey = file.Bind(
+                "Debug",
+                "DumpGourdRosterKey",
+                new KeyboardShortcut(KeyCode.V, KeyCode.LeftControl),
+                "Lists every RewardGourd loaded around you with its saveablePropName and whether it is a purple 'variant challenge' gourd. Written to settle which puzzles sit behind the chairlift: the world's logic assumes the island is open apart from the ending, and a puzzle that is not would make some seeds unbeatable. Press it in the gated zone and again somewhere plainly open — the difference is the set that needs its own region (only has an effect if Debug.Enabled is active).");
         }
     }
 }

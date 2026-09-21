@@ -302,10 +302,16 @@ existed only to hedge this has been removed.*
 - **Do `FmStation7/8/9` exist in the game at all?** The world assumes not
   (only seven were ever observed being written). If they turn out to be real,
   they are three missing checks — annoying, not seed-breaking.
-- **Are all 58 puzzles reachable without any big key?** The world assumes the
-  map is open apart from the ending. If some tower turns out to be genuinely
-  locked behind a key, its puzzles need a region of their own, which in turn
-  needs the puzzle → tower mapping nobody has established yet.
+- ~~**Are all 58 puzzles reachable without any big key?**~~ **ANSWERED, AND
+  THE ANSWER IS NO (2026-09-21, found in play).** The purple gourds and one
+  radio station sit past the chairlift, which needs the Green Cup Key
+  (`bigKeyGreenZone`). The region graph assumes the island is open apart from
+  the ending, so nothing stops generation placing the Green Cup Key itself —
+  or any other progression item — behind the chairlift, which makes the seed
+  unbeatable. **This is a release blocker**, not a rough edge. The fix is a
+  region gated on `Has(Green Cup Key)`; what it still needs is the list of
+  locations inside it (`Debug.DumpGourdRosterKey`, Ctrl+V, prints the purple
+  gourds wherever it is pressed).
 
 ## 11. Radio stations as items
 
