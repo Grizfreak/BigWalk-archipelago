@@ -2054,6 +2054,64 @@ already reads `[XXXXX] 5 cut` with `BigKeyComplete` in `propGroups`. That is
 **pinning a key marks its blank complete**. Hook the cut checks naively and
 the drawbridge's five would all fire at connection time.
 
+## The objects lying around the island (inventoried 2026-09-21)
+
+For the question "which of these could be an Archipelago item instead of the
+inert Postcard and friends". It had to be an in-game dump (`Debug.DumpPropsKey`,
+Ctrl+J): `il2cpp.cs` has **no class** for any of them — no FlareGun, no
+WalkieTalkie. They are plain `Prop` prefabs told apart by their prefab and by
+what their `useHeldSwitch` is wired to. `FlareDriver` is a lens-flare renderer
+and has nothing to do with flares.
+
+540 props loaded at the hub, 111 distinct names. The ones worth something:
+
+| Prop | Count | Usable held | Note |
+|---|---|---|---|
+| `FlareGunProp` + `…Blue` / `…Green` / `…Yellow` | 1 each | yes | four distinct flare guns |
+| `WalkieTalkieProp` | 8 | yes | the only gadget the code names, via `Prop.radioVoiceAssigner` |
+| `BinocularsProp` | 7 | yes | |
+| `XrayGogglesProp` | 7 | yes | |
+| `LaserProp` | 7 | yes | |
+| `TorchProp` | 9 | yes | |
+| `MegaphoneProp` | 3 | yes | |
+| `CowBellLarge/Medium/SmallProp` | 1 each | yes | three sizes |
+| `FoldingMapProp`, `CompassProp`, `CoordinateTrackerProp`, `FootyProp` | 1 each | yes | |
+| `BackpackProp`, `HolsterProp` | 6, 5 | no | carrying gear |
+| `BlindfoldProp`, `ClockProp`, `KettleProp`, `Pomodoro`, `CueCard` | few | no | |
+
+`PegTileProp*`, `BuoyProp`, `BuoyLight`, `PermoSignProp` and `foldingChair` are
+puzzle furniture and scenery, not objects, despite carrying guids.
+
+**Every one of them carries a `savablePropGuid`**, which is the game's own
+per-prop identity — used with `SaveManager.GetIsInInventory(guid)` and
+`SaveData.inventory`. That was the open question and the answer is the good
+one: these props can be *locations* as well as items, because a guid tells one
+apart from its siblings across sessions. None has a `SaveablePropName`, so the
+puzzle machinery does not apply to them at all.
+
+## The big-key doors — what does NOT open them (2026-09-21)
+
+Measured with Ctrl+K, and both candidates died:
+
+- **No `PropHomeBlock` watches a big-key plinth.** All seven report none.
+- **No plinth fires a `PeckSwitch` on pin.** All seven report
+  `onPin <none> | onUnpin <none>`.
+- **No switch in the game wants a big key.** Of 2833 `PeckSwitch` instances
+  loaded, 49 carry `needsKey`; 48 are `SalonBrush` and one is `StickyCurse`.
+  Not one is keyed on `BigKey`, `BigKeyComplete` or any variant.
+
+What remains, and the lead for whoever picks this up:
+
+- `PropHome.pinDirectControlSystem` — non-null on every plinth, but with an
+  empty `label` and `savableSystem = NotSavable`. Driving it with `SetState(1)`
+  is untested.
+- **`PropHome.onPinServer` and `onChangeServer`** — plain C# delegates rather
+  than PeckSwitches, already named elsewhere in this document as where the
+  plinth's game effect hangs. The Ctrl+K dump never looked at them because it
+  only inspected `PeckSwitch` fields. **Look here first**: a delegate's
+  subscribers are what a dump would have to enumerate, which is harder than
+  reading a field but is where the evidence points.
+
 ## Reference files
 
 - `il2cpp.cs` ("C# prototypes" export): full structure of every class in

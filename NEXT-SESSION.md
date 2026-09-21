@@ -8,150 +8,81 @@ is shaped the way it is); [`apworld/protocol.md`](apworld/protocol.md) is
 the contract between the two. This file is the short version and the
 to-do list.*
 
-**Start here: one in-game session settles two things at once.** The
-radio-as-an-item feature is written on both sides and nothing about it has
-run in the game yet — written-but-unverified is the riskiest state anything
-in this repo can be in. In the same session, one press of **Ctrl+K** near
-the drawbridge and a coloured tower grounds the whole big-key design in real
-numbers instead of a third-party document. Do both, then decide whether to
-package or keep building.
+**Start here: two features, both measured, neither built.** Everything that
+was in flight has landed — the radio is an item and was exercised in game, and
+the seed-breaking gate found in play on 2026-09-21 is fixed and verified. What
+remains before a release is the work below, and it is implementation rather
+than exploration: the hard questions were answered with dumps, and the answers
+are in `mod/reverse-engineering-notes.md`.
 
 **Before touching anything in game**: `tools/deploy-mod.ps1` builds and
 deploys to every install, then prints one hash and says whether they match.
 Three co-op tests were wasted in one weekend on a guest running older code.
 
-## Written, not yet tested: the radio as an Archipelago item
+**A lesson from 2026-09-21 that will save an hour**: the game instantiates
+every gourd, every broadcast station and every key blank **everywhere**.
+Presence tells you nothing about location — two dumps taken in two different
+zones came back byte-identical. Every dump that asks "what is in this area"
+must sort by distance to the player. Ctrl+V and Ctrl+B already do.
 
-Switching a station on used to report its check AND grant the station — the
-only check in this world that rewarded itself. Both halves now exist:
+## Task 1 — big keys: forage checks, and an item that is the feature
 
-- **apworld** — seven `Radio Music: …` items behind the new
-  `radio_station_items` option (default on), displacing seven filler. 148
-  tests green, and a real seed generates and places all seven.
-- **mod** — `Core/RadioStations.cs` (the `ap_radio_*` ledger and the live
-  unlock) and `Patches/BroadcastStationUnlockPatch.cs` (a prefix that skips
-  the game's own unlock). Wired into `ApRuntime`.
+Decided in full (`apworld/design-decisions.md`, "DECISION SETTLED (2026-09-21)
+— big keys"). The model:
 
-The design rests on three decompiled facts, all written up in
-[`apworld/protocol.md`](apworld/protocol.md) §11. The one that matters most
-for testing: **the unlock lives in RAM only** — nothing writes it to the
-save, and nothing can turn a station off. So a granted station has to be
-re-applied to every world that loads, which is the part most likely to be
-wrong.
+- **Locations**: the 25 cut segments, plus the 7 existing deposit locations.
+- **Item**: the feature itself — map room, chairlift, train, tunnels,
+  drawbridge, dam, Green Dome.
+- **The key**: a check carrier. Placed in its receptacle it is inert.
 
-### The test, in order
+Because placing is inert, **nothing about cutting or placing needs
+suppressing**. The player does both freely and both are checks. The only thing
+that must stop happening is the door opening when the key goes in.
 
-Run a room with `tools/testroom.py`, then in game:
+Measured, so no longer in doubt: five segments each on the drawbridge and the
+four coloured towers (25); the Black Monolith and Green Dome keys are born
+finished and have none; every plinth's `pinGroup` is the `Complete` variant.
+One trap recorded — pinning a key marks its blank complete, so a naive hook on
+`ServerCutSegment` would fire the drawbridge's five checks at connection time.
 
-1. **Ctrl+B first** (`Debug.Enabled = true` required). It prints the dial,
-   every loaded `BroadcastStation` with the `SavableSystem` its peck system
-   writes, and the ledger. This is what answers **the one open question**:
-   is `FmRadioManager.stationTrackGroups` ordered like the `FmStation*`
-   enum? The mod prefers the `BroadcastStation` pairing, which is
-   authoritative, and falls back on that ordering when no tower is loaded.
-   If the two columns disagree, the fallback has to go and the mapping has
-   to be learned and cached in the save instead.
-2. **Switch a station on.** Expected: the check goes out, the music does
-   **not** start, and the log says `… switched on; its music waits for the
-   Archipelago item`.
-3. **`/send <slot> Radio Music: Bobby`** from the server console.
-   Expected: the music starts, wherever you are standing.
-4. **Quit to the menu and host the same save again.** Expected: the station
-   is still playing. This is the RAM-only fact being exercised —
-   `RearmFromLedger` on the world becoming ready.
-5. **Restart the process and reconnect.** Expected: still playing. Different
-   code path from 4: the server replays the item but the cursor skips it, so
-   the second `RearmFromLedger` call — the one in `OnJustConnected` — is the
-   only thing that puts it back.
-6. **With a second player**, confirm the accepted wrinkle rather than being
-   surprised by it: the guest hears a station as soon as it is switched on,
-   because only the host runs an Archipelago client. Documented in the
-   option text and in `design-decisions.md`.
+**The one thing still unknown: what actually opens a door.** Three candidates
+are eliminated (no `PropHomeBlock` on the plinths, no `onPin` PeckSwitch, no
+switch anywhere keyed on a big key — see the notes). The lead to follow is
+`PropHome.onPinServer` / `onChangeServer`, plain C# delegates that this
+document has named as the plinth's effect point since September and that the
+Ctrl+K dump never looked at, because it only read `PeckSwitch` fields.
 
-### While you are in there: Ctrl+K, twice
+## Task 2 — the island's objects as items
 
-Thirty seconds, and it unblocks the whole next feature. Press it once near
-the **drawbridge** and once near a **coloured tower**, and read off:
+Inventoried on 2026-09-21 (`Debug.DumpPropsKey`, Ctrl+J; the table is in the
+notes). Four flare guns, walkie-talkies, binoculars, x-ray goggles, lasers,
+torches, megaphones, three cowbells, a folding map, a compass.
 
-- how many segments each `KeyBlank` has, and which towers have one at all
-  (the player recalls the drawbridge plus the four coloured towers, four or
-  five holes; `PropGroup` hints the black key may be cut too);
-- whether each plinth's `pinGroup` is the `Complete` variant — which decides
-  whether skipping `RefreshPropGroup` is suppression enough;
-- what `TrackedPeckState` each plinth drives, and whether it carries a
-  `savableSystem` of its own (expected: it does not, which is what forces a
-  mod-side ledger).
+The finding that opens the design: **every one carries a `savablePropGuid`**,
+the game's own per-prop identity, readable with
+`SaveManager.GetIsInInventory(guid)`. So these props can be locations as well
+as items — a guid tells one apart from its siblings across sessions. None has
+a `SaveablePropName`, so none of the puzzle machinery applies.
 
-The design these answer is written up in `apworld/design-decisions.md`
-("LEAD UNDER DESIGN, 2026-09-21") and the mechanism in
-`mod/reverse-engineering-notes.md`.
+Nothing is designed yet. The open questions are what "obtaining" one means for
+an object that is simply lying there, and whether an item should spawn a copy
+(the clone technique `ReceivedItemSpawner` already uses for gourds) or unlock
+something.
 
 ## Then: the release
 
-Nothing else is known to be missing. `tools/package-mod.ps1` already
-produces the players' zip, the debug module is off by default
-(`Debug.Enabled = false`), and `apworld/build.py` packages the world.
+`tools/package-mod.ps1` produces the players' zip, the debug module is off by
+default (`Debug.Enabled = false`), and `apworld/build.py` packages the world.
 
-One decision left, and it is yours: **the version numbers**. Everything
-currently says 0.1.0 — `Plugin.PluginVersion`, the `.csproj`, and both
-`archipelago.json` and `WORLD_VERSION`. Nothing has shipped publicly yet, so
-0.1.0 as the first release is coherent; the alternative is calling the radio
-work a 0.2.0. The mod only *warns* on a `world_version` mismatch, so the two
-do not have to move together, but they have so far.
+One decision left, and it is yours: **the version numbers**. Everything says
+0.1.0 — `Plugin.PluginVersion`, the `.csproj`, `archipelago.json` and
+`WORLD_VERSION`. Nothing has shipped publicly, so 0.1.0 as the first release
+is coherent; the alternative is calling this a 0.2.0.
 
-## After that: big keys as forage checks
-
-Designed on 2026-09-21, nothing written yet beyond the Ctrl+K dump. The full
-reasoning is in `apworld/design-decisions.md`; in four lines:
-
-- **Locations** = cutting each segment (postfix on
-  `KeyBlank.ServerCutSegment`), roughly 20–25 of them.
-- **Suppression** = prefix on `KeyBlank.RefreshPropGroup` while the item is
-  missing, so an uncut key cannot enter its plinth.
-- **Item** = the *feature* unlock (map room, chairlift, train, tunnels) via
-  the plinth's `TrackedPeckState` plus an `ap_*` ledger re-applied on every
-  world — the shape `Core/RadioStations.cs` now has.
-- **Never** anchor a location on "this tower's monument is full": that is
-  Option C, and the arithmetic makes every key cost the whole gourd pool.
-
-It removes the §8 self-report quirk and the key item's redundancy. It is also
-a content change big enough to deserve its own test cycle — after a release,
-not before.
-
-## The idea raised on 2026-09-21: other objects as items
-
-The question was whether the flare guns, walkie-talkies and other objects
-lying around the island could become real filler, instead of the inert
-Postcard / Souvenir Pebble / Novelty Keychain. What the dump says:
-
-- **There is no class for them.** No `FlareGun`, no `WalkieTalkie`.
-  (`FlareDriver` is a lens-flare renderer, nothing to do with it.) They are
-  plain `Prop` prefabs, told apart by their prefab and by what their
-  `useHeldSwitch` is wired to — so `il2cpp.cs` cannot enumerate them. Only
-  an in-game dump can.
-- **The walkie-talkie is identifiable**: `Prop.radioVoiceAssigner` is a
-  first-class field on `Prop`, so any prop carrying one is a walkie-talkie.
-- **They have no `SaveablePropName`.** That enum holds only gourds, big keys,
-  valets and dev-test values. So there is no "you have unlocked the flare
-  gun" flag anywhere, and nothing to key a *location* on the way the puzzles
-  are keyed.
-- **But there is a per-prop identity**: `Prop.savablePropGuid`, with
-  `canSaveHomeWithGuid`, `SaveData.inventory` (a `List<string>`) and
-  `SaveManager.GetIsInInventory(guid)`. That is how the game remembers which
-  props are in the hub's inventory zone — a stable id per prop, which is
-  exactly what a location would need.
-
-So, two very different amounts of work:
-
-- **As filler items — cheap and plausible.** Receiving one spawns a copy,
-  using the same clone-an-existing-instance technique
-  `ReceivedItemSpawner` already uses for gourds. Same constraint as gourds:
-  an instance has to be loaded to clone from. Copies would accumulate, which
-  for a party object is arguably the point.
-- **As checks — a project of its own.** It needs the guids enumerated in
-  game, a decision about what "found it" means for an object that is simply
-  lying there, and a way to remove the original so the check is not free.
-  Not before a release.
+Not done and worth one session if you want it before shipping: **the radio in
+co-op**. The accepted wrinkle is that a guest hears a station as soon as it is
+switched on, because only the host runs an Archipelago client. It is
+documented in the option text; it has never been watched happening.
 
 ## What has been confirmed
 
@@ -213,13 +144,20 @@ is "does this replicate to a second client", and it has only one.
 
 ## Open questions that could still bite
 
-- **Is the radio dial ordered like the enum?** See the test above. It is the
-  one assumption the radio feature makes that the binary could not settle.
+- ~~**Is the radio dial ordered like the enum?**~~ **Settled (2026-09-21): no.**
+  Six of the seven disagree. The enum-order fallback was removed and the dial
+  position is learned from the world instead, per save.
+- ~~**Are all 58 puzzles reachable without any big key?**~~ **Settled
+  (2026-09-21): no**, and it was a seed-breaking bug. Seven purple gourds and
+  one station sit past the chairlift, one station past the tunnels; both are
+  now regions gated on their key. Two residual unknowns, both answered by the
+  player rather than measured: four ordinary gourds in the same band of
+  distance are reachable without the chairlift, and thirteen puzzles were
+  never instantiated anywhere visited so their status was never read at all.
+  If a seed ever turns out unbeatable, look there first.
 - **Does the tutorial drawbridge really gate the way out?** The world
   precollects the Tutorial Key on that assumption
   (`start_with_tutorial_key`). If it is wrong, the key can be shuffled.
-- **Are all 58 puzzles reachable without any big key?** The region graph
-  assumes the map is open apart from the ending.
 - ~~**Do `FmStation7/8/9` exist at all?**~~ **Settled (2026-09-21)**: they
   exist in `SavableSystem` (37–39), and nothing suggests they are wired to
   anything. Left out, on both sides.
@@ -238,7 +176,8 @@ is "does this replicate to a second client", and it has only one.
 - **Traps.** The item and the YAML option exist, the effect does not.
 - **Per-tower monument locations (Option C/D)**, the big-key decomposition,
   and Key Cutters as checks.
-- **Props as checks** (flare guns, walkie-talkies) — see above.
+- ~~**Props as checks**~~ — promoted to Task 2 above, now that the inventory
+  exists and every candidate turns out to carry a `savablePropGuid`.
 
 ## Lessons worth carrying over
 
