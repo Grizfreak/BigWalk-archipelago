@@ -128,8 +128,9 @@ def create_victory_event(world: BigWalkWorld) -> None:
     sphere that only breaks once the game has been finished, and the mod
     disables that sphere from a save's first session
     (`SecondEndingSphereUnlocker.cs`), which is what makes the door the only
-    requirement left. What that run does NOT establish is that the zone is
-    walkable on foot from the door: flight was used to get there.
+    requirement left. Walked on foot from the door and finished that way too
+    (player, 2026-09-22), so nothing here rests on the debug flight that the
+    first run used.
     """
     goal = world.options.goal
     if goal == Goal.option_deposits:

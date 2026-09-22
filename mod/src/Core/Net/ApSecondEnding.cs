@@ -81,9 +81,10 @@ namespace BigWalkArchipelago.Core.Net
         }
 
         // An ending begun by walking into a zone rather than by a peck. Never
-        // seen firing, and kept for that reason rather than in spite of it:
-        // the second ending does not come through here, so this is where the
-        // FIRST one's identity will turn up if it does.
+        // seen firing, and nothing depends on it: the Gauntlet's goal is
+        // reported when its bell is destroyed (`GauntletComplete`, through
+        // SaveValuePatch) and never goes near an ending transition. Kept as a
+        // cheap observer, in case an ending ever arrives this way.
         internal static void OnEndingStartedByZone(string path)
         {
             Plugin.Log.LogInfo(

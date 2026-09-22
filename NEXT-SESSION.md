@@ -328,9 +328,10 @@ is "does this replicate to a second client", and it has only one.
   ending?**~~ **Settled in play (2026-09-22): yes.** The ending was reached
   and reported on a save whose log read `EndingGate latched: False,
   GauntletComplete latched: False` — neither bell rung. The logic stands as
-  written: a region gated on `Has("Hub Secret Door")` and nothing else. One
-  thing that run does NOT establish is that the zone is walkable on foot from
-  the door; flight was used to get there.
+  written: a region gated on `Has("Hub Secret Door")` and nothing else. Walked
+  on foot and finished that way as well, so nothing rests on the debug flight
+  the first run used. The long white screen with no text that ends it is the
+  game's normal ending, not something the forced peck states broke.
 - ~~**Is the radio dial ordered like the enum?**~~ **Settled (2026-09-21): no.**
   Six of the seven disagree. The enum-order fallback was removed and the dial
   position is learned from the world instead, per save.
@@ -399,8 +400,10 @@ What works is `PeckEffectEndingTransition.OnPeck`, and the ending is
 identified by the **hierarchy path** of what fired: `SecondGoodbye` is the
 game's own word for it, against the `GoodbyeChapel`/`GoodbyeVoid` of the
 first. `AutomaticDisconnector.StartEndingTransition` (the zone-driven entry)
-is patched too and has never fired — kept because that is where the FIRST
-ending's identity will turn up.
+is patched too and has never fired. Nothing depends on it: the Gauntlet's goal
+is reported when its bell is destroyed (`GauntletComplete`, through
+`SaveValuePatch`) and never goes near an ending transition. It stays as a
+cheap observer, not as a dependency.
 
 **The 46th gourd is scenery, and it cost two runs.** There is one more
 `RewardGourd` in the game than this world has locations, sitting right beside
