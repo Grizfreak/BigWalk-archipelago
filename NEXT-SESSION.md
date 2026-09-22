@@ -8,11 +8,13 @@ is shaped the way it is); [`apworld/protocol.md`](apworld/protocol.md) is
 the contract between the two. This file is the short version and the
 to-do list.*
 
-**Start here: the big keys are BUILT but have never been run in game.** Task 1
-below is written, compiles, deploys, and its apworld half passes 175 tests and
-generates a real seed — but not one line of it has executed inside Big Walk.
-That is the single most valuable hour available: everything else in this file
-is either untouched (Task 2) or a decision rather than work.
+**Start here: co-op.** The big keys are built AND exercised in game — Task 1
+below, with the list of what the session of 2026-09-21 confirmed. What none of
+it has ever met is a second machine, and that is now the most valuable hour
+available: [`COOP-TESTS.md`](COOP-TESTS.md) is the plan, ordered by risk, and
+its first test decides whether a co-op seed can be silently unwinnable.
+Everything else in this file is either untouched (Task 2) or a decision rather
+than work.
 
 **Before touching anything in game**: `tools/deploy-mod.ps1` builds and
 deploys to every install, then prints one hash and says whether they match.
@@ -292,16 +294,15 @@ is "does this replicate to a second client", and it has only one.
   that can never be sent — and no region could have rescued it. Cut from
   `PUZZLES`, kept as `data.ABSENT_FROM_THE_BUILD`. The world now ships 45 puzzle
   locations.
-- **Does the tutorial drawbridge really gate the way out?** The world
-  precollects the Drawbridge on that assumption (`start_with_tutorial_key`, on
-  by default). What went unnoticed until 2026-09-21: there is **no Tutorial
-  region** in `regions.py` — only the ending, the chairlift and the tunnels
-  are modelled. So that default is not a convenience, it is the whole of the
-  protection: with the option off and the drawbridge really gating,
-  generation is free to place the Drawbridge item past the chairlift and lock
-  the players in the tutorial with nothing to do. If it does gate, the fix is
-  not the default — it is making `false` safe, with a Tutorial region or a
-  Drawbridge forced early.
+- ~~**Does the tutorial drawbridge really gate the way out?**~~ **Settled by
+  the player (2026-09-22): no, it does not.** The mod opens the three hub arch
+  doors — `SpawnHubGate`, `HubTunnel`, `HubShortcutToSportsCreek` — from a
+  save's first session (`Core/ArchDoorUnlocker.cs`, added unconditionally and
+  not a config toggle), and with those open the tutorial is not sealed. So
+  `start_with_tutorial_key: false` is safe, and there is nothing to model: the
+  absence of a Tutorial region in `regions.py` is correct rather than a gap.
+  Worth remembering the day ArchDoorUnlocker is ever made optional — it is
+  what holds this up, not the option's default.
 - ~~**Do `FmStation7/8/9` exist at all?**~~ **Settled (2026-09-21)**: they
   exist in `SavableSystem` (37–39), and nothing suggests they are wired to
   anything. Left out, on both sides.

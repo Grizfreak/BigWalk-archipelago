@@ -332,9 +332,13 @@ not possible in the base game, confirmed by the player on 2026-09-15. Big key
 requirements are cumulative for good, and the `deposit_logic` option that
 existed only to hedge this has been removed.*
 
-- **Does the tutorial drawbridge really gate the way out?** If it does not,
-  `start_with_tutorial_key: false` becomes safe and the Drawbridge can be
-  shuffled.
+- ~~**Does the tutorial drawbridge really gate the way out?**~~ **Settled by
+  the player (2026-09-22): it does not.** The mod opens the hub's three arch
+  doors from a save's first session (`Core/ArchDoorUnlocker.cs`), and with
+  those open the tutorial is not sealed. `start_with_tutorial_key: false` is
+  therefore safe, and no Tutorial region is needed in `regions.py`. The
+  guarantee comes from ArchDoorUnlocker being unconditional, so making it
+  optional would reopen this.
 - ~~**Is every key-cutting station reachable without a big key?**~~
   **Settled in play (2026-09-21): yes**, all five trails. The 25 cut
   locations therefore stay in the overworld. This was the last assumption

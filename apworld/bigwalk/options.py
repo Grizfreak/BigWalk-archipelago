@@ -117,11 +117,12 @@ class StartWithTutorialKey(DefaultOnToggle):
     """
     Start with the Drawbridge already open instead of shuffling it in.
 
-    The tutorial's drawbridge is believed to be what lets you leave the
-    tutorial area. If that is true and it is shuffled, a seed can lock you in
-    the tutorial with nothing to do, so the safe default is to hand it over up
-    front. Turn this off only once you have confirmed you can walk out of the
-    tutorial without it.
+    The drawbridge was believed to be the only way out of the tutorial, which
+    would have made shuffling it a way to lock you in with nothing to do.
+    Confirmed in play on 2026-09-22 that it is not: the mod opens the hub's
+    arch doors on a save's first session, and the tutorial is not sealed
+    without the drawbridge. Turning this off is safe — it only means the
+    Drawbridge arrives from the multiworld like any other feature.
 
     It costs you no check either way: the tutorial key itself stays in its
     tower, and carrying it to its plinth is still a location like any other.
