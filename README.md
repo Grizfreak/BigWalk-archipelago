@@ -110,9 +110,8 @@ Items:
 - **Gourd** — the generic monument currency. There are exactly as many as
   there are monument slots in play: 45, or 30 without the Green Dome's.
 - the **7 features** a big key used to open — Drawbridge, Map Room,
-  Chairlift, Train, Tunnels, Dam and Hub Secret Door. These are what actually
-  open
-  the island.
+  Chairlift, Train, Tunnels, Chapel Door and Hub Secret Door. These are what
+  actually open the island.
 - the **7 big keys** themselves, each named after the feature it fits. A key
   opens nothing; it is worth six checks, and it is the only way to reach them.
 - the **7 Radio Music** items, one per station (optional). They are named

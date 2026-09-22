@@ -52,8 +52,9 @@ def classification_for(name: str) -> ItemClassification:
         # what release the big keys, so every single one is progression.
         return ItemClassification.progression
     if name in ITEM_NAME_GROUPS["Features"]:
-        # Every one of them opens part of the island, and three of them —
-        # the chairlift, the tunnels and the dam — gate regions outright.
+        # Every one of them opens part of the island, and four of them —
+        # the chairlift, the tunnels, the chapel door and the hub secret
+        # door — gate regions outright.
         return ItemClassification.progression
     if name in ITEM_NAME_GROUPS["Big Keys"]:
         # Progression because each one unlocks six locations of its own —

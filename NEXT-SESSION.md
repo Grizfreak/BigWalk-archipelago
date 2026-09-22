@@ -44,7 +44,7 @@ The model (`apworld/design-decisions.md`, `apworld/protocol.md` §12):
 
 - **Locations**: the 25 cut segments, plus the 7 deposit locations. 32 in all.
 - **Item**: the feature itself — Drawbridge, Map Room, Chairlift, Train,
-  Tunnels, Dam, Hub Secret Door.
+  Tunnels, Chapel Door, Hub Secret Door.
 - **The key**: a check carrier. Placed in its receptacle it is inert.
 
 ### What opens a door — ANSWERED, and it was none of the three candidates
@@ -222,8 +222,8 @@ unbeatable if anything needed sits on one. The mismatch only warns; bumping
 both at once is what keeps that warning readable.
 
 **The item names are settled too (2026-09-21): the seven bare nouns stay** —
-`Drawbridge`, `Map Room`, `Chairlift`, `Train`, `Tunnels`, `Dam`, `Green
-Dome`. A prefix earns its place only where it disambiguates: `Radio Music:
+`Drawbridge`, `Map Room`, `Chairlift`, `Train`, `Tunnels`, `Chapel Door`,
+`Hub Secret Door`. A prefix earns its place only where it disambiguates: `Radio Music:
 Bobby` needs one because `Bobby` alone says nothing in a multiworld feed,
 `Chairlift` does not.
 
@@ -232,9 +232,10 @@ fixed: three deposit locations were named after their **plinth** rather than
 their feature — `Train Station Key Deposit`, `Tunnel Key Deposit` and
 `Goodbye Keyhole Key Deposit`, inherited from the third-party document that
 first listed them — while the items and the 25 cuts were named after the
-feature. They now read `Train Key Deposit`, `Tunnels Key Deposit` and `Green
-Dome Key Deposit`, so all seven towers spell one name three ways and no
-other: `<feature> Key`, `<feature> Key Cut 1..5`, `<feature> Key Deposit`.
+feature. They now read `Train Key Deposit`, `Tunnels Key Deposit` and `Hub
+Secret Door Key Deposit` — that last one renamed again on 2026-09-22, when
+the feature it belongs to stopped being called after its tower — so all seven
+towers spell one name three ways and no other: `<feature> Key`, `<feature> Key Cut 1..5`, `<feature> Key Deposit`.
 Renamed before the datapackage was ever published, which was the whole window
 for doing it cheaply. (The cross-validation table in
 `mod/reverse-engineering-notes.md` still quotes the document's own names, on

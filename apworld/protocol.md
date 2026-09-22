@@ -41,6 +41,12 @@ precollected by default and arrives that way.
 
 Sent on every connection. Read it before applying anything.
 
+The mod is not the only reader. Universal Tracker hands this same slot_data
+back to the world and has it rebuild the slot from it (`world.TRACKER_OPTIONS`
+lists the fields that matter for that). Dropping an option field here because
+the mod stopped reading it would quietly put the tracker back on whatever YAML
+the tracking player happens to have.
+
 | Field | Type | Meaning |
 |---|---|---|
 | `world_version` | str | apworld version, e.g. `"0.1.0"`. Log a warning on a mismatch with what the mod was built against; do not refuse to connect. |
@@ -112,7 +118,7 @@ nothing is listening for.
 | Item | Id | Count |
 |---|---|---|
 | `Gourd` | 8600001 | = `total_monument_slots` |
-| Features (Drawbridge, Map Room, Chairlift, Train, Tunnels, Dam, Hub Secret Door) | `B + (int)SaveablePropName` (300–306) | 6 or 7 |
+| Features (Drawbridge, Map Room, Chairlift, Train, Tunnels, Chapel Door, Hub Secret Door) | `B + (int)SaveablePropName` (300–306) | 6 or 7 |
 | Big Keys (`<Feature> Key`) | `B + 4000 + (int)SaveablePropName` | 6 or 7 |
 | Radio Music | `B + 1000 + (int)SavableSystem` (30–36) | 7, or 0 when `radio_station_items` is false |
 | Filler (Megaphone, Walkie-Talkie, Backpack, Belt, Flare Gun, Laser, Binoculars, Compass, Folding Map, Radio, Gourd Carton, Torch, Lamp, X-Ray Goggles, Blue/Green/Yellow Flare Gun) | 8609001–8609017 | rest of the pool |
@@ -403,7 +409,11 @@ deposit count itself, so nothing has to route a raw id through the reporter.
 ## 10. Assumptions the logic makes that nobody has verified in-game
 
 The world generates correctly either way; these decide whether a generated
-seed is actually beatable. Worth settling during the first real test session.
+seed is actually beatable.
+
+**Nothing seed-breaking is left open here (2026-09-22).** Every entry below is
+struck through and measured, except `FmStation7/8/9` — which can only ever
+cost three checks, never a seed.
 
 *Settled since: a gourd deposited in a monument **cannot be taken back out** —
 not possible in the base game, confirmed by the player on 2026-09-15. Big key
@@ -431,31 +441,30 @@ existed only to hedge this has been removed.*
   (only seven were ever observed being written). If they turn out to be real,
   they are three missing checks — annoying, not seed-breaking.
 - ~~**Are all the puzzles reachable without any big key?**~~ **ANSWERED, AND
-  THE ANSWER IS NO (2026-09-21, found in play).** The purple gourds and one
-  radio station sit past the chairlift, which needs the Green Cup Key
-  (`bigKeyGreenZone`). The region graph assumes the island is open apart from
-  the ending, so nothing stops generation placing the Green Cup Key itself —
-  or any other progression item — behind the chairlift, which makes the seed
-  unbeatable. **This is a release blocker**, not a rough edge. The fix is a
-  region gated on `Has(Green Cup Key)`; what it still needs is the list of
-  locations inside it (`Debug.DumpGourdRosterKey`, Ctrl+V, prints the purple
-  gourds wherever it is pressed).
-- **Is the Hub Secret Door the only thing between a player and the second
-  ending?** *Open, added 2026-09-22 with `goal: second_ending`.* The world
-  puts its Victory event in a region gated on `Has("Hub Secret Door")` and
-  else. The reasoning: in vanilla that path is sealed by a sphere at the hub
-  that only breaks once the game has been finished, and
-  `Core/SecondEndingSphereUnlocker.cs` disables that sphere from a save's
-  first session — so the door should be all that is left. Nobody has walked
-  the zone behind it with the mod on. If it turns out to need the chapel bell
-  or the Gauntlet as well, a `second_ending` seed can be generated unbeatable,
-  which puts this in the same class as the chairlift bug: **a release blocker
-  for that goal, not a rough edge.** The fix is one line —
-  `locations.create_victory_event` connects the zone from `ENDING_ZONE`
-  instead of the overworld.
-  - The trigger itself is no longer an assumption: what ends that zone is
-    the 46th gourd, and the mod watches for its release. What stays unwalked
-    is the way in.
+  THE ANSWER IS NO (2026-09-21, found in play) — AND FIXED THE SAME DAY.**
+  Seven purple gourds and one radio station sit past the chairlift, which
+  needs the Green Cup Key (`bigKeyGreenZone`), and one more station past the
+  tunnels. Until then this world claimed the island was open apart from the
+  ending, so nothing stopped generation putting the Green Cup Key behind the
+  chairlift that key opens — an unbeatable seed, and the worst bug this world
+  has had. `regions.py` now carries `Past the Chairlift` and `Past the
+  Tunnels`, each gated on its own feature item, and what sits inside them was
+  measured rather than reasoned: `data.CHAIRLIFT_PUZZLES`, `CHAIRLIFT_RADIO`
+  and `TUNNEL_RADIO`, read off the Ctrl+V and Ctrl+B dumps sorted by distance
+  to the player. Nothing is left open here.
+- ~~**Is the Hub Secret Door the only thing between a player and the second
+  ending?**~~ **Settled in play (2026-09-22): yes.** The ending was reached
+  and reported on a save whose log read `EndingGate latched: False,
+  GauntletComplete latched: False` — neither bell had been rung. In vanilla
+  that path is sealed by a sphere at the hub that only breaks once the game
+  has been finished, and `Core/SecondEndingSphereUnlocker.cs` disables it from
+  a save's first session, which is what leaves the door as the only
+  requirement. The zone was then walked on foot and finished that way, so
+  nothing rests on the debug flight the first run used. The Victory event for
+  `second_ending` therefore sits in a region gated on `Has("Hub Secret Door")`
+  and nothing else.
+  - The trigger itself was never an assumption: what ends that zone is the
+    46th gourd, and the mod watches for its release.
 
 ## 11. Radio stations as items
 
@@ -533,7 +542,7 @@ now separate.*
 | Role | Act |
 |---|---|
 | Locations | the 25 cut segments, **plus** placing the key in its receptacle (the 7 deposit locations) — 32 in all |
-| Item | the **feature**: Drawbridge, Map Room, Chairlift, Train, Tunnels, Dam, Hub Secret Door |
+| Item | the **feature**: Drawbridge, Map Room, Chairlift, Train, Tunnels, Chapel Door, Hub Secret Door |
 | The key | a check carrier. Placing it in its receptacle is a check and **nothing else** |
 
 **Almost nothing needs suppressing.** The players fore the key and place it

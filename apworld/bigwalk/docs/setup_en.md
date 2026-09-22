@@ -146,6 +146,17 @@ What it cannot show is the rest of the multiworld — who received what you
 sent, or what anyone else is doing. Keep Archipelago's Text Client open
 beside the game for that.
 
+### Universal Tracker
+
+Big Walk supports Universal Tracker, which lists what is in logic right now
+rather than only what you have already sent. Put its `tracker.apworld` in
+`custom_worlds` beside `bigwalk.apworld` and connect it to the room with your
+slot name.
+
+You do not need your YAML for it, and you do not need to be the person who
+generated the seed: the tracker asks the server for this slot's settings and
+rebuilds the world from those.
+
 ## Playing together
 
 Big Walk is co-op, and **a whole co-op group shares one Archipelago slot**.

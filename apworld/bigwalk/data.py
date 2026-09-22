@@ -290,6 +290,15 @@ class Tower(NamedTuple):
 # door that was simply wrong. The tower keeps its name everywhere it means
 # the tower (`GREEN_DOME`, `green_dome_deposits`, its monument); only the
 # feature and the names derived from it moved.
+#
+# The fifth and last, on 2026-09-22: "Dam" became "Chapel Door". It was the
+# only feature name never derived from what its key opens — it came from the
+# third-party document's "Dam Key Deposit", which names where the key is PUT,
+# and "dam" appears nowhere in the game's own metadata (no `Dam*` identifier
+# exists in the il2cpp dump). What placing `bigKeyBoss` opens is the chapel
+# door, and everything past the bell inside it: the field, the Gauntlet and
+# the summit bell. Caught by the player, who read "Dam" in an item list and
+# could not tell what it named.
 DRAWBRIDGE_ITEM_NAME = "Drawbridge"
 HUB_SECRET_DOOR_ITEM_NAME = "Hub Secret Door"
 
@@ -304,7 +313,7 @@ TOWERS: tuple[Tower, ...] = (
           "bigKeyPlinthTrain", "monoument2", 5, 5),
     Tower("bigKeyYellowZone", 304, "Tunnels", "Tunnels Key Deposit",
           "bigKeyPlinthTunnels", "monoument3", 5, 5),
-    Tower("bigKeyBoss", 305, "Dam", "Dam Key Deposit",
+    Tower("bigKeyBoss", 305, "Chapel Door", "Chapel Door Key Deposit",
           "bigKeyPlinthEnding", "monoumentFinal", 6, 0),
     Tower("bigKeyOverflow", 306, HUB_SECRET_DOOR_ITEM_NAME, "Hub Secret Door Key Deposit",
           "bigKeyPlinthGoodbye2", "monoumentOverflow", 15, 0),

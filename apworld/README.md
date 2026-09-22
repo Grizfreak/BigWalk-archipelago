@@ -72,8 +72,8 @@ model immune to the softlock identified on 2026-09-11 (Option A).
 
 **Items** — one generic `Gourd` item, in as many copies as there are monument
 slots in play (30 or 45); the 7 features the big keys used to open
-(`Drawbridge`, `Map Room`, `Chairlift`, `Train`, `Tunnels`, `Dam`, `Green
-Dome`); the 7 big keys themselves; the 7 `Radio Music: …` items that make
+(`Drawbridge`, `Map Room`, `Chairlift`, `Train`, `Tunnels`, `Chapel Door`,
+`Hub Secret Door`); the 7 big keys themselves; the 7 `Radio Music: …` items that make
 each station audible (optional); and filler — the island's own hand props,
 materialized on receipt and taken off the map so they cannot be picked up for
 free. The Drawbridge is handed over at the start by default.
@@ -81,13 +81,19 @@ free. The Drawbridge is handed over at the start by default.
 **Logic** — the key and the door are two separate items. A big key opens
 nothing: it carries six checks (five cuts and a deposit), and those six
 locations depend on it and nothing else. The features are what open the
-island, and three of them really guard something: `Chairlift` and `Tunnels`
-each enclose locations (measured in game on 2026-09-21), and `Dam` — the
-Black Monolith tower's feature — opens the ending zone. No puzzle is locked
+island, and four of them really guard something: `Chairlift` and `Tunnels`
+each enclose locations (measured in game on 2026-09-21), `Chapel Door` — the
+Black Monolith tower's feature — opens the ending zone, and `Hub Secret Door`
+opens the zone the second ending sits in. No puzzle is locked
 by the mod. The number of gourds received now gates only the gourd deposits
 themselves.
 
-**Goal** — `gauntlet` (default), `ending` or `deposits`.
+**Goal** — `gauntlet` (default), `ending`, `second_ending` or `deposits`.
+
+**Universal Tracker** — supported, and no YAML is needed for it:
+`interpret_slot_data` hands the seed's own settings back to UT, which rebuilds
+the world from those instead of from whatever sits in the tracking player's
+`Players` folder.
 
 The assumptions the logic makes that have never been verified in game are
 listed at the end of [`protocol.md`](protocol.md) — they are what decides

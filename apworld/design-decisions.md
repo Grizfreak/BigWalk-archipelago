@@ -430,7 +430,7 @@ ledger), `Patches/PropTaggedPinPatch.cs` (suppression),
 `Patches/KeyBlankCutPatch.cs` (the 25 cut checks, off `OnCutsUpdated` —
 `ServerCutSegment` turned out to be inlined and unpatchable), and the apworld
 side in `bigwalk/`. The item names are the features: Drawbridge, Map Room,
-Chairlift, Train, Tunnels, Dam, Hub Secret Door.
+Chairlift, Train, Tunnels, Chapel Door, Hub Secret Door.
 
 ## CORRECTION (2026-09-21, same day) — the keys are items, not a reward for gourds
 
@@ -485,6 +485,35 @@ door is still its own item, and the 25 cut checks survive because the key
 arrives uncut. Both were put to the player as explicit choices, and both
 were kept — so the suppression, the ledger and the cut hook built for the
 first pass all stand.
+
+## SETTLED (2026-09-22) — Universal Tracker support
+
+Asked by the player: is the world compatible? It loads and it tracks — nothing
+in the logic is random beyond which filler gets picked, so there is no entrance
+rando and no random spawn for the tracker to guess at, and the graph it
+rebuilds is the seed's graph. What it had no way of knowing was the seed's
+OPTIONS: UT generates from the tracking player's own YAML, and in a co-op
+group that YAML is usually somebody else's. Measured against the default seed
+before deciding anything: `green_dome_deposits: excluded` on its own gives the
+tracker 89 locations and 4 regions instead of 93 and 5 — the Hub Secret Door
+zone simply does not exist for it — `deposit_locations: all` invents 36
+locations, and turning the radio checks off loses 7.
+
+Implemented as the two hooks UT documents, and they cost almost nothing
+because the work had already been done for the mod: `fill_slot_data` has
+carried every option that shapes this world since the world was written, and
+the two derived values are written back into the options before it reads them
+— the clamped deposit goal, and the `second_ending` green-dome repair. So a
+re-generation re-applies the same repairs to the same numbers and lands on the
+world that exists rather than the one that was asked for. Adding
+`ut_can_gen_without_yaml` on top means a player tracking a seed they did not
+generate needs no YAML at all.
+
+Which fields those are lives in `world.TRACKER_OPTIONS`, kept in step with
+`fill_slot_data` by a test rather than by care. Another test rebuilds a whole
+seed the way UT does (`build_like_universal_tracker` in `test/bases.py`,
+mirroring `TrackerCore.TMain`) and compares it location by location, with a
+control that fails the moment the passthrough stops working.
 
 ## Open points carried forward
 

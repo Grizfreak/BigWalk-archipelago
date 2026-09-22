@@ -16,6 +16,26 @@ logger = logging.getLogger("Big Walk")
 WORLD_VERSION = "0.1.0"
 """Kept in step with archipelago.json; sent in slot_data so the mod can check it."""
 
+TRACKER_OPTIONS = (
+    "goal",
+    "deposit_goal_amount",
+    "deposit_locations",
+    "green_dome_deposits",
+    "radio_station_checks",
+    "radio_station_items",
+)
+"""
+The slot_data fields that are options, and the whole of what a re-generation
+needs to land on the same world.
+
+Every other option decides what goes into the pool, not what the graph looks
+like: `start_with_drawbridge_open` moves one item from the pool to the start
+inventory — the server hands it over either way — and `trap_fill_percentage`
+only ever picks between two kinds of filler. Neither can move a location.
+
+Kept in step with `fill_slot_data` by a test rather than by care.
+"""
+
 
 class BigWalkWorld(World):
     """
@@ -45,6 +65,23 @@ class BigWalkWorld(World):
     # with anything older.
     required_client_version = (0, 6, 0)
 
+    # --- Universal Tracker ---
+    #
+    # UT re-runs this world's generation inside the tracker and compares the
+    # result against the server. Nothing here is random beyond which filler
+    # is picked, so the graph it builds is the seed's graph exactly — as long
+    # as it generates with the seed's OPTIONS, which is what these two hooks
+    # are for. Left to the tracking player's own YAML, one wrong option moves
+    # the goalposts in silence: `green_dome_deposits: excluded` on its own
+    # drops a whole region and four locations.
+
+    ut_can_gen_without_yaml = True
+    """
+    No YAML is needed in the tracker: everything that shapes this world
+    travels in slot_data (TRACKER_OPTIONS), so UT skips its first generation
+    and builds straight from the seed.
+    """
+
     # --- Derived from the options, computed once in generate_early ---
 
     green_dome_slots: int
@@ -62,7 +99,21 @@ class BigWalkWorld(World):
     deposit_goal: int
     """Gourds required to win when the goal is `deposits` (clamped to what exists)."""
 
+    @staticmethod
+    def interpret_slot_data(slot_data: Mapping[str, Any]) -> Mapping[str, Any]:
+        """
+        Hand the seed's slot_data back to Universal Tracker, which re-runs
+        generation with it in `multiworld.re_gen_passthrough` — picked up by
+        `_take_options_from_tracker` below.
+
+        Returning something non-None is what asks for that second pass;
+        returning None would leave UT tracking the YAML it started from.
+        """
+        return slot_data
+
     def generate_early(self) -> None:
+        self._take_options_from_tracker()
+
         green_dome = self._green_dome_setting()
 
         if green_dome == bigwalk_options.GreenDomeDeposits.option_excluded:
@@ -92,6 +143,29 @@ class BigWalkWorld(World):
                 "in play with the current Green Dome Deposits setting.",
                 self.player_name, self.options.deposit_goal_amount.value, self.deposit_goal,
             )
+
+    def _take_options_from_tracker(self) -> None:
+        """
+        Swap this slot's options for the ones the seed was really generated
+        from, while Universal Tracker is re-generating. A no-op everywhere
+        else, since nothing sets `re_gen_passthrough` during a real fill.
+
+        The values arrive as `current_key` strings and one clamped int, which
+        `from_any` reads back into the option types. Two of them are already
+        the REPAIRED values rather than what a YAML asked for — the clamped
+        deposit goal and the `second_ending` green-dome fix are both written
+        back to the options before `fill_slot_data` reads them — so this pass
+        re-applies the same repairs to the same numbers and cannot drift.
+        """
+        passthrough = getattr(self.multiworld, "re_gen_passthrough", None)
+        slot_data = passthrough.get(self.game) if passthrough else None
+        if not slot_data:
+            return
+
+        for name in TRACKER_OPTIONS:
+            if name in slot_data:
+                option = getattr(self.options, name)
+                setattr(self.options, name, option.from_any(slot_data[name]))
 
     def _green_dome_setting(self) -> int:
         """
