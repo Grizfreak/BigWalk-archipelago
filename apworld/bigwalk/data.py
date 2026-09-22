@@ -167,6 +167,14 @@ Four independent readings agree, and no measurement contradicts them:
 
 The player, who has played the game, recognises none of the thirteen names.
 
+**Checked against both builds on this machine (2026-09-22)**, because the
+save above was played on one and the dumps were taken on the other: the game
+of 2026-08-10 (the version the co-op sessions run on) and the game of
+2026-09-07 carry an identical gourd inventory — 64 `gourd*` names in
+`global-metadata.dat`, not one of them present in only one build. So the
+thirteen are not content the September update added and the August save
+simply predates. They produce nothing in either.
+
 Kept here rather than deleted: if a future patch ships them, this is the list
 to paste back into PUZZLES, ids and all.
 """
