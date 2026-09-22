@@ -46,7 +46,10 @@ class TestGreenDomeExcluded(BigWalkTestBase):
 
     def test_key_and_location_are_gone(self) -> None:
         self.assertFalse(self.get_items_by_name(data.GREEN_DOME_ITEM_NAME))
-        self.assertNotIn("Goodbye Keyhole Key Deposit",
+        # Taken from the table rather than spelled out: the literal used to be
+        # "Goodbye Keyhole Key Deposit", and a renamed location would have left
+        # this assertion passing against a name nothing creates any more.
+        self.assertNotIn(data.GREEN_DOME.location_name,
                          [location.name for location in self.multiworld.get_locations(self.player)])
 
     def test_pool_shrinks_to_the_remaining_slots(self) -> None:

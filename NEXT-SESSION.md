@@ -162,30 +162,43 @@ something.
 
 `tools/package-mod.ps1` produces the players' zip, the debug module is off by
 default (`Debug.Enabled = false`), and `apworld/build.py` packages the world.
+Both halves are rebuilt after any change; the artefacts sitting in `dist/` and
+`apworld/dist/` are only as fresh as the last run of those two scripts.
 
-One decision left, and it is yours: **the version numbers**. Everything still
-says 0.1.0 — `Plugin.PluginVersion`, the `.csproj`, `archipelago.json` and
-`WORLD_VERSION`. Nothing has shipped publicly, so 0.1.0 as the first release
-is coherent; the alternative is calling this a 0.2.0.
+**The version is settled (2026-09-21): 0.1.0, and there is nothing to do.**
+`Plugin.PluginVersion`, the `.csproj`, `archipelago.json` and `WORLD_VERSION`
+already agree, and the alpha is the first thing to ship publicly, so 0.1.0 is
+what it is called. What matters from here is that the two halves move
+together: a mod older than its apworld ignores `big_key_features`, so it pins
+keys as before AND never reports the 25 cut checks, which makes a seed
+unbeatable if anything needed sits on one. The mismatch only warns; bumping
+both at once is what keeps that warning readable.
 
-It matters slightly more than it did. A mod older than today's talking to
-today's apworld ignores `big_key_features`, so it pins keys as before AND
-never reports the 25 cut checks — which makes a seed unbeatable if anything
-needed sits on one. The mismatch only warns today. Bumping both halves
-together is what makes that warning readable.
+**The item names are settled too (2026-09-21): the seven bare nouns stay** —
+`Drawbridge`, `Map Room`, `Chairlift`, `Train`, `Tunnels`, `Dam`, `Green
+Dome`. A prefix earns its place only where it disambiguates: `Radio Music:
+Bobby` needs one because `Bobby` alone says nothing in a multiworld feed,
+`Chairlift` does not.
 
-Also worth a moment before shipping, because it is baked into the data
-package and awkward to change afterwards: **the seven item names are bare
-nouns** — `Drawbridge`, `Map Room`, `Chairlift`, `Train`, `Tunnels`, `Dam`,
-`Green Dome`. The radio items carry a `Radio Music:` prefix because `Bobby`
-alone would be cryptic in a multiworld feed; `Chairlift` is not. If you would
-rather they read `Feature: Chairlift`, it is one table in
-`apworld/bigwalk/data.py`.
+Reviewing that question turned up a real mismatch one step away, and it is
+fixed: three deposit locations were named after their **plinth** rather than
+their feature — `Train Station Key Deposit`, `Tunnel Key Deposit` and
+`Goodbye Keyhole Key Deposit`, inherited from the third-party document that
+first listed them — while the items and the 25 cuts were named after the
+feature. They now read `Train Key Deposit`, `Tunnels Key Deposit` and `Green
+Dome Key Deposit`, so all seven towers spell one name three ways and no
+other: `<feature> Key`, `<feature> Key Cut 1..5`, `<feature> Key Deposit`.
+Renamed before the datapackage was ever published, which was the whole window
+for doing it cheaply. (The cross-validation table in
+`mod/reverse-engineering-notes.md` still quotes the document's own names, on
+purpose — it is a record of what that document said.)
 
-Not done and worth one session if you want it before shipping: **the radio in
-co-op**. The accepted wrinkle is that a guest hears a station as soon as it is
-switched on, because only the host runs an Archipelago client. It is
-documented in the option text; it has never been watched happening.
+**The radio in co-op** no longer needs a session of its own: it is test 9 in
+[`COOP-TESTS.md`](COOP-TESTS.md), watched during the co-op pass rather than
+arranged separately. The accepted wrinkle is that a guest hears a station as
+soon as it is switched on, because only the host runs an Archipelago client.
+It is documented in the option text; it has never been watched happening, and
+the only result that would be news is it being worse than documented.
 
 ## What has been confirmed
 

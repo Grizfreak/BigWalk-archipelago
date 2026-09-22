@@ -192,6 +192,17 @@ class Tower(NamedTuple):
 # and "Chairlift Key Deposit" is where they put the key that no longer opens
 # it — the pairing is deliberate, and the old "Green Cup Key" style of name
 # would now be a lie about what the item does.
+#
+# One feature name per tower, and everything else is derived from it: the key
+# item is "<feature> Key", the five cuts are "<feature> Key Cut 1..5" and the
+# placement is "<feature> Key Deposit". Three of the deposits used to be named
+# after their PLINTH instead — "Train Station", "Tunnel", "Goodbye Keyhole" —
+# inherited from the third-party document that first listed them (see the
+# cross-validation table in ../../mod/reverse-engineering-notes.md, which
+# quotes that document and is left alone). Renamed on 2026-09-21, before the
+# datapackage was published and the names became awkward to change: a player
+# holding a "Tunnels Key" should not have to learn that it belongs in the
+# "Tunnel Key Deposit".
 DRAWBRIDGE_ITEM_NAME = "Drawbridge"
 GREEN_DOME_ITEM_NAME = "Green Dome"
 
@@ -202,13 +213,13 @@ TOWERS: tuple[Tower, ...] = (
           "bigKeyPlinthMapRoom", "monoument0", 5, 5),
     Tower("bigKeyGreenZone", 302, "Chairlift", "Chairlift Key Deposit",
           "bigKeyPlinthSkiLift", "monoument1", 5, 5),
-    Tower("bigKeyBlueZone", 303, "Train", "Train Station Key Deposit",
+    Tower("bigKeyBlueZone", 303, "Train", "Train Key Deposit",
           "bigKeyPlinthTrain", "monoument2", 5, 5),
-    Tower("bigKeyYellowZone", 304, "Tunnels", "Tunnel Key Deposit",
+    Tower("bigKeyYellowZone", 304, "Tunnels", "Tunnels Key Deposit",
           "bigKeyPlinthTunnels", "monoument3", 5, 5),
     Tower("bigKeyBoss", 305, "Dam", "Dam Key Deposit",
           "bigKeyPlinthEnding", "monoumentFinal", 6, 0),
-    Tower("bigKeyOverflow", 306, GREEN_DOME_ITEM_NAME, "Goodbye Keyhole Key Deposit",
+    Tower("bigKeyOverflow", 306, GREEN_DOME_ITEM_NAME, "Green Dome Key Deposit",
           "bigKeyPlinthGoodbye2", "monoumentOverflow", 15, 0),
 )
 
@@ -423,7 +434,8 @@ def key_item_name(tower: Tower) -> str:
     Named after the feature rather than after the tower ("Chairlift Key",
     not "Green Cup Key") so that it matches its own locations — `Chairlift
     Key Cut 1` and `Chairlift Key Deposit` — and so that nothing has to be
-    memorised to know where a key belongs.
+    memorised to know where a key belongs. That match holds for all seven
+    towers since the deposit renames of 2026-09-21; it used to hold for four.
     """
     return f"{tower.item_name} Key"
 

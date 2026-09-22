@@ -431,6 +431,19 @@ Ctrl+R recovery.
   Leaving the tutorial is the feature's job; the key is six checks, and
   handing it over would be handing over checks.
 
+**The naming pass that followed (2026-09-21, before the first release).**
+Reviewing whether the seven features should read `Feature: Chairlift` rather
+than `Chairlift` settled that question with a no — a prefix earns its place
+only where it disambiguates, which `Radio Music: Bobby` needs and `Chairlift`
+does not — and turned up a genuine mismatch next to it. Three deposit
+locations were named after their PLINTH (`Train Station Key Deposit`,
+`Tunnel Key Deposit`, `Goodbye Keyhole Key Deposit`, inherited from the
+third-party document) while their items and their 25 cuts were named after
+the feature, so a player holding a `Tunnels Key` had to learn it belonged in
+the `Tunnel Key Deposit`. All seven now derive from one name: `<feature>
+Key`, `<feature> Key Cut 1..5`, `<feature> Key Deposit`. Done before the
+datapackage was published, which is the only cheap moment for it.
+
 **What did NOT change, and that is the point of asking rather than
 assuming**: the key stays a check carrier. Placing it opens nothing, the
 door is still its own item, and the 25 cut checks survive because the key
