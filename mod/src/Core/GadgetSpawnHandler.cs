@@ -225,6 +225,14 @@ namespace BigWalkArchipelago.Core
         private static GameObject SpawnFlareGunGreen(Vector3 position, uint assetId) => Spawn(GadgetKind.FlareGunGreen, position, assetId);
         private static GameObject SpawnFlareGunYellow(Vector3 position, uint assetId) => Spawn(GadgetKind.FlareGunYellow, position, assetId);
 
+        // THIS MUST NEVER RETURN NULL, and it used to (2026-09-22, found in
+        // co-op the first time a guest was sent a gadget it could not build).
+        // Mirror leaves the netId unresolved, the holder's
+        // PlayerHeldInformation then dereferences a null identity inside
+        // DeserializeSyncVars, and that player's network state is broken for
+        // the rest of the session — hundreds of exceptions a second, gourds
+        // no longer claimed, the lot. The reasoning and the two fallbacks are
+        // in GadgetItemSpawner; the rule lives here, where the null was.
         private static GameObject Spawn(GadgetKind kind, Vector3 position, uint assetId)
         {
             try
@@ -237,15 +245,19 @@ namespace BigWalkArchipelago.Core
                     return prop.gameObject;
                 }
 
-                Plugin.Log.LogWarning(
-                    $"[{nameof(GadgetSpawnHandler)}] Nothing to clone from for an incoming {kind}; it will be missing for this player.");
+                var standIn = GadgetItemSpawner.BuildStandInClone(kind, position, Quaternion.identity);
+                if (standIn != null)
+                {
+                    PendingSpawned.Add(standIn);
+                    return standIn.gameObject;
+                }
             }
             catch (Exception ex)
             {
                 Plugin.Log.LogWarning($"[{nameof(GadgetSpawnHandler)}] Failed to build an incoming {kind}: {ex.Message}");
             }
 
-            return null;
+            return GadgetItemSpawner.BuildResolvablePlaceholder(kind, position);
         }
 
         private static void UnSpawn(GameObject spawned)

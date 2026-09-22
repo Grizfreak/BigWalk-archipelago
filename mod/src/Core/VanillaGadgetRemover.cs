@@ -1,5 +1,4 @@
 using System;
-using Mirror;
 using UnityEngine;
 
 namespace BigWalkArchipelago.Core
@@ -10,18 +9,34 @@ namespace BigWalkArchipelago.Core
     // free — player decision, 2026-09-22 ("they should be removed also in
     // the map to avoid having backpacks, and standard gunflares").
     //
-    // Two halves, run on every machine but not symmetrically:
-    //   1. GadgetItemSpawner.CaptureTemplates() — every machine, purely
-    //      local. Each client clones a private, inactive copy of whatever
-    //      it currently sees loaded, BEFORE anything is removed, so it has
-    //      something to build future cosmetic pickups from later in the
-    //      session (mirrors CosmeticGourdSpawnHandler's "each client builds
-    //      its own from its own scene").
-    //   2. GadgetItemSpawner.RemoveVanillaInstances() — host only. A plain
-    //      GameObject.SetActive(false) is not something Mirror replicates,
-    //      so making these props disappear for every player needs the same
-    //      networked call the mod already uses to clean up its own cosmetic
-    //      clones (NetworkServer.Destroy) rather than hiding them locally.
+    // Two halves, and since 2026-09-22 both run the same way on every
+    // machine — which is the fix, not a simplification:
+    //   1. GadgetItemSpawner.CaptureTemplates() — purely local. Each machine
+    //      clones a private, inactive copy of whatever it currently sees
+    //      loaded, BEFORE anything is taken away, so it has something to
+    //      build future cosmetic pickups from later in the session (mirrors
+    //      CosmeticGourdSpawnHandler's "each client builds its own from its
+    //      own scene").
+    //   2. GadgetItemSpawner.HideVanillaInstances() — also purely local, and
+    //      also on every machine.
+    //
+    // Half 2 was host-only and used NetworkServer.Destroy until a co-op
+    // session on 2026-09-22, on the reasoning that SetActive(false) does not
+    // replicate and the props therefore had to be destroyed to leave
+    // everybody's map. The replication was the bug: a guest arrives in a
+    // world whose props the host destroyed during its own load, half 1 finds
+    // nothing to capture, and the first gadget the host is sent reaches a
+    // client that cannot build it — which, through a Mirror spawn handler
+    // returning null, breaks that player's network state outright. Each
+    // machine hiding its own copies needs nothing to travel, and a guest who
+    // joins an hour later still finds the props in its scene long enough to
+    // capture them.
+    //
+    // A consequence worth knowing: the switch below is each machine's own.
+    // A guest who turns Archipelago off in their own config keeps seeing the
+    // vanilla gadgets the others have hidden, and could pick one up. That is
+    // the same shape as the radio wrinkle — only the host runs a client, so
+    // only the host can know — and the default is on.
     //
     // Timing and re-arming follow ArchDoorUnlocker's already-learned lesson:
     // poll WorldManager.isReadyForEffects rather than a one-shot start
@@ -41,6 +56,9 @@ namespace BigWalkArchipelago.Core
         }
 
         private bool _worldWasReady;
+        private float _nextRecheck;
+
+        private const float RecheckIntervalSeconds = 1f;
 
         private void Update()
         {
@@ -52,20 +70,27 @@ namespace BigWalkArchipelago.Core
             }
 
             if (_worldWasReady)
+            {
+                // Mirror calls SetActive(true) on a scene object when it
+                // spawns it, so a spawn wave arriving after the sweep — a
+                // late joiner's, or interest management rebuilding observers
+                // — can put back what was hidden. Cheap to check: it walks
+                // the objects already hidden, not every Prop in the world.
+                if (ModConfig.ArchipelagoEnabled.Value && Time.time >= _nextRecheck)
+                {
+                    _nextRecheck = Time.time + RecheckIntervalSeconds;
+                    GadgetItemSpawner.ReHideVanillaInstances();
+                }
+
                 return;
+            }
 
             _worldWasReady = true;
+            _nextRecheck = Time.time + RecheckIntervalSeconds;
 
             // Every machine, host or guest: this is a local snapshot, not an
             // authoritative write.
             GadgetItemSpawner.CaptureTemplates();
-
-            // Host authority model, like the rest of the mod (cf.
-            // ItemApplier, ArchDoorUnlocker): only the host removes the
-            // originals, and NetworkServer.Destroy is what makes that
-            // removal visible to every other player.
-            if (!NetworkServer.active)
-                return;
 
             // Not while Archipelago is switched off. The removal only makes
             // sense as the other half of the filler items: a prop that the
@@ -82,7 +107,7 @@ namespace BigWalkArchipelago.Core
             if (!ModConfig.ArchipelagoEnabled.Value)
                 return;
 
-            GadgetItemSpawner.RemoveVanillaInstances();
+            GadgetItemSpawner.HideVanillaInstances();
         }
     }
 }

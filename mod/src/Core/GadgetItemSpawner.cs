@@ -42,14 +42,25 @@ namespace BigWalkArchipelago.Core
     // gourdState or a puzzle-coloured look, so that half of the gourd
     // machinery (ApplyCosmeticColor, propsToMakeSavable) does not apply.
     //
-    // Unlike a gourd, the VANILLA instances of these props are also removed
-    // from the map (RemoveVanillaInstances, driven by VanillaGadgetRemover)
+    // Unlike a gourd, the VANILLA instances of these props are also taken
+    // out of the map (HideVanillaInstances, driven by VanillaGadgetRemover)
     // — player decision, 2026-09-22: a filler item must not also be
     // findable lying around for free. That makes the template a one-shot
-    // capture taken locally on each machine BEFORE removal
+    // capture taken locally on each machine BEFORE the hiding
     // (CaptureTemplates), rather than "whatever is loaded right now" like
-    // ReceivedItemSpawner.FindTemplate — once the real instances are gone
-    // there is nothing left in the world to clone from.
+    // ReceivedItemSpawner.FindTemplate — once the real instances are out of
+    // the way there is nothing left in the world to clone from.
+    //
+    // THAT HIDING IS LOCAL, AND IT IS THE WHOLE POINT (2026-09-22, measured
+    // in co-op). It used to be a host-side NetworkServer.Destroy, chosen
+    // because SetActive(false) is not replicated — and it replicated far too
+    // well. A guest joins a world whose props the host destroyed on its own
+    // world load, so the guest's CaptureTemplates finds nothing at all, and
+    // the first gadget the host is sent arrives at a client that cannot
+    // build it. The guest's log proved it by its single success: exactly one
+    // template captured, the Lamp, which is the one kind KeptInWorld spares.
+    // Each machine now hides its own copies for itself, which needs no
+    // replication at all.
     internal static class GadgetItemSpawner
     {
         private static readonly Dictionary<GadgetKind, string> PrefabNames = new()
@@ -136,8 +147,15 @@ namespace BigWalkArchipelago.Core
         // (only clones built FROM it are), so it needs a suffix of its own
         // rather than reusing that one.
         private const string TemplateNameSuffix = "(AP template)";
+        private const string PlaceholderNameSuffix = "(AP placeholder)";
 
         private static readonly Dictionary<GadgetKind, Prop> _templates = new();
+
+        // What HideVanillaInstances switched off on THIS machine, kept so
+        // ReHideVanillaInstances can put back anything Mirror switches on
+        // again. Around 68 objects, against every Prop in the world for a
+        // full scan.
+        private static readonly List<GameObject> _hidden = new();
 
         // Called on EVERY machine (host and every client alike) once per
         // world load, before RemoveVanillaInstances runs on the host — see
@@ -154,7 +172,22 @@ namespace BigWalkArchipelago.Core
         private static void CaptureTemplate(GadgetKind kind)
         {
             var prefabName = PrefabNames[kind];
-            var all = UnityEngine.Object.FindObjectsByType<Prop>(FindObjectsSortMode.None);
+
+            // INACTIVE ONES COUNT, and on a guest they are the only ones
+            // there (2026-09-22, second co-op round). The host hides its 68
+            // copies locally, and Mirror does not send a spawn message for a
+            // deactivated object — so a client's own scene copies are never
+            // switched on, and the default active-only scan walked straight
+            // past all of them. The guest captured exactly one template, the
+            // Lamp, which is the one kind the hiding pass spares: the same
+            // control that caught the networked-destroy version of this bug
+            // an hour earlier, pointing one step further in.
+            //
+            // Cloning an inactive source is the normal path here anyway —
+            // the capture below deactivates its candidate before Instantiate
+            // on purpose, so that the clone's Awake() is deferred.
+            var all = UnityEngine.Object.FindObjectsByType<Prop>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
             if (all == null)
                 return;
 
@@ -232,19 +265,37 @@ namespace BigWalkArchipelago.Core
             return _templates.TryGetValue(kind, out var template) && template != null ? template : null;
         }
 
-        // Host only, called right after CaptureTemplates by
-        // VanillaGadgetRemover. A plain GameObject.SetActive(false) is not
-        // something Mirror replicates, so making these props disappear for
-        // every player needs the same networked call the mod already uses
-        // to clean up its own cosmetic clones (NetworkServer.Destroy)
-        // instead of hiding them locally. The template captured just above
-        // is inactive and therefore excluded by the default (active-only)
-        // FindObjectsByType scan below, so this never destroys its own
-        // template.
-        internal static int RemoveVanillaInstances()
+        // Called right after CaptureTemplates, on EVERY machine, host and
+        // guest alike, and entirely locally.
+        //
+        // It was host-only and used NetworkServer.Destroy until 2026-09-22,
+        // on the reasoning that SetActive(false) does not replicate and
+        // these props therefore had to be destroyed to leave everybody's
+        // map. See the note at the top of this file for what that cost in
+        // co-op the same evening.
+        //
+        // Hiding also beats destroying locally, which would be the obvious
+        // alternative: these are networked scene objects, and tearing one
+        // out of a client's spawned table while the server still believes in
+        // it is the same class of failure this change exists to remove.
+        // Deactivated, the identity stays alive and only this machine stops
+        // drawing and colliding with it.
+        //
+        // The template captured just above is inactive and therefore already
+        // excluded by the default (active-only) FindObjectsByType scan, so
+        // this never hides its own template.
+        internal static int HideVanillaInstances()
         {
-            var removed = 0;
-            var all = UnityEngine.Object.FindObjectsByType<Prop>(FindObjectsSortMode.None);
+            var hidden = 0;
+            _hidden.Clear();
+
+            // Inactive ones included, for the reason CaptureTemplate gives:
+            // on a guest these props arrive switched off and must be kept
+            // that way, so they belong in _hidden even though there is
+            // nothing to switch off today. Mirror turning one on later is
+            // exactly what ReHideVanillaInstances is for.
+            var all = UnityEngine.Object.FindObjectsByType<Prop>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
             if (all == null)
                 return 0;
 
@@ -259,21 +310,62 @@ namespace BigWalkArchipelago.Core
 
                 try
                 {
-                    NetworkServer.Destroy(prop.gameObject);
-                    removed++;
+                    var wasActive = prop.gameObject.activeSelf;
+                    if (wasActive)
+                        prop.gameObject.SetActive(false);
+
+                    _hidden.Add(prop.gameObject);
+                    if (wasActive)
+                        hidden++;
                 }
                 catch (Exception ex)
                 {
                     Plugin.Log.LogWarning(
-                        $"[{nameof(GadgetItemSpawner)}] Could not remove a vanilla gadget prop: {ex.Message}");
+                        $"[{nameof(GadgetItemSpawner)}] Could not hide a vanilla gadget prop: {ex.Message}");
                 }
             }
 
-            if (removed > 0)
-                Plugin.Log.LogInfo(
-                    $"[{nameof(GadgetItemSpawner)}] Removed {removed} vanilla gadget prop(s) from the map.");
+            Plugin.Log.LogInfo(
+                $"[{nameof(GadgetItemSpawner)}] Hid {hidden} vanilla gadget prop(s) from this machine's map, and is "
+                + $"keeping {_hidden.Count - hidden} that were already off.");
 
-            return removed;
+            return hidden;
+        }
+
+        // Anything that came back on since the sweep. Mirror calls
+        // SetActive(true) on a scene object when it spawns it, so a spawn
+        // wave arriving after the sweep — a late joiner's, or interest
+        // management rebuilding observers — can undo it. Walks only what was
+        // hidden, not the world.
+        internal static int ReHideVanillaInstances()
+        {
+            var again = 0;
+
+            foreach (var hidden in _hidden)
+            {
+                if (hidden == null)
+                    continue;
+
+                try
+                {
+                    if (!hidden.activeSelf)
+                        continue;
+
+                    hidden.SetActive(false);
+                    again++;
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning(
+                        $"[{nameof(GadgetItemSpawner)}] Could not hide a vanilla gadget prop again: {ex.Message}");
+                }
+            }
+
+            if (again > 0)
+                Plugin.Log.LogInfo(
+                    $"[{nameof(GadgetItemSpawner)}] {again} vanilla gadget prop(s) came back; hidden again.");
+
+            return again;
         }
 
         private static GadgetKind? MatchKind(string name)
@@ -536,6 +628,81 @@ namespace BigWalkArchipelago.Core
             ReceivedItemSpawner.RefreshPropertyBlockHelpers(clone);
 
             return prop;
+        }
+
+        // THE TWO FALLBACKS BELOW EXIST BECAUSE OF WHAT RETURNING NOTHING
+        // DID (2026-09-22, measured in co-op — see GadgetSpawnHandler.Spawn).
+        //
+        // A Mirror spawn handler that hands back null leaves its netId
+        // unresolved on that client. The next SyncVar pointing at it is a
+        // player's PlayerHeldInformation, whose `identity` field is then
+        // null and whose GetProp() dereferences it — so the exception lands
+        // inside DeserializeSyncVars, which stops mid-read. Mirror reports a
+        // size hash mismatch, and from that moment every state update for
+        // that player throws, every frame, for the rest of the session.
+        // Losing one cosmetic gadget is nothing; losing a player's network
+        // state is the session.
+        //
+        // So the handler always builds something. First choice: another
+        // captured template. It is a real Prop with real components, and the
+        // Lamp in particular survives the hiding pass (KeptInWorld), so any
+        // machine that loaded the world normally has one to hand.
+        internal static Prop BuildStandInClone(GadgetKind wanted, Vector3 position, Quaternion rotation)
+        {
+            foreach (var kind in StandInOrder())
+            {
+                if (kind == wanted || GetTemplate(kind) == null)
+                    continue;
+
+                var prop = BuildNeutralizedClone(kind, position, rotation);
+                if (prop == null)
+                    continue;
+
+                Plugin.Log.LogWarning(
+                    $"[{nameof(GadgetItemSpawner)}] Nothing to build an incoming {wanted} from; stood a {kind} in "
+                    + "its place so the spawn resolves. It will look wrong for this player.");
+                return prop;
+            }
+
+            return null;
+        }
+
+        private static IEnumerable<GadgetKind> StandInOrder()
+        {
+            // The Lamp first: the one kind the hiding pass spares, so the
+            // one most likely to be there.
+            yield return GadgetKind.Lamp;
+
+            foreach (var kind in PrefabNames.Keys)
+                yield return kind;
+        }
+
+        // Second choice, when a machine has no template whatsoever: an
+        // object carrying nothing but a NetworkIdentity. It draws nothing
+        // and does nothing. Its entire job is to give Mirror a netId to
+        // resolve, so that a player holding it deserializes instead of
+        // throwing — GetProp() then returns null rather than dereferencing a
+        // null identity. That is the difference between "this player cannot
+        // see the gadget" and "this player is broken until they reconnect".
+        internal static GameObject BuildResolvablePlaceholder(GadgetKind wanted, Vector3 position)
+        {
+            try
+            {
+                var placeholder = new GameObject($"{wanted} {PlaceholderNameSuffix}");
+                placeholder.transform.position = position;
+                placeholder.AddComponent<NetworkIdentity>();
+
+                Plugin.Log.LogWarning(
+                    $"[{nameof(GadgetItemSpawner)}] Nothing at all to build an incoming {wanted} from, not even a "
+                    + "stand-in; spawned an empty placeholder so this client's network state stays readable.");
+                return placeholder;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(GadgetItemSpawner)}] Could not even place a placeholder for an incoming {wanted}: {ex.Message}");
+                return null;
+            }
         }
     }
 }

@@ -226,6 +226,59 @@ pattern that worked" is a reasoned prediction, not a measurement.*
 
 ### 10. A gadget received by the host, seen by the guest
 
+**RUN 2026-09-22/23. FAILED HARD, TWICE, AND NOW PASSES.** The guest sees the
+right gadget, correctly shaped and textured, falling normally. What it took is
+below, because both failures were worth more than the pass.
+
+**First failure — the removal replicated.** The guest's log opened with 16
+`No X (XProp) found in the scene to capture as a template` and exactly one
+success, `Lamp template captured from 'BuoyLight'`. The Lamp is the only kind
+`KeptInWorld` spares, which is what turned a guess into a measurement: the
+scene was loaded, and what was missing was precisely what the host had
+destroyed. `VanillaGadgetRemover` was host-only and used
+`NetworkServer.Destroy`, so a guest arrives in a world whose gadget props are
+already gone and captures nothing.
+
+Then the damage, which was not cosmetic at all: with no template,
+`GadgetSpawnHandler.Spawn` returned `null`, Mirror logged `Spawn Handler
+returned null` / `Could not spawn assetId=186030849`, and the host's
+`PlayerHeldInformation` — a SyncVar holding that very netId — dereferenced a
+null identity inside `DeserializeSyncVars`. `OnDeserialize failed` +
+`PlayerNetworking OnDeserialize size mismatch`, then a NullReferenceException
+every frame for the rest of the session, gourds no longer claimed
+(`unclaimed after 3s; dropping it`), the lot. **A missing cosmetic broke a
+player's whole network state.** Fixed by never returning null: a stand-in
+cloned from another template, or failing that an object carrying nothing but
+a `NetworkIdentity`, so the netId always resolves.
+
+**Second failure — the props were there, switched off.** With the hiding made
+local and symmetric, the guest still captured nothing but the Lamp. Same
+control, one step further in: on a client these props are *inactive*, because
+Mirror sends no spawn message for an object deactivated on the server, and
+`FindObjectsByType` skips inactive objects by default. Fixed by scanning with
+`FindObjectsInactive.Include`.
+
+That second finding carries a bonus worth keeping in mind: since Mirror will
+not spawn a deactivated object, **hiding locally on the host is enough to hide
+it from every guest too**. The networked destroy was never needed.
+
+**What the guest's log reads now:** 17 `template captured from`, then `Hid 0
+vanilla gadget prop(s) from this machine's map, and is keeping 70 that were
+already off`, then `Cosmetic Megaphone built at (...)`. No `stood a Lamp`, no
+`Spawn Handler returned null`, no `OnDeserialize failed`.
+
+**STILL OPEN, found in the same log — the join burst.** Before the guest's
+world was ready, 43 gadgets the host already had were spawned to it, and every
+one got an empty placeholder: the templates did not exist yet. Their network
+state is sound, which is the placeholder doing its job, but all 43 are
+invisible for that guest for the rest of the session. It will happen to any
+guest joining a world that already has gadgets lying around, which after ten
+minutes of play is every guest. Not yet fixed; the lead is to swap the real
+clone onto the placeholder's netId once the templates are captured (the mod
+already reaches into `NetworkIdentity`'s private setters elsewhere).
+
+*The original plan, kept for what it asked:*
+
 Host receives a filler gadget (`Ctrl+I` on the host cycles through all 17).
 Guest watches the hub.
 
@@ -246,6 +299,13 @@ Guest watches the hub.
   ever measured on the host's own screen.
 
 ### 11. Vanilla gadget removal, seen by the guest
+
+**RUN 2026-09-23. PASSES** — the guest's world is clear of them too, and by a
+different mechanism than this test assumed. Nothing is destroyed any more:
+each machine hides its own copies, and a guest's copies are never switched on
+at all because Mirror does not spawn a deactivated object. The guest's log
+says `keeping 70 that were already off`, which is that sentence measured. See
+test 10 for why the destroy had to go.
 
 At world load, `VanillaGadgetRemover` destroys every vanilla instance of the
 17 gadget prefabs (host-authoritative `NetworkServer.Destroy`, chosen

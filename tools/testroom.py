@@ -164,7 +164,11 @@ def print_cheat_sheet(yaml_name: str, port: int) -> None:
     print()
     print("Useful commands in this server console:")
     print(f"    /send {slot} Gourd                 spawn a gourd at the hub")
-    print(f"    /send {slot} Red Funnel Key        should open the map room live")
+    # The door and the key are two items since 2026-09-21, and the console is
+    # where the difference is easiest to see: one opens something, the other
+    # is six checks you carry.
+    print(f"    /send {slot} Map Room              the door: opens live")
+    print(f"    /send {slot} Map Room Key          the key: opens nothing, carries checks")
     print(f"    /send_location {slot} Cabin Fever  mark a check server-side")
     print("    /players                           who is connected")
     print()

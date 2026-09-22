@@ -1675,6 +1675,41 @@ same identifier as both location id and item id, a true multiworld
 decoupling question — is an apworld design question; see
 `apworld/design-decisions.md` for the full discussion and its resolution.)
 
+## Mirror in co-op: two rules learned the hard way (2026-09-22/23)
+
+Both came out of the first session where a guest was sent a filler gadget, and
+both are general — they have nothing to do with gadgets in particular. Full
+account in `../COOP-TESTS.md`, test 10.
+
+**A spawn handler must never return null.** `NetworkClient.RegisterSpawnHandler`
+takes a delegate that builds the object for an incoming assetId. Returning
+null does not merely lose that object: its netId stays unresolved, and the
+next SyncVar that points at it — here a player's `PlayerHeldInformation`,
+whose `identity` field is then null and whose `GetProp()` dereferences it —
+throws *inside* `DeserializeSyncVars`. Mirror reports `OnDeserialize failed`
+and a `size mismatch`, and from then on every state update for that player
+throws, every frame, for the rest of the session. A missing cosmetic object
+took out a player's entire network state. Whatever a handler cannot build, it
+must still return something carrying a `NetworkIdentity`.
+
+**Mirror does not spawn an object that is deactivated on the server.** Hiding
+a networked scene object with `SetActive(false)` host-side therefore hides it
+from every client as well — their own scene copies are never switched on,
+since a client only activates a scene object when the server spawns it. Two
+consequences the mod now depends on:
+
+- making something disappear for everybody needs no `NetworkServer.Destroy`,
+  and the destroy is actively harmful when anything on a client still wants to
+  read that object (see the note above, and `GadgetItemSpawner`'s templates);
+- anything scanning a client's world for such objects must pass
+  `FindObjectsInactive.Include`, because the default scan walks straight past
+  every one of them. This is what the second failure of test 10 was.
+
+The control that caught both, twice: the Lamp. It is the one gadget kind
+`KeptInWorld` spares, so it was the only template a guest could capture — and
+"everything missing except exactly the thing we do not touch" is what turned
+each hypothesis into a measurement rather than a guess.
+
 ## Point to test next session: cooperative puzzles without a clamp
 
 Following the discussion above, the player clarified how these "no clamp"
