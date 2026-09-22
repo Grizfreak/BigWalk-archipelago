@@ -64,6 +64,11 @@ namespace BigWalkArchipelago.Patches
                         Plugin.Log.LogInfo(
                             $"[{nameof(HostMenuConfirmStartPatch)}] Testing the Archipelago connection to "
                             + $"{endpoint.Host}:{endpoint.Port} as '{endpoint.SlotName}'...");
+
+                        // This probe belongs to Continue, so the Update
+                        // postfix above is allowed to act on its result.
+                        HostMenuArchipelagoControls.Owner =
+                            HostMenuArchipelagoControls.ProbeOwner.Continue;
                         ApConnectionTest.Start(endpoint);
                         return false;
                 }
@@ -75,7 +80,21 @@ namespace BigWalkArchipelago.Patches
         {
             private static void Postfix(HostMenuConfirm __instance)
             {
+                // Ahead of the early returns: the test button's own result
+                // has to keep updating whether or not Archipelago is on and
+                // whether or not someone has already consented to host
+                // without it.
+                HostMenuArchipelagoControls.Tick(__instance);
+
                 if (_bypass || !ModConfig.ArchipelagoEnabled.Value)
+                    return;
+
+                // Only a probe THIS path started may be acted on. A probe the
+                // player ran from the test button must never launch the
+                // session, flash a field or set the host-anyway bypass —
+                // they asked a question, they did not press Continue.
+                if (HostMenuArchipelagoControls.Owner
+                    != HostMenuArchipelagoControls.ProbeOwner.Continue)
                     return;
 
                 switch (ApConnectionTest.Status)

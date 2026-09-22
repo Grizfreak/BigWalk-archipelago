@@ -66,6 +66,20 @@ namespace BigWalkArchipelago.Patches
                 Plugin.Log.LogWarning(
                     $"[{nameof(HostMenuConfirmPatch)}] Failed to inject the host:port field, ignored: {ex.Message}");
             }
+
+            // Separate try, and after the field on purpose: the toggle greys
+            // that field out, so it wants it to exist — but losing the
+            // buttons must not cost the field, which is the one control
+            // without which nothing can connect at all.
+            try
+            {
+                HostMenuArchipelagoControls.Inject(__instance);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(HostMenuConfirmPatch)}] Failed to inject the Archipelago controls, ignored: {ex.Message}");
+            }
         }
 
         // Isolated in its own method so the member lookup stays dynamic: it
@@ -150,11 +164,43 @@ namespace BigWalkArchipelago.Patches
         // differently when the time comes.
         private static void RelabelOriginalFields(HostMenuConfirm menu, Transform gameNameRow)
         {
-            SetStaticLabel(gameNameRow.Find("GameNameTitle"), "SLOT NAME :");
+            ApplyFieldLabels(menu, ModConfig.ArchipelagoEnabled.Value, gameNameRow);
+        }
+
+        // Called again whenever the Archipelago toggle flips
+        // (HostMenuArchipelagoControls): with the connection off, these two
+        // fields go back to being the game's own save name and session
+        // password, so they say so.
+        internal static void ApplyFieldLabels(HostMenuConfirm menu, bool archipelagoOn, Transform gameNameRow = null)
+        {
+            gameNameRow ??= menu.gameNameField != null ? menu.gameNameField.transform.parent : null;
+            if (gameNameRow == null)
+                return;
 
             var passwordRow = menu.passwordField != null ? menu.passwordField.transform.parent : null;
-            if (passwordRow != null && passwordRow.name == "Password")
-                SetStaticLabel(passwordRow.Find("PasswordTitle"), "ARCHIPELAGO PASSWORD :");
+            var passwordTitle = passwordRow != null && passwordRow.name == "Password"
+                ? passwordRow.Find("PasswordTitle")
+                : null;
+
+            if (archipelagoOn)
+            {
+                SetStaticLabel(gameNameRow.Find("GameNameTitle"), "SLOT NAME :");
+                SetStaticLabel(passwordTitle, "ARCHIPELAGO PASSWORD :");
+                return;
+            }
+
+            RestoreLocalizedLabel(gameNameRow.Find("GameNameTitle"));
+            RestoreLocalizedLabel(passwordTitle);
+        }
+
+        // The injected row, found from the menu rather than remembered:
+        // OnEnable can run several times on the same instance, and a
+        // reference held across that is a reference to a destroyed object.
+        internal static Transform FindHostPortRow(HostMenuConfirm menu)
+        {
+            var gameNameRow = menu.gameNameField != null ? menu.gameNameField.transform.parent : null;
+            var rows = gameNameRow != null ? gameNameRow.parent : null;
+            return rows != null ? rows.Find(HostPortRowName) : null;
         }
 
         // Shrinks the GameName row AND its two direct children
@@ -219,7 +265,7 @@ namespace BigWalkArchipelago.Patches
         // our text would be overwritten on the next language refresh (or
         // even immediately, since LocalizedText can reapply its translation
         // in its own OnEnable, which gets replayed by Instantiate).
-        private static void SetStaticLabel(Transform target, string text)
+        internal static void SetStaticLabel(Transform target, string text)
         {
             if (target == null)
                 return;
@@ -231,6 +277,37 @@ namespace BigWalkArchipelago.Patches
             var label = target.GetComponent<TextMeshProUGUI>();
             if (label != null)
                 label.text = text;
+        }
+
+        // The other half of SetStaticLabel, for the Archipelago toggle: with
+        // the connection switched off, the two repurposed fields mean what
+        // the game says they mean again — a save name and a session
+        // password — so they get the game's own label back rather than a
+        // hand-written English one. LocalizedText.Refresh() reapplies the
+        // translation for the player's actual language, which is why the
+        // label is restored rather than overwritten with a second guess.
+        internal static void RestoreLocalizedLabel(Transform target)
+        {
+            if (target == null)
+                return;
+
+            var localized = target.GetComponent<LocalizedText>();
+            if (localized == null)
+                return;
+
+            localized.enabled = true;
+
+            try
+            {
+                localized.Refresh();
+            }
+            catch (Exception ex)
+            {
+                // Not fatal: the label keeps whatever text it had until the
+                // next language refresh or the next time this screen opens.
+                Plugin.Log.LogInfo(
+                    $"[{nameof(HostMenuConfirmPatch)}] Could not refresh a restored label: {ex.Message}");
+            }
         }
     }
 }
