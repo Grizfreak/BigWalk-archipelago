@@ -499,6 +499,51 @@ namespace BigWalkArchipelago.Patches
             var button = test != null ? test.GetComponent<Button>() : null;
             if (button != null)
                 button.interactable = on;
+
+            ApplySlotNameLock(menu, on);
+        }
+
+        // The slot name field is the game's own save-name field, relabelled
+        // (2026-09-15, to avoid a third field on this screen). The two being
+        // one thing has a cost the player found on 2026-09-22: re-hosting an
+        // existing save lets you edit the name, and editing the name changes
+        // which Archipelago slot this save connects to.
+        //
+        // That is not a cosmetic mistake. At best the server answers "no
+        // slot called that"; at worst it connects to a REAL other slot, and
+        // `ap_reported_*` is not scoped per seed, so the save then resends
+        // checks earned somewhere else entirely.
+        //
+        // So once a save exists, its name is its slot and the field is
+        // locked. Switching Archipelago off unlocks it again, which is both
+        // the escape hatch for a genuine rename and the truth: with nothing
+        // connecting, the field really is just a save name.
+        private static void ApplySlotNameLock(HostMenuConfirm menu, bool archipelagoOn)
+        {
+            var field = menu.gameNameField;
+            if (field == null)
+                return;
+
+            var save = menu.saveData;
+            var uid = save != null ? save.filenameUid : null;
+            var alreadyExists = !string.IsNullOrEmpty(uid);
+
+            var locked = archipelagoOn && alreadyExists;
+            if (field.interactable == !locked)
+                return;
+
+            field.interactable = !locked;
+
+            // Both signals logged, not just the one acted on: "this save has
+            // a filenameUid" is the reading being trusted here, and the
+            // delete button is the one that was actually observed to appear
+            // only for a save that already exists. If they ever disagree,
+            // this line is where it shows.
+            var deleteShown = menu.deleteButton != null && menu.deleteButton.gameObject.activeInHierarchy;
+            Plugin.Log.LogInfo(
+                $"[{nameof(HostMenuArchipelagoControls)}] Slot name field {(locked ? "locked" : "editable")} "
+                + $"(archipelago={archipelagoOn}, filenameUid={(alreadyExists ? "set" : "empty")}, "
+                + $"deleteButton={(deleteShown ? "shown" : "hidden")}).");
         }
 
         private static void SetResult(HostMenuConfirm menu, string text)
