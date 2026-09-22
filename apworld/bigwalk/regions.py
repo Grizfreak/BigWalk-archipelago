@@ -18,6 +18,11 @@ Three structural gates are modelled, all of them big keys:
   the seed unbeatable.
 - **The tunnels.** The Yellow Twist Key opens them, and a radio station sits
   past them.
+- **The Hub Secret Door.** Its own item opens it, and the game's second
+  ending is behind it. Created only when the Green Dome tower is in play,
+  since `green_dome_deposits: excluded` takes that item out of the world and
+  an entrance with no key to it would be an entrance with no rule — which is
+  to say, open.
 
 Still deliberately *not* modelled: which puzzle belongs to which tower. That
 mapping was never established, and inventing one would produce logic that looks
@@ -31,6 +36,8 @@ from typing import TYPE_CHECKING
 
 from BaseClasses import Region
 
+from . import data
+
 if TYPE_CHECKING:
     from .world import BigWalkWorld
 
@@ -39,10 +46,12 @@ OVERWORLD = "Big Walk"
 ENDING_ZONE = "Ending Zone"
 CHAIRLIFT_ZONE = "Past the Chairlift"
 TUNNEL_ZONE = "Past the Tunnels"
+GREEN_DOME_ZONE = "Past the Hub Secret Door"
 
 ENDING_ENTRANCE = f"{OVERWORLD} to {ENDING_ZONE}"
 CHAIRLIFT_ENTRANCE = f"{OVERWORLD} to {CHAIRLIFT_ZONE}"
 TUNNEL_ENTRANCE = f"{OVERWORLD} to {TUNNEL_ZONE}"
+GREEN_DOME_ENTRANCE = f"{OVERWORLD} to {GREEN_DOME_ZONE}"
 
 
 def create_and_connect_regions(world: BigWalkWorld) -> None:
@@ -55,3 +64,13 @@ def create_and_connect_regions(world: BigWalkWorld) -> None:
     overworld.connect(ending_zone, ENDING_ENTRANCE)
     overworld.connect(chairlift_zone, CHAIRLIFT_ENTRANCE)
     overworld.connect(tunnel_zone, TUNNEL_ENTRANCE)
+
+    if green_dome_in_play(world):
+        green_dome_zone = Region(GREEN_DOME_ZONE, world.player, world.multiworld)
+        world.multiworld.regions.append(green_dome_zone)
+        overworld.connect(green_dome_zone, GREEN_DOME_ENTRANCE)
+
+
+def green_dome_in_play(world: BigWalkWorld) -> bool:
+    """Whether the Hub Secret Door item exists in this slot at all."""
+    return data.GREEN_DOME in world.towers

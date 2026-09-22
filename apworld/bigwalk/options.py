@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from Options import Choice, DefaultOnToggle, OptionGroup, PerGameCommonOptions, Range, StartInventoryPool
+from Options import Choice, DefaultOnToggle, OptionGroup, PerGameCommonOptions, Range, StartInventoryPool, Toggle
 
 from . import data
 
@@ -13,23 +13,33 @@ class Goal(Choice):
     """
     The victory condition for this slot.
 
-    - gauntlet: break the bell at the top of the Gauntlet, the game's true
-      ending. Requires the Black Monolith Key, which opens the way to the
-      chapel, the field behind it and the Gauntlet.
+    - gauntlet: break the bell at the top of the Gauntlet. Requires the Black
+      Monolith Key, which opens the way to the chapel, the field behind it
+      and the Gauntlet.
     - ending: break the chapel bell. Also requires the Black Monolith Key, but
       stops well short of the Gauntlet's seven puzzle chambers.
+    - second_ending: reach the game's other ending, the one behind the Hub
+      Secret Door. Requires that item and nothing else: in the vanilla
+      game that zone is sealed behind a sphere that only breaks once the game
+      has been finished, and the mod removes it from the first session, so
+      this is not a postgame goal here.
     - deposits: deposit a number of gourds into the towers' monuments (see
       Deposit Goal Amount). Does not require reaching the ending at all.
 
     Both bells need two players pressing two buttons at once. Big Walk's
     monument deposits are a two-player action as well, so no goal here is
     solo-friendly.
+
+    "second_ending" needs the Hub Secret Door, so it cannot be played with
+    "green_dome_deposits: excluded", which takes that item out of the world.
+    A slot asking for both is generated as "key_only" instead, with a warning.
     """
 
     display_name = "Goal"
     option_gauntlet = 0
     option_ending = 1
     option_deposits = 2
+    option_second_ending = 3
     default = 0
 
 
@@ -55,13 +65,27 @@ class GreenDomeDeposits(Choice):
 
     - full: it takes part. Its key is in the pool, its deposit is a location,
       and the pool holds 45 gourds.
-    - excluded: its key and its deposit location leave the world entirely,
-      for 30 gourds. The way to cut the grind.
+    - key_only: its 15 slots leave, for 30 gourds, but the Hub Secret Door,
+      its key and its key deposit all stay. The grind goes and nothing else
+      does.
+    - excluded: the Hub Secret Door, its key and its deposit location leave
+      the world entirely, for 30 gourds.
+
+    "key_only" exists because the slots and the key were never really one
+    thing in this world: a filled monument no longer releases anything, so
+    the only reason to deposit fifteen more gourds is the deposit checks
+    themselves. It is also the only way to play "goal: second_ending"
+    without the postgame grind, since that goal needs the Hub Secret Door.
     """
 
     display_name = "Green Dome Deposits"
     option_full = 0
     option_excluded = 2
+    # 1 was `limited`, removed on 2026-09-15 because it claimed the Green
+    # Dome monument could be completed with six gourds and nothing made that
+    # true (see ../design-decisions.md). Not reused: a YAML written with the
+    # numeric value would silently mean something else.
+    option_key_only = 3
     default = 0
 
 
@@ -113,22 +137,23 @@ class RadioStationItems(DefaultOnToggle):
     display_name = "Radio Station Items"
 
 
-class StartWithTutorialKey(DefaultOnToggle):
+class StartWithDrawbridgeOpen(Toggle):
     """
     Start with the Drawbridge already open instead of shuffling it in.
 
-    The drawbridge was believed to be the only way out of the tutorial, which
-    would have made shuffling it a way to lock you in with nothing to do.
-    Confirmed in play on 2026-09-22 that it is not: the mod opens the hub's
-    arch doors on a save's first session, and the tutorial is not sealed
-    without the drawbridge. Turning this off is safe — it only means the
-    Drawbridge arrives from the multiworld like any other feature.
+    OFF by default. The drawbridge was believed to be the only way out of the
+    tutorial, which would have made shuffling it a way to lock you in with
+    nothing to do — so this defaulted ON while that was in doubt. Confirmed
+    in play on 2026-09-22 that it is not the only way out: the mod opens the
+    hub's arch doors on a save's first session, and the tutorial is not
+    sealed without the drawbridge. With nothing left to hedge against, the
+    Drawbridge became a feature like the other six and now arrives from the
+    multiworld, which is one more thing to find rather than one fewer.
+
+    Turn it on to have it handed over up front instead.
 
     It costs you no check either way: the tutorial key itself stays in its
     tower, and carrying it to its plinth is still a location like any other.
-
-    The YAML key still says "tutorial key", for compatibility with existing
-    files written when the item was the key rather than the drawbridge.
     """
 
     display_name = "Start With Drawbridge Open"
@@ -156,7 +181,7 @@ class BigWalkOptions(PerGameCommonOptions):
     deposit_locations: DepositLocations
     radio_station_checks: RadioStationChecks
     radio_station_items: RadioStationItems
-    start_with_tutorial_key: StartWithTutorialKey
+    start_with_drawbridge_open: StartWithDrawbridgeOpen
     trap_fill_percentage: TrapFillPercentage
     start_inventory_from_pool: StartInventoryPool
 
@@ -165,7 +190,7 @@ option_groups = [
     OptionGroup("Goal", [Goal, DepositGoalAmount]),
     OptionGroup("Locations", [DepositLocations, RadioStationChecks]),
     OptionGroup("Radio", [RadioStationItems]),
-    OptionGroup("Gourds and Keys", [GreenDomeDeposits, StartWithTutorialKey]),
+    OptionGroup("Gourds and Keys", [GreenDomeDeposits, StartWithDrawbridgeOpen]),
 ]
 
 option_presets = {

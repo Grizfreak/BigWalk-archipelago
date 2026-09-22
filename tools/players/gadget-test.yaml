@@ -11,7 +11,7 @@
 # `ap_reported_*`/`ap_gadgets_received_*` are not scoped to a seed, and
 # reusing a name would drag along another room's ledger.
 #
-# start_with_tutorial_key left at its default (false): every key is handed
+# start_with_drawbridge_open left at its default (false): every key is handed
 # over as a normal starting INVENTORY item below instead, so the key
 # reconciliation (KeyCustody) is exercised the same way the gadget one is,
 # rather than going through the separate precollected-feature path.

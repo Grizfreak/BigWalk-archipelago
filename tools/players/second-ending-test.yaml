@@ -1,0 +1,21 @@
+# The `second_ending` goal, end to end.
+#
+# Deliberately asks for the combination that cannot work —
+# green_dome_deposits: excluded takes the Green Dome out of the world, and
+# this goal is won behind its door — so that generation proves the repair to
+# `key_only` fires and says so, rather than only proving the happy path.
+#
+# Slot name of its own (DomeWalk), so this seed never shares a save with
+# solo-smoke: the item cursor and the reported-check ledger both live in the
+# save, and two seeds in one save is how a test lies to you.
+#
+# IMPORTANT: the in-game save must be named exactly like `name` below — the
+# hosting screen's first field is both the save name and the AP slot name.
+name: DomeWalk
+game: Big Walk
+Big Walk:
+  goal: second_ending
+  green_dome_deposits: excluded
+  deposit_locations: all
+  radio_station_checks: true
+  start_with_drawbridge_open: true

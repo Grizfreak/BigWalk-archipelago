@@ -118,12 +118,26 @@ def create_victory_event(world: BigWalkWorld) -> None:
     ClientStatus of GOAL rather than a location id (see ../protocol.md).
 
     Which region it lives in is the whole point — both bell goals sit past the
-    Black Monolith Key, while a deposit goal is reachable without ever going
-    near the ending.
+    Black Monolith Key, the second ending sits past the Hub Secret Door, and a
+    deposit goal is reachable without ever going near any of them.
+
+    `second_ending` requires the Hub Secret Door and nothing else, and that is
+    now MEASURED (2026-09-22). The ending was reached and reported on a save
+    whose log read `EndingGate latched: False, GauntletComplete latched:
+    False` — neither bell had been rung. In vanilla the path is sealed by a
+    sphere that only breaks once the game has been finished, and the mod
+    disables that sphere from a save's first session
+    (`SecondEndingSphereUnlocker.cs`), which is what makes the door the only
+    requirement left. What that run does NOT establish is that the zone is
+    walkable on foot from the door: flight was used to get there.
     """
-    region_name = (regions.OVERWORLD
-                   if world.options.goal == Goal.option_deposits
-                   else regions.ENDING_ZONE)
+    goal = world.options.goal
+    if goal == Goal.option_deposits:
+        region_name = regions.OVERWORLD
+    elif goal == Goal.option_second_ending:
+        region_name = regions.GREEN_DOME_ZONE
+    else:
+        region_name = regions.ENDING_ZONE
 
     world.get_region(region_name).add_event(
         VICTORY_EVENT_NAME,

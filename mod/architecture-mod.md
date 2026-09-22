@@ -57,7 +57,8 @@ mod/
 │   │       ├── ApSlotData.cs         # What the apworld sent (../apworld/protocol.md)
 │   │       ├── ApLocationIds.cs      # Id arithmetic, both directions
 │   │       ├── ApItemCursor.cs       # What this SAVE has already materialized
-│   │       ├── ApGoalFlags.cs        # Watching for the goal
+│   │       ├── ApGoalFlags.cs        # Watching for the goal, in the save
+│   │       ├── ApSecondEnding.cs    # ...and the second ending, which saves nothing
 │   │       ├── ApReporter.cs         # Implementation #2 of ICheckReporter
 │   │       ├── ApStatusOverlay.cs    # The corner of the screen (IMGUI)
 │   │       └── ApNotices.cs          # The lines under it
@@ -69,6 +70,7 @@ mod/
 │   │   ├── PropPinDoorPatch.cs            # A placed key opening nothing
 │   │   ├── PropHomeEnablePatch.cs
 │   │   ├── BroadcastStationUnlockPatch.cs # A station's check, without its music
+│   │   ├── EndingStartPatch.cs            # Where an ending begins — the second one's goal
 │   │   ├── HostMenuConfirmPatch.cs        # The host:port field on the hosting screen
 │   │   ├── HostMenuArchipelagoControls.cs # ...and the toggle and test button
 │   │   ├── HostMenuConfirmStartPatch.cs   # The probe run on Continue

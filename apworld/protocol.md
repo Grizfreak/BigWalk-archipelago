@@ -44,11 +44,11 @@ Sent on every connection. Read it before applying anything.
 | Field | Type | Meaning |
 |---|---|---|
 | `world_version` | str | apworld version, e.g. `"0.1.0"`. Log a warning on a mismatch with what the mod was built against; do not refuse to connect. |
-| `goal` | str | `"gauntlet"`, `"ending"` or `"deposits"`. See §6. |
+| `goal` | str | `"gauntlet"`, `"ending"`, `"second_ending"` or `"deposits"`. See §6. A goal string the mod does not recognize disarms goal detection and warns loudly rather than guessing. |
 | `deposit_goal_amount` | int | Deposits needed to win when `goal == "deposits"`. Already clamped to what exists; use it as-is. |
 | `deposit_locations` | str | `"none"`, `"milestones"` or `"all"`. Informational — `deposit_location_amounts` is the authoritative list. |
 | `deposit_location_amounts` | int[] | Ascending deposit counts that are checks, e.g. `[5, 10, ..., 45]`. Possibly empty. |
-| `green_dome_deposits` | str | `"full"` or `"excluded"`. |
+| `green_dome_deposits` | str | `"full"`, `"key_only"` or `"excluded"`. Informational: `total_monument_slots` and `big_keys_in_play` already say everything the mod acts on. It reports what was GENERATED, which is not always what was asked for — `second_ending` + `"excluded"` generates as `"key_only"`. |
 | `radio_station_checks` | bool | Whether the seven radio stations are checks. |
 | `radio_station_items` | bool | Whether the music is shuffled too. While true the mod suppresses the game's own station unlock until the matching item arrives (§11). **Default to false** when the field is absent: an apworld too old to send it has no Radio Music items in its pool, so suppressing would make seven stations permanently silent. |
 | `big_key_features` | bool | Whether what a big key opens is an Archipelago item. While true the mod stops a placed key from opening its door and grants the feature on receipt instead (§12). Always `true` from this apworld — it is the model, not an option. **Default to false** when the field is absent, for the same reason as the radio and more sharply: suppressing without items in the pool leaves seven doors that can never open. |
@@ -112,7 +112,7 @@ nothing is listening for.
 | Item | Id | Count |
 |---|---|---|
 | `Gourd` | 8600001 | = `total_monument_slots` |
-| Features (Drawbridge, Map Room, Chairlift, Train, Tunnels, Dam, Green Dome) | `B + (int)SaveablePropName` (300–306) | 6 or 7 |
+| Features (Drawbridge, Map Room, Chairlift, Train, Tunnels, Dam, Hub Secret Door) | `B + (int)SaveablePropName` (300–306) | 6 or 7 |
 | Big Keys (`<Feature> Key`) | `B + 4000 + (int)SaveablePropName` | 6 or 7 |
 | Radio Music | `B + 1000 + (int)SavableSystem` (30–36) | 7, or 0 when `radio_station_items` is false |
 | Filler (Megaphone, Walkie-Talkie, Backpack, Belt, Flare Gun, Laser, Binoculars, Compass, Folding Map, Radio, Gourd Carton, Torch, Lamp, X-Ray Goggles, Blue/Green/Yellow Flare Gun) | 8609001–8609017 | rest of the pool |
@@ -263,12 +263,57 @@ goal is an event in the Python world, with no address.
 |---|---|
 | `gauntlet` | first non-zero write of `SaveManager["GauntletComplete"]` |
 | `ending` | first non-zero write of `SaveManager["EndingGate"]` |
+| `second_ending` | `PeckEffectEndingTransition.OnPeck` on an object whose hierarchy path contains `SecondGoodbye` |
 | `deposits` | `CosmeticMonumentFillTracker.GetFilledMonumentCount() >= deposit_goal_amount` |
 
 `EndingGate` is the chapel door's live open/closed state, not a latching flag:
 it goes back to 0 while the door animates. Trigger on the **first** non-zero
 write and never read it back to ask whether the goal is done — the same rule
 `CheckTracker` already applies to it.
+
+`second_ending` has no flag at all to trigger on. Two buttons held together
+behind the Hub Secret Door start an ending transition and the game returns to
+the main menu, writing nothing anywhere: the whole chain was decompiled on
+2026-09-10 and touches `SaveManager` nowhere. So the mod latches the event
+itself under `ap_flag_SecondEnding` (`Core/Net/ApSecondEnding.cs`) and reads
+that back. **Confirmed end to end in game on 2026-09-22.**
+
+**Hook the START of the transition, not its end.** Two hooks failed first, and
+both failures generalise:
+
+- `EndingTransition.SetActive()` carries no address in the IL2CPP dump, the
+  signature of an inlined method.
+- `EndingTransition.OnTransitionEnd()` *does* carry one, Harmony patches it
+  without complaint, and it is **never called** — watched through a complete
+  ending. An address is not a call site; `Update()` holds an inlined copy of
+  the body. `EndingTransition.entryMode` and
+  `WorldMenuManager.secondEndingTransition` were the obvious way to tell the
+  two endings apart, and they are never reached.
+
+What works is `PeckEffectEndingTransition.OnPeck`, the peck-driven entry
+point, which the buttons go through. `AutomaticDisconnector
+.StartEndingTransition` is the zone-driven one; the second ending does not use
+it.
+
+**Identify the ending by hierarchy path.** The run that worked printed
+`LandmarksPlayerCount2/Contents/SecondGoodbye PlayerCount2/Positioner/
+GoToVoidSystem`. `SecondGoodbye` is the game's own word for this ending —
+`GoodbyeChapel` and `GoodbyeVoid` sit on the first one's path — and matching
+it is what stops the Gauntlet's ending, which plays a cinematic too, from
+goaling a `second_ending` slot.
+
+**Report it on the spot, not on the next tick.** The transition stops Mirror,
+and a client whose pump is gated on `NetworkServer.active` has no tick left
+afterwards. A goal that misses its window is not lost, though: the latch is in
+the save, so the next connection reports it.
+
+**The 46th gourd is scenery.** There is one more `RewardGourd` in the game
+than this world has locations, sitting right there, and it looked like the
+zone's conclusion. It is not: the buttons unlock its vise and it stays in
+place, `ServerSetGourdState` is never called for it, and a roster taken
+afterwards still reads `state=Locked`. Worth stating because the obvious
+implementation — "the gourd with `saveablePropName = notSavable`" — is also
+dangerous: a client's own cosmetic gourds are `notSavable` too.
 
 ## 7. Reporting checks
 
@@ -336,6 +381,9 @@ All of it lives in `../mod/src/Core/Net/`, plus small edits elsewhere.
 | `ApLocationIds.cs` | The §3/§4 arithmetic, with the offsets taken from slot_data. |
 | `ApItemCursor.cs` | The §5 cursor. |
 | `ApGoalFlags.cs` | Latches `EndingGate`/`GauntletComplete` on first non-zero write. |
+| `ApSecondEnding.cs` | §6: latches `ap_flag_SecondEnding` when the Hub Secret Door's gourd comes loose, since the game records nothing. |
+| `../../Patches/EndingStartPatch.cs` | §6: where an ending starts — `PeckEffectEndingTransition.OnPeck` (the trigger) and `AutomaticDisconnector.StartEndingTransition` (logged). |
+| `ApStatusOverlay.cs` | The corner of the screen: connection, what the slot is playing for, the item feed, the resync hint. |
 | `../RadioStations.cs` | §11: the station ledger (`ap_radio_*`), the learned dial (`ap_radio_dial_*`), and the live unlock. |
 | `../../Patches/BroadcastStationUnlockPatch.cs` | §11: suppresses the game's own unlock. |
 | `../KeyFeatures.cs` | §12: the feature ledger (`ap_feature_*`) and the live door. |
@@ -365,7 +413,7 @@ existed only to hedge this has been removed.*
 - ~~**Does the tutorial drawbridge really gate the way out?**~~ **Settled by
   the player (2026-09-22): it does not.** The mod opens the hub's three arch
   doors from a save's first session (`Core/ArchDoorUnlocker.cs`), and with
-  those open the tutorial is not sealed. `start_with_tutorial_key: false` is
+  those open the tutorial is not sealed. `start_with_drawbridge_open: false` is
   therefore safe, and no Tutorial region is needed in `regions.py`. The
   guarantee comes from ArchDoorUnlocker being unconditional, so making it
   optional would reopen this.
@@ -392,6 +440,22 @@ existed only to hedge this has been removed.*
   region gated on `Has(Green Cup Key)`; what it still needs is the list of
   locations inside it (`Debug.DumpGourdRosterKey`, Ctrl+V, prints the purple
   gourds wherever it is pressed).
+- **Is the Hub Secret Door the only thing between a player and the second
+  ending?** *Open, added 2026-09-22 with `goal: second_ending`.* The world
+  puts its Victory event in a region gated on `Has("Hub Secret Door")` and
+  else. The reasoning: in vanilla that path is sealed by a sphere at the hub
+  that only breaks once the game has been finished, and
+  `Core/SecondEndingSphereUnlocker.cs` disables that sphere from a save's
+  first session — so the door should be all that is left. Nobody has walked
+  the zone behind it with the mod on. If it turns out to need the chapel bell
+  or the Gauntlet as well, a `second_ending` seed can be generated unbeatable,
+  which puts this in the same class as the chairlift bug: **a release blocker
+  for that goal, not a rough edge.** The fix is one line —
+  `locations.create_victory_event` connects the zone from `ENDING_ZONE`
+  instead of the overworld.
+  - The trigger itself is no longer an assumption: what ends that zone is
+    the 46th gourd, and the mod watches for its release. What stays unwalked
+    is the way in.
 
 ## 11. Radio stations as items
 
@@ -469,7 +533,7 @@ now separate.*
 | Role | Act |
 |---|---|
 | Locations | the 25 cut segments, **plus** placing the key in its receptacle (the 7 deposit locations) — 32 in all |
-| Item | the **feature**: Drawbridge, Map Room, Chairlift, Train, Tunnels, Dam, Green Dome |
+| Item | the **feature**: Drawbridge, Map Room, Chairlift, Train, Tunnels, Dam, Hub Secret Door |
 | The key | a check carrier. Placing it in its receptacle is a check and **nothing else** |
 
 **Almost nothing needs suppressing.** The players fore the key and place it

@@ -12,7 +12,7 @@
 # outset and every one of them is something the server has to hand over. That
 # is the whole thing under test.
 #
-# `start_with_tutorial_key` is left ON deliberately, and it doubles as the
+# `start_with_drawbridge_open` is left ON deliberately, and it doubles as the
 # first end-to-end check of the feature path: the Drawbridge is precollected,
 # so it arrives as a starting item the instant the client connects. If
 # `[KeyFeatures] bigKeyIntro granted and open.` is not in the log within a
@@ -29,4 +29,4 @@ Big Walk:
   green_dome_deposits: excluded
   radio_station_checks: true
   radio_station_items: true
-  start_with_tutorial_key: true
+  start_with_drawbridge_open: true

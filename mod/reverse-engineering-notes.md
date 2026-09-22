@@ -468,6 +468,78 @@ see [`../apworld/design-decisions.md`](../apworld/design-decisions.md).
     `WorldMenuManager` does have two `EndingTransition`s (`endingTransition`/
     `secondEndingTransition`, standard ending vs. real ending) but neither
     of them persists anything on its own.
+  - **RESOLVED AS A DETECTION, NOT AS A FLAG (2026-09-22)** — the conclusion
+    above is correct and was read as a dead end for two weeks. It is not:
+    nothing persists the endings, so the mod persists them itself. Three
+    facts out of `BW_export/il2cpp.cs`, none of them needing a Ghidra run:
+    1. `EndingTransition` carries two public fields,
+       `setMainMenuEntryMode` and `entryMode`, and the enum behind the
+       second is `MainMenuManager.MainMenuEntryMode { MicCheck, NoScreen,
+       CongratsMenu = 2, Congrats2Menu = 3, SplashScreen }`. **The game
+       distinguishes the two ending screens itself** — `Congrats2Menu` is
+       the second ending.
+    2. `WorldMenuManager.instance.secondEndingTransition` is a second,
+       independent way to tell one from the other, by reference.
+    3. **`EndingTransition.SetActive()` has no address in the dump**, the
+       signature of an inlined method — patching it would silently never
+       fire, exactly the trap `BroadcastStation.Unlock` already sprang on
+       this mod (see the radio section). `OnTransitionEnd()` has one, and is
+       the hook actually used.
+    Implemented as `Patches/EndingTransitionPatch.cs`, a **prefix**
+    deliberately: `OnTransitionEnd` stops Mirror, and writes made after that
+    teardown have nowhere reliable to land.
+  - **AND SUPERSEDED THE SAME DAY, by the player's game knowledge.** The
+    transitions are not what `goal: second_ending` should watch. Behind the
+    Hub Secret Door sits a **46th `RewardGourd`** — one more than the
+    apworld's 45 puzzles, confirmed by a Ctrl+V roster taken beside it (4.3m
+    away, the next one 115m) — released by two buttons held together
+    (`NHoldLogic 2`, minimumMatches=2, the bells' mechanism). **Releasing it
+    is how that zone ends.** Which explains everything that looked odd about
+    it: why it carries `saveablePropName = notSavable`, why no enum value was
+    ever found, and why it is not `gourdSecretZoneVice` (that value would
+    have printed its own name, so its exclusion stands on its own reasons).
+    - **AND THE GOURD TURNED OUT TO BE SCENERY, two runs later.** The
+      buttons unlock its vise and it **stays in place**:
+      `RewardGourd.ServerSetGourdState` is never called for it, and a roster
+      taken right afterwards still reads `state=Locked`. Nothing about it is
+      meant to be recorded, which is why it has neither save identity nor
+      enum value. Watching it is gone from the mod.
+    - **`notSavable` alone would have been a disastrous filter** even so, and
+      the trap is worth keeping: the mod's own cosmetic gourds are
+      neutralised to `notSavable` and then set Loose on purpose
+      (`Core/ReceivedItemSpawner`), so they reach the same hook. A naive rule
+      would have goaled the seed on the first gourd the player was ever sent.
+      `ReceivedItemSpawner.IsCosmeticClone` is the discriminator — and its
+      own comment calling `notSavable` "never true for a normal game prop" is
+      wrong, this gourd being the counterexample.
+  - **RESOLVED FOR REAL (2026-09-22, confirmed in game).** What ends that zone
+    is the transition the buttons start, and the hook is
+    **`PeckEffectEndingTransition.OnPeck`** — the peck-driven entry point
+    (`Patches/EndingStartPatch.cs`). The ending is identified by the
+    **hierarchy path** of the object that fired:
+    `LandmarksPlayerCount2/Contents/SecondGoodbye PlayerCount2/Positioner/
+    GoToVoidSystem`. `SecondGoodbye` is the game's own word for it, against
+    the `GoodbyeChapel`/`GoodbyeVoid` of the first ending, and matching it is
+    what stops the Gauntlet's ending from goaling a `second_ending` slot.
+    - **`EndingTransition.OnTransitionEnd()` HAS AN ADDRESS AND IS NEVER
+      CALLED.** Harmony patched it without complaint and a complete ending
+      played through with the log empty. **An address in the dump is not a
+      call site** — `Update()` holds an inlined copy of the body, the same
+      trap `BroadcastStation.Unlock` sprang on the radio work. This is the
+      second time that pattern has cost a session; the first check on any
+      ending-chain method should be "does anything call it", not "does it
+      exist".
+    - Everything that design would have used to tell the two endings apart
+      — `EndingTransition.entryMode` (`CongratsMenu`/`Congrats2Menu`),
+      `WorldMenuManager.secondEndingTransition` — is unreachable for the
+      same reason. The `Congrats2Menu` question stays open and no longer
+      matters.
+    - `AutomaticDisconnector.StartEndingTransition` (the zone-driven entry)
+      is patched and logged too. It has never fired: that is where the FIRST
+      ending's identity should turn up.
+    - Measured alongside: the ending fired with `EndingGate latched: False,
+      GauntletComplete latched: False`. **Neither bell is required**, which
+      settles the apworld's logic for this goal.
   - **Implication for the hub sphere**: if it really checks a notion of
     "game already finished", it probably does so by reading a **combination
     of already-known flags** (e.g. `EndingGate` + `GauntletComplete` + the 7

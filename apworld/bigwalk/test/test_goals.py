@@ -56,3 +56,49 @@ class TestDepositGoalClampedToAvailableSlots(BigWalkTestBase):
         self.assertEqual(self.world.deposit_goal, 30)
         self.collect_gourds(30)
         self.assertTrue(self.can_reach_location("Victory"))
+
+
+class TestSecondEndingGoal(BigWalkTestBase):
+    """The ending behind the Hub Secret Door, and only its item opens it."""
+
+    options = {"goal": "second_ending"}
+    run_default_tests = False
+
+    def test_victory_needs_the_green_dome(self) -> None:
+        self.collect_all_but(data.GREEN_DOME.item_name)
+        self.assertFalse(self.can_reach_location("Victory"))
+
+        self.collect_by_name(data.GREEN_DOME.item_name)
+        self.assertTrue(self.can_reach_location("Victory"))
+
+    def test_victory_does_not_need_the_black_monolith_key(self) -> None:
+        # Deliberate, and the assumption most likely to be wrong: in vanilla
+        # this zone is sealed until the game has been finished once, and the
+        # mod removes that seal from the first session. If an in-game test
+        # ever shows otherwise, this is the test that should fail first.
+        self.collect_by_name(data.GREEN_DOME.item_name)
+        self.assertTrue(self.can_reach_location("Victory"))
+
+
+class TestSecondEndingGoalRepairsAnExcludedGreenDome(BigWalkTestBase):
+    """
+    Asking for the second ending while excluding the tower that opens it must
+    not produce an unfinishable seed: the tower comes back, without its
+    fifteen deposit slots.
+    """
+
+    options = {"goal": "second_ending", "green_dome_deposits": "excluded"}
+    run_default_tests = False
+
+    def test_the_green_dome_comes_back(self) -> None:
+        self.assertEqual(self.world.options.green_dome_deposits.current_key, "key_only")
+        self.assertIn(data.GREEN_DOME, self.world.towers)
+        self.assertTrue(self.get_items_by_name(data.HUB_SECRET_DOOR_ITEM_NAME))
+
+    def test_the_grind_does_not(self) -> None:
+        self.assertEqual(len(self.get_items_by_name(data.GOURD_ITEM_NAME)),
+                         data.BASE_MONUMENT_SLOTS)
+
+    def test_victory_is_reachable(self) -> None:
+        self.collect_by_name(data.HUB_SECRET_DOOR_ITEM_NAME)
+        self.assertTrue(self.can_reach_location("Victory"))

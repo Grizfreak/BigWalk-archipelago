@@ -81,7 +81,7 @@ def create_all_items(world: BigWalkWorld) -> None:
     pool: list[Item] = [world.create_item(data.GOURD_ITEM_NAME) for _ in range(world.gourd_count)]
 
     for tower in world.towers:
-        if tower.item_name == data.DRAWBRIDGE_ITEM_NAME and world.options.start_with_tutorial_key:
+        if tower.item_name == data.DRAWBRIDGE_ITEM_NAME and world.options.start_with_drawbridge_open:
             # Handed over up front rather than shuffled, so it never enters the
             # pool. Unlike before, this costs the player nothing and grants
             # nothing beyond the drawbridge: the key itself stays in its tower,

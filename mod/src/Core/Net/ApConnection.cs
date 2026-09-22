@@ -91,6 +91,14 @@ namespace BigWalkArchipelago.Core.Net
                 return false;
             }
         }
+        // NULL until a login has succeeded. Everything downstream of a
+        // connection can read it freely; anything reached from a
+        // MonoBehaviour Update or a Harmony patch cannot, because those run
+        // whether or not this session ever connected. Cost an in-game
+        // session on 2026-09-22, where the status overlay dereferenced it
+        // every frame from the moment the player started hosting — and since
+        // that ran at the top of ApRuntime.Update, it killed the pump that
+        // would have done the connecting.
         internal ApSlotData SlotData { get; private set; }
         internal string SeedName { get; private set; } = string.Empty;
         internal string SlotName { get; private set; } = string.Empty;
@@ -290,19 +298,25 @@ namespace BigWalkArchipelago.Core.Net
             }
         }
 
-        internal void SendGoal()
+        // Returns whether the server actually took it, so the caller can
+        // leave the goal armed rather than marking it sent into a dead
+        // socket. It matters since the second ending reports itself from the
+        // frame the game tears the world down (Patches/EndingStartPatch).
+        internal bool SendGoal()
         {
             if (_status != ConnectionStatus.Connected)
-                return;
+                return false;
 
             try
             {
                 _session.SetGoalAchieved();
                 Plugin.Log.LogInfo($"[{nameof(ApConnection)}] Goal reported to the server.");
+                return true;
             }
             catch (Exception ex)
             {
                 Plugin.Log.LogWarning($"[{nameof(ApConnection)}] Failed to report the goal: {ex.Message}");
+                return false;
             }
         }
 

@@ -26,7 +26,8 @@ the finished key in its receptacle. That is 32 checks across the seven
 towers, all of them earned by hand.
 
 **And the key no longer opens anything.** The drawbridge, the map room, the
-chairlift, the train, the tunnels, the dam and the Green Dome are separate
+chairlift, the train, the tunnels, the dam and the Hub Secret Door are
+separate
 items. So the two halves come apart: you might be riding the chairlift long
 before its key reaches you, or cut all five segments of a key and still be
 waiting on someone else to send you the ride.
@@ -52,10 +53,17 @@ removed.
 
 Whichever of these you picked in your YAML:
 
-- **Gauntlet** (default) — break the bell at the top of the Gauntlet, the
-  game's true ending.
+- **Gauntlet** (default) — break the bell at the top of the Gauntlet.
 - **Ending** — break the chapel bell.
+- **Second Ending** — reach the game's other ending, behind the Hub Secret
+  Door. Nothing else is in the way: the vanilla game seals that path until
+  you have finished it once, and the mod removes the seal from your first
+  session. It needs the Hub Secret Door, so it cannot be combined with
+  `green_dome_deposits: excluded` — asking for both generates as `key_only`.
 - **Deposits** — deposit a set number of gourds into the towers' monuments.
+
+Whichever you picked, the corner of the screen names it for the whole session,
+under the connection line, with the running count for **Deposits**.
 
 Both bells need two players hitting two buttons at once, and depositing a
 gourd in a monument is a two-player action too. This world is not playable
@@ -78,9 +86,9 @@ Locations, 93 of them on the default options:
 Items:
 
 - **Gourd** — the generic monument currency. There are exactly as many as
-  there are monument slots in play: 45, or 30 with the Green Dome excluded.
+  there are monument slots in play: 45, or 30 without the Green Dome's.
 - The 7 features a big key used to open: **Drawbridge**, **Map Room**,
-  **Chairlift**, **Train**, **Tunnels**, **Dam** and **Green Dome**. These
+  **Chairlift**, **Train**, **Tunnels**, **Dam** and **Hub Secret Door**. These
   are what actually open the island.
 - The 7 big keys themselves — **Chairlift Key**, **Map Room Key** and so on,
   each named after the feature it fits. A key opens nothing; it is worth six

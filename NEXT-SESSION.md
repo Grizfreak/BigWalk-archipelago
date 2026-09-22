@@ -44,7 +44,7 @@ The model (`apworld/design-decisions.md`, `apworld/protocol.md` §12):
 
 - **Locations**: the 25 cut segments, plus the 7 deposit locations. 32 in all.
 - **Item**: the feature itself — Drawbridge, Map Room, Chairlift, Train,
-  Tunnels, Dam, Green Dome.
+  Tunnels, Dam, Hub Secret Door.
 - **The key**: a check carrier. Placed in its receptacle it is inert.
 
 ### What opens a door — ANSWERED, and it was none of the three candidates
@@ -288,6 +288,23 @@ the only result that would be news is it being worse than documented.
 All three goals are now confirmed end to end — `ending` (EndingGate 1 -> 2),
 `deposits`, and `gauntlet`.
 
+- **The goal line on screen** (2026-09-22). Confirmed in play on a fresh
+  `OverlayWalk` save: `goal=deposits (5 deposits)`, the counter drawn under
+  the connection line and rising one deposit at a time to 5/5, then
+  `Goal reported to the server`. Zero trampoline exceptions in the whole
+  session, which is the other half of what was being checked — the first
+  build of this line dereferenced `Connection.SlotData` before any login and
+  threw once per frame, killing the pump that does the connecting.
+  - Two things the session established that are worth keeping: a fresh slot
+    was necessary, because the counter reads the `ap_home_*` keys already in
+    the save and the much-reused `BigWalk` save would have started it well
+    past the threshold; and hosting two rooms at once needs ports nobody
+    else holds, or the game connects to someone else's seed and the mod is
+    blamed for it.
+  - The wording for the other three goals is display-only and was not
+    exercised. `second_ending` was, separately and later the same day — see
+    the section below.
+
 ## Why two local instances do not work
 
 Tried on 2026-09-18: the game authenticates through EOS with the Steam
@@ -307,6 +324,13 @@ is "does this replicate to a second client", and it has only one.
 
 ## Open questions that could still bite
 
+- ~~**Is the Hub Secret Door the only thing between a player and the second
+  ending?**~~ **Settled in play (2026-09-22): yes.** The ending was reached
+  and reported on a save whose log read `EndingGate latched: False,
+  GauntletComplete latched: False` — neither bell rung. The logic stands as
+  written: a region gated on `Has("Hub Secret Door")` and nothing else. One
+  thing that run does NOT establish is that the zone is walkable on foot from
+  the door; flight was used to get there.
 - ~~**Is the radio dial ordered like the enum?**~~ **Settled (2026-09-21): no.**
   Six of the seven disagree. The enum-order fallback was removed and the dial
   position is learned from the world instead, per save.
@@ -330,7 +354,7 @@ is "does this replicate to a second client", and it has only one.
   doors — `SpawnHubGate`, `HubTunnel`, `HubShortcutToSportsCreek` — from a
   save's first session (`Core/ArchDoorUnlocker.cs`, added unconditionally and
   not a config toggle), and with those open the tutorial is not sealed. So
-  `start_with_tutorial_key: false` is safe, and there is nothing to model: the
+  `start_with_drawbridge_open: false` is safe, and there is nothing to model: the
   absence of a Tutorial region in `regions.py` is correct rather than a gap.
   Worth remembering the day ArchDoorUnlocker is ever made optional — it is
   what holds this up, not the option's default.
@@ -343,6 +367,56 @@ is "does this replicate to a second client", and it has only one.
   testing. This is why `coop-test.yaml` uses a slot name of its own. Note
   that `ap_radio_*` **is** handled: the ledger is cleared when the item
   cursor resets.
+
+## The second ending, and the three hooks it took (2026-09-22)
+
+`goal: second_ending` works end to end. Two buttons held together behind the
+Hub Secret Door, and the log reads:
+
+```
+[ApSecondEnding] An ending was started by a peck, on 'LandmarksPlayerCount2/
+  Contents/SecondGoodbye PlayerCount2/Positioner/GoToVoidSystem' — the SECOND
+  ending. (EndingGate latched: False, GauntletComplete latched: False)
+[ApSecondEnding] Second ending reached (started by a peck), latched as
+  ap_flag_SecondEnding.
+[ApConnection] Goal reported to the server.
+```
+
+**Hook the start of an ending, not its end.** Two hooks failed first, and the
+second failure is the one worth carrying:
+
+- `EndingTransition.SetActive()` has no address in the IL2CPP dump — inlined,
+  never a candidate.
+- `EndingTransition.OnTransitionEnd()` *does* have one, Harmony patched it
+  without complaint, and it was **never called** through a complete ending.
+  **An address is not a call site.** `Update()` holds an inlined copy of the
+  body, the same trap `BroadcastStation.Unlock` sprang on the radio work.
+  Everything that design would have used to tell the two endings apart —
+  `EndingTransition.entryMode`, `WorldMenuManager.secondEndingTransition` —
+  is unreachable for the same reason.
+
+What works is `PeckEffectEndingTransition.OnPeck`, and the ending is
+identified by the **hierarchy path** of what fired: `SecondGoodbye` is the
+game's own word for it, against the `GoodbyeChapel`/`GoodbyeVoid` of the
+first. `AutomaticDisconnector.StartEndingTransition` (the zone-driven entry)
+is patched too and has never fired — kept because that is where the FIRST
+ending's identity will turn up.
+
+**The 46th gourd is scenery, and it cost two runs.** There is one more
+`RewardGourd` in the game than this world has locations, sitting right beside
+those buttons, and it looked exactly like the zone's conclusion — enough that
+the goal was built on it for an afternoon. The buttons unlock its vise and it
+stays in place: `ServerSetGourdState` is never called for it, and a roster
+taken afterwards still reads `state=Locked`. Watching it is gone from the mod.
+Worth remembering anyway, because the obvious implementation is a trap: the
+mod's own cosmetic gourds are `notSavable` too, so "the gourd that is
+notSavable" would have goaled a seed on the first gourd a player was sent.
+
+**And a lesson about the log itself.** The first failed run was unreadable
+because `GourdStatePatch` logged nothing unless a gourd went `Loose` — the
+buttons were pressed, nothing happened, and the log could not say whether the
+gourd had moved at all. A probe that only speaks when it succeeds cannot tell
+you why it failed.
 
 ## Leads deliberately not taken
 

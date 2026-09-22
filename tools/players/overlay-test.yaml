@@ -1,0 +1,19 @@
+# The on-screen deposit counter, and nothing else.
+#
+# Same shape as solo-smoke (goal in minutes, every deposit a check) but with
+# a SLOT NAME OF ITS OWN, which is the whole point: the counter reads the
+# `ap_home_*` keys already in the save, so running it on the much-reused
+# BigWalk save starts it at whatever that save has deposited over the weeks
+# and proves nothing. A fresh slot means a fresh save means a real 0/5.
+#
+# IMPORTANT: the in-game save must be named exactly like `name` below — the
+# hosting screen's first field is both the save name and the AP slot name.
+name: OverlayWalk
+game: Big Walk
+Big Walk:
+  goal: deposits
+  deposit_goal_amount: 5
+  deposit_locations: all
+  green_dome_deposits: excluded
+  radio_station_checks: true
+  start_with_drawbridge_open: true

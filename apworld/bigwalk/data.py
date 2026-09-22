@@ -57,6 +57,31 @@ GOURD_ITEM_NAME = "Gourd"
 #   - gourdSecretZoneVice (290): the only gourd-prefixed value with no matching
 #     valetXxx home, never observed in play, purpose unknown. Including it
 #     would risk an unreachable location. The mod must not report it either.
+#   - THE 46TH GOURD, measured 2026-09-22 and not in this enum at all. A
+#     Ctrl+V roster taken beside it reads "46 RewardGourd(s) in the world"
+#     against the 45 below, and the extra one is 4.3m away while the next is
+#     115m — so it really is there, which the roster's distance sort is the
+#     only way to know (the game instantiates every gourd everywhere). It is
+#     a shiny white gourd in the zone behind the Hub Secret Door, released by
+#     two buttons held at once (`NHoldLogic 2`, minimumMatches=2 — the bells'
+#     mechanism). It carries `saveablePropName = notSavable`.
+#     - It is NOT gourdSecretZoneVice: that value would have printed its own
+#       name. The exclusion above stands, for a still-unknown reason.
+#     - It is not a mod artefact either: that session had "0 received, 0
+#       deposited, 0 already spawned", so no cosmetic gourd existed.
+#     - **It is scenery, settled in game on 2026-09-22.** It sat next to the
+#       two buttons that end that zone, so it looked like the zone's
+#       conclusion and the goal was built on it for an afternoon. It is not:
+#       the buttons unlock its vise and the gourd STAYS IN PLACE.
+#       `RewardGourd.ServerSetGourdState` is never called for it, and a
+#       roster taken afterwards still reads `state=Locked`. That is also why
+#       it has no save identity and no enum value — nothing about it is meant
+#       to be recorded. `goal: second_ending` fires on the ending transition
+#       the buttons start instead (../protocol.md §6).
+#     - Worth keeping even so, because the obvious implementation is a trap:
+#       the mod's own cosmetic gourds are `notSavable` too, so "the gourd
+#       that is notSavable" would have goaled a seed the first time a player
+#       was sent one.
 #   - the thirteen in ABSENT_FROM_THE_BUILD below, cut on 2026-09-21: they are
 #     full enum entries with their own valet, but nothing in the shipped game
 #     produces them.
@@ -255,8 +280,18 @@ class Tower(NamedTuple):
 # datapackage was published and the names became awkward to change: a player
 # holding a "Tunnels Key" should not have to learn that it belongs in the
 # "Tunnel Key Deposit".
+#
+# A fourth was renamed the same way on 2026-09-22, and it is worth saying why
+# it was missed the first time. The Green Dome tower's feature was called
+# "Green Dome" — the only one of the seven named after its TOWER instead of
+# what it opens, which is the Hub Secret Door. It read as correct because the
+# tower really is called the Green Dome; it was caught when `goal:
+# second_ending` was added and the name propagated into a description of the
+# door that was simply wrong. The tower keeps its name everywhere it means
+# the tower (`GREEN_DOME`, `green_dome_deposits`, its monument); only the
+# feature and the names derived from it moved.
 DRAWBRIDGE_ITEM_NAME = "Drawbridge"
-GREEN_DOME_ITEM_NAME = "Green Dome"
+HUB_SECRET_DOOR_ITEM_NAME = "Hub Secret Door"
 
 TOWERS: tuple[Tower, ...] = (
     Tower("bigKeyIntro", 300, DRAWBRIDGE_ITEM_NAME, "Drawbridge Key Deposit",
@@ -271,7 +306,7 @@ TOWERS: tuple[Tower, ...] = (
           "bigKeyPlinthTunnels", "monoument3", 5, 5),
     Tower("bigKeyBoss", 305, "Dam", "Dam Key Deposit",
           "bigKeyPlinthEnding", "monoumentFinal", 6, 0),
-    Tower("bigKeyOverflow", 306, GREEN_DOME_ITEM_NAME, "Green Dome Key Deposit",
+    Tower("bigKeyOverflow", 306, HUB_SECRET_DOOR_ITEM_NAME, "Hub Secret Door Key Deposit",
           "bigKeyPlinthGoodbye2", "monoumentOverflow", 15, 0),
 )
 

@@ -48,7 +48,8 @@ the finished key in its receptacle. That is 32 checks across the seven
 towers, all of them earned by hand.
 
 **And the key no longer opens anything.** The drawbridge, the map room, the
-chairlift, the train, the tunnels, the dam and the Green Dome are separate
+chairlift, the train, the tunnels, the dam and the Hub Secret Door are
+separate
 items. So the two halves come apart: you might be riding the chairlift long
 before its key reaches you, or cut all five segments of a key and still be
 waiting on someone else to send you the ride.
@@ -70,14 +71,25 @@ removed.
 
 Whichever of these you picked in your YAML:
 
-- **gauntlet** (default) — break the bell at the top of the Gauntlet, the
-  game's true ending.
+- **gauntlet** (default) — break the bell at the top of the Gauntlet.
 - **ending** — break the chapel bell.
+- **second_ending** — reach the game's other ending, the one behind the Hub
+  Secret Door. Nothing else stands in the way: in the vanilla game that path is
+  sealed until you have finished the game once, and the mod removes the seal
+  from your first session.
 - **deposits** — deposit a set number of gourds into the towers' monuments.
+
+Whichever you picked, the corner of the screen says so for the whole session,
+under the connection line — with the running count for `deposits`, and in
+orange if the mod is too old to detect the goal your seed asks for.
 
 Both bells need two players hitting two buttons at once, and depositing a
 gourd in a monument is a two-player action as well. Nothing here is playable
 solo.
+
+`second_ending` needs the Hub Secret Door, so it cannot be played with
+`green_dome_deposits: excluded`. Asking for both generates as `key_only`
+instead, and says so.
 
 ## What items and locations get shuffled?
 
@@ -96,9 +108,10 @@ Locations — 93 of them on the default options:
 Items:
 
 - **Gourd** — the generic monument currency. There are exactly as many as
-  there are monument slots in play: 45, or 30 with the Green Dome excluded.
+  there are monument slots in play: 45, or 30 without the Green Dome's.
 - the **7 features** a big key used to open — Drawbridge, Map Room,
-  Chairlift, Train, Tunnels, Dam and Green Dome. These are what actually open
+  Chairlift, Train, Tunnels, Dam and Hub Secret Door. These are what actually
+  open
   the island.
 - the **7 big keys** themselves, each named after the feature it fits. A key
   opens nothing; it is worth six checks, and it is the only way to reach them.
@@ -149,13 +162,13 @@ shut for a moment after a load, give it a second.
 
 | YAML key | What it does | Default |
 | --- | --- | --- |
-| `goal` | `gauntlet`, `ending` or `deposits` | `gauntlet` |
+| `goal` | `gauntlet`, `ending`, `second_ending` or `deposits` | `gauntlet` |
 | `deposit_goal_amount` | Gourds to deposit for the `deposits` goal | `30` |
-| `green_dome_deposits` | `full`, or `excluded` to drop the postgame tower's 15 slots and its key | `full` |
+| `green_dome_deposits` | `full`, `key_only` to drop the postgame tower's 15 slots but keep its key, or `excluded` to drop both | `full` |
 | `deposit_locations` | `all`, `milestones` (every fifth) or `none` | `milestones` |
 | `radio_station_checks` | Switching a station on awards a check | on |
 | `radio_station_items` | The music itself is shuffled into the pool | on |
-| `start_with_tutorial_key` | Start with the Drawbridge already open | on |
+| `start_with_drawbridge_open` | Start with the Drawbridge already open instead of finding it | off |
 | `trap_fill_percentage` | Share of filler replaced by traps. No trap does anything yet | `0` |
 
 Two presets ship with the world: **Full Run** (everything on) and **Short**

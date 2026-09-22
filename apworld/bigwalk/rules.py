@@ -97,6 +97,15 @@ def set_entrance_rules(world: BigWalkWorld) -> None:
         Has(data.YELLOW_TWIST.item_name),
     )
 
+    # The Hub Secret Door, and the second ending behind it. The entrance only
+    # exists when the item that opens it does, so there is no rule to write
+    # for a slot that excluded the tower — and no entrance to leave unruled.
+    if regions.green_dome_in_play(world):
+        world.set_rule(
+            world.get_entrance(regions.GREEN_DOME_ENTRANCE),
+            Has(data.GREEN_DOME.item_name),
+        )
+
 
 def set_completion_rule(world: BigWalkWorld) -> None:
     if world.options.goal == Goal.option_deposits:
@@ -105,9 +114,14 @@ def set_completion_rule(world: BigWalkWorld) -> None:
             Has(data.GOURD_ITEM_NAME, count=world.deposit_goal),
         )
 
-    # For both bell goals the requirement is simply standing in the Ending Zone,
-    # which the entrance rule above already covers. The Gauntlet's seven
-    # chambers have no items or checks of their own: nothing in the game
-    # persists them individually (`GauntletChamber0..6` were never found
-    # written anywhere), so the logic cannot and does not model them.
+    # Every other goal is a place, not a count, and the region the Victory
+    # event was put in already carries the requirement: the two bell goals
+    # sit past the Black Monolith Key, and `second_ending` sits past the
+    # Hub Secret Door.
+    #
+    # The Gauntlet's seven chambers have no items or checks of their own:
+    # nothing in the game persists them individually (`GauntletChamber0..6`
+    # were never found written anywhere), so the logic cannot and does not
+    # model them. `second_ending` asks for nothing beyond the door for the
+    # same kind of reason — see locations.create_victory_event.
     world.set_completion_rule(Has(locations.VICTORY_EVENT_NAME))

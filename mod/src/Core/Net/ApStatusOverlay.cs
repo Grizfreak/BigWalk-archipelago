@@ -4,8 +4,9 @@ using UnityEngine;
 
 namespace BigWalkArchipelago.Core.Net
 {
-    // What the host is told on screen about Archipelago: the connection, the
-    // last few checks and items, and the way out of a stranded gourd.
+    // What the host is told on screen about Archipelago: the connection, what
+    // the slot is playing for, the last few checks and items, and the way out
+    // of a stranded gourd.
     //
     // Until this existed the only sign of any of it was a line in BepInEx's
     // log, which nobody reads while playing. The connection recovers on its
@@ -39,6 +40,7 @@ namespace BigWalkArchipelago.Core.Net
 
         private static readonly Color WarningColor = new(1f, 0.62f, 0.17f);
         private static readonly Color InfoColor = new(0.72f, 0.9f, 0.72f);
+        private static readonly Color ProgressColor = new(0.95f, 0.88f, 0.6f);
         private static readonly Color FeedColor = new(0.86f, 0.86f, 0.86f);
         private static readonly Color HintColor = new(0.7f, 0.7f, 0.7f);
         private static readonly Color ShadowColor = new(0f, 0f, 0f, 0.75f);
@@ -84,6 +86,16 @@ namespace BigWalkArchipelago.Core.Net
 
             var y = (float)Margin;
             y = DrawLine(message, ApRuntime.StatusIsWarning ? WarningColor : InfoColor, fontSize, y);
+
+            // Full size, next to the status rather than down in the feed.
+            // What the slot is playing for belongs with whether it is
+            // connected: both are session-long facts, and neither is worth
+            // hunting for in a log. The warning colour is reserved for a
+            // goal this build cannot detect.
+            var goal = ApRuntime.GoalLine;
+            if (!string.IsNullOrEmpty(goal))
+                y = DrawLine(goal, ApRuntime.GoalLineIsWarning ? WarningColor : ProgressColor,
+                             fontSize, y);
 
             var secondary = Mathf.Max(8, Mathf.RoundToInt(fontSize * SecondaryScale));
 

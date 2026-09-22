@@ -63,6 +63,20 @@ than as fixed choices (the preference already stated on 2026-09-09):
     counted globally, so nothing ever requires filling one specific
     monument. `full` and `excluded` cover the two real needs (all seven
     towers, or skip the postgame grind).
+- **`green_dome_deposits: key_only` ADDED (2026-09-22)**, as value 3 — value
+  1 is left burnt where `limited` was, so a YAML written with the number
+  cannot come back meaning something else. The tower's key, its feature and
+  its key deposit stay; its fifteen monument slots go, for 30 gourds.
+  - The two were only ever bundled by the option. Since `big_key_items`, a
+    full monument releases nothing: the Green Dome's fifteen slots buy its
+    own deposit checks and not one thing more. Splitting them costs a value
+    on an enum and nothing else.
+  - The occasion was `goal: second_ending`, which is won behind the Green
+    Dome door and so cannot be played with `excluded`. That combination is
+    **repaired in `generate_early`, not refused**, and repaired to
+    `key_only` rather than `full`: the goal needs the key, not the grind.
+    The repair is written back to the option so `current_key` — what travels
+    in slot_data and what the spoiler prints — says what was generated.
 - **Radio stations** → locations, behind `radio_station_checks`.
 - **Key Cutters, bells as separate checks, per-tower monument locations** →
   still not implemented, still recorded below as leads.
@@ -76,6 +90,19 @@ than as fixed choices (the preference already stated on 2026-09-09):
   `SaveValuePatch` widened to `SavableSystem`; the third needs no new
   detection at all. Combining several goals with AND/OR was considered and
   left out of the alpha.
+  - **A fourth added (2026-09-22): `second_ending`**, the ending behind the
+    Hub Secret Door, at the player's request. It needed detection that did
+    not exist — the endings persist nothing at all — and got it from the
+    IL2CPP dump rather than another Ghidra session: see
+    `../mod/reverse-engineering-notes.md`, "RESOLVED AS A DETECTION, NOT AS
+    A FLAG". The mod latches the transition itself.
+  - Its logic requires `Has("Hub Secret Door")` **and nothing else**, which
+    is an
+    assumption and the riskiest thing in this world right now — see §10 of
+    `protocol.md`. The vanilla seal on that path is a sphere the mod already
+    removes from a save's first session, so the door should be all that is
+    left, but nobody has walked the zone.
+  - It also forced a third value on `green_dome_deposits`, below.
 - **Gourd deposit box model** — likely a YAML option (global progressive /
   sequential per tower / per specific slot with no critical item), to be
   chosen while designing the Python world.
@@ -354,7 +381,7 @@ ever sent the key.
 | Role | Act |
 |---|---|
 | Locations | the 25 cut segments, **plus** placing the key in its receptacle (the 7 existing deposit locations) — 32 in all |
-| Item | the **feature** itself: the map room, the chairlift, the train, the tunnels, the drawbridge, the dam, the Green Dome |
+| Item | the **feature** itself: the map room, the chairlift, the train, the tunnels, the drawbridge, the dam, the Hub Secret Door |
 | The key | a check carrier. Placing it in its receptacle is a check and **nothing else** — the key becomes an inert object once placed |
 
 The consequence that makes this simple: **nothing about cutting or placing
@@ -403,7 +430,7 @@ ledger), `Patches/PropTaggedPinPatch.cs` (suppression),
 `Patches/KeyBlankCutPatch.cs` (the 25 cut checks, off `OnCutsUpdated` —
 `ServerCutSegment` turned out to be inlined and unpatchable), and the apworld
 side in `bigwalk/`. The item names are the features: Drawbridge, Map Room,
-Chairlift, Train, Tunnels, Dam, Green Dome.
+Chairlift, Train, Tunnels, Dam, Hub Secret Door.
 
 ## CORRECTION (2026-09-21, same day) — the keys are items, not a reward for gourds
 
@@ -429,9 +456,15 @@ Ctrl+R recovery.
   on `Has(<Feature> Key)`. `gourd_requirements` — the cumulative count that
   charged each key deposit — is deleted rather than left computed and
   unread.
-- **`start_with_tutorial_key` precollects the Drawbridge, not the key.**
+- **`start_with_drawbridge_open` precollects the Drawbridge, not the key.**
   Leaving the tutorial is the feature's job; the key is six checks, and
   handing it over would be handing over checks.
+  - **Default flipped to OFF (2026-09-22).** It defaulted ON only as a hedge
+    against the drawbridge being the one way out of the tutorial, which the
+    player settled that day: it is not, and the mod opens the hub's arch
+    doors on a save's first session anyway. With nothing left to hedge, the
+    Drawbridge is a feature like the other six and is found rather than
+    given — one more thing in the pool instead of one fewer.
 
 **The naming pass that followed (2026-09-21, before the first release).**
 Reviewing whether the seven features should read `Feature: Chairlift` rather

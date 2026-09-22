@@ -11,10 +11,13 @@ class TestDefaultPool(BigWalkTestBase):
         self.assertEqual(len(self.get_items_by_name(data.GOURD_ITEM_NAME)),
                          data.MAX_MONUMENT_SLOTS)
 
-    def test_drawbridge_is_precollected_not_shuffled(self) -> None:
-        self.assertFalse(self.get_items_by_name(data.DRAWBRIDGE_ITEM_NAME))
+    def test_drawbridge_is_shuffled_by_default(self) -> None:
+        # The default flipped on 2026-09-22, once the tutorial was confirmed
+        # to have another way out: the Drawbridge is a feature like the other
+        # six and is found, not given.
+        self.assertTrue(self.get_items_by_name(data.DRAWBRIDGE_ITEM_NAME))
         precollected = [item.name for item in self.multiworld.precollected_items[self.player]]
-        self.assertIn(data.DRAWBRIDGE_ITEM_NAME, precollected)
+        self.assertNotIn(data.DRAWBRIDGE_ITEM_NAME, precollected)
 
     def test_drawbridge_deposit_needs_its_key_and_no_gourds(self) -> None:
         # Starting with the drawbridge OPEN says nothing about the key that
@@ -45,7 +48,7 @@ class TestGreenDomeExcluded(BigWalkTestBase):
     run_default_tests = False
 
     def test_key_and_location_are_gone(self) -> None:
-        self.assertFalse(self.get_items_by_name(data.GREEN_DOME_ITEM_NAME))
+        self.assertFalse(self.get_items_by_name(data.HUB_SECRET_DOOR_ITEM_NAME))
         # Taken from the table rather than spelled out: the literal used to be
         # "Goodbye Keyhole Key Deposit", and a renamed location would have left
         # this assertion passing against a name nothing creates any more.
@@ -55,6 +58,42 @@ class TestGreenDomeExcluded(BigWalkTestBase):
     def test_pool_shrinks_to_the_remaining_slots(self) -> None:
         self.assertEqual(len(self.get_items_by_name(data.GOURD_ITEM_NAME)),
                          data.BASE_MONUMENT_SLOTS)
+
+
+class TestStartWithDrawbridgeOpen(BigWalkTestBase):
+    """The opt-in: handed over up front, and then absent from the pool."""
+
+    options = {"start_with_drawbridge_open": True}
+    run_default_tests = False
+
+    def test_drawbridge_is_precollected_not_shuffled(self) -> None:
+        self.assertFalse(self.get_items_by_name(data.DRAWBRIDGE_ITEM_NAME))
+        precollected = [item.name for item in self.multiworld.precollected_items[self.player]]
+        self.assertIn(data.DRAWBRIDGE_ITEM_NAME, precollected)
+
+
+class TestGreenDomeKeyOnly(BigWalkTestBase):
+    """The middle setting: the tower stays, its fifteen deposit slots go."""
+
+    options = {"green_dome_deposits": "key_only"}
+    run_default_tests = False
+
+    def test_the_key_and_its_deposit_stay(self) -> None:
+        self.assertTrue(self.get_items_by_name(data.HUB_SECRET_DOOR_ITEM_NAME))
+        self.assertTrue(self.get_items_by_name(data.key_item_name(data.GREEN_DOME)))
+        self.assertIn(data.GREEN_DOME.location_name,
+                      [location.name for location in self.multiworld.get_locations(self.player)])
+
+    def test_pool_shrinks_to_the_remaining_slots(self) -> None:
+        self.assertEqual(len(self.get_items_by_name(data.GOURD_ITEM_NAME)),
+                         data.BASE_MONUMENT_SLOTS)
+
+    def test_the_green_dome_deposit_needs_its_key_and_no_gourds(self) -> None:
+        # Its monument no longer counts for anything, so nothing about this
+        # location may depend on gourds: it is the key, and the key alone.
+        self.assertFalse(self.can_reach_location(data.GREEN_DOME.location_name))
+        self.collect_by_name(data.key_item_name(data.GREEN_DOME))
+        self.assertTrue(self.can_reach_location(data.GREEN_DOME.location_name))
 
 
 class TestMonumentsBuyOnlyTheirOwnChecks(BigWalkTestBase):
@@ -92,7 +131,7 @@ class TestMonumentsBuyOnlyTheirOwnChecks(BigWalkTestBase):
 
 
 class TestShuffledTutorialKey(BigWalkTestBase):
-    options = {"start_with_tutorial_key": False}
+    options = {"start_with_drawbridge_open": False}
     run_default_tests = False
 
     def test_drawbridge_is_in_the_pool_and_its_key_is_a_separate_item(self) -> None:

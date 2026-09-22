@@ -63,12 +63,20 @@ class BigWalkWorld(World):
     """Gourds required to win when the goal is `deposits` (clamped to what exists)."""
 
     def generate_early(self) -> None:
-        green_dome = self.options.green_dome_deposits
+        green_dome = self._green_dome_setting()
+
         if green_dome == bigwalk_options.GreenDomeDeposits.option_excluded:
             self.green_dome_slots = 0
             self.towers = tuple(tower for tower in data.TOWERS if tower is not data.GREEN_DOME)
         else:
-            self.green_dome_slots = data.GREEN_DOME.slots
+            # `key_only` keeps the tower and drops its slots. The two were
+            # only ever bundled by the option: a filled monument releases
+            # nothing in this world, so the Green Dome's fifteen slots buy
+            # deposit checks and nothing else.
+            self.green_dome_slots = (
+                0 if green_dome == bigwalk_options.GreenDomeDeposits.option_key_only
+                else data.GREEN_DOME.slots
+            )
             self.towers = data.TOWERS
 
         total_slots = sum(self.slots_for(tower) for tower in self.towers)
@@ -84,6 +92,36 @@ class BigWalkWorld(World):
                 "in play with the current Green Dome Deposits setting.",
                 self.player_name, self.options.deposit_goal_amount.value, self.deposit_goal,
             )
+
+    def _green_dome_setting(self) -> int:
+        """
+        The Green Dome setting this slot really plays, repairing the one
+        combination that cannot work.
+
+        `second_ending` is won behind the Hub Secret Door, and only that
+        item opens it — so a slot asking for that goal while excluding the
+        Green Dome tower is asking for a seed nobody can finish. It is repaired
+        rather than refused, and repaired to `key_only` rather than `full`:
+        the goal needs the key, not fifteen more deposits.
+
+        Written back to the option so that `current_key` — which is what
+        travels in slot_data and what the spoiler log prints — says what was
+        generated rather than what was asked for.
+        """
+        green_dome = self.options.green_dome_deposits.value
+        if (self.options.goal != bigwalk_options.Goal.option_second_ending
+                or green_dome != bigwalk_options.GreenDomeDeposits.option_excluded):
+            return green_dome
+
+        repaired = bigwalk_options.GreenDomeDeposits.option_key_only
+        self.options.green_dome_deposits.value = repaired
+        logger.warning(
+            "Big Walk (%s): goal is second_ending, which is won behind the Hub Secret Door, so "
+            "green_dome_deposits cannot be excluded. Generated as key_only instead: the Hub "
+            "Secret Door and its key stay in the pool, its fifteen deposit slots do not.",
+            self.player_name,
+        )
+        return repaired
 
     def slots_for(self, tower: data.Tower) -> int:
         """A tower's monument slot count, honouring the Green Dome option."""

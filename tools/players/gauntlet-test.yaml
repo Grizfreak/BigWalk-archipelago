@@ -15,4 +15,4 @@ Big Walk:
   deposit_locations: all
   green_dome_deposits: excluded
   radio_station_checks: true
-  start_with_tutorial_key: true
+  start_with_drawbridge_open: true

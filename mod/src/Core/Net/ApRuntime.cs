@@ -96,7 +96,21 @@ namespace BigWalkArchipelago.Core.Net
         private static float _gadgetRestoreTimer;
 
         private static int _lastReportedDepositCount = -1;
+
+        // Deposits counted on the last poll tick, kept because
+        // CosmeticMonumentFillTracker.GetFilledMonumentCount scans every
+        // entry in the save and three callers now want the number — the
+        // deposit checks, the goal, and the line on screen, which OnGUI
+        // would otherwise ask for several times a frame.
+        private static int _depositCount;
+
         private static bool _goalSent;
+
+        // Whether this build knows how to detect the slot's goal at all.
+        // Split out from _goalSent, which used to carry both meanings by
+        // being pre-set to true for an unknown goal: harmless while nothing
+        // read it, a lie the moment the overlay started saying "reached".
+        private static bool _goalDetectable;
         private static float _retryTimer;
         private static float _connectingSince;
         private static float _pollTimer;
@@ -110,6 +124,19 @@ namespace BigWalkArchipelago.Core.Net
         // player for" stays one decision in one place.
         internal static string StatusMessage { get; private set; }
         internal static bool StatusIsWarning { get; private set; }
+
+        // What this slot is playing for, under the connection line. Player
+        // request (2026-09-22), in two steps: first the deposit count, which
+        // is the one goal with no moment of arrival to announce and so has
+        // to say where you are all of the time — then every other goal too,
+        // because "what am I even trying to do here" is a question a seed
+        // handed to a co-op group two weeks ago cannot answer by itself.
+        internal static string GoalLine { get; private set; }
+
+        // True only for a goal this build cannot detect, which is worth the
+        // warning colour: the seed is playable and its goal will never be
+        // reported. It was a log warning nobody reads until now.
+        internal static bool GoalLineIsWarning { get; private set; }
 
         internal static void QueueLocation(string locationName)
         {
@@ -228,8 +255,11 @@ namespace BigWalkArchipelago.Core.Net
             if (!NetworkServer.active)
             {
                 StatusMessage = null;
+                GoalLine = null;
                 return;
             }
+
+            RefreshGoalLine();
 
             // Switched off says so, rather than showing nothing. Silence and
             // "connected" used to look identical, and the switch now lives on
@@ -268,6 +298,61 @@ namespace BigWalkArchipelago.Core.Net
                     StatusIsWarning = true;
                     break;
             }
+        }
+
+        // Reads the count cached on the poll tick, never the tracker itself:
+        // this runs once a frame and the tracker walks the whole save.
+        private static void RefreshGoalLine()
+        {
+            // SlotData IS NULL until a login has succeeded, and this runs from
+            // the frame the player starts hosting — unlike every other reader
+            // of it, all of which are downstream of a connection. Hosting
+            // before the room answers therefore threw here on every frame,
+            // which is how it was found (in game, 2026-09-22): the overlay
+            // never drew and the log filled with trampoline exceptions.
+            var slotData = Connection.SlotData;
+            if (slotData == null || !ModConfig.ArchipelagoEnabled.Value)
+            {
+                GoalLine = null;
+                return;
+            }
+
+            string goal;
+            switch (slotData.Goal)
+            {
+                case "gauntlet":
+                    goal = "break the bell at the top of the Gauntlet";
+                    break;
+
+                case "ending":
+                    goal = "break the chapel bell";
+                    break;
+
+                case "second_ending":
+                    goal = "reach the ending behind the Hub Secret Door";
+                    break;
+
+                case "deposits":
+                    var target = slotData.DepositGoalAmount;
+                    goal = $"deposit {target} gourds ({_depositCount}/{target})";
+                    break;
+
+                default:
+                    // Said out loud rather than left in the log. The seed is
+                    // playable and every check works; it is only the goal
+                    // that will never be reported, which is exactly the kind
+                    // of thing nobody notices until the end of a run.
+                    GoalLine = $"Goal: {slotData.Goal} - this build cannot detect it";
+                    GoalLineIsWarning = true;
+                    return;
+            }
+
+            // "reached" means REPORTED, not merely met. For the deposit goal
+            // the count already says whether it is met, and for the other
+            // three there is nothing else on screen to confirm the server was
+            // ever told — which is the half that can fail on its own.
+            GoalLine = _goalSent ? $"Goal: {goal} - reached" : $"Goal: {goal}";
+            GoalLineIsWarning = false;
         }
 
         private void Update()
@@ -405,8 +490,10 @@ namespace BigWalkArchipelago.Core.Net
 
             if (WorldManager.isReadyForEffects)
             {
+                // Once per tick, for the three things that want it.
+                _depositCount = CosmeticMonumentFillTracker.GetFilledMonumentCount();
+
                 ReportDeposits();
-                CheckGoal();
 
                 // Both return immediately once nothing is pending, which is
                 // the case for all but the first seconds of a world.
@@ -418,6 +505,14 @@ namespace BigWalkArchipelago.Core.Net
                 // work to do for as long as the session lasts.
                 KeyCustody.Tick();
             }
+
+            // Outside the world gate, unlike everything above it: every goal
+            // here is decided from latched state and a cached count, and an
+            // ending tears its world down as it plays. The patch on it
+            // reports the goal itself (Patches/EndingStartPatch.cs) — this is
+            // the second chance, for the frames where the world is already
+            // gone and the socket is not.
+            CheckGoal();
         }
 
         // A freshly loaded world contains none of the loose gourds the
@@ -545,6 +640,7 @@ namespace BigWalkArchipelago.Core.Net
             }
 
             _lastReportedDepositCount = -1;
+            _depositCount = 0;
             // Deliberately does NOT reset the loose-gourd state. That
             // describes the world — what is currently lying on the ground —
             // and a reconnection does not touch the world. Resetting it here
@@ -564,8 +660,9 @@ namespace BigWalkArchipelago.Core.Net
             // say why. Refuse it loudly here, once, rather than silently
             // polling for something that will never be true.
             var goal = Connection.SlotData.Goal;
-            _goalSent = goal is not ("gauntlet" or "ending" or "deposits");
-            if (_goalSent)
+            _goalDetectable = goal is "gauntlet" or "ending" or "deposits" or "second_ending";
+            _goalSent = !_goalDetectable;
+            if (!_goalDetectable)
             {
                 Plugin.Log.LogWarning(
                     $"[{nameof(ApRuntime)}] This slot's goal is '{goal}', which this version of the mod cannot detect. "
@@ -971,7 +1068,7 @@ namespace BigWalkArchipelago.Core.Net
             if (amounts.Length == 0)
                 return;
 
-            var filled = CosmeticMonumentFillTracker.GetFilledMonumentCount();
+            var filled = _depositCount;
             if (filled <= _lastReportedDepositCount)
                 return;
 
@@ -992,17 +1089,38 @@ namespace BigWalkArchipelago.Core.Net
                 Connection.SendChecks(SendBuffer.ToArray());
         }
 
+        // Called from Patches/GourdStatePatch, on the frame the second
+        // ending's gourd comes loose. Everything the goals read is latched or
+        // cached, so this needs no world and no tick — only a socket, and
+        // SendGoal already survives not having one.
+        internal static void ReportGoalIfReached()
+        {
+            CheckGoal();
+        }
+
         private static void CheckGoal()
         {
             if (_goalSent || !IsGoalReached())
                 return;
 
-            _goalSent = true;
-            Connection.SendGoal();
+            // Marked sent only once the socket took it. A goal can now be
+            // reached on a frame where the connection is down — an ending
+            // transition reports itself while the world dies around it — and
+            // every goal is latched or cached, so leaving it armed costs
+            // nothing and the next tick or the next connection reports it.
+            if (Connection.SendGoal())
+                _goalSent = true;
         }
 
         private static bool IsGoalReached()
         {
+            // Guarded for the same reason RefreshGoalProgress is, and for one
+            // more: ReportGoalIfReached is called from a Harmony patch on the
+            // game's ending, which fires whether or not this session ever
+            // connected to anything.
+            if (Connection.SlotData == null)
+                return false;
+
             switch (Connection.SlotData.Goal)
             {
                 case "gauntlet":
@@ -1013,7 +1131,10 @@ namespace BigWalkArchipelago.Core.Net
 
                 case "deposits":
                     var target = Connection.SlotData.DepositGoalAmount;
-                    return target > 0 && CosmeticMonumentFillTracker.GetFilledMonumentCount() >= target;
+                    return target > 0 && _depositCount >= target;
+
+                case "second_ending":
+                    return ApSecondEnding.Reached;
 
                 default:
                     // Unreachable: OnJustConnected already refused to arm
