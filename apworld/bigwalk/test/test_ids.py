@@ -81,12 +81,30 @@ class TestIdTables(unittest.TestCase):
                              data.BASE_ID + tower.prop_value)
 
     def test_puzzle_count_matches_the_game(self) -> None:
-        # 58 puzzles: SaveablePropName 100-159, minus the two values the enum
-        # skips (102 and 136). If this ever fails, the game shipped a content
-        # update and the table above needs a fresh dump.
-        self.assertEqual(len(data.PUZZLES), 58)
-        self.assertEqual(len({puzzle.prop_name for puzzle in data.PUZZLES}), 58)
-        self.assertEqual(len({puzzle.location_name for puzzle in data.PUZZLES}), 58)
+        # 45 puzzles, which is also the number of monument slots in the game —
+        # the enum holds 58 (100-159, minus the values it skips at 102 and 136)
+        # but thirteen of them produce nothing in the shipped build. If this
+        # ever fails, either a content update landed or a dump was misread;
+        # see data.ABSENT_FROM_THE_BUILD for what settled it.
+        self.assertEqual(len(data.PUZZLES), 45)
+        self.assertEqual(len({puzzle.prop_name for puzzle in data.PUZZLES}), 45)
+        self.assertEqual(len({puzzle.location_name for puzzle in data.PUZZLES}), 45)
+        self.assertEqual(len(data.PUZZLES), data.MAX_MONUMENT_SLOTS)
+
+    def test_the_thirteen_absent_puzzles_are_not_locations(self) -> None:
+        # A location for one of these can never be checked: the seed would be
+        # unbeatable the moment generation put progression on it, which is
+        # what shipped until 2026-09-21.
+        self.assertEqual(len(data.ABSENT_FROM_THE_BUILD), 13)
+        table = {puzzle.prop_name for puzzle in data.PUZZLES}
+        for prop_name in data.ABSENT_FROM_THE_BUILD:
+            self.assertNotIn(prop_name, table)
+
+    def test_cutting_the_thirteen_left_every_other_id_alone(self) -> None:
+        # Ids are BASE_ID + the enum value, so removing rows cannot shift the
+        # survivors. Spot-checked at both ends of the table.
+        self.assertEqual(data.puzzle_location_id(data.PUZZLES[0]), data.BASE_ID + 100)
+        self.assertEqual(data.puzzle_location_id(data.PUZZLES[-1]), data.BASE_ID + 159)
 
     def test_cut_segment_counts_match_the_game(self) -> None:
         # Measured with the mod's Ctrl+K dump on 2026-09-21: nine KeyBlank

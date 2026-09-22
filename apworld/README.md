@@ -53,7 +53,7 @@ python -m pytest test/general -q            # conformité Archipelago
 
 ## Ce que fait le monde
 
-**Locations** — 58 énigmes, 7 dépôts de big key, 7 stations radio
+**Locations** — 45 énigmes, 7 dépôts de big key, 7 stations radio
 (optionnelles), et les dépôts de gourdes aux monuments (aucun, tous les 5, ou
 tous — option). Les dépôts sont comptés globalement, jamais par tour : c'est ce
 qui rend le modèle insensible au softlock identifié le 2026-09-11 (Option A).

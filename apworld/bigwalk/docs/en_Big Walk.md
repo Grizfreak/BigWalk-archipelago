@@ -64,7 +64,7 @@ in a monument is a two-player action too. This world is not playable solo.
 
 Locations:
 
-- Each of the 58 puzzles, when you solve it.
+- Each of the 45 puzzles, when you solve it.
 - Each of the 7 big keys, when it goes into its plinth.
 - Each of the 25 key segments, as you cut it. Five each on the drawbridge and
   the four coloured towers; the Black Monolith and Green Dome keys come

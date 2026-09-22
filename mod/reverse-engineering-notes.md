@@ -1611,7 +1611,8 @@ presses a button elsewhere (which unlocks a crate), the other retrieves the
 object inside. A safety net already observed: if the object is thrown far
 from its crate, the game automatically puts it back inside.
 
-`gourdTelescopeToBox`/`valetTelescopeToBox` (one of our 58 gourds) is very
+`gourdTelescopeToBox`/`valetTelescopeToBox` (one of the 45 gourds that
+exist in the build) is very
 likely the exact example cited by trinity in the Discord thread — so
 directly testable with our current tools, no extra code needed. Requires
 two players (confirmed by the player). Questions to settle at the next

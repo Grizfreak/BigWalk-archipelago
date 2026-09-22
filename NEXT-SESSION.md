@@ -22,7 +22,19 @@ Three co-op tests were wasted in one weekend on a guest running older code.
 every gourd, every broadcast station and every key blank **everywhere**.
 Presence tells you nothing about location — two dumps taken in two different
 zones came back byte-identical. Every dump that asks "what is in this area"
-must sort by distance to the player. Ctrl+V and Ctrl+B already do.
+must sort by distance to the player. Ctrl+V and Ctrl+B already do, and Ctrl+V
+now also names the puzzles it could not read at all — presence, distance and
+absence had stopped being told apart, and the thirteen it never instantiated
+went unnoticed until they were counted by hand. They turned out not to be in
+the game at all.
+
+**And the lesson that would have saved the most**: the answer was sitting in
+plain JSON in `AppData/LocalLow/House House/Big Walk/user_data/save_games`. A
+save lists what the game really contains — `gourdXxx = <SaveableHomeName id>`,
+so `gourdHighButton = 1012` is a gourd still at `valetHighButton` and a
+monument slot id is one that was deposited. A finished save answers "what
+exists" in seconds, with no session in game at all. Read one before planning
+the next dump.
 
 ## Task 1 — big keys: BUILT AND EXERCISED IN GAME
 
@@ -120,19 +132,21 @@ All of it in play, on a real server, with the log to match:
 
 ### The rest of what to do in game, in order
 
-1. **Ctrl+K** at a tower. Under each key it now prints `taggedPinSystems` and
-   marks `<== MATCHES PLINTH` the entry whose group is the plinth's. If that
-   line is missing for every key, the mechanism is wrong and everything above
-   rests on it — stop and re-read the decompilation.
-2. **Ctrl+D** next to a door, with no key in the plinth. It drives exactly
-   that state. A door that opens is the feature working, one call short of
-   `KeyFeatures` doing it on an item.
-3. **Place a key with `big_key_features` on** and check the door stays shut
-   while the key still visibly sits in its socket. Then send yourself the
-   matching item (F4 / `Debug.SimulateReceivedItemKey`) and watch it open.
-4. **Cut a segment** and look for `[KeyBlankCutPatch] Segment N cut out of X`.
-5. **Reload the world** with a feature granted: `KeyFeatures.RearmFromLedger`
-   should re-open it, because nothing in the game persists these.
+The five solo steps this section used to list — Ctrl+K at a tower, Ctrl+D on a
+door, placing a key with `big_key_features` on, cutting a segment, reloading
+with a feature granted — were all run on 2026-09-21 and are the confirmations
+above. Nothing solo is waiting. What is left is short:
+
+1. **Co-op**, all of [`COOP-TESTS.md`](COOP-TESTS.md), hardest first.
+2. **Does the tutorial drawbridge gate the way out?** Two minutes: stand in
+   the tutorial on a save where the Drawbridge feature has NOT been granted
+   and try to walk out. It matters more than it looks — see the open question
+   below.
+3. *(optional — the question it was written for is answered)* **Ctrl+V behind
+   the chairlift and in the tunnels.** The dump now names the puzzles it could
+   not read instead of printing only what it found. The thirteen were settled
+   from a save file rather than in game, so a press here would only be a fourth
+   confirmation — worth it if you are standing there anyway.
 
 ### The assumption that was left unmeasured, and no longer is
 
@@ -266,14 +280,28 @@ is "does this replicate to a second client", and it has only one.
 - ~~**Are all 58 puzzles reachable without any big key?**~~ **Settled
   (2026-09-21): no**, and it was a seed-breaking bug. Seven purple gourds and
   one station sit past the chairlift, one station past the tunnels; both are
-  now regions gated on their key. Two residual unknowns, both answered by the
-  player rather than measured: four ordinary gourds in the same band of
-  distance are reachable without the chairlift, and thirteen puzzles were
-  never instantiated anywhere visited so their status was never read at all.
-  If a seed ever turns out unbeatable, look there first.
+  now regions gated on their key. One residual unknown, answered by the player
+  rather than measured: four ordinary gourds in the same band of distance are
+  reachable without the chairlift, so they stay in the overworld.
+- ~~**And the thirteen puzzles no dump ever instantiated?**~~ **Settled
+  (2026-09-21), and it was a second seed-breaking bug, worse than the first.**
+  They are not in the build at all: a finished save of 2026-08-23 holds exactly
+  45 `gourd*` entries filling every monument slot in the game (4/5/5/5/5/6/15),
+  and none of the thirteen. 45 gourds for 45 slots is the whole economy. They
+  were locations until that day, so generation could put progression on a check
+  that can never be sent — and no region could have rescued it. Cut from
+  `PUZZLES`, kept as `data.ABSENT_FROM_THE_BUILD`. The world now ships 45 puzzle
+  locations.
 - **Does the tutorial drawbridge really gate the way out?** The world
-  precollects the Tutorial Key on that assumption
-  (`start_with_tutorial_key`). If it is wrong, the key can be shuffled.
+  precollects the Drawbridge on that assumption (`start_with_tutorial_key`, on
+  by default). What went unnoticed until 2026-09-21: there is **no Tutorial
+  region** in `regions.py` — only the ending, the chairlift and the tunnels
+  are modelled. So that default is not a convenience, it is the whole of the
+  protection: with the option off and the drawbridge really gating,
+  generation is free to place the Drawbridge item past the chairlift and lock
+  the players in the tutorial with nothing to do. If it does gate, the fix is
+  not the default — it is making `false` safe, with a Tutorial region or a
+  Drawbridge forced early.
 - ~~**Do `FmStation7/8/9` exist at all?**~~ **Settled (2026-09-21)**: they
   exist in `SavableSystem` (37–39), and nothing suggests they are wired to
   anything. Left out, on both sides.

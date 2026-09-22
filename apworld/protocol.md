@@ -70,7 +70,7 @@ arithmetic instead of shipping a table that would drift from `bigwalk/data.py`.
 
 | Category | Id | Count |
 |---|---|---|
-| Puzzle | `B + (int)SaveablePropName` (100–159) | 58 |
+| Puzzle | `B + (int)SaveablePropName` (100–159) | 45 |
 | Big key deposit | `B + (int)SaveablePropName` (300–306) | 7 |
 | Radio station | `B + 1000 + (int)SavableSystem` (30–36) | 7 |
 | Gourd deposit N | `B + 2000 + N`, N from 1 | up to 45 |
@@ -348,7 +348,7 @@ existed only to hedge this has been removed.*
 - **Do `FmStation7/8/9` exist in the game at all?** The world assumes not
   (only seven were ever observed being written). If they turn out to be real,
   they are three missing checks — annoying, not seed-breaking.
-- ~~**Are all 58 puzzles reachable without any big key?**~~ **ANSWERED, AND
+- ~~**Are all the puzzles reachable without any big key?**~~ **ANSWERED, AND
   THE ANSWER IS NO (2026-09-21, found in play).** The purple gourds and one
   radio station sit past the chairlift, which needs the Green Cup Key
   (`bigKeyGreenZone`). The region graph assumes the island is open apart from

@@ -705,7 +705,7 @@ in-game, unless stated otherwise.
 document — used to validate `GourdRegistry.BigKeyHomesByProp` — is mod
 reference data; see `mod/reverse-engineering-notes.md`.)*
 
-### New: 45 puzzles at launch, 58 today
+### 45 puzzles, and the thirteen that are not there (CORRECTED 2026-09-21)
 
 The Discord thread dates from about a week after the game's release ("only
 having released a few days ago", posts dated 08/07-08/2026; game released
@@ -717,11 +717,25 @@ present today are absent from the document's list**
 `gourdMagiciansTrick`, `gourdButtonBoothChallenge`, `gourdTileSoup`,
 `gourdPanopticon`, `gourdMaypole`, `gourdBlindfoldCircus`,
 `gourdMessengerRun`, `gourdHotPotato`, `gourdScoutTiles`,
-`gourdScoutCounting`). Most likely hypothesis: **the game received a
-content update adding 13 puzzles since release**, between this document's
-writing (~August 2026) and today (2026-09-07). Worth keeping in mind if
-this document or a future version of the Python world relies on the old
-total of 45 — the real current total is 58.
+`gourdScoutCounting`).
+
+**The hypothesis written here on 2026-09-07 was that the game had received a
+content update adding those 13 since release, and that the real total was
+58. It was backwards, and the world shipped 13 locations that can never be
+checked because of it.** The thirteen are in the enum, each with its own
+`valetXxx` home, and nothing in the build produces them. Corrected on
+2026-09-21 from a finished save of 2026-08-23: it holds exactly 45 `gourd*`
+entries, each pinned to a monument slot, spread 4/5/5/5/5/6/15 — every slot
+in the game, the Green Dome's fifteen included. 45 gourds for 45 slots is
+also the game's whole economy; a 58-puzzle game would leave thirteen gourds
+with nowhere to go. Every Ctrl+V dump instantiated the same 45 and never
+these, and the player recognises none of the thirteen names. The document's
+45 were right all along, and reading its shorter list as "older" rather than
+as "the truth" is the trap: an independent inventory that disagrees with an
+enum is evidence about the build, not about the date.
+
+The list now lives in `bigwalk/data.py` as `ABSENT_FROM_THE_BUILD`, ready to
+paste back into `PUZZLES` if a patch ever ships them.
 
 ### Terminology confirmed independently
 

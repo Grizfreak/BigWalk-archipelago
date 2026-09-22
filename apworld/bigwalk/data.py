@@ -45,8 +45,11 @@ GOURD_ITEM_NAME = "Gourd"
 # --------------------------------------------------------------------------
 # Puzzles (SaveablePropName.gourdXxx)
 # --------------------------------------------------------------------------
-# 58 puzzles. The enum skips 102 and 136; the game shipped with 45 of these
-# and gained 13 more in a content update (see ../design-decisions.md).
+# 45 puzzles — every one that exists in the build people are playing. The enum
+# holds 58 gourd values (100-159, skipping 102 and 136), and thirteen of them
+# produce nothing: see ABSENT_FROM_THE_BUILD below for how that was settled,
+# and note that ../design-decisions.md read the same gap backwards for two
+# weeks, as a content update that had ADDED thirteen puzzles.
 #
 # Deliberately excluded:
 #   - gourdTesting00-39 / bigKeyTesting* (dev-only values, never triggered in
@@ -54,6 +57,9 @@ GOURD_ITEM_NAME = "Gourd"
 #   - gourdSecretZoneVice (290): the only gourd-prefixed value with no matching
 #     valetXxx home, never observed in play, purpose unknown. Including it
 #     would risk an unreachable location. The mod must not report it either.
+#   - the thirteen in ABSENT_FROM_THE_BUILD below, cut on 2026-09-21: they are
+#     full enum entries with their own valet, but nothing in the shipped game
+#     produces them.
 
 
 class Puzzle(NamedTuple):
@@ -75,30 +81,19 @@ PUZZLES: tuple[Puzzle, ...] = (
     Puzzle("gourdMediumSimPress", 107, "Medium Simultaneous Press"),
     Puzzle("gourdEasySimPress", 108, "Easy Simultaneous Press"),
     Puzzle("gourdRingRoom", 109, "Ring Room"),
-    Puzzle("gourdBunker", 110, "Bunker"),
-    Puzzle("gourdHighPegBoard", 111, "High Peg Board"),
-    Puzzle("gourdFirstPegBoard", 112, "First Peg Board"),
     Puzzle("gourdObby", 113, "Obby"),
     Puzzle("gourdCarousel", 114, "Carousel"),
     Puzzle("gourdCoordinates", 115, "Coordinates"),
     Puzzle("gourdTelescopeToBox", 116, "Telescope to Box"),
     Puzzle("gourdObservationRoom", 117, "Observation Room"),
     Puzzle("gourdWindowLabyrinth", 118, "Window Labyrinth"),
-    Puzzle("gourdMagiciansTrick", 119, "Magician's Trick"),
-    Puzzle("gourdButtonBoothChallenge", 120, "Button Booth Challenge"),
     Puzzle("gourdBasketball", 121, "Basketball"),
     Puzzle("gourdConcert", 122, "Concert"),
     Puzzle("gourdIndoorSemaphore", 123, "Indoor Semaphore"),
     Puzzle("gourdOpticalTelegraph", 124, "Optical Telegraph"),
     # The game's own enum misspells "Priest"; the location name does not.
     Puzzle("gourdPoetAndPreist", 125, "Poet and Priest"),
-    Puzzle("gourdTileSoup", 126, "Tile Soup"),
     Puzzle("gourdMemoryBombs", 127, "Memory Bombs"),
-    Puzzle("gourdPanopticon", 128, "Panopticon"),
-    Puzzle("gourdMaypole", 129, "Maypole"),
-    Puzzle("gourdBlindfoldCircus", 130, "Blindfold Circus"),
-    Puzzle("gourdMessengerRun", 131, "Messenger Run"),
-    Puzzle("gourdHotPotato", 132, "Hot Potato"),
     Puzzle("gourdTileThief", 133, "Tile Thief"),
     Puzzle("gourdCharadesRooms", 134, "Charades Rooms"),
     Puzzle("gourdMicrophoneArray", 135, "Microphone Array"),
@@ -110,8 +105,6 @@ PUZZLES: tuple[Puzzle, ...] = (
     Puzzle("gourdCabinFeverLong", 142, "Cabin Fever Long"),
     Puzzle("gourdBreadcrumbLoop", 143, "Breadcrumb Loop"),
     Puzzle("gourdScoutBombs", 144, "Scout Bombs"),
-    Puzzle("gourdScoutTiles", 145, "Scout Tiles"),
-    Puzzle("gourdScoutCounting", 146, "Scout Counting"),
     # Another game-side typo ("Centuron"), kept only in prop_name.
     Puzzle("gourdCenturonSong", 147, "Centurion Song"),
     Puzzle("gourdMusicalHoliday", 148, "Musical Holiday"),
@@ -127,6 +120,57 @@ PUZZLES: tuple[Puzzle, ...] = (
     Puzzle("gourdCannonballCommute", 158, "Cannonball Commute"),
     Puzzle("gourdPoetAndPontiff", 159, "Poet and Pontiff"),
 )
+
+ABSENT_FROM_THE_BUILD: tuple[str, ...] = (
+    "gourdBunker",
+    "gourdHighPegBoard",
+    "gourdFirstPegBoard",
+    "gourdMagiciansTrick",
+    "gourdButtonBoothChallenge",
+    "gourdTileSoup",
+    "gourdPanopticon",
+    "gourdMaypole",
+    "gourdBlindfoldCircus",
+    "gourdMessengerRun",
+    "gourdHotPotato",
+    "gourdScoutTiles",
+    "gourdScoutCounting",
+)
+"""
+Thirteen `SaveablePropName` values that exist in the game's metadata and
+produce nothing in the build people are playing. They were locations here
+until 2026-09-21, which meant a seed could put progression on a check that
+can never be sent — the same class of bug as the chairlift, and beyond the
+reach of any region to fix.
+
+They are not the dev-only values: `gourdTesting00-39` and `gourdSecretZoneVice`
+have no `valetXxx` home, and every one of these thirteen has one. They look
+like cut or unreleased content, not scaffolding.
+
+Four independent readings agree, and no measurement contradicts them:
+
+- **A finished save.** A vanilla playthrough of 2026-08-23 holds exactly 45
+  `gourd*` entries and not one of these. A gourd entry's value is the
+  `SaveableHomeName` it sits in — `gourdHighButton = 1012` is `valetHighButton`,
+  a gourd still at home — and all 45 of that save's values are monument slots,
+  spread 4/5/5/5/5/6/15. That is every slot in the game, the Green Dome's
+  fifteen included: the run went to the end and filled the island with 45
+  gourds.
+- **The economy.** 45 is also the total number of monument slots that exist.
+  A 58-puzzle game would have thirteen gourds with nowhere to go.
+- **A third party's inventory.** The document of 2026-08 listed 45 puzzles,
+  and its 45 are exactly these 45 (see ../design-decisions.md, which read the
+  difference as a content update adding thirteen — the opposite of what the
+  save shows).
+- **Every dump.** Ctrl+V instantiated 45 wherever it was pressed and never
+  these, in zones that included the postgame.
+
+The player, who has played the game, recognises none of the thirteen names.
+
+Kept here rather than deleted: if a future patch ships them, this is the list
+to paste back into PUZZLES, ids and all.
+"""
+
 
 # --------------------------------------------------------------------------
 # Towers, big keys and monuments

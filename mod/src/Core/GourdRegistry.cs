@@ -29,6 +29,24 @@ namespace BigWalkArchipelago.Core
             { SaveablePropName.bigKeyOverflow, SaveableHomeName.bigKeyPlinthGoodbye2 },
         };
 
+        // Cut from the Archipelago world on 2026-09-21; see BuildLocationIds.
+        private static readonly HashSet<SaveablePropName> AbsentFromTheBuild = new()
+        {
+            SaveablePropName.gourdBunker,
+            SaveablePropName.gourdHighPegBoard,
+            SaveablePropName.gourdFirstPegBoard,
+            SaveablePropName.gourdMagiciansTrick,
+            SaveablePropName.gourdButtonBoothChallenge,
+            SaveablePropName.gourdTileSoup,
+            SaveablePropName.gourdPanopticon,
+            SaveablePropName.gourdMaypole,
+            SaveablePropName.gourdBlindfoldCircus,
+            SaveablePropName.gourdMessengerRun,
+            SaveablePropName.gourdHotPotato,
+            SaveablePropName.gourdScoutTiles,
+            SaveablePropName.gourdScoutCounting,
+        };
+
         // 3 gourds whose corresponding valet is NOT the naive
         // "gourd"->"valet" substitution: a typo on the game's own side
         // between the two enums (found by comparing all 58 pairs one by
@@ -193,6 +211,18 @@ namespace BigWalkArchipelago.Core
                 // §3), so reporting it would send an id the server has no
                 // location for — a protocol error rather than a lost check.
                 if (propName == SaveablePropName.gourdSecretZoneVice)
+                    continue;
+
+                // The thirteen below are in the enum, each with its own valet,
+                // and nothing in the shipped build produces them: a finished
+                // save of 2026-08-23 holds 45 gourds filling every monument
+                // slot in the game and none of these (the full case is in
+                // apworld/bigwalk/data.py, ABSENT_FROM_THE_BUILD). They cannot
+                // fire, so this filter changes no behaviour today — it is here
+                // so the two halves exclude the same set, and so that a patch
+                // shipping them is a deliberate edit on both sides rather than
+                // an id the server has no location for.
+                if (AbsentFromTheBuild.Contains(propName))
                     continue;
 
                 map[propName] = propName.ToString();
