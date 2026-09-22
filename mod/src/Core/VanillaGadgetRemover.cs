@@ -67,6 +67,21 @@ namespace BigWalkArchipelago.Core
             if (!NetworkServer.active)
                 return;
 
+            // Not while Archipelago is switched off. The removal only makes
+            // sense as the other half of the filler items: a prop that the
+            // multiworld now hands out must not also be findable lying
+            // around for free. With no multiworld there are no filler items,
+            // so removing the originals subtracts 68 objects from the island
+            // and puts nothing back.
+            //
+            // Harmless while this was a .cfg key nobody opened. It stopped
+            // being harmless the day the switch moved onto the hosting
+            // screen (2026-09-22) — seen in the log that same day, a session
+            // started with Archipelago off still reported "Removed 68
+            // vanilla gadget prop(s) from the map".
+            if (!ModConfig.ArchipelagoEnabled.Value)
+                return;
+
             GadgetItemSpawner.RemoveVanillaInstances();
         }
     }
