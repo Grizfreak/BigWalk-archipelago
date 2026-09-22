@@ -172,6 +172,28 @@ reconnects.
   exists only so a heap of identical keys at the hub can be told apart, and the
   guest is exactly the player most likely to be standing in that heap.
 
+### 9. The radio wrinkle, watched instead of reasoned
+
+Only the host runs an Archipelago client, so a guest hears a station the
+moment it is switched on, whether or not the host has been sent its Radio
+Music item. That is written into the option text already
+(`RadioStationItems` in `apworld/bigwalk/options.py`) and has never once been
+watched happening.
+
+Guest switches on a station whose Radio Music item the host does **not** have.
+
+- **Expected, and it is the documented wrinkle:** the check fires on the
+  host's log, the host hears nothing, the guest hears the music.
+- **Also worth catching:** whether the guest still hears it after a world
+  reload, and whether the host later receiving that item changes anything on
+  the guest's side. It should not — `FmRadioManager` is local to each machine
+  and the mod only ever writes the host's.
+- **The only result that is news** is it being WORSE than documented: the
+  guest switching a station on unlocking it host-side too, which would mean
+  the suppression is not where it is believed to be.
+
+This costs no time of its own — a station gets switched on during any session.
+
 ---
 
 ## Regressions to re-check while two players are available
