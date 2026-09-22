@@ -1,46 +1,115 @@
 # Big Walk Setup Guide
 
-## Required software
+## Required Software
 
-- Big Walk on Steam.
-- [BepInEx 6 (IL2CPP, x64)](https://builds.bepinex.dev/projects/bepinex_be) —
-  the Unity IL2CPP build, not the Mono one.
-- The Big Walk Archipelago mod.
+- Big Walk on Steam (Windows). Every player needs their own copy.
+- The Big Walk Archipelago mod, from
+  [its releases](https://github.com/Grizfreak/BigWalk-archipelago/releases).
+  It is an all-in-one zip: BepInEx is inside it, already the build the mod
+  was tested against.
+- The Big Walk apworld, `bigwalk.apworld`, from the same release.
 - Archipelago 0.6.7 or newer.
 
-## Status
+There is no separate client to run while you play: the mod talks to
+Archipelago from inside the game.
 
-The mod connects to Archipelago on its own — there is no separate client to
-run while you play. Connecting from inside the game works; a full run has
-not been played end to end yet, so treat this as an alpha.
+**This is an alpha.** Every path has been exercised in game, but no one has
+yet played a seed from the first check to the goal, and the big-key half has
+only ever run solo.
 
 ## Installing the mod
 
 **Everyone playing installs it, not just the host.** See "Playing together"
 below for why.
 
-1. Install BepInEx into Big Walk's folder and launch the game once through
-   Steam so BepInEx generates its interop assemblies. Launching the executable
-   directly does not always load BepInEx.
-2. Copy `BigWalkArchipelago.dll`, `Archipelago.MultiClient.Net.dll` and
-   `Newtonsoft.Json.dll` into
-   `<game folder>/BepInEx/plugins/BigWalkArchipelago/`. All three are
-   required; leaving one out stops the mod loading at all.
-3. Launch the game through Steam again.
+1. Close the game.
+2. Open the game's install folder. On Steam: right-click **Big Walk** →
+   **Manage** → **Browse local files**. It is the folder containing
+   `Big Walk.exe`.
+3. Extract the whole zip in there, merging folders. Next to `Big Walk.exe`
+   you should end up with `winhttp.dll`, `doorstop_config.ini`, `dotnet/` and
+   `BepInEx/`.
+4. Launch the game **through Steam**. Double-clicking the executable does not
+   always load BepInEx.
+5. The first launch is slow — a minute or two of black screen while BepInEx
+   builds its cache.
 
-## Joining a multiworld
+To check it worked, `BepInEx/LogOutput.log` should contain a line reading
+`Big Walk Archipelago v0.1.0 loaded.`
 
-Only the host of the co-op session connects to Archipelago — see "Playing
-together" below for how a group shares one slot.
+Everyone must run the same mod version and the same game version. To
+uninstall, delete the four things you added; nothing in the game's own files
+is ever modified.
+
+## Installing the APWorld
+
+Place `bigwalk.apworld` in the `custom_worlds` folder of your Archipelago
+installation. Only whoever generates the seed needs it, and only one copy, in
+`custom_worlds`.
+
+## Configuring your YAML file
+
+### What is a YAML file and why do I need one?
+
+Your YAML file contains a set of configuration options which provide the
+generator with information about how it should generate your game. Each
+player of a multiworld will provide their own YAML file. This setup allows
+each player to enjoy an experience customized for their taste, and different
+players in the same multiworld can all have different options.
+
+### Where do I get a YAML file?
+
+Once the apworld is installed, you can generate one with the **Generate
+Template Options** button in the Archipelago Launcher. It appears in
+`Players/Templates` as `Big Walk.yaml`, with every option documented in the
+comments. Copy it into `Players` — not `Templates` — and edit it there.
+
+If the file is missing from `Players/Templates`, the apworld is not where
+Archipelago is looking. Check `custom_worlds` again.
+
+### One YAML per co-op group
+
+A co-op group shares one Archipelago slot, so they fill in **one** YAML
+between them, with one slot name.
+
+## Joining a MultiWorld Game
+
+### Generating a game
+
+Put every player's `.yaml` into the `Players` folder and run
+`ArchipelagoGenerate.exe`, or press **Generate** in the Launcher. The result
+lands in `output` as a `.zip`.
+
+### Hosting a game
+
+Either run `ArchipelagoServer.exe` on that zip and host it yourself, or
+upload it to [archipelago.gg/uploads](https://archipelago.gg/uploads), which
+gives you a room and a port. The website does not need the apworld installed
+to host a game that is already generated.
+
+### Connecting from the game
+
+Only the host of the co-op session connects to Archipelago.
 
 1. From the main menu, start hosting a game.
-2. On the hosting screen, the mod adds and relabels three fields:
-   - **Slot name** — your player name in the multiworld.
-   - **Archipelago password** — the room's password, or leave it empty.
-   - **host:port** — the Archipelago server, for example
+2. The mod adds one field to the hosting screen and relabels two:
+   - **Slot name** — your slot name in the multiworld, exactly as in the
+     YAML.
+   - **Archipelago password** — the room's password, or leave it empty: the
+     mod makes the field optional, which it is not in the vanilla game. On a
+     build where it stays mandatory anyway, type anything — a server with no
+     password ignores what you send.
+   - **Archipelago host** — the server, as `host:port`, for example
      `archipelago.gg:38281`. It is prefilled with `archipelago.gg:` the first
      time and remembers what you typed afterwards.
-3. Continue. Your co-op partners join your session the usual way.
+3. Continue. Your co-op partners join your session the usual way, with
+   nothing to fill in.
+
+A line in the corner of the screen tells the host when Archipelago is not
+connected, and briefly when it connects.
+
+The game cannot show you what you send or what other players receive. Keep
+Archipelago's Text Client open beside it if you want to watch the multiworld.
 
 ## Playing together
 
@@ -69,8 +138,9 @@ anything.
 ### Why the others still need the mod installed
 
 Most of what the mod does is host-authoritative and reaches everyone by
-itself: received gourds appear as real networked objects, and keys, doors
-and unlocked shortcuts are replicated like any other game state.
+itself: a received gourd is a real networked object, doors and shortcuts
+replicate like any other game state, and the vanilla props removed to make
+room for the filler items are removed for everybody.
 
 Two things are not. They are local display decisions that Big Walk never
 sends over the network, so a player without the mod simply does not get
@@ -81,10 +151,11 @@ them:
 - the sphere blocking the way to the true ending — it stays solid **for
   them**, so they walk into it while the host walks through.
 
-None of this has been tried with a real second player yet. The host-only
-model is enforced everywhere in the mod, but a genuine co-op session has not
-been tested — if something looks wrong on the joining player's side, that is
-worth reporting rather than working around.
+And one honest warning: the big keys have only ever run solo. They are built
+on the same host-authoritative model as the gourds, which a real two-machine
+session confirmed in September, but nobody has yet watched a key arrive,
+travel or be cut on a guest's screen. If something looks wrong on the joining
+player's side, that is worth reporting rather than working around.
 
 ### Always keep the same host
 
@@ -96,8 +167,14 @@ would be gone. Pick a host at the start and stay with them.
 
 ## If you get stuck somewhere unreachable
 
-Start a new save and reconnect to the same slot. The server, not the save file,
-owns the list of items you have received, so reconnecting replays all of them.
-The one thing that does not come back automatically is gourds you had already
-deposited: those reappear at the hub and you have to walk them back to a
-monument. Since deposits are counted globally, it does not matter which one.
+`Ctrl+R`, on the host's machine, sweeps up every gourd and key of yours that
+is not in a monument and puts the right number back at the hub, from what the
+server says you have received. Monument deposits are never touched, so
+nothing Archipelago counts can be lost by pressing it.
+
+If a save is lost altogether, start a new one and reconnect to the same slot.
+The server, not the save file, owns the list of items you have received, so
+reconnecting replays all of them. The one thing that does not come back
+automatically is gourds you had already deposited: those reappear at the hub
+and you have to walk them back to a monument. Since deposits are counted
+globally, it does not matter which one.

@@ -30,6 +30,10 @@ copiées automatiquement dans la sortie de build. BepInEx résout les
 dépendances d'un plugin dans son propre dossier : oublier l'une des deux fait
 échouer le chargement du mod entier, pas seulement la connexion.
 
+`tools/deploy-mod.ps1` fait tout ça et imprime une empreinte qui dit si les
+installations concordent ; `tools/package-mod.ps1` produit le zip joueur
+(BepInEx inclus) décrit dans [`../SETUP.md`](../SETUP.md).
+
 Sur cette machine, le jeu est installé dans :
 ```
 F:\SteamLibrary\steamapps\common\Big Walk\
@@ -48,8 +52,16 @@ F:\SteamLibrary\steamapps\common\Big Walk\
       [`../apworld/protocol.md`](../apworld/protocol.md)
 - [x] 7. Chargement et connexion depuis le jeu confirmés (2026-09-15)
 - [x] 8. Tous les chemins éprouvés en jeu (2026-09-15) : check sortant, items,
-      big keys, dépôts, goal, gourdes reconstruites, coupure réseau, save neuve
-- [ ] 9. Partie complète, et première session à deux joueurs
+      dépôts, goal, gourdes reconstruites, coupure réseau, save neuve
+- [x] 9. Session à deux joueurs (2026-09-20) : gourdes reçues, dépôt par
+      l'invité, Ctrl+R des deux côtés, coupure du serveur Archipelago
+- [x] 10. Stations radio en items (2026-09-21) et big keys (2026-09-21) — la
+      porte et la clé sont deux items distincts, 25 découpes + 7 dépôts. Les
+      big keys n'ont été exercées qu'en **solo**
+- [x] 11. Filler : les objets à main de l'île, matérialisés à la réception et
+      retirés de la carte (2026-09-22)
+- [ ] 12. Les big keys à deux machines ([`../COOP-TESTS.md`](../COOP-TESTS.md))
+- [ ] 13. Une seed jouée du premier check au goal
 
 ## Configuration Archipelago
 
@@ -65,7 +77,9 @@ début de session va toujours au hub), `GourdColor`, `GourdRestoreInterval`,
 
 `ResyncGourdsKey` (**Ctrl+R** par défaut, hôte connecté uniquement) balaie
 toutes tes gourdes qui ne sont pas dans un monument et remet au hub le
-nombre exact dû par le serveur. À utiliser quand l'une d'elles est devenue
+nombre exact dû par le serveur ; il ramène aussi au point d'apparition
+chaque big key reçue qui n'est pas déjà dans son socle
+(`Core/KeyCustody.ResyncToSpawn`). À utiliser quand l'une d'elles est devenue
 inatteignable — coincée dans une salle scellée, par exemple. Les dépôts en
-monument ne sont jamais touchés, donc rien de ce que compte Archipelago ne
-peut être perdu.
+monument et les clés déjà posées ne sont jamais touchés, donc rien de ce que
+compte Archipelago ne peut être perdu.

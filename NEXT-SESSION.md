@@ -181,6 +181,14 @@ default (`Debug.Enabled = false`), and `apworld/build.py` packages the world.
 Both halves are rebuilt after any change; the artefacts sitting in `dist/` and
 `apworld/dist/` are only as fresh as the last run of those two scripts.
 
+**La documentation joueur est écrite (2026-09-22)** et en anglais :
+[`README.md`](README.md) (ce que fait la randomisation) et
+[`SETUP.md`](SETUP.md) (installation, jeu à plusieurs), doublés par les deux
+fichiers que le webhost Archipelago affiche,
+`apworld/bigwalk/docs/en_Big Walk.md` et `.../setup_en.md`. Les quatre disent
+la même chose et bougent ensemble. Les notes de travail en français sont
+passées dans [`DEVELOPMENT.md`](DEVELOPMENT.md).
+
 **The version is settled (2026-09-21): 0.1.0, and there is nothing to do.**
 `Plugin.PluginVersion`, the `.csproj`, `archipelago.json` and `WORLD_VERSION`
 already agree, and the alpha is the first thing to ship publicly, so 0.1.0 is
