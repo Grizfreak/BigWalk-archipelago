@@ -255,6 +255,24 @@ namespace BigWalkArchipelago.Core.Net
             return _slotLocations.Contains(locationId);
         }
 
+        // The multiworld's name for a location, for the feed on screen. The
+        // mod's own identifiers are the game's enum values (`gourdHighButton`),
+        // which are no use to a player: the datapackage is the only place the
+        // player-facing name exists, so a lookup that fails falls back to the
+        // number rather than inventing one.
+        internal string LocationName(long locationId)
+        {
+            try
+            {
+                var name = _session?.Locations.GetLocationNameFromId(locationId);
+                return string.IsNullOrEmpty(name) ? locationId.ToString() : name;
+            }
+            catch (Exception)
+            {
+                return locationId.ToString();
+            }
+        }
+
         internal void SendChecks(long[] locationIds)
         {
             if (_status != ConnectionStatus.Connected || locationIds.Length == 0)

@@ -22,6 +22,10 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<string> CosmeticGourdColor;
         internal static ConfigEntry<float> CosmeticGourdRestoreInterval;
         internal static ConfigEntry<bool> ShowConnectionStatus;
+        internal static ConfigEntry<int> StatusFontSize;
+        internal static ConfigEntry<bool> ShowItemFeed;
+        internal static ConfigEntry<float> NoticeSeconds;
+        internal static ConfigEntry<bool> ShowResyncHint;
         internal static ConfigEntry<bool> SpawnGourdAtPlayer;
         internal static ConfigEntry<bool> PutGourdInHands;
         internal static ConfigEntry<KeyboardShortcut> ResyncGourdsKey;
@@ -117,13 +121,37 @@ namespace BigWalkArchipelago
                 "Archipelago",
                 "ResyncGourdsKey",
                 new KeyboardShortcut(KeyCode.R, KeyCode.LeftControl),
-                "Clears away every gourd of yours that is not in a monument and puts the right number back at the hub, from what the server says you have received. For when one has ended up somewhere you cannot reach it — stranded in a sealed puzzle room, say. Monument deposits are never touched, so nothing that counts for Archipelago can be lost by pressing this. Host only.");
+                "Puts everything Archipelago has given you back within reach. Every gourd of yours that is not in a monument, every filler item, and every big key not already in its plinth is swept up — out of your hands too — and the right number is put back from what the server says you have received. For when one has ended up somewhere you cannot reach it: stranded in a sealed puzzle room, say. Monument deposits and placed keys are never touched, so nothing that counts for Archipelago can be lost by pressing this. Host only.");
 
             ShowConnectionStatus = file.Bind(
                 "Archipelago",
                 "ShowConnectionStatus",
                 true,
-                "Shows a line in the corner of the screen when Archipelago is not connected, and briefly when it connects. Only ever appears for the host, since nobody else connects. Turn off for a clean screen — the same information stays in the BepInEx log either way.");
+                "Shows the Archipelago connection in the corner of the screen, for the whole session rather than only when something is wrong — a silent, self-healing connection is still worth being able to check at a glance. Only ever appears for the host, since nobody else connects. Turn off for a clean screen; the same information stays in the BepInEx log either way. This is the master switch: the item feed and the resync hint below are drawn under this line and go with it.");
+
+            StatusFontSize = file.Bind(
+                "Archipelago",
+                "StatusFontSize",
+                22,
+                "Size of the Archipelago status line, in points. It sits over whatever the game is rendering, so it is drawn with a shadow rather than a panel; raise this if it is hard to read at your resolution. The feed and the hint under it are drawn slightly smaller than this, proportionally.");
+
+            ShowItemFeed = file.Bind(
+                "Archipelago",
+                "ShowItemFeed",
+                true,
+                "Lists the last few checks sent and items received under the status line, each fading after a few seconds. Big Walk itself never says whether a puzzle counted or what just arrived from the multiworld, which left 'nothing happened' and 'it happened and I could not see it' looking identical. Identical lines in a row collapse into a count, so the burst replayed on connect does not fill the screen.");
+
+            NoticeSeconds = file.Bind(
+                "Archipelago",
+                "NoticeSeconds",
+                8f,
+                "How long, in seconds, a line in the feed above stays on screen.");
+
+            ShowResyncHint = file.Bind(
+                "Archipelago",
+                "ShowResyncHint",
+                true,
+                "Shows the resync shortcut under the status line while connected, so the way out of a stranded gourd or key is on screen rather than in a setup guide. Reads whatever ResyncGourdsKey is actually bound to, so rebinding it changes the hint.");
 
             CosmeticGourdHandoverRadius = file.Bind(
                 "Archipelago",

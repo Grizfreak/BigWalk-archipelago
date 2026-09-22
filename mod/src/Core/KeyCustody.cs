@@ -373,6 +373,20 @@ namespace BigWalkArchipelago.Core
                 if (home != null && GourdRegistry.IsBigKeyPlinth(home.saveableHomeName))
                     continue;
 
+                // Dropped before it is moved. Reported in play on 2026-09-22:
+                // "the key was sent back but not taken out of my hands" — the
+                // key teleported to the spawn point while the hands went on
+                // holding it, so it was both across the island and still
+                // carried.
+                //
+                // The gourd sweep has always done this (ReleaseFromHands is
+                // its first act on each prop) and the gadget sweep was
+                // written with it; only the key path, which moves a prop
+                // instead of destroying it, was missing it. Moving is the
+                // same problem as destroying here: the hands keep a
+                // reference the prop no longer honours.
+                ReceivedItemSpawner.ReleaseFromHands(prop);
+
                 Pending.Add(propName);
                 moved++;
             }

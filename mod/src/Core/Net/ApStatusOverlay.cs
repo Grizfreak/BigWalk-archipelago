@@ -1,26 +1,28 @@
 using System;
+using System.Text;
 using UnityEngine;
 
 namespace BigWalkArchipelago.Core.Net
 {
-    // Tells the host, on screen, when Archipelago is not connected.
+    // What the host is told on screen about Archipelago: the connection, the
+    // last few checks and items, and the way out of a stranded gourd.
     //
-    // Until now the only sign was a line in BepInEx's log, which nobody
-    // reads while playing: the game carries on perfectly happily while
-    // checks pile up unsent, so a dropped connection was invisible. It
-    // recovers on its own (ApRuntime retries every 10s and resends
-    // everything the save has validated), which is precisely why it needed
-    // saying out loud — a silent, self-healing failure is still worth
-    // knowing about, if only to stop playing for a minute.
+    // Until this existed the only sign of any of it was a line in BepInEx's
+    // log, which nobody reads while playing. The connection recovers on its
+    // own (ApRuntime retries every 10s and resends everything the save has
+    // validated), which is precisely why it needed saying out loud — a
+    // silent, self-healing failure is still worth knowing about.
+    //
+    // The status line used to appear only when something was wrong, and
+    // briefly on connecting. It now stays for the session, at the player's
+    // request (2026-09-22): "and the Archipelago connection all the time".
+    // A line that is only ever there when you are already in trouble cannot
+    // be used to check that you are not.
     //
     // IMGUI rather than a Canvas: UnityEngine.IMGUIModule is present in this
     // build, and OnGUI needs no prefab, no canvas, no network object and no
-    // cloning of the game's own UI. For one line of text in a corner, that
-    // is the whole job.
-    //
-    // Deliberately silent when all is well. The only exception is a brief
-    // confirmation just after connecting, which is what tells the host their
-    // details were right without them having to go and read the log.
+    // cloning of the game's own UI. For a few lines of text in a corner,
+    // that is the whole job.
     internal class ApStatusOverlay : MonoBehaviour
     {
         // Constructor required by Il2CppInterop for any type injected into IL2CPP.
@@ -29,15 +31,28 @@ namespace BigWalkArchipelago.Core.Net
         }
 
         private const int Margin = 12;
-        private const int FontSize = 16;
+
+        // The feed and the hint are deliberately smaller than the status:
+        // one thing is worth a glance from across the room, the others are
+        // worth reading only if you were already looking.
+        private const float SecondaryScale = 0.8f;
 
         private static readonly Color WarningColor = new(1f, 0.62f, 0.17f);
         private static readonly Color InfoColor = new(0.72f, 0.9f, 0.72f);
+        private static readonly Color FeedColor = new(0.86f, 0.86f, 0.86f);
+        private static readonly Color HintColor = new(0.7f, 0.7f, 0.7f);
         private static readonly Color ShadowColor = new(0f, 0f, 0f, 0.75f);
 
         // Built on first use, not in a field initializer: anything touching
         // GUI.skin outside of OnGUI is invalid in Unity.
         private GUIStyle _style;
+        private int _styleFontSize;
+
+        // The hint text depends only on a config value that the player can
+        // change at any time, and CalcSize on every line every frame is not
+        // free — so it is rebuilt when the binding changes and not otherwise.
+        private static string _hintText;
+        private static string _hintSource;
 
         private void OnGUI()
         {
@@ -45,33 +60,97 @@ namespace BigWalkArchipelago.Core.Net
                 return;
 
             // Null whenever there is nothing worth saying — ApRuntime owns
-            // that decision, so this stays pure presentation and OnGUI (which
-            // runs several times per frame) does no work in the common case.
+            // that decision, and it is also what keeps this whole overlay
+            // off a non-host's screen, where no client ever connects.
             var message = ApRuntime.StatusMessage;
             if (string.IsNullOrEmpty(message))
                 return;
 
-            // Alignment is left at the label default rather than set to
-            // TextAnchor.UpperLeft: TextAnchor lives in
-            // UnityEngine.TextRenderingModule, and pulling in a whole extra
-            // interop assembly to restate a default is not worth it.
-            _style ??= new GUIStyle(GUI.skin.label)
+            var fontSize = Mathf.Clamp(ModConfig.StatusFontSize.Value, 8, 72);
+            if (_style == null || _styleFontSize != fontSize)
             {
-                fontSize = FontSize,
-                wordWrap = false,
-            };
+                // Alignment is left at the label default rather than set to
+                // TextAnchor.UpperLeft: TextAnchor lives in
+                // UnityEngine.TextRenderingModule, and pulling in a whole
+                // extra interop assembly to restate a default is not worth
+                // it.
+                _style = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = fontSize,
+                    wordWrap = false,
+                };
+                _styleFontSize = fontSize;
+            }
 
-            var size = _style.CalcSize(new GUIContent(message));
-            var rect = new Rect(Margin, Margin, size.x, size.y);
+            var y = (float)Margin;
+            y = DrawLine(message, ApRuntime.StatusIsWarning ? WarningColor : InfoColor, fontSize, y);
+
+            var secondary = Mathf.Max(8, Mathf.RoundToInt(fontSize * SecondaryScale));
+
+            var lines = ApNotices.Lines;
+            for (var i = 0; i < lines.Count; i++)
+            {
+                var notice = lines[i];
+                y = DrawLine(notice.Display, notice.Warning ? WarningColor : FeedColor, secondary, y);
+            }
+
+            if (ModConfig.ShowResyncHint.Value && !ApRuntime.StatusIsWarning)
+                DrawLine(ResyncHint(), HintColor, secondary, y);
+        }
+
+        // Returns the y to draw the next line at.
+        private float DrawLine(string text, Color color, int fontSize, float y)
+        {
+            _style.fontSize = fontSize;
+
+            var size = _style.CalcSize(new GUIContent(text));
+            var rect = new Rect(Margin, y, size.x, size.y);
 
             // Drawn twice, offset, so the text stays legible over whatever
             // the game happens to be rendering behind it — cheaper and more
             // reliable than an outline shader.
             _style.normal.textColor = ShadowColor;
-            GUI.Label(new Rect(rect.x + 1f, rect.y + 1f, rect.width, rect.height), message, _style);
+            GUI.Label(new Rect(rect.x + 1f, rect.y + 1f, rect.width, rect.height), text, _style);
 
-            _style.normal.textColor = ApRuntime.StatusIsWarning ? WarningColor : InfoColor;
-            GUI.Label(rect, message, _style);
+            _style.normal.textColor = color;
+            GUI.Label(rect, text, _style);
+
+            return y + size.y;
+        }
+
+        // Reads the binding rather than hardcoding "Ctrl+R", so rebinding
+        // ResyncGourdsKey changes what the screen says. BepInEx's own
+        // ToString gives "R + LeftControl", which is accurate and reads
+        // badly; this spells it the way a key is written on a keyboard.
+        private static string ResyncHint()
+        {
+            var shortcut = ModConfig.ResyncGourdsKey.Value;
+            var source = shortcut.ToString();
+            if (_hintText != null && _hintSource == source)
+                return _hintText;
+
+            var text = new StringBuilder();
+            foreach (var modifier in shortcut.Modifiers)
+            {
+                text.Append(ShortModifier(modifier.ToString()));
+                text.Append('+');
+            }
+
+            text.Append(shortcut.MainKey);
+
+            _hintSource = source;
+            _hintText = $"{text}: bring back stranded gourds and keys";
+            return _hintText;
+        }
+
+        private static string ShortModifier(string name)
+        {
+            if (name.StartsWith("Left", StringComparison.Ordinal))
+                name = name.Substring(4);
+            else if (name.StartsWith("Right", StringComparison.Ordinal))
+                name = name.Substring(5);
+
+            return name == "Control" ? "Ctrl" : name;
         }
     }
 }

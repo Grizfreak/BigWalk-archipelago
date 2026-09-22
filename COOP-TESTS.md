@@ -304,6 +304,50 @@ wrinkles from today:
   now a bigger loss than it was solo: seven keys are hard enough to tell
   apart already, and the fixes above assume the tint is visible at all.
 
+### 15. Ctrl+R must not strip a guest (added 2026-09-22)
+
+The resync sweep now clears the filler gadgets too, and the host is the only
+one who can press the key. So for the first time a host keypress can reach
+into what a **guest** is wearing and carrying — player's own objection, the
+same day the sweep was written: *"the backpacks and belts worn by players
+must not answer this command, and neither must the objects hanging inside
+them."*
+
+`GadgetItemSpawner.DestroyLooseCosmeticGadgets` therefore sweeps only props
+with no `PropHome` at all, and keeps any prop that is somebody else's home.
+Solo, that was verified only in the trivial direction: a gadget dropped on
+the ground is swept, one worn is not.
+
+**NONE of this can be pre-cleared solo, and that is a property of the game,
+not an omission.** Established by the player on 2026-09-22 while trying:
+putting a pack on takes a second player to place it on your back, *and*
+nothing can be stowed in a pack that nobody is wearing. So the worn half and
+the stowed half are both unreachable alone, and every line of the rule
+guarding them is written from the decompiled `PropHome` and has never once
+executed against a real case.
+
+A consequence worth checking at the same time: the sweep's second pass keeps
+a pack that is somebody's home, which was written for a pack lying on the
+ground with something inside it. If a full pack cannot be dropped, that
+state does not exist and the pass is guarding nothing. Try dropping a loaded
+pack while both players are there — the answer decides whether that code
+stays.
+
+Host wears a received backpack and stows something in it. Guest does the
+same with their own. Host presses **Ctrl+R**.
+
+- **Pass:** both packs stay on both backs, both contents stay inside, and the
+  log reads `N cosmetic gadget(s) left alone: worn, stowed or holding
+  something that is`. Only gadgets lying on the ground come back to the hub.
+- **Fail worth catching early:** the guest's pack vanishes from their back.
+  That would mean `PropHome.parentCharacter` is not populated on the host for
+  a home belonging to a remote player — i.e. the host cannot see who is
+  wearing what, and the rule has to move from "does it have a home" to
+  something the server can answer.
+- **Also watch:** a gadget stowed in a pack that is lying on the ground. The
+  second pass is supposed to keep that pack because something is homed in it;
+  solo there was never a second player to leave one lying about.
+
 ---
 
 ## What to do with the results

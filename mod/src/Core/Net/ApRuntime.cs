@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Mirror;
@@ -111,8 +111,6 @@ namespace BigWalkArchipelago.Core.Net
         internal static string StatusMessage { get; private set; }
         internal static bool StatusIsWarning { get; private set; }
 
-        private const float ConnectedNoticeSeconds = 6f;
-
         internal static void QueueLocation(string locationName)
         {
             // Dropped outright on a non-host. Its detection patches can
@@ -146,8 +144,11 @@ namespace BigWalkArchipelago.Core.Net
         internal static void ResyncKeys()
         {
             var moved = KeyCustody.ResyncToSpawn();
-            if (moved > 0)
-                Plugin.Log.LogInfo($"[{nameof(ApRuntime)}] {moved} big key(s) sent back to the spawn point.");
+            if (moved <= 0)
+                return;
+
+            Plugin.Log.LogInfo($"[{nameof(ApRuntime)}] {moved} big key(s) sent back to the spawn point.");
+            ApNotices.Post($"Resync: {moved} key(s) sent back to the spawn point");
         }
 
         internal static void ResyncGourds()
@@ -166,6 +167,7 @@ namespace BigWalkArchipelago.Core.Net
             {
                 Plugin.Log.LogWarning(
                     $"[{nameof(ApRuntime)}] Gourd resync refused: not connected to Archipelago, so the gourds could not be put back. Try again once reconnected.");
+                ApNotices.Post("Resync refused: not connected to Archipelago", warning: true);
                 return;
             }
 
@@ -180,6 +182,39 @@ namespace BigWalkArchipelago.Core.Net
 
             Plugin.Log.LogInfo(
                 $"[{nameof(ApRuntime)}] Gourd resync: {removed} loose gourd(s) cleared, restocking the hub from the ledger.");
+            ApNotices.Post($"Resync: {removed} gourd(s) cleared, restocking the hub");
+        }
+
+        // The same sweep for the filler gadgets, at the player's request
+        // (2026-09-22): "it should also reset the inventories and the
+        // tracked objects — that avoids duplication and stuck objects too."
+        //
+        // It has to reset the per-session tally as well as destroy the
+        // props, because that tally is half of what RestoreLooseGadgets owes
+        // ("received minus spawned this session"). Sweeping without
+        // resetting would put nothing back; resetting without sweeping would
+        // spawn a second copy of everything already lying around. The two
+        // belong in one action, which is why this is not two methods.
+        //
+        // Held gadgets are dropped by the sweep rather than left in someone's
+        // hands: a prop destroyed out of a pair of hands leaves those hands
+        // believing they still hold it, which is exactly the stuck-object
+        // case this is meant to end.
+        internal static void ResyncGadgets()
+        {
+            if (!NetworkServer.active || Connection.Status != ApConnection.ConnectionStatus.Connected)
+                return;
+
+            var removed = GadgetItemSpawner.DestroyLooseCosmeticGadgets();
+
+            _gadgetsSpawnedThisSession.Clear();
+            _looseGadgetsRestored = false;
+            _looseGadgetsRestoreBlockedLogged = false;
+            _gadgetRestoreTimer = 0f;
+
+            Plugin.Log.LogInfo(
+                $"[{nameof(ApRuntime)}] Gadget resync: {removed} loose gadget(s) cleared, restocking from the ledger.");
+            ApNotices.Post($"Resync: {removed} item(s) cleared, restocking from the ledger");
         }
 
         private static void RefreshStatusMessage()
@@ -202,12 +237,12 @@ namespace BigWalkArchipelago.Core.Net
                     break;
 
                 case ApConnection.ConnectionStatus.Connected:
-                    // Shown briefly, then out of the way: the point is to
-                    // confirm the details were right, not to sit there for
-                    // the rest of the run.
-                    StatusMessage = Time.unscaledTime - _connectedAt < ConnectedNoticeSeconds
-                        ? "Archipelago: connected"
-                        : null;
+                    // Shown for the whole session, not just for a few
+                    // seconds after connecting — player request, 2026-09-22.
+                    // A connection that heals itself silently is exactly the
+                    // one worth being able to confirm at a glance, and the
+                    // line is where the feed and the resync hint hang from.
+                    StatusMessage = "Archipelago: connected";
                     StatusIsWarning = false;
                     break;
 
@@ -224,6 +259,10 @@ namespace BigWalkArchipelago.Core.Net
         {
             RefreshStatusMessage();
 
+            // Once a frame, here rather than in the overlay: OnGUI runs
+            // several times per frame and stays pure presentation.
+            ApNotices.Prune();
+
             // Every frame, and ahead of the early returns: a key that has just
             // been delivered is being pulled back to its tower by the game,
             // and a poll once a second is far too coarse to hold it. Returns
@@ -238,6 +277,7 @@ namespace BigWalkArchipelago.Core.Net
             {
                 ResyncGourds();
                 ResyncKeys();
+                ResyncGadgets();
             }
 
             if (!ModConfig.ArchipelagoEnabled.Value)
@@ -269,7 +309,14 @@ namespace BigWalkArchipelago.Core.Net
             // is ready — by then the writes that matter have already been
             // seen (cf. ApGoalFlags).
             if (!worldReady && _worldWasReady)
+            {
                 ApGoalFlags.OnWorldUnloaded();
+
+                // The feed reports on the world that produced it. Carrying
+                // "Check: Cabin Fever" back to the main menu would be
+                // reporting on a game that is no longer running.
+                ApNotices.Clear();
+            }
 
             _worldWasReady = worldReady;
 
@@ -583,8 +630,17 @@ namespace BigWalkArchipelago.Core.Net
                 SendBuffer.Add(id);
             }
 
-            if (SendBuffer.Count > 0)
-                Connection.SendChecks(SendBuffer.ToArray());
+            if (SendBuffer.Count == 0)
+                return;
+
+            Connection.SendChecks(SendBuffer.ToArray());
+
+            // Only the checks flushed here, never the set ResendKnownChecks
+            // pushes on every connect: those are already-known checks being
+            // repeated for the server's benefit, and announcing them would
+            // replay the player's whole run at them on each reconnection.
+            foreach (var id in SendBuffer)
+                ApNotices.Post($"Check: {Connection.LocationName(id)}");
         }
 
         // Puts back the gourds this save owns but no longer physically has.
@@ -789,6 +845,12 @@ namespace BigWalkArchipelago.Core.Net
                     ApItemCursor.CountGourdReceived();
                 else if (isGadget)
                     ApItemCursor.CountGadgetReceived(gadgetKind);
+
+                // Past the replay gate, so this only ever announces an item
+                // that is new to this save. A fresh connection to a slot
+                // already owed forty gourds still posts forty of them in one
+                // frame, which is why ApNotices collapses repeats.
+                ApNotices.Post($"Received: {item.ItemName}");
 
                 try
                 {

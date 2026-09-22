@@ -305,6 +305,128 @@ namespace BigWalkArchipelago.Core
                 || name.Contains(ReceivedItemSpawner.CosmeticNameSuffix, StringComparison.Ordinal);
         }
 
+        // The gadget half of Ctrl+R, and the reason the key press needed one
+        // at all (player request, 2026-09-22). A filler gadget has no
+        // deposit sink: what is owed is "received, minus spawned this
+        // session", forever. So a gadget that ends up somewhere unreachable
+        // stays counted as spawned and is never replaced — and a gadget
+        // still in someone's hands when the world is swept is counted twice
+        // by the rebuild. Clearing both, and letting RestoreLooseGadgets put
+        // back exactly what the ledger owes, is the same promise the gourds
+        // already make.
+        //
+        // Scans Prop rather than a gadget type of its own: a cosmetic clone
+        // is recognized by NeutralizeProgression having made it notSavable
+        // plus the name suffix, which is precisely what IsCosmeticClone
+        // asks. RewardGourd carries that mark too, so gourds are handed back
+        // to their own sweep instead of being destroyed twice.
+        // LOOSE is the operative word, and it is a rule, not a description
+        // (player request, 2026-09-22): "the backpacks and belts WORN BY
+        // PLAYERS must not answer this command, and neither must the objects
+        // hanging inside them."
+        //
+        // A worn pack is not stranded — it is exactly where its owner put it
+        // — and sweeping it would take the pack, everything stowed in it, and
+        // the other player's afternoon with it. Worse, it is the one case
+        // where the sweep would destroy something a SECOND player is using,
+        // on a key only the host can press.
+        //
+        // What makes it decidable is PropHome, which says who a home belongs
+        // to: `parentCharacter` is a home on a player (PropGroup.PackHanger,
+        // WearHolster), `parentProp` is a home on another prop (a pack's own
+        // GoesInBackpack/GoesInHolster slots), and `isInventory` marks a
+        // stash. So the rule is simply: a prop that is in any home is placed,
+        // not lost, and this sweep leaves it alone. Only a homeless prop is
+        // loose.
+        //
+        // The second pass exists for the last case that rule does not cover:
+        // a pack lying on the ground IS homeless, so it would be swept — and
+        // destroying it would strand whatever is homed inside it, which is
+        // the stale-reference bug this whole sweep exists to avoid. A prop
+        // that is somebody's home is therefore kept too.
+        internal static int DestroyLooseCosmeticGadgets()
+        {
+            var destroyed = 0;
+            var seen = 0;
+            var placed = 0;
+
+            // Inactive included, same as the gourd sweep: a prop that has
+            // been picked up can leave the active hierarchy, and the default
+            // scan would walk past exactly the one this is meant to reclaim.
+            var all = UnityEngine.Object.FindObjectsByType<Prop>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (all == null)
+                return 0;
+
+            var candidates = new List<Prop>();
+            var occupiedHosts = new HashSet<int>();
+
+            foreach (var prop in all)
+            {
+                if (prop == null || !ReceivedItemSpawner.IsCosmeticClone(prop))
+                    continue;
+
+                if (prop.GetComponent<RewardGourd>() != null)
+                    continue;
+
+                seen++;
+
+                var home = prop.currentHome;
+                if (home == null)
+                {
+                    candidates.Add(prop);
+                    continue;
+                }
+
+                placed++;
+
+                // This prop stays, and so must whatever is holding it: a
+                // backpack whose contents survive it would leave those
+                // contents homed in a destroyed object.
+                if (home.parentProp != null)
+                    occupiedHosts.Add(home.parentProp.GetInstanceID());
+            }
+
+            foreach (var prop in candidates)
+            {
+                if (occupiedHosts.Contains(prop.GetInstanceID()))
+                {
+                    placed++;
+                    continue;
+                }
+
+                // Tidying the hands is best effort; removing the prop is
+                // not — the split that the gourd sweep learned the hard way
+                // on 2026-09-15, when a failed drop aborted the removal and
+                // left behind the one object that most needed reclaiming.
+                ReceivedItemSpawner.ReleaseFromHands(prop);
+
+                try
+                {
+                    NetworkServer.Destroy(prop.gameObject);
+                    destroyed++;
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"[{nameof(GadgetItemSpawner)}] Could not remove a cosmetic gadget: {ex.Message}");
+                }
+            }
+
+            if (placed > 0)
+                Plugin.Log.LogInfo(
+                    $"[{nameof(GadgetItemSpawner)}] {placed} cosmetic gadget(s) left alone: worn, stowed or holding "
+                    + "something that is.");
+
+            seen -= placed;
+
+            if (destroyed != seen)
+                Plugin.Log.LogWarning(
+                    $"[{nameof(GadgetItemSpawner)}] {seen} loose cosmetic gadget(s) found but only {destroyed} removed; "
+                    + "the rebuild will put back fewer than are owed.");
+
+            return destroyed;
+        }
+
         // Host entry point, called from ItemApplier.ApplyGadgetItem. Same
         // toPlayer split as ReceivedItemSpawner.SpawnCosmeticPickup: true
         // for a gadget arriving during play (hands, or in front of the
