@@ -532,6 +532,25 @@ namespace BigWalkArchipelago.Patches
             if (field.interactable == !locked)
                 return;
 
+            // Switching Archipelago off, editing the name and switching it
+            // back on would otherwise walk straight around the lock, and the
+            // field would re-lock on the NEW name looking authoritative —
+            // player's own question, 2026-09-22, minutes after the lock was
+            // added.
+            //
+            // What saves it is that the field is only a draft until Continue
+            // writes it: SaveData.slotName still holds what this save is
+            // really called. So re-locking puts that back, and an edit made
+            // while disconnected is discarded rather than silently promoted
+            // to a slot name.
+            if (locked && save != null && !string.IsNullOrEmpty(save.slotName) && field.text != save.slotName)
+            {
+                Plugin.Log.LogInfo(
+                    $"[{nameof(HostMenuArchipelagoControls)}] Slot name '{field.text}' discarded; this save is "
+                    + $"'{save.slotName}' and Archipelago is back on.");
+                field.text = save.slotName;
+            }
+
             field.interactable = !locked;
 
             // Both signals logged, not just the one acted on: "this save has

@@ -130,7 +130,10 @@ Only the host of the Big Walk session does this.
 1. From the main menu, start hosting a game.
 2. The mod adds one field to the hosting screen and relabels two:
    - **SLOT NAME** — your slot name in the multiworld, exactly as it is in
-     the YAML.
+     the YAML. It is also the save's own name, so it can only be typed when
+     the save is created: once it exists, the field is locked, because
+     renaming it would point the save at a different Archipelago slot. Switch
+     the toggle off if you really do want to rename a save.
    - **ARCHIPELAGO PASSWORD** — the room's password. Leave it empty if there
      is none: the mod makes the field optional, which it is not in the
      vanilla game. On a build where it stays mandatory anyway, type anything

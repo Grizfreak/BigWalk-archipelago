@@ -114,7 +114,9 @@ Only the host of the co-op session connects to Archipelago.
 1. From the main menu, start hosting a game.
 2. The mod adds one field to the hosting screen and relabels two:
    - **Slot name** — your slot name in the multiworld, exactly as in the
-     YAML.
+     YAML. It is also the save's own name, so it can only be typed when the
+     save is created: once it exists the field is locked, because renaming it
+     would point the save at a different Archipelago slot.
    - **Archipelago password** — the room's password, or leave it empty: the
      mod makes the field optional, which it is not in the vanilla game. On a
      build where it stays mandatory anyway, type anything — a server with no
