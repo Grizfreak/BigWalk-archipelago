@@ -94,7 +94,11 @@ namespace BigWalkArchipelago.Core.Net
                 y = DrawLine(notice.Display, notice.Warning ? WarningColor : FeedColor, secondary, y);
             }
 
-            if (ModConfig.ShowResyncHint.Value && !ApRuntime.StatusIsWarning)
+            // Not while disconnected or switched off: the resync only runs on
+            // a live connection, so advertising the key there would offer
+            // something that answers "refused" when pressed.
+            if (ModConfig.ShowResyncHint.Value && !ApRuntime.StatusIsWarning
+                && ModConfig.ArchipelagoEnabled.Value)
                 DrawLine(ResyncHint(), HintColor, secondary, y);
         }
 

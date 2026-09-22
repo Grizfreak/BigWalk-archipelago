@@ -223,9 +223,24 @@ namespace BigWalkArchipelago.Core.Net
             // to say to a player who is not the host: their client never
             // connects by design, so an "disconnected" warning would be a
             // lie.
-            if (!ModConfig.ArchipelagoEnabled.Value || !NetworkServer.active)
+            // Nothing to say to a player who is not the host: their client
+            // never connects by design, so any of this would be a lie.
+            if (!NetworkServer.active)
             {
                 StatusMessage = null;
+                return;
+            }
+
+            // Switched off says so, rather than showing nothing. Silence and
+            // "connected" used to look identical, and the switch now lives on
+            // the hosting screen where it is easy to leave off — and it
+            // persists into the next launch, so a whole session can be played
+            // disconnected with no sign of it anywhere but the log. Seen
+            // happening on 2026-09-22.
+            if (!ModConfig.ArchipelagoEnabled.Value)
+            {
+                StatusMessage = "Archipelago: off";
+                StatusIsWarning = false;
                 return;
             }
 
