@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace BigWalkArchipelago.Core.Net
 {
@@ -27,7 +27,10 @@ namespace BigWalkArchipelago.Core.Net
         private const string GourdCountKey = "ap_gourds_received";
         private const string GadgetCountKeyPrefix = "ap_gadgets_received_";
         private const string SeedKey = "ap_seed_name";
-        private const string SlotKey = "ap_slot_name";
+        // Internal, not private: the hosting screen reads it straight
+        // off SaveData to warn when a save has been renamed away from
+        // the slot it was bound to (HostMenuArchipelagoControls).
+        internal const string SlotKey = "ap_slot_name";
 
         // Binds this save to a (seed, slot) pair and returns how many items
         // are already applied to it. A save that has never seen this pair

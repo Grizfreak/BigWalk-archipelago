@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using BigWalkArchipelago.Core;
 using BigWalkArchipelago.Core.Net;
 using TMPro;
@@ -558,11 +558,60 @@ namespace BigWalkArchipelago.Patches
             // delete button is the one that was actually observed to appear
             // only for a save that already exists. If they ever disagree,
             // this line is where it shows.
+            WarnIfSlotRenamed(menu, save, locked);
+
             var deleteShown = menu.deleteButton != null && menu.deleteButton.gameObject.activeInHierarchy;
             Plugin.Log.LogInfo(
                 $"[{nameof(HostMenuArchipelagoControls)}] Slot name field {(locked ? "locked" : "editable")} "
                 + $"(archipelago={archipelagoOn}, filenameUid={(alreadyExists ? "set" : "empty")}, "
                 + $"deleteButton={(deleteShown ? "shown" : "hidden")}).");
+        }
+
+        // The one case the lock cannot prevent, only report. Renaming a save
+        // with Archipelago off and pressing Continue genuinely renames it,
+        // and the slot follows the name — confirmed in play on 2026-09-22,
+        // 'GadgetWalk' became 'ZZTest' and nothing said so afterwards.
+        //
+        // Nothing new is written for this. ApItemCursor has bound every save
+        // to a (seed, slot) pair since it existed, precisely so a save
+        // reconnected elsewhere replays from zero instead of skipping items
+        // — so the slot each save last connected under was already in the
+        // file, and this only reads it.
+        //
+        // Worth recording, because the first version of this did add a
+        // second writer for the same key: writing the slot without the seed
+        // would have split a pair ApItemCursor compares as a unit, and the
+        // next mismatch would have been judged on half the evidence.
+        //
+        // It warns and nothing more: the rename may well be deliberate, and
+        // a player who meant it should not be stopped. What they should not
+        // be is uninformed, because connecting under a name that belongs to
+        // someone else's slot sends this save's checks into their
+        // multiworld.
+        private static void WarnIfSlotRenamed(HostMenuConfirm menu, SaveData save, bool locked)
+        {
+            if (!locked || save == null)
+                return;
+
+            string recorded = null;
+            try
+            {
+                save.TryGetStringValue(Core.Net.ApItemCursor.SlotKey, out recorded);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogInfo(
+                    $"[{nameof(HostMenuArchipelagoControls)}] Could not read this save's recorded slot: {ex.Message}");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(recorded) || recorded == save.slotName)
+                return;
+
+            SetResult(menu, $"This save last connected as '{recorded}'");
+            Plugin.Log.LogWarning(
+                $"[{nameof(HostMenuArchipelagoControls)}] This save connected as '{recorded}' before and is now "
+                + $"called '{save.slotName}'; it will connect under the new name.");
         }
 
         private static void SetResult(HostMenuConfirm menu, string text)
