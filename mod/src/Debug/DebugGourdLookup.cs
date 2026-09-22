@@ -100,6 +100,7 @@ namespace BigWalkArchipelago.Debug
             // gourd everywhere — two presses in two different zones returned
             // byte-identical lists. Only distance says where something is.
             var entries = new List<(string name, bool variant, bool known, string state, float distance)>();
+            var loaded = new HashSet<string>(StringComparer.Ordinal);
             var variants = 0;
 
             foreach (var gourd in all)
@@ -119,6 +120,7 @@ namespace BigWalkArchipelago.Debug
                     : -1f;
 
                 entries.Add((propName, gourd.isVariantChallenge, known, gourd.gourdState.ToString(), distance));
+                loaded.Add(propName);
             }
 
             entries.Sort((a, b) => a.distance.CompareTo(b.distance));
@@ -136,6 +138,48 @@ namespace BigWalkArchipelago.Debug
                 $"[{nameof(DebugGourdLookup)}] {all.Length} RewardGourd(s) in the world, {variants} of them purple"
                 + " (variantChallenge), nearest first"
                 + (playerPosition.HasValue ? "." : " — NO LOCAL PLAYER FOUND, so every distance is meaningless."));
+
+            LogPuzzlesNotLoaded(loaded);
+        }
+
+        // The complement of the list above, and the reason it exists (2026-09-21):
+        // thirteen puzzles had no RewardGourd loaded anywhere the dump was
+        // pressed, so their distance was never "far", it was unread — and the
+        // tool said nothing about them, which made the gap invisible until it
+        // was counted by hand afterwards. A puzzle missing from the roster is a
+        // puzzle whose zone this press cannot speak for, which is exactly the
+        // question being asked when the dump is taken behind a gate.
+        private static void LogPuzzlesNotLoaded(HashSet<string> loaded)
+        {
+            var missing = new List<string>();
+
+            foreach (SaveablePropName propName in Enum.GetValues(typeof(SaveablePropName)))
+            {
+                var name = propName.ToString();
+                if (!name.StartsWith("gourd", StringComparison.Ordinal))
+                    continue;
+
+                // Same filter as the registry: dev-only values and the one
+                // gourd the Archipelago world deliberately leaves out are not
+                // puzzles, so their absence means nothing.
+                if (!Core.GourdRegistry.TryGetLocationId(propName, out _))
+                    continue;
+
+                if (!loaded.Contains(name))
+                    missing.Add(name);
+            }
+
+            if (missing.Count == 0)
+            {
+                Plugin.Log.LogInfo(
+                    $"[{nameof(DebugGourdLookup)}] Every puzzle gourd is loaded here, so the list above is the whole set.");
+                return;
+            }
+
+            Plugin.Log.LogInfo(
+                $"[{nameof(DebugGourdLookup)}] {missing.Count} puzzle gourd(s) NOT loaded here — never read, status unknown:");
+            foreach (var name in missing)
+                Plugin.Log.LogInfo($"[{nameof(DebugGourdLookup)}]   (absent) {name}");
         }
 
         internal static void LogMonumentHomes()
