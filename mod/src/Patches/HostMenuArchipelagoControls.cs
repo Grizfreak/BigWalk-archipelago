@@ -407,10 +407,39 @@ namespace BigWalkArchipelago.Patches
             if (string.IsNullOrEmpty(error))
                 return "no reason given";
 
-            if (error.IndexOf("Slot", StringComparison.OrdinalIgnoreCase) >= 0)
+            // WHAT IS ACTUALLY MATCHED HERE, measured on 2026-09-22, and the
+            // two layers are not the same string.
+            //
+            // On the wire the server answers with codes — ['InvalidSlot'],
+            // ['InvalidPassword'], and ['InvalidPassword', 'InvalidSlot']
+            // when both are wrong (confirmed by probing a real server
+            // directly). But Archipelago.MultiClient.Net 6.7.1 does not hand
+            // those through: LoginFailure.Errors carries its own sentences,
+            // seen in game as
+            //
+            //     "The password is invalid. / The slot name did not match
+            //      any slot on the server."
+            //
+            // The substring tests below work on both, which is luck rather
+            // than design: the library's wording happens to contain "slot"
+            // and "password". If a future version writes "the name did not
+            // match", this stops recognising anything and silently falls
+            // through to printing the raw string. That is the failure to
+            // expect, and it is why this comment names both layers.
+            //
+            // Reporting them together matters because the first version
+            // flattened the both-wrong case to the slot alone: fix the name,
+            // test again, and only then hear about the password.
+            var badSlot = error.IndexOf("Slot", StringComparison.OrdinalIgnoreCase) >= 0;
+            var badPassword = error.IndexOf("Password", StringComparison.OrdinalIgnoreCase) >= 0;
+
+            if (badSlot && badPassword)
+                return $"no slot called '{_testedSlotName}' here, and the password is wrong too";
+
+            if (badSlot)
                 return $"the server does not know a slot called '{_testedSlotName}'";
 
-            if (error.IndexOf("Password", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (badPassword)
                 return "wrong Archipelago password";
 
             // "no answer" is this mod's own 15s giveup; "timed out" and
