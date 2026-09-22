@@ -179,14 +179,14 @@ namespace BigWalkArchipelago.Patches
         private static void RetitleClone(Transform clone)
         {
             var title = clone.Find("GameNameTitle");
-            SetStaticLabel(title, "HÔTE ARCHIPELAGO :");
+            SetStaticLabel(title, "ARCHIPELAGO HOST :");
 
             var input = clone.Find("GameNameInput");
             if (input == null)
                 return;
 
             var placeholder = input.Find("Text Area/Placeholder");
-            SetStaticLabel(placeholder, "hôte:port");
+            SetStaticLabel(placeholder, "host:port");
 
             var tmpInput = input.GetComponent<TMP_InputField>();
             if (tmpInput == null)
