@@ -1,7 +1,9 @@
 using System;
 using BigWalkArchipelago.Core;
 using HouseCulling;
+using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace BigWalkArchipelago.Debug
 {
@@ -34,6 +36,24 @@ namespace BigWalkArchipelago.Debug
                 _lastCosmeticPickupCheckTime = -1f;
             }
 
+            // Every hotkey below is a single plain letter with no modifier
+            // (ApplyBigKeyOverflowKey = O, SpawnCosmeticPickupKey = P, and
+            // so on — predating the "<letter>+LeftControl" convention this
+            // file's own Config.cs comments now recommend for new keys).
+            // Typing a host address or slot name that happens to contain
+            // one of those letters fires the matching debug tool while the
+            // player is only trying to type — measured in-game, 2026-09-22:
+            // typing "localhost:38281" into the host field's two 'o's each
+            // fired ApplyBigKeyOverflowKey, and the resulting exception
+            // permanently broke GourdRegistry's static state for the rest
+            // of the process (a failed .NET type initializer never runs
+            // again — every later call to it rethrows), silently failing
+            // every item received for the rest of that session. Skipping
+            // every hotkey below while a text input has focus is the fix.
+            var focused = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
+            if (focused != null && focused.GetComponent<TMP_InputField>() != null)
+                return;
+
             if (ModConfig.ToggleFlightKey.Value.IsDown())
                 DebugFlightTool.Toggle();
 
@@ -42,6 +62,15 @@ namespace BigWalkArchipelago.Debug
 
             if (ModConfig.SimulateReceivedItemKey.Value.IsDown())
                 DebugItemSimulator.SimulateReceiveNext();
+
+            if (ModConfig.SimulateGadgetItemKey.Value.IsDown())
+                DebugItemSimulator.SimulateReceiveNextGadget();
+
+            if (ModConfig.DumpHeldItemKey.Value.IsDown())
+                DebugHeldItemLookup.LogHeldItem();
+
+            if (ModConfig.DumpCosmeticGadgetsKey.Value.IsDown())
+                DebugPropLookup.DumpCosmeticGadgets();
 
             if (ModConfig.DumpNearbyKey.Value.IsDown())
                 DebugGourdLookup.LogNearby(50);

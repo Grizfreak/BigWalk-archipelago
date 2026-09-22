@@ -322,17 +322,7 @@ namespace BigWalkArchipelago.Core
             // Per-instance MaterialPropertyBlock: captured on the template
             // BEFORE cloning (cf. point 6 at the top of the file), to be
             // explicitly reapplied to the clone further below.
-            var templateRenderers = template.gameObject.GetComponentsInChildren<Renderer>(true);
-            var templatePropertyBlocks = new MaterialPropertyBlock[templateRenderers.Length];
-            for (var i = 0; i < templateRenderers.Length; i++)
-            {
-                if (templateRenderers[i] == null)
-                    continue;
-
-                var block = new MaterialPropertyBlock();
-                templateRenderers[i].GetPropertyBlock(block);
-                templatePropertyBlocks[i] = block;
-            }
+            var templatePropertyBlocks = CapturePropertyBlocks(template.gameObject);
 
             // Workaround for the Mirror pitfall (point 1 at the top of the
             // file): disabling the template before Instantiate makes the
@@ -399,12 +389,7 @@ namespace BigWalkArchipelago.Core
             // (the clone's renderer hierarchy is an exact copy of the
             // template's) — before activation, to avoid even a single frame
             // with the default bare appearance.
-            var cloneRenderers = clone.GetComponentsInChildren<Renderer>(true);
-            for (var i = 0; i < cloneRenderers.Length && i < templatePropertyBlocks.Length; i++)
-            {
-                if (cloneRenderers[i] != null && templatePropertyBlocks[i] != null)
-                    cloneRenderers[i].SetPropertyBlock(templatePropertyBlocks[i]);
-            }
+            ApplyPropertyBlocks(clone, templatePropertyBlocks);
 
             clone.SetActive(true);
 
@@ -574,14 +559,148 @@ namespace BigWalkArchipelago.Core
                 && home.saveableHomeName.ToString().StartsWith("monoument", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static MethodInfo GetPrivatePropertySetter<T>(string propertyName)
+        // Point 6 at the top of the file, factored out: internal rather than
+        // private because GadgetItemSpawner needs the exact same capture
+        // twice over (once when caching its long-lived template, again for
+        // every clone spawned from that template) — Instantiate does not
+        // copy a per-instance MaterialPropertyBlock, unlike every serialized
+        // reference, and skipping this is what a gadget clone coming out
+        // shader-pink/magenta (in-game, 2026-09-22) turned out to be.
+        internal static MaterialPropertyBlock[] CapturePropertyBlocks(GameObject source)
+        {
+            var renderers = source.GetComponentsInChildren<Renderer>(true);
+            var blocks = new MaterialPropertyBlock[renderers.Length];
+            for (var i = 0; i < renderers.Length; i++)
+            {
+                if (renderers[i] == null)
+                    continue;
+
+                var block = new MaterialPropertyBlock();
+                renderers[i].GetPropertyBlock(block);
+                blocks[i] = block;
+            }
+
+            return blocks;
+        }
+
+        // Reapplies blocks captured by CapturePropertyBlocks above, by
+        // index — valid only when target's renderer hierarchy is an exact
+        // copy of the source the blocks were captured from (true of any
+        // clone made via UnityEngine.Object.Instantiate).
+        internal static void ApplyPropertyBlocks(GameObject target, MaterialPropertyBlock[] blocks)
+        {
+            var renderers = target.GetComponentsInChildren<Renderer>(true);
+            for (var i = 0; i < renderers.Length && i < blocks.Length; i++)
+            {
+                if (renderers[i] != null && blocks[i] != null)
+                    renderers[i].SetPropertyBlock(blocks[i]);
+            }
+        }
+
+        // A gourd never needed this: RewardGourd puzzle props are already
+        // loose pickups in vanilla gameplay, never statically batched or
+        // lightmapped. Several of the island's own hand props (megaphone
+        // aside — cf. GadgetItemSpawner) ARE static, baked-lit set dressing,
+        // and Instantiate copies their lightmapIndex as-is — a slot number
+        // into the CURRENT zone's baked lightmap array. GadgetItemSpawner's
+        // template is captured once and kept for the rest of the session,
+        // so that slot number can end up stale (a different zone's lightmap
+        // set, or none at all) well before it is ever cloned again — the
+        // shader then samples nonsense and renders flat magenta (observed
+        // in-game, 2026-09-22: half the gadgets pink, half fine — exactly
+        // the split between static/baked props and already-loose ones).
+        // -1 means "not lightmapped"; falls back to light probes instead.
+        internal static void ClearLightmapReferences(GameObject target)
+        {
+            var renderers = target.GetComponentsInChildren<Renderer>(true);
+            foreach (var renderer in renderers)
+            {
+                if (renderer == null)
+                    continue;
+
+                renderer.lightmapIndex = -1;
+                renderer.realtimeLightmapIndex = -1;
+            }
+        }
+
+        // The actual cause of the pink/magenta clones (found 2026-09-22 via
+        // Ctrl+M/DebugPropLookup.DumpCosmeticGadgets, not the lightmap
+        // theory above, which was ruled out first): a sub-mesh renderer with
+        // `sharedMaterial == null` — e.g. WalkieTalkieProp's own 'WalkieTalkie'
+        // renderer, sitting right alongside four other renderers that all
+        // carry a valid `hhVertexColors` material. Unity draws a materialless
+        // renderer with its built-in magenta error shader.
+        //
+        // Disabling that renderer outright (the first attempt) traded pink
+        // for invisible: measured in-game, this renderer turned out to be
+        // the object's own main body mesh, not decoration — hiding it hid
+        // the whole prop. The shader name is the clue to the real fix:
+        // "VertexColors" means the LOOK lives in the mesh's own baked
+        // per-vertex colour data, not in the material, so any renderer using
+        // that shared material should already display correctly regardless
+        // of which mesh it is drawing — this renderer is missing the
+        // material REFERENCE, not missing colour data. Some vanilla
+        // mechanism evidently assigns it based on the prop's real identity,
+        // which NeutralizeProgression deliberately erases; rather than chase
+        // that mechanism, borrowing whichever valid material a sibling
+        // renderer on the same object already carries is a same-object,
+        // same-shader-family fallback, not a guess at an unrelated asset.
+        internal static void FixMaterialessRenderers(GameObject target)
+        {
+            var renderers = target.GetComponentsInChildren<Renderer>(true);
+
+            Material fallback = null;
+            foreach (var renderer in renderers)
+            {
+                if (renderer != null && renderer.sharedMaterial != null)
+                {
+                    fallback = renderer.sharedMaterial;
+                    break;
+                }
+            }
+
+            if (fallback == null)
+                return;
+
+            foreach (var renderer in renderers)
+            {
+                if (renderer != null && renderer.sharedMaterial == null)
+                    renderer.sharedMaterial = fallback;
+            }
+        }
+
+        // The remaining pink after FixMaterialessRenderers (measured
+        // in-game, 2026-09-22: the walkie-talkie's body came back correct,
+        // its buttons stayed pink) is a second, unrelated mechanism —
+        // `PropertyBlockHelper`, the same generic (not gourd-specific)
+        // component DebugKeyLookup already found on a big key: a plain
+        // MonoBehaviour with `targetRenderer`/`colorSettings[] {
+        // propertyName, color }` and a public `Refresh()` that pushes those
+        // settings into the renderer's MaterialPropertyBlock. Nothing here
+        // calls it for a gadget clone, unlike a gourd (whose own
+        // `ApplyCosmeticColor`/`RefreshCosmeticColor` is a hand-rolled
+        // version of exactly this). Cheap and safe to call unconditionally:
+        // a Prop without one simply yields no components to iterate.
+        internal static void RefreshPropertyBlockHelpers(GameObject target)
+        {
+            var helpers = target.GetComponentsInChildren<PropertyBlockHelper>(true);
+            foreach (var helper in helpers)
+                helper?.Refresh();
+        }
+
+        // Internal rather than private: GadgetItemSpawner (the same clone
+        // technique, generalized to a plain Prop for the island's own hand
+        // props used as filler items) reuses this instead of duplicating the
+        // reflection.
+        internal static MethodInfo GetPrivatePropertySetter<T>(string propertyName)
         {
             return typeof(T)
                 .GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
                 ?.GetSetMethod(nonPublic: true);
         }
 
-        private static void NeutralizeProgression(Prop prop)
+        // Internal rather than private: same reuse as above.
+        internal static void NeutralizeProgression(Prop prop)
         {
             if (prop == null)
                 return;
@@ -664,8 +783,14 @@ namespace BigWalkArchipelago.Core
         // Set by SpawnCosmeticPickup, consumed one tick later by ApRuntime.
         // A single slot rather than a queue: hands hold one thing, so a
         // second gourd arriving before the first is handed over would not
-        // have been picked up anyway.
+        // have been picked up anyway. GadgetItemSpawner shares this same
+        // slot via QueueHandover below rather than keeping a queue of its
+        // own — a gourd and a gadget racing for it in the same tick is a
+        // one-in-a-blue-moon collision on a purely cosmetic hand-over, not
+        // worth a second mechanism.
         private static Prop _pendingHandover;
+
+        internal static void QueueHandover(Prop prop) => _pendingHandover = prop;
 
         // Called from ApRuntime's Update, which already ticks on the host.
         internal static void DrainPendingHandover()

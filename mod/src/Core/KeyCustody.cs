@@ -106,7 +106,17 @@ namespace BigWalkArchipelago.Core
         // A key item arrived. Persisted first, delivered second: the ledger is
         // what survives the world reload, and the key lying at the hub is only
         // this session's copy of it.
-        internal static bool Grant(SaveablePropName propName)
+        //
+        // toPlayer mirrors the same split ApplyGourdItem/ApplyGadgetItem use
+        // (ReceivedItemSpawner.ResolveSpawnPosition, same call underneath):
+        // false for the connection's startup replay, which belongs at the
+        // hub with everything else arriving in that same burst, true for a
+        // key that arrives once play is already under way. Hardcoded to
+        // true before this fix — measured in-game, 2026-09-22: every key in
+        // a 7-key starting inventory landed on the player while the gourds
+        // and gadgets in the SAME burst landed at the hub, because this was
+        // the only one of the three not reading the settled flag.
+        internal static bool Grant(SaveablePropName propName, bool toPlayer)
         {
             if (!NetworkServer.active)
             {
@@ -125,7 +135,7 @@ namespace BigWalkArchipelago.Core
             SaveManager.SetIntValue(KeyPrefix + propName, 1);
             Pending.Add(propName);
 
-            var delivered = TickPending(toPlayer: true);
+            var delivered = TickPending(toPlayer);
             Plugin.Log.LogInfo(
                 $"[{nameof(KeyCustody)}] {propName} granted"
                 + (delivered ? " and delivered." : "; it will be delivered once the world is ready."));

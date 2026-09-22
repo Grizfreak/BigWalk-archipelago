@@ -293,8 +293,12 @@ namespace BigWalkArchipelago.Core
         // the gourd (co-op, 2026-09-20). The netIds matched on both sides,
         // so the object and the message were never in doubt — the question
         // was being put to the wrong field.
+        // Internal rather than private: GadgetSpawnHandler's own settle loop
+        // (same "who is holding this, on either machine's record" question,
+        // for the island's own hand props instead of a gourd) reuses this
+        // rather than duplicating it.
         [HideFromIl2Cpp]
-        private static string FindHolderName(Prop prop)
+        internal static string FindHolderName(Prop prop)
         {
             var players = PlayerCharacter.allPlayerCharacters;
             if (players == null || prop == null)

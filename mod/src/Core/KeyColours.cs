@@ -79,7 +79,20 @@ namespace BigWalkArchipelago.Core
             { SaveablePropName.bigKeyIntro, "#1E1E1E" },
             { SaveablePropName.bigKeyRedZone, "#E03A3A" },
             { SaveablePropName.bigKeyGreenZone, "#3ACF63" },
-            { SaveablePropName.bigKeyBlueZone, "#3A78E0" },
+            // Settled 2026-09-22, after four measured attempts. True blue is
+            // provably unreachable (see the block comment above — the base
+            // mesh colour has ~0 blue, and nothing multiplied OR added
+            // against ~0 blue becomes blue; confirmed by also trying an
+            // additive _EmissionColor, which visibly brightened the key but
+            // still came out orange, meaning emission is gated by the same
+            // near-zero-blue data). Every hue-based attempt (#3A78E0,
+            // #8FC0E0, #6FA8A0, orange #F07E28) either collided with
+            // bigKeyGreenZone's vivid green or abandoned "cool" entirely.
+            // This is the last lever: a near-NEUTRAL tint (R and G almost
+            // equal, instead of G standing above R the way every green
+            // attempt did) reads as grey/steel rather than a clear hue,
+            // which is as close to "cool-toned" as this material can get.
+            { SaveablePropName.bigKeyBlueZone, "#8898A0" },
             { SaveablePropName.bigKeyYellowZone, "#E8C53C" },
         };
 

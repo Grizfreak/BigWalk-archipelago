@@ -10,8 +10,6 @@ namespace BigWalkArchipelago.Core
     // place to modify to change the mapping or exclude other values.
     internal static class GourdRegistry
     {
-        private static readonly Dictionary<SaveablePropName, string> LocationIdsByProp = BuildLocationIds();
-
         // Unlike gourdXxx/valetXxx, big keys are named by their zone of
         // origin (color) while their plinths are named by physical deposit
         // location: no naming-based mapping is derivable. Confirmed by the
@@ -46,6 +44,22 @@ namespace BigWalkArchipelago.Core
             SaveablePropName.gourdScoutTiles,
             SaveablePropName.gourdScoutCounting,
         };
+
+        // Declared only after AbsentFromTheBuild above, and that ordering is
+        // load-bearing, not stylistic: C# runs static field initializers in
+        // textual declaration order, and BuildLocationIds() below reads
+        // AbsentFromTheBuild. Declared before it (as it originally was),
+        // that field is still null at the moment BuildLocationIds() runs,
+        // and `null.Contains(...)` throws a NullReferenceException — which,
+        // being thrown from a static field initializer, becomes a
+        // TypeInitializationException that .NET then rethrows on EVERY
+        // subsequent access to GourdRegistry for the rest of the process,
+        // never re-running the constructor to recover. Measured in-game,
+        // 2026-09-22: reproducible on every connect, silently failing every
+        // key and every gadget item for the rest of that session (gourds
+        // were unaffected only because ApRuntime.Apply's gourd branch
+        // returns before ever touching this class).
+        private static readonly Dictionary<SaveablePropName, string> LocationIdsByProp = BuildLocationIds();
 
         // 3 gourds whose corresponding valet is NOT the naive
         // "gourd"->"valet" substitution: a typo on the game's own side

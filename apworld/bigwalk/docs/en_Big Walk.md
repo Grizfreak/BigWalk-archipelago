@@ -87,7 +87,14 @@ Items:
 - The 7 Radio Music items, each of which starts one station playing
   (optional). They are named after the music itself: the game's dial shows
   numbers and no names, so this is the only place a station is ever named.
-- Postcards, souvenir pebbles and novelty keychains, which do nothing at all.
+- A megaphone, a walkie-talkie, a backpack, a belt, a flare gun (plain,
+  blue, green or yellow), a laser, binoculars, a compass, a folding map, a
+  portable radio, a gourd carton, a torch or X-ray goggles — some of the
+  island's own hand props, dropped near you when you receive one. They are
+  cosmetic only: nothing needs them, and their vanilla copies are removed
+  from the map so they can't also be found lying around for free.
+- A buoy light. Same as above, except its vanilla copies stay in the world
+  — this one is common enough scenery that removing it would be missed.
 
 ## Which items can be in another player's world?
 

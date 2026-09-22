@@ -452,10 +452,35 @@ GAUNTLET_COMPLETE_SYSTEM = "GauntletComplete"
 # readable for the other players in the multiworld.
 
 FILLER_ITEMS: tuple[tuple[str, int], ...] = (
-    ("Postcard", 9_001),
-    ("Souvenir Pebble", 9_002),
-    ("Novelty Keychain", 9_003),
+    ("Megaphone", 9_001),
+    ("Walkie-Talkie", 9_002),
+    ("Backpack", 9_003),
+    ("Belt", 9_004),
+    ("Flare Gun", 9_005),
+    ("Laser", 9_006),
+    ("Binoculars", 9_007),
+    ("Compass", 9_008),
+    ("Folding Map", 9_009),
+    ("Radio", 9_010),
+    ("Gourd Carton", 9_011),
+    ("Torch", 9_012),
+    ("Lamp", 9_013),
+    ("X-Ray Goggles", 9_014),
+    ("Blue Flare Gun", 9_015),
+    ("Green Flare Gun", 9_016),
+    ("Yellow Flare Gun", 9_017),
 )
+"""
+The island's own hand props, cloned in and spawned near the player on
+receipt (mod/src/Core/GadgetItemSpawner.cs) rather than an invented object —
+player decision, 2026-09-22. The order here is load-bearing: the mod derives
+which gadget an id names from its position in this same list
+(ApLocationIds.GadgetItemOrder), not from the name, so re-ordering this tuple
+without a matching mod change silently swaps what two ids grant. Their
+vanilla instances are removed from the map on the mod side for the same
+reason a big key's plinth is emptied on pickup: a filler item must not also
+be findable for free outside the multiworld.
+"""
 
 TRAP_ITEMS: tuple[tuple[str, int], ...] = (
     ("Untied Shoelace", 9_101),

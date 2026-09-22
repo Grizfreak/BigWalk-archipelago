@@ -1,3 +1,5 @@
+using System;
+
 namespace BigWalkArchipelago.Core.Net
 {
     // How many items of the slot's ordered received-items list have already
@@ -23,6 +25,7 @@ namespace BigWalkArchipelago.Core.Net
     {
         private const string CountKey = "ap_items_received";
         private const string GourdCountKey = "ap_gourds_received";
+        private const string GadgetCountKeyPrefix = "ap_gadgets_received_";
         private const string SeedKey = "ap_seed_name";
         private const string SlotKey = "ap_slot_name";
 
@@ -50,6 +53,10 @@ namespace BigWalkArchipelago.Core.Net
             SaveManager.SetStringValue(SlotKey, slotName ?? string.Empty);
             SaveManager.SetIntValue(CountKey, 0);
             SaveManager.SetIntValue(GourdCountKey, 0);
+
+            foreach (GadgetKind kind in Enum.GetValues(typeof(GadgetKind)))
+                SaveManager.SetIntValue(GadgetCountKeyPrefix + kind, 0);
+
             return 0;
         }
 
@@ -90,6 +97,22 @@ namespace BigWalkArchipelago.Core.Net
         internal static void SetGourdsReceived(int count)
         {
             SaveManager.SetIntValue(GourdCountKey, count);
+        }
+
+        // Same shape as GourdsReceived/CountGourdReceived, one counter per
+        // GadgetKind: a filler gadget has no deposit sink at all (there is
+        // nowhere to "spend" a megaphone), so every one ever received is
+        // permanently owed a loose copy somewhere in the world — the count
+        // never decreases. ApRuntime.RestoreLooseGadgets rebuilds
+        // "received minus spawned this session" at every world load, the
+        // same reasoning RestoreLooseGourds already uses for "received
+        // minus deposited".
+        internal static int GadgetsReceived(GadgetKind kind) =>
+            SaveManager.GetIntValue(GadgetCountKeyPrefix + kind, 0, false);
+
+        internal static void CountGadgetReceived(GadgetKind kind)
+        {
+            SaveManager.SetIntValue(GadgetCountKeyPrefix + kind, GadgetsReceived(kind) + 1);
         }
     }
 }

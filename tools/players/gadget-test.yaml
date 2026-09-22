@@ -1,0 +1,52 @@
+# The filler-gadget reconciliation pass (2026-09-22): every one of the 17
+# gadgets, every one of the 7 big keys, and a few gourds start in inventory
+# so the received ledger (ApItemCursor.GadgetsReceived per kind) has real
+# data to reconcile from the very first connect, before anything is sent by
+# hand. The point of this room is watching what happens across a restart —
+# `RestoreLooseGadgets`/`RestoreLooseGourds` respawning what a reload just
+# destroyed — so the interesting moment is never the first connect, it's
+# the second one.
+#
+# A fresh slot name, same reasoning as every other test yaml here:
+# `ap_reported_*`/`ap_gadgets_received_*` are not scoped to a seed, and
+# reusing a name would drag along another room's ledger.
+#
+# start_with_tutorial_key left at its default (false): every key is handed
+# over as a normal starting INVENTORY item below instead, so the key
+# reconciliation (KeyCustody) is exercised the same way the gadget one is,
+# rather than going through the separate precollected-feature path.
+name: GadgetWalk
+game: Big Walk
+Big Walk:
+  goal: deposits
+  deposit_goal_amount: 5
+  deposit_locations: all
+  green_dome_deposits: excluded
+  radio_station_checks: true
+  radio_station_items: true
+  start_inventory:
+    Gourd: 4
+    Drawbridge Key: 1
+    Map Room Key: 1
+    Chairlift Key: 1
+    Train Key: 1
+    Tunnels Key: 1
+    Dam Key: 1
+    Green Dome Key: 1
+    Megaphone: 1
+    Walkie-Talkie: 1
+    Backpack: 1
+    Belt: 1
+    Flare Gun: 1
+    Laser: 1
+    Binoculars: 1
+    Compass: 1
+    Folding Map: 1
+    Radio: 1
+    Gourd Carton: 1
+    Torch: 1
+    Lamp: 1
+    X-Ray Goggles: 1
+    Blue Flare Gun: 1
+    Green Flare Gun: 1
+    Yellow Flare Gun: 1

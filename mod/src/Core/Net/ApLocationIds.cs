@@ -177,6 +177,49 @@ namespace BigWalkArchipelago.Core.Net
             return TryResolveProp(itemId - _base, out propName);
         }
 
+        // Filler gadget items live at a flat B + 9001..9005, exactly the
+        // ids data.py's FILLER_ITEMS assigns them directly (no separate
+        // offset in slot_data, unlike radio/deposit/cut/key — these ids
+        // were never anything but B + a fixed number, even back when the
+        // filler was the inert Postcard/Pebble/Keychain trio). The order
+        // here has to match data.py's FILLER_ITEMS order exactly, since the
+        // apworld and the mod each derive it independently rather than one
+        // shipping a table to the other.
+        private const long GadgetItemBaseOffset = 9_001;
+
+        private static readonly GadgetKind[] GadgetItemOrder =
+        {
+            GadgetKind.Megaphone,
+            GadgetKind.WalkieTalkie,
+            GadgetKind.Backpack,
+            GadgetKind.Belt,
+            GadgetKind.FlareGun,
+            GadgetKind.Laser,
+            GadgetKind.Binoculars,
+            GadgetKind.Compass,
+            GadgetKind.FoldingMap,
+            GadgetKind.Radio,
+            GadgetKind.GourdCarton,
+            GadgetKind.Torch,
+            GadgetKind.Lamp,
+            GadgetKind.XrayGoggles,
+            GadgetKind.FlareGunBlue,
+            GadgetKind.FlareGunGreen,
+            GadgetKind.FlareGunYellow,
+        };
+
+        internal static bool TryResolveGadgetItem(long itemId, out GadgetKind kind)
+        {
+            kind = default;
+
+            var value = itemId - _base - GadgetItemBaseOffset;
+            if (value < 0 || value >= GadgetItemOrder.Length)
+                return false;
+
+            kind = GadgetItemOrder[(int)value];
+            return true;
+        }
+
         private static bool TryResolveProp(long value, out SaveablePropName propName)
         {
             propName = SaveablePropName.notSavable;

@@ -59,6 +59,9 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<string> KeyColorProperty;
         internal static ConfigEntry<KeyboardShortcut> DumpPropsKey;
         internal static ConfigEntry<KeyboardShortcut> DumpGourdRosterKey;
+        internal static ConfigEntry<KeyboardShortcut> SimulateGadgetItemKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpHeldItemKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpCosmeticGadgetsKey;
 
         internal static void Bind(ConfigFile file)
         {
@@ -77,8 +80,8 @@ namespace BigWalkArchipelago
             CosmeticGourdColor = file.Bind(
                 "Archipelago",
                 "GourdColor",
-                "#FFA62B",
-                "Colour of the gourds received from Archipelago, as an HTML hex string (e.g. #FFA62B). Applied through the game's own variant-challenge colouring, so they stand out from the gourds sitting in puzzles. Leave empty to keep whatever the cloned template looked like.");
+                "#805020",
+                "Colour of the gourds received from Archipelago, as an HTML hex string (e.g. #805020). Applied through the game's own variant-challenge colouring, so they stand out from the gourds sitting in puzzles. Keep every channel clearly below max (0xFF): measured in-game 2026-09-22, the original default #FFA62B (R at 0xFF exactly) rendered every received gourd as a featureless glowing white blob, no gourd shape visible at all — bloom/overexposure from this same variant-challenge effect, not a tuning issue with the hue. #805020 (no channel above 0x80) renders correctly. Leave empty to keep whatever the cloned template looked like.");
 
             ColorBigKeys = file.Bind(
                 "Archipelago",
@@ -311,8 +314,8 @@ namespace BigWalkArchipelago
             ForceBigKeyDoorKey = file.Bind(
                 "Debug",
                 "ForceBigKeyDoorKey",
-                new KeyboardShortcut(KeyCode.D, KeyCode.LeftControl),
-                "Opens a big-key door without the key, by driving the TrackedPeckState the key itself carries in taggedPinSystems for its plinth's PropGroup — which is what Prop.SetPinDirectControlSystem does when a key goes in, and what a received feature item will do instead. Takes the key whose plinth is nearest unless BigKeyDoorName says otherwise, and prints all seven with their distances either way. Letter + LeftControl because that is the only key format proven to register reliably in this game (only has an effect if Debug.Enabled is active).");
+                new KeyboardShortcut(KeyCode.U, KeyCode.LeftControl),
+                "Opens a big-key door without the key, by driving the TrackedPeckState the key itself carries in taggedPinSystems for its plinth's PropGroup — which is what Prop.SetPinDirectControlSystem does when a key goes in, and what a received feature item will do instead. Takes the key whose plinth is nearest unless BigKeyDoorName says otherwise, and prints all seven with their distances either way. Moved off Ctrl+D (player report, 2026-09-22: fired on its own during ordinary play) — D is a WASD movement key, so Ctrl+D collides with crouch-while-moving-right in this game's own controls. Letter + LeftControl otherwise, since that is the only key format proven to register reliably in this game — but never a WASD letter specifically, for the same reason (only has an effect if Debug.Enabled is active).");
 
             GrantBigKeyItemKey = file.Bind(
                 "Debug",
@@ -343,6 +346,24 @@ namespace BigWalkArchipelago
                 "DumpGourdRosterKey",
                 new KeyboardShortcut(KeyCode.V, KeyCode.LeftControl),
                 "Lists every RewardGourd loaded around you with its saveablePropName and whether it is a purple 'variant challenge' gourd. Written to settle which puzzles sit behind the chairlift: the world's logic assumes the island is open apart from the ending, and a puzzle that is not would make some seeds unbeatable. Press it in the gated zone and again somewhere plainly open — the difference is the set that needs its own region (only has an effect if Debug.Enabled is active).");
+
+            SimulateGadgetItemKey = file.Bind(
+                "Debug",
+                "SimulateGadgetItemKey",
+                new KeyboardShortcut(KeyCode.I, KeyCode.LeftControl),
+                "Simulates receiving the next filler gadget item (Megaphone, Walkie-Talkie, Backpack, Belt, Flare Gun, one per press, cycling), via ItemApplier.ApplyGadgetItem — same code path a real Archipelago item takes, without a network connection. Tests GadgetItemSpawner's clone/spawn in isolation (only has an effect if Debug.Enabled is active).");
+
+            DumpHeldItemKey = file.Bind(
+                "Debug",
+                "DumpHeldItemKey",
+                new KeyboardShortcut(KeyCode.H, KeyCode.LeftControl),
+                "Logs the GameObject name, guid, saveablePropName and propGroups of whatever the local player is currently holding — for identifying an object by description alone, without needing to know its prefab name first (only has an effect if Debug.Enabled is active).");
+
+            DumpCosmeticGadgetsKey = file.Bind(
+                "Debug",
+                "DumpCosmeticGadgetsKey",
+                new KeyboardShortcut(KeyCode.M, KeyCode.LeftControl),
+                "Finds every cosmetic gadget clone currently loose in the scene (the ones a filler item spawns) and logs each renderer's actual shader/material/lightmapIndex — for diagnosing the pink/magenta clones directly rather than through a held item, whose visible mesh turned out not to live under prop.gameObject at all (only has an effect if Debug.Enabled is active).");
         }
     }
 }

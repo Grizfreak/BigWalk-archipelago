@@ -45,6 +45,28 @@ namespace BigWalkArchipelago.Core
             return true;
         }
 
+        // A filler gadget item (megaphone, walkie-talkie, backpack, belt,
+        // flare gun) received over the AP network. Same shape as
+        // ApplyGourdItem — a cosmetic spawn and nothing else, no SaveManager
+        // write, no location tied to it — because that is all these are:
+        // pure filler that happens to be one of the island's own props
+        // rather than an invented Postcard. See GadgetItemSpawner.
+        internal static bool ApplyGadgetItem(GadgetKind kind, bool toPlayer)
+        {
+            if (!NetworkServer.active)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(ItemApplier)}] Ignored: {kind} received while not host.");
+                return false;
+            }
+
+            if (GadgetItemSpawner.SpawnCosmeticPickup(kind, toPlayer) == null)
+                return false;
+
+            Plugin.Log.LogInfo($"[{nameof(ItemApplier)}] Gadget item applied ({kind}, cosmetic spawn only).");
+            return true;
+        }
+
         // A big key item, under either of the two models this mod supports.
         //
         // The one in play today is the feature: what arrives from Archipelago

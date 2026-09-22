@@ -82,6 +82,19 @@ namespace BigWalkArchipelago.Core.Net
         private static float _restoreTimer;
         private static float _connectedAt;
 
+        // Loose-gadget reconciliation (see RestoreLooseGadgets) — same
+        // shape as the gourd fields just above, minus a deposit sink: a
+        // filler gadget has nowhere to be "spent", so what is owed is
+        // simply "received minus spawned this session" per kind, forever,
+        // never reduced by anything the player does with the ones already
+        // out there. Player request, 2026-09-22: "you should keep them,
+        // and spawn them if restarting a room, as other gourds and keys
+        // stuff."
+        private static readonly Dictionary<GadgetKind, int> _gadgetsSpawnedThisSession = new();
+        private static bool _looseGadgetsRestored;
+        private static bool _looseGadgetsRestoreBlockedLogged;
+        private static float _gadgetRestoreTimer;
+
         private static int _lastReportedDepositCount = -1;
         private static bool _goalSent;
         private static float _retryTimer;
@@ -319,6 +332,7 @@ namespace BigWalkArchipelago.Core.Net
                 // per GourdRestoreInterval and returns immediately the rest
                 // of the time.
                 RestoreLooseGourds();
+                RestoreLooseGadgets();
             }
 
             _pollTimer -= Time.unscaledDeltaTime;
@@ -370,6 +384,15 @@ namespace BigWalkArchipelago.Core.Net
             _looseGourdsRestoredCount = 0;
             _gourdsSpawnedThisSession = 0;
             _restoreTimer = 0f;
+
+            // Same reasoning, for the filler gadgets: none of the ones
+            // spawned in the previous world survive this one, so the
+            // reconciliation has to run again from a clean "0 spawned this
+            // session" for every kind.
+            _gadgetsSpawnedThisSession.Clear();
+            _looseGadgetsRestored = false;
+            _looseGadgetsRestoreBlockedLogged = false;
+            _gadgetRestoreTimer = 0f;
         }
 
         private static bool HasSaveChanged()
@@ -666,6 +689,68 @@ namespace BigWalkArchipelago.Core.Net
             _looseGourdsRestoredCount++;
         }
 
+        // Same reconciliation as RestoreLooseGourds, minus the deposit
+        // subtraction: a filler gadget has nowhere to be spent, so "owed"
+        // is simply the received ledger minus what this session has already
+        // spawned, per kind. Player request, 2026-09-22 ("keep them, and
+        // spawn them if restarting a room, as other gourds and keys
+        // stuff"). Paced the same way and reusing the same interval config
+        // — this is cosmetic filler, not worth a setting of its own.
+        private static void RestoreLooseGadgets()
+        {
+            if (_looseGadgetsRestored || Connection.HasPendingItems)
+                return;
+
+            if (Time.unscaledTime - _connectedAt < ReplayGraceSeconds)
+                return;
+
+            _gadgetRestoreTimer -= Time.unscaledDeltaTime;
+            if (_gadgetRestoreTimer > 0f)
+                return;
+
+            GadgetKind? next = null;
+            var allSettled = true;
+
+            foreach (GadgetKind kind in Enum.GetValues(typeof(GadgetKind)))
+            {
+                var spawnedThisSession = _gadgetsSpawnedThisSession.TryGetValue(kind, out var n) ? n : 0;
+                var owed = ApItemCursor.GadgetsReceived(kind) - spawnedThisSession;
+                if (owed <= 0)
+                    continue;
+
+                allSettled = false;
+                next = kind;
+                break;
+            }
+
+            if (allSettled)
+            {
+                _looseGadgetsRestored = true;
+                return;
+            }
+
+            _gadgetRestoreTimer = Mathf.Max(0f, ModConfig.CosmeticGourdRestoreInterval.Value);
+
+            // toPlayer: false, same reasoning as the gourd restock — the
+            // session-start catch-up belongs at the hub, not raining on
+            // whoever just loaded in wherever they happen to be standing.
+            if (!ItemApplier.ApplyGadgetItem(next.Value, toPlayer: false))
+            {
+                if (!_looseGadgetsRestoreBlockedLogged)
+                {
+                    _looseGadgetsRestoreBlockedLogged = true;
+                    Plugin.Log.LogInfo(
+                        $"[{nameof(ApRuntime)}] Cannot restore the owed {next.Value} yet (the hub's spawn point is "
+                        + "probably not loaded); still trying.");
+                }
+
+                return;
+            }
+
+            _gadgetsSpawnedThisSession[next.Value] =
+                (_gadgetsSpawnedThisSession.TryGetValue(next.Value, out var count) ? count : 0) + 1;
+        }
+
         private static void DrainIncomingItems()
         {
             var appliedThisFrame = 0;
@@ -682,6 +767,13 @@ namespace BigWalkArchipelago.Core.Net
                 if (isGourd)
                     _gourdsSeenThisSession++;
 
+                // Same "what is this item" question as isGourd above, for
+                // the filler gadgets — resolved here too (not just inside
+                // Apply) because the received ledger has to be counted
+                // exactly once per item, on the same "not a replay" gate
+                // the gourd counter uses.
+                var isGadget = ApLocationIds.TryResolveGadgetItem(item.ItemId, out var gadgetKind);
+
                 // Already materialized into this save by an earlier session:
                 // this is the server's replay, not a new item. Skipping it is
                 // the entire reason ApItemCursor exists. Skipped items are
@@ -695,6 +787,8 @@ namespace BigWalkArchipelago.Core.Net
                 // good on it.
                 if (isGourd)
                     ApItemCursor.CountGourdReceived();
+                else if (isGadget)
+                    ApItemCursor.CountGadgetReceived(gadgetKind);
 
                 try
                 {
@@ -706,6 +800,14 @@ namespace BigWalkArchipelago.Core.Net
                         // likely). Re-arm the reconciler so it puts this
                         // gourd back rather than leaving the player short.
                         _looseGourdsRestored = false;
+                    else if (isGadget && materialized)
+                        _gadgetsSpawnedThisSession[gadgetKind] =
+                            (_gadgetsSpawnedThisSession.TryGetValue(gadgetKind, out var count) ? count : 0) + 1;
+                    else if (isGadget)
+                        // Same reasoning as the gourd branch: the item is
+                        // owed regardless of whether the spawn landed, so
+                        // re-arm the reconciler to make good on it.
+                        _looseGadgetsRestored = false;
                 }
                 catch (Exception ex)
                 {
@@ -746,9 +848,11 @@ namespace BigWalkArchipelago.Core.Net
                 return ItemApplier.ApplyGourdItem(toPlayer: _looseGourdsRestored);
 
             // The KEY before the DOOR, because the two ranges are one offset
-            // apart and a key id would otherwise never be reached.
+            // apart and a key id would otherwise never be reached. Same
+            // settled flag as the gourd above: the two arrive in the same
+            // startup burst and belong at the same place during it.
             if (ApLocationIds.TryResolveKeyItem(itemId, out var keyName))
-                return KeyCustody.Grant(keyName);
+                return KeyCustody.Grant(keyName, toPlayer: _looseGourdsRestored);
 
             if (ApLocationIds.TryResolveBigKeyItem(itemId, out var propName))
                 return ItemApplier.ApplyBigKeyItem(propName);
@@ -760,8 +864,17 @@ namespace BigWalkArchipelago.Core.Net
             if (ApLocationIds.TryResolveRadioItem(itemId, out var station))
                 return RadioStations.Grant(station);
 
-            // Filler, traps and anything a newer apworld invents: no effect,
-            // by design. Logged rather than silent so a genuinely unhandled
+            // A filler gadget item (megaphone, walkie-talkie, backpack,
+            // belt, flare gun) — same toPlayer split as the gourd above,
+            // and for the same reason: the startup replay belongs at the
+            // hub, a live arrival belongs with the player. Its own settled
+            // flag, not the gourd one: the two reconciliations run
+            // independently and can finish at different times.
+            if (ApLocationIds.TryResolveGadgetItem(itemId, out var gadgetKind))
+                return ItemApplier.ApplyGadgetItem(gadgetKind, toPlayer: _looseGadgetsRestored);
+
+            // Traps and anything a newer apworld invents: no effect, by
+            // design. Logged rather than silent so a genuinely unhandled
             // item is visible in the log instead of looking like a bug in the
             // multiworld.
             Plugin.Log.LogInfo($"[{nameof(ApRuntime)}] Received '{item.ItemName}' ({itemId}): no in-game effect.");

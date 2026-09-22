@@ -55,6 +55,8 @@ namespace BigWalkArchipelago
             AddComponent<Core.SecondEndingSphereUnlocker>();
             AddComponent<Core.CosmeticMonumentFillTracker>();
             AddComponent<Core.CosmeticGourdSpawnHandler>();
+            AddComponent<Core.VanillaGadgetRemover>();
+            AddComponent<Core.GadgetSpawnHandler>();
             AddComponent<Core.StaleHeldPropReleaser>();
 
             if (ModConfig.DebugModeEnabled.Value)

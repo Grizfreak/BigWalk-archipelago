@@ -33,6 +33,14 @@ namespace BigWalkArchipelago.Debug
         // worth printing in full.
         private const int DetailPerName = 2;
 
+        // A lamp is plausibly pure scenery — no guid, no useHeldSwitch, not a
+        // walkie-talkie — which the candidate filter below would otherwise
+        // treat as indistinguishable from the hundreds of PegTile/foldingChair
+        // entries that really are just scenery. Named substrings widen the
+        // filter for exactly this case (player request, 2026-09-22: find a
+        // lamp and a "ray-x gun" that two full-radius dumps never turned up).
+        private static readonly string[] ExtraNameHints = { "lamp", "ray", "torch", "light" };
+
         internal static void Dump()
         {
             Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}] === prop inventory ===");
@@ -75,10 +83,12 @@ namespace BigWalkArchipelago.Debug
                 var isWalkieTalkie = prop.radioVoiceAssigner != null;
                 var hasGuid = !string.IsNullOrEmpty(prop.savablePropGuid);
                 var isUsable = prop.useHeldSwitch != null;
+                var nameHints = ContainsAnyHint(prop.name);
 
-                // A prop that does nothing, has no identity and is not a
-                // walkie-talkie is scenery. There are hundreds of those.
-                if (!isWalkieTalkie && !hasGuid && !isUsable)
+                // A prop that does nothing, has no identity, is not a
+                // walkie-talkie and doesn't even look the part by name is
+                // scenery. There are hundreds of those.
+                if (!isWalkieTalkie && !hasGuid && !isUsable && !nameHints)
                     continue;
 
                 candidates++;
@@ -120,6 +130,72 @@ namespace BigWalkArchipelago.Debug
                 + (candidates == 0 ? " Stand somewhere with objects around and press again." : string.Empty));
 
             Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}] === end of prop inventory ===");
+        }
+
+        private static bool ContainsAnyHint(string name)
+        {
+            foreach (var hint in ExtraNameHints)
+            {
+                if (name.Contains(hint, System.StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
+        }
+
+        // Added 2026-09-22: Ctrl+H's "what am I holding" dump came back with
+        // 0 renderers on BOTH a broken and a working gadget clone — while
+        // held, a prop's visible mesh apparently lives on a different
+        // transform than prop.gameObject entirely, so that test was pointed
+        // at the wrong object the whole time. This instead finds the actual
+        // ground clones (the ones the screenshot showed pink) directly, by
+        // the same name suffix ReceivedItemSpawner/GadgetItemSpawner tag
+        // every cosmetic spawn with, and dumps their renderers for real.
+        internal static void DumpCosmeticGadgets()
+        {
+            Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}] === cosmetic gadget clones ===");
+
+            var all = UnityEngine.Object.FindObjectsByType<Prop>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (all == null)
+            {
+                Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}] No props loaded.");
+                return;
+            }
+
+            var found = 0;
+            foreach (var prop in all)
+            {
+                if (prop == null || prop.gameObject == null
+                    || !prop.gameObject.name.Contains(BigWalkArchipelago.Core.ReceivedItemSpawner.CosmeticNameSuffix, System.StringComparison.Ordinal))
+                    continue;
+
+                found++;
+                Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}]   '{prop.gameObject.name}' | active={prop.gameObject.activeInHierarchy}");
+
+                var renderers = prop.gameObject.GetComponentsInChildren<Renderer>(true);
+                Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}]     {renderers.Length} renderer(s):");
+                foreach (var renderer in renderers)
+                {
+                    if (renderer == null)
+                        continue;
+
+                    var sharedMaterial = renderer.sharedMaterial;
+                    var materialName = sharedMaterial != null ? sharedMaterial.name : "<null>";
+                    var shaderName = sharedMaterial != null && sharedMaterial.shader != null
+                        ? sharedMaterial.shader.name
+                        : "<no shader>";
+
+                    var block = new MaterialPropertyBlock();
+                    renderer.GetPropertyBlock(block);
+
+                    Plugin.Log.LogInfo(
+                        $"[{nameof(DebugPropLookup)}]       '{renderer.gameObject.name}' | material={materialName} | shader={shaderName}"
+                        + $" | propertyBlockEmpty={block.isEmpty} | lightmapIndex={renderer.lightmapIndex} | enabled={renderer.enabled}");
+                }
+            }
+
+            Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}] {found} cosmetic clone(s) found.");
+            Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}] === end of cosmetic gadget clones ===");
         }
     }
 }

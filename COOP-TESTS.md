@@ -213,6 +213,99 @@ branches on slot_data before doing anything.
 
 ---
 
+## Filler gadgets — untested in co-op (added 2026-09-22)
+
+*Everything below was built and exercised solo today (see `NEXT-SESSION.md`
+for the day's fuller account): 17 filler gadgets, their vanilla-instance
+removal, their persistence across a world reload, plus fixes to key
+spawn-position and two colour bugs. None of it has run with a second player.
+Same shape as the section above — `GadgetItemSpawner`/`GadgetSpawnHandler`
+were written by deliberately mirroring `ReceivedItemSpawner`/
+`CosmeticGourdSpawnHandler`'s already-proven co-op patterns, but "mirrors a
+pattern that worked" is a reasoned prediction, not a measurement.*
+
+### 10. A gadget received by the host, seen by the guest
+
+Host receives a filler gadget (`Ctrl+I` on the host cycles through all 17).
+Guest watches the hub.
+
+- **Pass:** the guest sees it appear, correctly coloured/shaped (not the
+  pink/magenta or invisible states chased and fixed solo today), with normal
+  physics — not hanging in mid-air.
+- **Basis for expecting this to work:** `GadgetSpawnHandler` is a structural
+  copy of `CosmeticGourdSpawnHandler` (own `RegisterSpawnHandler` per
+  `GadgetKind`'s assetId, own `SetLoose()` call on the guest's own copy,
+  deferred a frame). If it fails the same way the gourd once did — correct
+  netId, wrong physics — the fix has the same precedent already applied here
+  in `GadgetSpawnHandler.DrainPendingLoose`.
+- **Also check:** does the guest's OWN locally-built clone come out correctly
+  coloured? The three render fixes (`ClearLightmapReferences`,
+  `FixMaterialessRenderers`, `RefreshPropertyBlockHelpers`) run inside
+  `GadgetItemSpawner.BuildNeutralizedClone`, which `GadgetSpawnHandler.Spawn`
+  calls on the guest's machine too — so in principle yes, but this was only
+  ever measured on the host's own screen.
+
+### 11. Vanilla gadget removal, seen by the guest
+
+At world load, `VanillaGadgetRemover` destroys every vanilla instance of the
+17 gadget prefabs (host-authoritative `NetworkServer.Destroy`, chosen
+specifically because a plain `SetActive(false)` does not replicate — see the
+comments in `GadgetItemSpawner.cs`).
+
+- **Pass:** the guest's world is also clear of them — no megaphones,
+  walkie-talkies, etc. lying around as scenery, same as the host's.
+- **Expected to pass:** `NetworkServer.Destroy` is a proper networked call,
+  unlike the `SetActive` it deliberately avoids. Still unverified with a
+  second machine watching at the moment of world load.
+- **The Lamp exception:** `BuoyLight` is the one kind left in the world on
+  purpose (player decision). Confirm the guest still sees buoy lights too,
+  not just the host.
+
+### 12. Gadget persistence across a world reload, with a guest present
+
+Host receives several gadgets, then the **guest** disconnects/rejoins, or the
+world reloads with both connected.
+
+- **Pass:** the reconciliation (`RestoreLooseGadgets`, same shape as the
+  gourd one) runs on the host and the respawned gadgets appear for the guest
+  too, same as test 10.
+- This is the solo-confirmed "keep them, spawn them on restart" feature
+  (2026-09-22) meeting a second machine for the first time.
+
+### 13. Key spawn position, seen by the guest (fixed today)
+
+`KeyCustody.Grant` no longer hardcodes `toPlayer: true` — it now reads the
+same settled flag as gourds, so keys arriving during the startup burst land
+at the hub instead of on the player. Host receives several keys at once
+(e.g. starting inventory). Guest watches.
+
+- **Pass:** the guest also sees the keys land at the hub, not converge on
+  the host's position.
+- Untested with a second machine — the fix was verified solo only.
+
+### 14. Key and gourd colours, seen by the guest (existing prediction D,
+    plus today's repaints)
+
+Prediction D from the section above still applies, now with three additional
+wrinkles from today:
+
+- The blue key's colour was repainted **twice** today (ending on a
+  near-neutral grey/steel, `#8898A0`) after two other attempts read as green
+  on the host's own screen. If colour is local per machine (prediction D says
+  it is), the guest needs their own separate look before this can be called
+  settled for real.
+- The gourd colour default changed from `#FFA62B` (confirmed today to render
+  as a featureless glowing white blob — bloom/overexposure, not a hue
+  problem) to `#805020`. Confirm the guest's own gourd clone also renders
+  correctly and not as a blob — this is a per-machine `MaterialPropertyBlock`
+  write, so nothing guarantees the fix looks the same on a different GPU/
+  display without checking.
+- If prediction D turns out true (the guest sees keys plain yellow), that is
+  now a bigger loss than it was solo: seven keys are hard enough to tell
+  apart already, and the fixes above assume the tint is visible at all.
+
+---
+
 ## What to do with the results
 
 Record them in `mod/reverse-engineering-notes.md` under co-op, and update

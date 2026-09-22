@@ -115,7 +115,7 @@ nothing is listening for.
 | Features (Drawbridge, Map Room, Chairlift, Train, Tunnels, Dam, Green Dome) | `B + (int)SaveablePropName` (300–306) | 6 or 7 |
 | Big Keys (`<Feature> Key`) | `B + 4000 + (int)SaveablePropName` | 6 or 7 |
 | Radio Music | `B + 1000 + (int)SavableSystem` (30–36) | 7, or 0 when `radio_station_items` is false |
-| Filler (Postcard, Souvenir Pebble, Novelty Keychain) | 8609001–8609003 | rest of the pool |
+| Filler (Megaphone, Walkie-Talkie, Backpack, Belt, Flare Gun, Laser, Binoculars, Compass, Folding Map, Radio, Gourd Carton, Torch, Lamp, X-Ray Goggles, Blue/Green/Yellow Flare Gun) | 8609001–8609017 | rest of the pool |
 | Trap (Untied Shoelace) | 8609101 | 0 by default |
 
 What to do on receipt:
@@ -143,9 +143,17 @@ What to do on receipt:
 - **A Radio Music item** → `RadioStations.Grant(system)`, where `system` comes back
   from `id - B - 1000`. Records the grant in the save and starts the music.
   See §11 for why it needs both halves.
-- **Anything else, known or unknown** → ignore silently. Filler has no effect
-  by design, traps have no implementation yet, and an unknown id is a newer
-  apworld talking to an older mod.
+- **A filler gadget item** → `ItemApplier.ApplyGadgetItem(kind, toPlayer: true)`,
+  where `kind` comes back from `id - B - 9001` indexing into a fixed order
+  (`GadgetItemSpawner`/`ApLocationIds.GadgetItemOrder`) that has to match
+  `FILLER_ITEMS`' own order exactly, since neither side ships the other a
+  table. Same cosmetic-spawn-only shape as a gourd — no `SaveManager` write,
+  no location — cloned from a template captured locally on each machine
+  before the mod removes every vanilla instance of that prop from the map
+  (§4 above, `VanillaGadgetRemover`).
+- **Anything else, known or unknown** → ignore silently. A trap has no
+  implementation yet, and an unknown id is a newer apworld talking to an
+  older mod.
 
 Note that a Radio Music item's id is the same number as its location id, exactly
 as a big key's is. Archipelago keeps the two namespaces apart, and reusing the
@@ -223,6 +231,28 @@ Two details that are not optional:
   written by a build that kept no count at all. That means waiting for the
   replay to arrive and go quiet before reconciling; an empty queue right
   after connecting means "not yet", not "nothing".
+
+### Filler gadgets get the same treatment, minus the deposit sink
+
+Player request, 2026-09-22: a filler gadget (megaphone, walkie-talkie, …)
+should survive a world reload the same way a gourd does, not just the first
+time it is received. Same shape as the gourd ledger, one counter per
+`GadgetKind` (`SaveManager["ap_gadgets_received_<kind>"]`), counted the same
+way — before the item is applied, regardless of whether the spawn actually
+lands. The only real difference is that a filler gadget has no deposit sink
+at all (there is nowhere to "spend" a megaphone), so the reconciliation
+drops the middle term entirely:
+
+```
+loose gadgets to spawn (per kind) = that kind ever received
+                                   - that kind already spawned this session
+```
+
+Meaning every filler gadget ever received is owed a loose copy somewhere in
+the world, forever, at every session start — there is no equivalent of a
+monument absorbing it. This is intentionally simpler than the gourd ledger:
+no equivalent of the "rebuild from replay" repair, since there is no legacy
+save that could have received a filler gadget before this counter existed.
 
 ## 6. Reporting the goal
 

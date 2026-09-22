@@ -117,7 +117,7 @@ namespace BigWalkArchipelago.Debug
                 Plugin.Log.LogInfo(
                     $"[{nameof(DebugBigKeyDoorForce)}] Granting the KEY {candidate.PropName} "
                     + $"(plinth {candidate.HomeName}); its door is a separate item.");
-                KeyCustody.Grant(candidate.PropName);
+                KeyCustody.Grant(candidate.PropName, toPlayer: true);
                 return;
             }
 

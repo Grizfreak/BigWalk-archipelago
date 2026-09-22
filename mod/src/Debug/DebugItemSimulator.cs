@@ -1,4 +1,5 @@
 using BigWalkArchipelago.Core;
+using BigWalkArchipelago.Core.Net;
 
 namespace BigWalkArchipelago.Debug
 {
@@ -42,6 +43,29 @@ namespace BigWalkArchipelago.Debug
             Plugin.Log.LogInfo(
                 $"[{nameof(DebugItemSimulator)}] Simulating item reception (targeted): {propName}");
             Dispatch(propName);
+        }
+
+        // Cycles through every GadgetKind, one per press, so a single key can
+        // exercise all five filler gadgets across a session without needing
+        // one binding each.
+        private static int _nextGadgetIndex;
+        private static readonly GadgetKind[] GadgetKinds = (GadgetKind[])System.Enum.GetValues(typeof(GadgetKind));
+
+        internal static void SimulateReceiveNextGadget()
+        {
+            var kind = GadgetKinds[_nextGadgetIndex];
+            _nextGadgetIndex = (_nextGadgetIndex + 1) % GadgetKinds.Length;
+
+            Plugin.Log.LogInfo(
+                $"[{nameof(DebugItemSimulator)}] Simulating item reception: {kind}");
+
+            // Counted the same way a real item is (ApRuntime.DrainIncomingItems),
+            // not skipped: without this, a simulated gadget never enters the
+            // received ledger, so pressing this key could never demonstrate
+            // the persistence-across-reload it exists to test (player
+            // request, 2026-09-22).
+            ApItemCursor.CountGadgetReceived(kind);
+            ItemApplier.ApplyGadgetItem(kind, toPlayer: true);
         }
 
         // A gourd simulated via a specific SaveablePropName (gourdXxx) no
