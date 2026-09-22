@@ -1,35 +1,35 @@
-﻿<#
+<#
 .SYNOPSIS
-    Construit le mod et le déploie dans toutes les installations du jeu
-    connues, puis vérifie qu'elles portent bien le même binaire.
+    Builds the mod, deploys it to every known installation of the game, and
+    checks that they all carry the same binary.
 
 .DESCRIPTION
-    Remplace la boucle « package-mod.ps1 → envoyer le zip → l'autre joueur
-    l'installe », qui a produit trois tests faussés en un week-end : à
-    chaque fois, l'invité tournait sur un build antérieur et reproduisait
-    un bug déjà corrigé. Le dossier de la seconde machine étant accessible
-    en réseau local, les deux côtés se déploient désormais ensemble.
+    Replaces the "package-mod.ps1 -> send the zip -> the other player
+    installs it" loop, which produced three wasted tests in one weekend:
+    every time, the guest was running an older build and reproducing a bug
+    that had already been fixed. The second machine's folder is reachable
+    over the local network, so both sides are now deployed together.
 
-    L'empreinte SHA-256 affichée à la fin n'est pas décorative : c'est le
-    seul moyen de savoir que les deux joueurs exécutent réellement le même
-    code avant de mesurer quoi que ce soit. Deux lignes identiques, et un
-    écart de comportement entre les deux machines est un vrai bug ; deux
-    lignes différentes, et il n'y a rien à conclure.
+    The SHA-256 fingerprint printed at the end is not decoration: it is the
+    only way to know that both players are really running the same code
+    before measuring anything. Two identical lines, and a difference in
+    behaviour between the two machines is a real bug; two different lines,
+    and there is nothing to conclude.
 
-    `package-mod.ps1` reste nécessaire pour quelqu'un dont le dossier n'est
-    pas accessible : il embarque BepInEx, ce que ce script ne fait pas.
+    `package-mod.ps1` is still needed for anyone whose folder is not
+    reachable: it carries BepInEx, which this script does not.
 
 .PARAMETER Configuration
-    Configuration de build (Debug par défaut : c'est celle qui est testée).
+    Build configuration (Debug by default: it is the one that gets tested).
 
 .PARAMETER Targets
-    Dossiers d'installation du jeu. Par défaut : la machine hôte, la
-    machine invitée via le partage réseau, et la copie Steam. Ceux qui
-    n'existent pas sont signalés et ignorés, pas une erreur — toutes les
-    machines ne sont pas allumées en même temps.
+    The game's installation folders. By default: the host machine, the guest
+    machine over the network share, and the Steam copy. Any that do not
+    exist are reported and skipped rather than treated as an error - the
+    machines are not all switched on at the same time.
 
 .PARAMETER SkipBuild
-    Déploie la sortie de build existante sans reconstruire.
+    Deploys the existing build output without rebuilding.
 #>
 [CmdletBinding()]
 param(
@@ -48,9 +48,9 @@ $repo = Resolve-Path (Join-Path $PSScriptRoot '..')
 $sln = Join-Path $repo 'mod\BigWalkArchipelago.sln'
 $buildOut = Join-Path $repo "mod\src\bin\$Configuration\net6.0"
 
-# Les trois DLL à déployer. En oublier une fait échouer le chargement du mod
-# entier, pas seulement la connexion : BepInEx résout les dépendances d'un
-# plugin dans son propre dossier (cf. mod/README.md).
+# The three DLLs to deploy. Leaving one out fails the load of the whole mod,
+# not just the connection: BepInEx resolves a plugin's dependencies inside
+# that plugin's own folder (see mod/README.md).
 $dlls = @(
     'BigWalkArchipelago.dll',
     'Archipelago.MultiClient.Net.dll',
@@ -60,23 +60,23 @@ $dlls = @(
 if (-not $SkipBuild) {
     Write-Host '== Build ==' -ForegroundColor Cyan
     dotnet build $sln -c $Configuration
-    if ($LASTEXITCODE -ne 0) { throw 'Build échoué.' }
+    if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 }
 
 foreach ($dll in $dlls) {
     if (-not (Test-Path (Join-Path $buildOut $dll))) {
-        throw "DLL manquante dans la sortie de build : $dll"
+        throw "DLL missing from the build output: $dll"
     }
 }
 
 Write-Host ''
-Write-Host '== Déploiement ==' -ForegroundColor Cyan
+Write-Host '== Deploy ==' -ForegroundColor Cyan
 
 $results = @()
 
 foreach ($target in $Targets) {
     if (-not (Test-Path $target)) {
-        Write-Host ("  {0,-45} absent, ignoré" -f $target) -ForegroundColor DarkGray
+        Write-Host ("  {0,-45} not found, skipped" -f $target) -ForegroundColor DarkGray
         continue
     }
 
@@ -91,17 +91,17 @@ foreach ($target in $Targets) {
             Copy-Item (Join-Path $buildOut $dll) $pluginDir -Force
         }
         catch {
-            # Cas courant et sans gravité : le jeu tourne et tient la DLL.
-            # Dit explicitement plutôt que laissé à l'interprétation, parce
-            # qu'un déploiement silencieusement partiel est exactement ce
-            # qu'on cherche à éliminer.
+            # Common and harmless: the game is running and holding the DLL.
+            # Said out loud rather than left to interpretation, because a
+            # silently partial deployment is exactly what this script exists
+            # to eliminate.
             $failed = $_.Exception.Message
             break
         }
     }
 
     if ($failed) {
-        Write-Host ("  {0,-45} ÉCHEC — le jeu tourne-t-il encore ?" -f $target) -ForegroundColor Red
+        Write-Host ("  {0,-45} FAILED - is the game still running?" -f $target) -ForegroundColor Red
         Write-Host "      $failed" -ForegroundColor DarkRed
         continue
     }
@@ -114,20 +114,20 @@ foreach ($target in $Targets) {
 Write-Host ''
 
 if ($results.Count -eq 0) {
-    Write-Host 'Aucune installation mise à jour.' -ForegroundColor Red
+    Write-Host 'No installation was updated.' -ForegroundColor Red
     exit 1
 }
 
-# Forcé en tableau : avec une seule empreinte distincte, Select-Object
-# rend une chaîne, et [0] indexerait son premier caractère.
+# Forced into an array: with a single distinct fingerprint, Select-Object
+# returns a string, and [0] would index its first character.
 $distinct = @($results.Hash | Select-Object -Unique)
-Write-Host ("Empreinte du mod : {0}" -f $distinct[0].Substring(0, 16))
+Write-Host ("Mod fingerprint: {0}" -f $distinct[0].Substring(0, 16))
 
 if ($distinct.Count -eq 1) {
-    Write-Host ("{0} installation(s) à jour et identiques." -f $results.Count) -ForegroundColor Green
+    Write-Host ("{0} installation(s) up to date and identical." -f $results.Count) -ForegroundColor Green
 } else {
-    # Ne devrait pas arriver puisque tout vient de la même sortie de build,
-    # mais le dire vaut mieux que de le supposer.
-    Write-Host 'ATTENTION : les installations ne portent pas le même binaire.' -ForegroundColor Red
+    # Should not happen, since everything comes from the same build output,
+    # but saying so beats assuming it.
+    Write-Host 'WARNING: the installations do not carry the same binary.' -ForegroundColor Red
     $results | ForEach-Object { "  {0}  {1}" -f $_.Hash.Substring(0, 16), $_.Target }
 }

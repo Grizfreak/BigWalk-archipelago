@@ -411,7 +411,9 @@ The decision above made the FEATURE an item and left the KEY exactly where
 the vanilla game puts it: released by filling that tower's monument. The
 player corrected it the moment it was playable — *"ce n'est pas parce que
 les clés reviennent à leur emplacement initiaux qu'elles doivent être
-débloquées par l'action de ranger n gourdes"*. A key should arrive from
+débloquées par l'action de ranger n gourdes"*: a key going back to where it
+started is no reason for it to be unlocked by stowing n gourds. A key should
+arrive from
 the multiworld and spawn like a gourd, with the same physics and the same
 Ctrl+R recovery.
 

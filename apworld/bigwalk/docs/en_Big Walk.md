@@ -105,8 +105,9 @@ Any of them.
 ## What does another world's item look like in Big Walk?
 
 Nothing, in the world itself. Big Walk has no way to show you someone else's
-item, so you will only see it in the BepInEx log, or in a text client if you
-keep one open.
+item. The host's screen names the check as it goes out — "Check: Cabin
+Fever" — but not what was inside it or who it went to; for that you need a
+text client kept open beside the game, or the BepInEx log.
 
 ## When the player receives an item, what happens?
 
@@ -119,8 +120,10 @@ playing, and it stays available for the rest of the run. A filler prop lands
 beside you. Everything else is silent.
 
 `Ctrl+R` brings back anything of yours that has ended up somewhere you
-cannot reach — gourds and keys alike. A key already placed in its receptacle
-is left where it is, because that check has already been sent.
+cannot reach — gourds, keys and filler props alike, including whatever is in
+someone's hands at the time. A key already placed in its receptacle and a
+gourd already deposited are left where they are, because those checks have
+already been sent.
 
 Both the features and the radio are re-applied every time you load the world,
 because the game has nowhere of its own to record them. If a door you own is

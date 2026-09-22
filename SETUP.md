@@ -6,8 +6,8 @@
   a co-op game and the randomizer does not change that.
 - **The mod**, `BigWalkArchipelago-<version>.zip`, from this repository's
   [releases](https://github.com/Grizfreak/BigWalk-archipelago/releases). It is
-  an all-in-one: BepInEx is inside it, already the build the mod was tested
-  against.
+  an all-in-one: BepInEx is inside it (see below), so there is nothing to
+  install separately.
 - **Archipelago 0.6.7 or newer**, from
   [its releases](https://github.com/ArchipelagoMW/Archipelago/releases) —
   only for whoever generates the seed.
@@ -28,6 +28,27 @@ Archipelago from inside the game.
 Those are two different jobs and they need not be the same person. What does
 matter is that **every player installs the mod**, not just the host — see
 [Playing together](#playing-together).
+
+### About BepInEx
+
+The mod is a BepInEx plugin, so the game needs BepInEx to load it — and not
+just any BepInEx. It needs **BepInEx 6, the Unity IL2CPP x64 build**, and
+specifically **`6.0.0-be.781`**, the build the mod is compiled and tested
+against (.NET 6.0.7 runtime).
+
+You do not have to go and get it: the release zip contains that exact build,
+which is the whole reason the zip is packaged the way it is. Installing a
+different one yourself is the most common way to end up with a mod that
+loads nothing. BepInEx 6 is a bleeding-edge project with no stable release,
+its builds are numbered rather than versioned, and they are not
+interchangeable — the Mono build in particular will not work at all, Big
+Walk being an IL2CPP game.
+
+If the game folder already has a BepInEx in it from something else, replace
+it with the one from the zip. The build is published at
+[builds.bepinex.dev](https://builds.bepinex.dev/projects/bepinex_be) as
+`BepInEx-Unity.IL2CPP-win-x64` under build 781, if you ever need it on its
+own.
 
 ## Installing the mod
 
@@ -117,8 +138,20 @@ Only the host of the Big Walk session does this.
    - **ARCHIPELAGO HOST** — the server, as `host:port`, for example
      `archipelago.gg:38281`. It is prefilled with `archipelago.gg:` the first
      time and remembers what you typed afterwards.
-3. Continue. Your partners join your session the usual way — they have
+3. Press **TEST CONNECTION**. It logs in once, throws the session away and
+   says what happened: `Connected as 'yourslot'`, or why not — an unknown
+   slot name, a wrong password and a server that never answered are told
+   apart rather than all reading "it failed". It never stops you continuing;
+   it only tells you what you are about to find out the slow way.
+4. Continue. Your partners join your session the usual way — they have
    nothing to fill in.
+
+**AP : ON / AP : OFF**, the small button beside Continue, decides whether
+this session talks to Archipelago at all. Switched off, the host field greys
+out, the test button goes inert, and the two fields above go back to being
+the game's own save name and session password — which is what they are when
+nothing is connecting. It is the same switch as `Enabled` in the mod's config
+file, put somewhere you can reach it without closing the game.
 
 A line in the corner of the screen tells you when Archipelago is not
 connected, and briefly when it connects. If you would rather not see it, turn
@@ -176,15 +209,24 @@ gone. Pick a host at the start and stay with them.
 
 ## While you are playing
 
-The game cannot show you what you send or what anybody else receives. If you
-want to watch the multiworld, keep Archipelago's **Text Client** open beside
-the game; otherwise everything the mod does is in `BepInEx/LogOutput.log`.
+The host's screen carries a line in the corner: the Archipelago connection,
+for the whole session, with the last few checks sent and items received
+underneath it and the resync shortcut below that. It is off for everyone
+else, who never connects. `ShowConnectionStatus` turns the whole thing off,
+`StatusFontSize` resizes it, and `ShowItemFeed` keeps the status line while
+dropping the feed.
 
-**Ctrl+R** (host only) sweeps up every gourd and key of yours that is not in
-a monument and puts the right number back at the hub, from what the server
-says you have received. It is for when one has ended up somewhere you cannot
-reach it — stranded in a sealed puzzle room, say. Monument deposits are never
-touched, so nothing Archipelago counts can be lost by pressing it.
+What it cannot show you is the rest of the multiworld — who received what you
+sent, or what anyone else is doing. Keep Archipelago's **Text Client** open
+beside the game for that; everything the mod does is also in
+`BepInEx/LogOutput.log`.
+
+**Ctrl+R** (host only) sweeps up everything Archipelago has given you that is
+loose — gourds, big keys, filler props, including whatever is in someone's
+hands — and puts back exactly what the server says you have received. It is
+for when one has ended up somewhere you cannot reach it: stranded in a sealed
+puzzle room, say. Deposited gourds and placed keys are never touched, so
+nothing Archipelago counts can be lost by pressing it.
 
 If the Archipelago server dies, the Big Walk session does not. The host gets
 a notice on screen, and the mod reconnects.
@@ -207,7 +249,8 @@ the `[Archipelago]` section:
   on and checks are only written to the log. Useful for playing vanilla-ish
   with the shortcuts open.
 - `HostPort` — the address remembered from the hosting screen.
-- `ShowConnectionStatus` — the line in the corner of the screen.
+- `ShowConnectionStatus` — the whole corner display; `StatusFontSize`,
+  `ShowItemFeed`, `NoticeSeconds` and `ShowResyncHint` tune what it contains.
 - `SpawnGourdAtPlayer`, `PutGourdInHands`, `HandoverRadius` — where a gourd
   received mid-game ends up. The batch rebuilt at the start of a session
   always goes to the hub.

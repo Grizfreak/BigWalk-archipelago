@@ -5,8 +5,8 @@
 - Big Walk on Steam (Windows). Every player needs their own copy.
 - The Big Walk Archipelago mod, from
   [its releases](https://github.com/Grizfreak/BigWalk-archipelago/releases).
-  It is an all-in-one zip: BepInEx is inside it, already the build the mod
-  was tested against.
+  It is an all-in-one zip: BepInEx is inside it, so there is nothing to
+  install separately.
 - The Big Walk apworld, `bigwalk.apworld`, from the same release.
 - Archipelago 0.6.7 or newer.
 
@@ -16,6 +16,26 @@ Archipelago from inside the game.
 **This is an alpha.** Every path has been exercised in game, but no one has
 yet played a seed from the first check to the goal, and the big-key half has
 only ever run solo.
+
+## About BepInEx
+
+The mod is a BepInEx plugin, so the game needs BepInEx to load it — and not
+just any BepInEx. It needs **BepInEx 6, the Unity IL2CPP x64 build**, and
+specifically **`6.0.0-be.781`**, the build the mod is compiled and tested
+against.
+
+The release zip contains that exact build, so there is nothing to fetch.
+Installing a different one yourself is the most common way to end up with a
+mod that loads nothing: BepInEx 6 has no stable release, its builds are
+numbered rather than versioned and are not interchangeable, and the Mono
+build will not work at all — Big Walk is an IL2CPP game. If the game folder
+already has a BepInEx in it from something else, replace it with the one
+from the zip.
+
+The build is published at
+[builds.bepinex.dev](https://builds.bepinex.dev/projects/bepinex_be) as
+`BepInEx-Unity.IL2CPP-win-x64` under build 781, if you ever need it on its
+own.
 
 ## Installing the mod
 
@@ -102,14 +122,26 @@ Only the host of the co-op session connects to Archipelago.
    - **Archipelago host** — the server, as `host:port`, for example
      `archipelago.gg:38281`. It is prefilled with `archipelago.gg:` the first
      time and remembers what you typed afterwards.
-3. Continue. Your co-op partners join your session the usual way, with
+3. Press **Test connection**. It logs in once, throws the session away and
+   says what happened: connected under your slot name, or why not — an
+   unknown slot name, a wrong password and a server that never answered are
+   told apart. It never stops you continuing.
+4. Continue. Your co-op partners join your session the usual way, with
    nothing to fill in.
 
-A line in the corner of the screen tells the host when Archipelago is not
-connected, and briefly when it connects.
+An **AP : ON / AP : OFF** switch sits beside Continue. Switched off, the host
+field greys out and the two fields above go back to being the game's own save
+name and session password — which is what they are when nothing is
+connecting.
 
-The game cannot show you what you send or what other players receive. Keep
-Archipelago's Text Client open beside it if you want to watch the multiworld.
+The host's screen carries a line in the corner: the Archipelago connection,
+for the whole session, with the last few checks sent and items received
+underneath it and the resync shortcut below that. It is off for everyone
+else, who never connects.
+
+What it cannot show is the rest of the multiworld — who received what you
+sent, or what anyone else is doing. Keep Archipelago's Text Client open
+beside the game for that.
 
 ## Playing together
 
@@ -167,10 +199,11 @@ would be gone. Pick a host at the start and stay with them.
 
 ## If you get stuck somewhere unreachable
 
-`Ctrl+R`, on the host's machine, sweeps up every gourd and key of yours that
-is not in a monument and puts the right number back at the hub, from what the
-server says you have received. Monument deposits are never touched, so
-nothing Archipelago counts can be lost by pressing it.
+`Ctrl+R`, on the host's machine, sweeps up everything Archipelago has given
+you that is loose — gourds, big keys, filler props, including whatever is in
+someone's hands — and puts back exactly what the server says you have
+received. Deposited gourds and placed keys are never touched, so nothing
+Archipelago counts can be lost by pressing it.
 
 If a save is lost altogether, start a new one and reconnect to the same slot.
 The server, not the save file, owns the list of items you have received, so
