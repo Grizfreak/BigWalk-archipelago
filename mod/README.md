@@ -88,13 +88,24 @@ play lands in your hands or in front of you; the restock at the start of a
 session always goes to the hub), `GourdColor`, `GourdRestoreInterval`.
 
 On-screen display (`Core/Net/ApStatusOverlay.cs`, IMGUI, host only):
-`ShowConnectionStatus` is the master switch — the status line now stays up
-for the whole session rather than appearing only when something is wrong.
-`StatusFontSize` sizes it, `ShowItemFeed` adds the last checks sent and items
-received underneath (`Core/Net/ApNotices.cs`, where repeats collapse into
-`x N` so the burst replayed on connect does not fill the screen),
-`NoticeSeconds` sets how long those live, and `ShowResyncHint` shows the
-resync shortcut as it is actually bound.
+`ShowConnectionStatus` is the master switch — the status line stays up for
+the whole session rather than appearing only when something is wrong, and
+reads `Archipelago: off` when the switch is off rather than showing nothing,
+since silence and "all is well" used to look identical. `StatusFontSize`
+sizes it, `ShowItemFeed` adds the last checks sent and items received
+underneath (`Core/Net/ApNotices.cs`, where repeats collapse into `x N` so the
+burst replayed on connect does not fill the screen), `NoticeSeconds` sets how
+long those live, and `ShowResyncHint` shows the resync shortcut as it is
+actually bound — hidden while disconnected, where the key would only answer
+"refused".
+
+The slot name field is locked once the save exists, because it is the save's
+own name and renaming it repoints the save at another Archipelago slot.
+Switching the toggle off unlocks it, and an edit made there is discarded if
+Archipelago is switched back on. A rename that was genuinely committed is
+reported instead of prevented: the screen reads the slot the save last
+connected under, which `Core/Net/ApItemCursor` has always recorded beside the
+seed, and says so.
 
 `ResyncGourdsKey` (**Ctrl+R** by default, connected host only) puts back
 within reach everything Archipelago has given you and that is lying around:

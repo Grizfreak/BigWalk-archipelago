@@ -78,8 +78,10 @@ python -m pytest test/general -q            # Archipelago conformance
       cut checks and 7 deposits. Built and exercised **solo only**
 - [x] Filler is the island's own objects, their vanilla copies removed from
       the map (2026-09-22)
-- [x] On-screen Archipelago status, item feed, and an Archipelago toggle and
-      connection test on the hosting screen (2026-09-22) — **not yet seen
-      running in game**
+- [x] On-screen Archipelago status and item feed, an Archipelago switch and
+      a connection test on the hosting screen, and the slot name locked to
+      the save's own name (2026-09-22). All exercised in game the same day,
+      except the rule that keeps Ctrl+R off worn and stowed props, which
+      cannot be exercised alone — see [`COOP-TESTS.md`](COOP-TESTS.md) test 15
 - [ ] The big keys on two machines — [`COOP-TESTS.md`](COOP-TESTS.md)
 - [ ] A seed played from the first check to the goal

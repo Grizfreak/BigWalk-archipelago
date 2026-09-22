@@ -138,8 +138,9 @@ connecting.
 
 The host's screen carries a line in the corner: the Archipelago connection,
 for the whole session, with the last few checks sent and items received
-underneath it and the resync shortcut below that. It is off for everyone
-else, who never connects.
+underneath it and the resync shortcut below that. It reads `Archipelago: off`
+when the switch is off, so a session started disconnected by mistake says so
+rather than looking normal. It is off for everyone else, who never connects.
 
 What it cannot show is the rest of the multiworld — who received what you
 sent, or what anyone else is doing. Keep Archipelago's Text Client open

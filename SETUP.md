@@ -156,9 +156,10 @@ the game's own save name and session password — which is what they are when
 nothing is connecting. It is the same switch as `Enabled` in the mod's config
 file, put somewhere you can reach it without closing the game.
 
-A line in the corner of the screen tells you when Archipelago is not
-connected, and briefly when it connects. If you would rather not see it, turn
-off `ShowConnectionStatus` in the mod's config.
+A line in the corner of the screen shows the connection for the whole
+session, and says `Archipelago: off` when the switch is off — so a session
+started disconnected by mistake says so instead of looking normal. If you
+would rather not see it, turn off `ShowConnectionStatus` in the mod's config.
 
 ## Playing together
 

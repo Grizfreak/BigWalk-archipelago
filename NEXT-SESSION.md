@@ -191,6 +191,27 @@ same thing and move together. The working notes moved to
 now in English (player decision, 2026-09-22) — including this one from here
 on.
 
+**The hosting screen and the overlay grew up on 2026-09-22**, and all of it
+was exercised in game the same day. The status line stays up for the whole
+session and says `Archipelago: off` when it is; the last checks sent and
+items received scroll under it; Ctrl+R now reclaims the filler items too and
+drops whatever it moves out of the player's hands first. The screen itself
+gained a switch and a `TEST CONNECTION` button that tells a wrong slot, a
+wrong password and an unreachable server apart, and the slot name field is
+locked once a save exists, because that name IS the slot.
+
+Three lessons from that day are worth more than the features. **Placing
+anything on that screen without measuring is a waste of an hour** — pivots
+and anchors are mixed freely there (DeleteButton's pivot is (1, 0.5), so its
+x is its right edge), and `DebugMenuLookup` now prints a world span per
+element for exactly this reason: two spans that intersect overlap, with
+nothing left to infer. **The client library does not hand through the
+server's error codes** — it substitutes sentences of its own, so a probe
+against the protocol validates a layer the mod never sees. And **check
+whether the save already stores what you are about to store**:
+`ApItemCursor` had been recording the slot beside the seed all along, and a
+second writer for the same key would have split a pair it compares as a unit.
+
 **The version is settled (2026-09-21): 0.1.0, and there is nothing to do.**
 `Plugin.PluginVersion`, the `.csproj`, `archipelago.json` and `WORLD_VERSION`
 already agree, and the alpha is the first thing to ship publicly, so 0.1.0 is
