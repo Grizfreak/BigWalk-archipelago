@@ -66,6 +66,7 @@ namespace BigWalkArchipelago.Core
             if (!worldReady)
             {
                 _worldWasReady = false;
+                GadgetItemSpawner.ForgetWorld();
                 return;
             }
 

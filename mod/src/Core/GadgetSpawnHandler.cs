@@ -15,12 +15,13 @@ namespace BigWalkArchipelago.Core
     // its own clone locally rather than trusting anything to travel over
     // the wire.
     //
-    // One handler PER GadgetKind, each a separate static method rather than
-    // a closure over the enum value — SpawnDelegate crosses the IL2CPP
-    // interop boundary, and the only cast proven to work there (cf.
-    // CosmeticGourdSpawnHandler) is a plain static method group; a capturing
-    // lambda through that boundary is untested territory this mod has no
-    // reason to be the first to try.
+    // One static method behind every asset id, reading the kind and the
+    // vanilla instance back out of the id Mirror hands it. Still a plain
+    // static method group rather than a closure: SpawnDelegate crosses the
+    // IL2CPP interop boundary, and that is the only cast proven to work
+    // there (cf. CosmeticGourdSpawnHandler). Until 2026-09-23 there was one
+    // method per kind; the id already carried everything, it simply had
+    // not needed to carry the instance.
     internal class GadgetSpawnHandler : MonoBehaviour
     {
         // Constructor required by Il2CppInterop for any type injected into IL2CPP.
@@ -67,43 +68,17 @@ namespace BigWalkArchipelago.Core
 
             try
             {
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.Megaphone], (SpawnDelegate)SpawnMegaphone, (UnSpawnDelegate)UnSpawn);
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.WalkieTalkie], (SpawnDelegate)SpawnWalkieTalkie, (UnSpawnDelegate)UnSpawn);
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.Backpack], (SpawnDelegate)SpawnBackpack, (UnSpawnDelegate)UnSpawn);
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.Belt], (SpawnDelegate)SpawnBelt, (UnSpawnDelegate)UnSpawn);
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.FlareGun], (SpawnDelegate)SpawnFlareGun, (UnSpawnDelegate)UnSpawn);
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.Laser], (SpawnDelegate)SpawnLaser, (UnSpawnDelegate)UnSpawn);
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.Binoculars], (SpawnDelegate)SpawnBinoculars, (UnSpawnDelegate)UnSpawn);
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.Compass], (SpawnDelegate)SpawnCompass, (UnSpawnDelegate)UnSpawn);
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.FoldingMap], (SpawnDelegate)SpawnFoldingMap, (UnSpawnDelegate)UnSpawn);
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.Radio], (SpawnDelegate)SpawnRadio, (UnSpawnDelegate)UnSpawn);
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.GourdCarton], (SpawnDelegate)SpawnGourdCarton, (UnSpawnDelegate)UnSpawn);
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.Torch], (SpawnDelegate)SpawnTorch, (UnSpawnDelegate)UnSpawn);
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.Lamp], (SpawnDelegate)SpawnLamp, (UnSpawnDelegate)UnSpawn);
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.XrayGoggles], (SpawnDelegate)SpawnXrayGoggles, (UnSpawnDelegate)UnSpawn);
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.FlareGunBlue], (SpawnDelegate)SpawnFlareGunBlue, (UnSpawnDelegate)UnSpawn);
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.FlareGunGreen], (SpawnDelegate)SpawnFlareGunGreen, (UnSpawnDelegate)UnSpawn);
-                NetworkClient.RegisterSpawnHandler(
-                    GadgetItemSpawner.AssetIds[GadgetKind.FlareGunYellow], (SpawnDelegate)SpawnFlareGunYellow, (UnSpawnDelegate)UnSpawn);
+                var spawn = (SpawnDelegate)SpawnFromAssetId;
+                var unspawn = (UnSpawnDelegate)UnSpawn;
+                var registered = 0;
+                foreach (var assetId in GadgetItemSpawner.AllAssetIds())
+                {
+                    NetworkClient.RegisterSpawnHandler(assetId, spawn, unspawn);
+                    registered++;
+                }
 
                 Plugin.Log.LogInfo(
-                    $"[{nameof(GadgetSpawnHandler)}] Gadget spawn handlers registered ({GadgetItemSpawner.AssetIds.Count}).");
+                    $"[{nameof(GadgetSpawnHandler)}] Gadget spawn handlers registered ({registered}, one per kind and vanilla instance).");
             }
             catch (Exception ex)
             {
@@ -121,7 +96,7 @@ namespace BigWalkArchipelago.Core
                 if (handlers == null)
                     return false;
 
-                foreach (var assetId in GadgetItemSpawner.AssetIds.Values)
+                foreach (var assetId in GadgetItemSpawner.AllAssetIds())
                 {
                     if (!handlers.ContainsKey(assetId))
                         return false;
@@ -210,23 +185,19 @@ namespace BigWalkArchipelago.Core
             }
         }
 
-        private static GameObject SpawnMegaphone(Vector3 position, uint assetId) => Spawn(GadgetKind.Megaphone, position, assetId);
-        private static GameObject SpawnWalkieTalkie(Vector3 position, uint assetId) => Spawn(GadgetKind.WalkieTalkie, position, assetId);
-        private static GameObject SpawnBackpack(Vector3 position, uint assetId) => Spawn(GadgetKind.Backpack, position, assetId);
-        private static GameObject SpawnBelt(Vector3 position, uint assetId) => Spawn(GadgetKind.Belt, position, assetId);
-        private static GameObject SpawnFlareGun(Vector3 position, uint assetId) => Spawn(GadgetKind.FlareGun, position, assetId);
-        private static GameObject SpawnLaser(Vector3 position, uint assetId) => Spawn(GadgetKind.Laser, position, assetId);
-        private static GameObject SpawnBinoculars(Vector3 position, uint assetId) => Spawn(GadgetKind.Binoculars, position, assetId);
-        private static GameObject SpawnCompass(Vector3 position, uint assetId) => Spawn(GadgetKind.Compass, position, assetId);
-        private static GameObject SpawnFoldingMap(Vector3 position, uint assetId) => Spawn(GadgetKind.FoldingMap, position, assetId);
-        private static GameObject SpawnRadio(Vector3 position, uint assetId) => Spawn(GadgetKind.Radio, position, assetId);
-        private static GameObject SpawnGourdCarton(Vector3 position, uint assetId) => Spawn(GadgetKind.GourdCarton, position, assetId);
-        private static GameObject SpawnTorch(Vector3 position, uint assetId) => Spawn(GadgetKind.Torch, position, assetId);
-        private static GameObject SpawnLamp(Vector3 position, uint assetId) => Spawn(GadgetKind.Lamp, position, assetId);
-        private static GameObject SpawnXrayGoggles(Vector3 position, uint assetId) => Spawn(GadgetKind.XrayGoggles, position, assetId);
-        private static GameObject SpawnFlareGunBlue(Vector3 position, uint assetId) => Spawn(GadgetKind.FlareGunBlue, position, assetId);
-        private static GameObject SpawnFlareGunGreen(Vector3 position, uint assetId) => Spawn(GadgetKind.FlareGunGreen, position, assetId);
-        private static GameObject SpawnFlareGunYellow(Vector3 position, uint assetId) => Spawn(GadgetKind.FlareGunYellow, position, assetId);
+        private static GameObject SpawnFromAssetId(Vector3 position, uint assetId)
+        {
+            if (!GadgetItemSpawner.TryDecodeAssetId(assetId, out var kind, out var index))
+            {
+                // Not expected — the handler is only registered for ids this
+                // decodes — but the rule below holds here too: never null.
+                Plugin.Log.LogWarning(
+                    $"[{nameof(GadgetSpawnHandler)}] Asset id {assetId:X} names no gadget; placing an empty stand-in.");
+                return GadgetItemSpawner.BuildResolvablePlaceholder(GadgetKind.Megaphone, position);
+            }
+
+            return Spawn(kind, index, position, assetId);
+        }
 
         // THIS MUST NEVER RETURN NULL, and it used to (2026-09-22, found in
         // co-op the first time a guest was sent a gadget it could not build).
@@ -236,14 +207,14 @@ namespace BigWalkArchipelago.Core
         // the rest of the session — hundreds of exceptions a second, gourds
         // no longer claimed, the lot. The reasoning and the two fallbacks are
         // in GadgetItemSpawner; the rule lives here, where the null was.
-        private static GameObject Spawn(GadgetKind kind, Vector3 position, uint assetId)
+        private static GameObject Spawn(GadgetKind kind, int index, Vector3 position, uint assetId)
         {
             try
             {
-                var prop = GadgetItemSpawner.BuildNeutralizedClone(kind, position, Quaternion.identity);
+                var prop = GadgetItemSpawner.BuildNeutralizedClone(kind, position, Quaternion.identity, index);
                 if (prop != null)
                 {
-                    Plugin.Log.LogInfo($"[{nameof(GadgetSpawnHandler)}] Cosmetic {kind} built at {position}.");
+                    Plugin.Log.LogInfo($"[{nameof(GadgetSpawnHandler)}] Cosmetic {kind} #{index} built at {position}.");
                     PendingSpawned.Add(prop);
                     return prop.gameObject;
                 }

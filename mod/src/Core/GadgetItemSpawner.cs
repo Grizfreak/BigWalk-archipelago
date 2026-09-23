@@ -115,31 +115,57 @@ namespace BigWalkArchipelago.Core
         // A block of our own, clear of ReceivedItemSpawner.CosmeticAssetId
         // (0xB16_9A00) and of anything Mirror or the game might register —
         // the value only has to be agreed on by every machine, which a
-        // shared constant guarantees. One per GadgetKind: the SpawnDelegate
-        // signature Mirror accepts is (Vector3, uint) only (no room for a
-        // payload saying which gadget), so the assetId itself is what tells
-        // a client what to build — same reasoning as CosmeticAssetId's own
-        // comment.
-        internal static readonly Dictionary<GadgetKind, uint> AssetIds = new()
+        // shared formula guarantees. The SpawnDelegate signature Mirror
+        // accepts is (Vector3, uint) only, with no room for a payload saying
+        // which gadget, so the asset id itself is what tells a client what
+        // to build — same reasoning as CosmeticAssetId's own comment.
+        //
+        // ONE PER (KIND, VANILLA INSTANCE) SINCE 2026-09-23, where it used to
+        // be one per kind (0xB16_9B01 to 0xB16_9B11, retired rather than
+        // reused). The instance matters because of tickets: a clone carries
+        // the tickets of the vanilla prop its template was taken from, the
+        // ticket office accepts one holder per ticket, and the second
+        // backpack of a session — built from the same template as the first —
+        // accepted nothing stowed into it (measured in co-op that day). So the
+        // host builds each clone from a DIFFERENT vanilla instance whose
+        // tickets are free, and the asset id is how every client learns which.
+        private const uint InstanceAssetIdBase = 0xB16_9C00;
+
+        // More than any kind has in the island (torches, the most numerous,
+        // count nine) and small enough for all 17 kinds to stay inside one
+        // block: 0xB16_9C00 to 0xB16_9E1F.
+        internal const int MaxInstancesPerKind = 32;
+
+        internal static uint AssetIdFor(GadgetKind kind, int index)
         {
-            { GadgetKind.Megaphone, 0xB16_9B01 },
-            { GadgetKind.WalkieTalkie, 0xB16_9B02 },
-            { GadgetKind.Backpack, 0xB16_9B03 },
-            { GadgetKind.Belt, 0xB16_9B04 },
-            { GadgetKind.FlareGun, 0xB16_9B05 },
-            { GadgetKind.Laser, 0xB16_9B06 },
-            { GadgetKind.Binoculars, 0xB16_9B07 },
-            { GadgetKind.Compass, 0xB16_9B08 },
-            { GadgetKind.FoldingMap, 0xB16_9B09 },
-            { GadgetKind.Radio, 0xB16_9B0A },
-            { GadgetKind.GourdCarton, 0xB16_9B0B },
-            { GadgetKind.Torch, 0xB16_9B0C },
-            { GadgetKind.Lamp, 0xB16_9B0D },
-            { GadgetKind.XrayGoggles, 0xB16_9B0E },
-            { GadgetKind.FlareGunBlue, 0xB16_9B0F },
-            { GadgetKind.FlareGunGreen, 0xB16_9B10 },
-            { GadgetKind.FlareGunYellow, 0xB16_9B11 },
-        };
+            return InstanceAssetIdBase + (uint)((int)kind * MaxInstancesPerKind + index);
+        }
+
+        internal static bool TryDecodeAssetId(uint assetId, out GadgetKind kind, out int index)
+        {
+            kind = default;
+            index = 0;
+            if (assetId < InstanceAssetIdBase)
+                return false;
+
+            var offset = assetId - InstanceAssetIdBase;
+            var kindValue = (int)(offset / MaxInstancesPerKind);
+            if (!Enum.IsDefined(typeof(GadgetKind), kindValue))
+                return false;
+
+            kind = (GadgetKind)kindValue;
+            index = (int)(offset % MaxInstancesPerKind);
+            return true;
+        }
+
+        internal static IEnumerable<uint> AllAssetIds()
+        {
+            foreach (GadgetKind kind in Enum.GetValues(typeof(GadgetKind)))
+            {
+                for (var index = 0; index < MaxInstancesPerKind; index++)
+                    yield return AssetIdFor(kind, index);
+            }
+        }
 
         // Marks both a captured template and a spawned pickup as "ours",
         // the same way ReceivedItemSpawner.CosmeticNameSuffix does for a
@@ -149,7 +175,13 @@ namespace BigWalkArchipelago.Core
         private const string TemplateNameSuffix = "(AP template)";
         private const string PlaceholderNameSuffix = "(AP placeholder)";
 
-        private static readonly Dictionary<GadgetKind, Prop> _templates = new();
+        // One template per vanilla instance of each kind, in savablePropGuid
+        // order — see CaptureTemplate for why that key and no other.
+        private static readonly Dictionary<GadgetKind, List<Prop>> _templates = new();
+
+        // Whether HideVanillaInstances has run since the world last loaded.
+        // See EnsureVanillaHidden.
+        private static bool _hiddenThisWorld;
 
         // What HideVanillaInstances switched off on THIS machine, kept so
         // ReHideVanillaInstances can put back anything Mirror switches on
@@ -191,6 +223,7 @@ namespace BigWalkArchipelago.Core
             if (all == null)
                 return;
 
+            var candidates = new List<Prop>();
             foreach (var candidate in all)
             {
                 if (candidate == null || candidate.gameObject == null)
@@ -199,70 +232,225 @@ namespace BigWalkArchipelago.Core
                 if (!NameMatches(candidate.gameObject.name, prefabName) || IsOurs(candidate.gameObject.name))
                     continue;
 
-                // Captured BEFORE Instantiate (Instantiate does not copy a
-                // per-instance MaterialPropertyBlock, unlike every serialized
-                // reference — cf. ReceivedItemSpawner.CapturePropertyBlocks),
-                // and reapplied below: without this the template itself
-                // bakes in the shader-pink/magenta look, and every clone made
-                // from it inherits that broken state for the rest of the
-                // session.
-                var propertyBlocks = ReceivedItemSpawner.CapturePropertyBlocks(candidate.gameObject);
+                candidates.Add(candidate);
+            }
 
-                // Same "disable before Instantiate" trick BuildNeutralizedClone
-                // (and the gourd version before it) uses: it defers the
-                // clone's Awake()/OnEnable() until SetActive(true) is called
-                // explicitly, which here never happens — the template is
-                // meant to stay inactive for the rest of the session.
-                var templateWasActive = candidate.gameObject.activeSelf;
-                GameObject clone;
-                try
-                {
-                    candidate.gameObject.SetActive(false);
-                    clone = UnityEngine.Object.Instantiate(candidate.gameObject);
-                }
-                finally
-                {
-                    // Restored regardless: this candidate is a vanilla
-                    // instance RemoveVanillaInstances is about to destroy
-                    // anyway (on the host), and on a client it is simply the
-                    // real prop players still see until the host's
-                    // NetworkServer.Destroy message reaches them.
-                    if (templateWasActive)
-                        candidate.gameObject.SetActive(true);
-                }
-
-                clone.name = $"{prefabName} {TemplateNameSuffix}";
-                ReceivedItemSpawner.ApplyPropertyBlocks(clone, propertyBlocks);
-                ReceivedItemSpawner.ClearLightmapReferences(clone);
-                ReceivedItemSpawner.FixMaterialessRenderers(clone);
-                ReceivedItemSpawner.RefreshPropertyBlockHelpers(clone);
-                clone.SetActive(false);
-
-                var identity = clone.GetComponent<NetworkIdentity>();
-                if (identity != null)
-                    identity.sceneId = 0;
-
-                var previous = _templates.TryGetValue(kind, out var existing) ? existing : null;
-                _templates[kind] = clone.GetComponent<Prop>();
-
-                // Re-armed on every world load (VanillaGadgetRemover), so a
-                // stale template from the previous world would otherwise
-                // leak for the life of the process.
-                if (previous != null && previous.gameObject != null)
-                    UnityEngine.Object.Destroy(previous.gameObject);
-
-                Plugin.Log.LogInfo(
-                    $"[{nameof(GadgetItemSpawner)}] {kind} template captured from '{candidate.gameObject.name}'.");
+            if (candidates.Count == 0)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(GadgetItemSpawner)}] No {kind} ({prefabName}) found in the scene to capture as a template; a received one will have nothing to clone from.");
                 return;
             }
 
-            Plugin.Log.LogWarning(
-                $"[{nameof(GadgetItemSpawner)}] No {kind} ({prefabName}) found in the scene to capture as a template; a received one will have nothing to clone from.");
+            // SORTED BY savablePropGuid, and the order is the whole point.
+            // The host picks a template by index and sends the index inside
+            // the asset id; a client builds from ITS template at that index.
+            // The two lists must therefore line up on every machine, and
+            // FindObjectsByType promises no order at all. The guid is the
+            // game's own per-instance identity, serialized with the scene,
+            // so it reads the same everywhere — which neither a name
+            // ("BackpackProp" is shared) nor a position (a prop that was
+            // active on the host may have been knocked about before it was
+            // hidden) can promise.
+            candidates.Sort(CompareByGuid);
+            if (candidates.Count > MaxInstancesPerKind)
+                candidates.RemoveRange(MaxInstancesPerKind, candidates.Count - MaxInstancesPerKind);
+
+            var templates = new List<Prop>();
+            foreach (var candidate in candidates)
+            {
+                var template = BuildTemplate(candidate, prefabName);
+                if (template != null)
+                    templates.Add(template);
+            }
+
+            // Re-armed on every world load (VanillaGadgetRemover), so the
+            // previous world's templates would otherwise leak for the life
+            // of the process.
+            if (_templates.TryGetValue(kind, out var previous) && previous != null)
+            {
+                foreach (var old in previous)
+                {
+                    if (old != null && old.gameObject != null)
+                        UnityEngine.Object.Destroy(old.gameObject);
+                }
+            }
+
+            _templates[kind] = templates;
+            Plugin.Log.LogInfo(
+                $"[{nameof(GadgetItemSpawner)}] {kind}: {templates.Count} template(s) captured, one per vanilla '{prefabName}'.");
         }
 
-        private static Prop GetTemplate(GadgetKind kind)
+        private static int CompareByGuid(Prop a, Prop b)
         {
-            return _templates.TryGetValue(kind, out var template) && template != null ? template : null;
+            var byGuid = string.CompareOrdinal(a.savablePropGuid ?? string.Empty, b.savablePropGuid ?? string.Empty);
+            return byGuid != 0 ? byGuid : string.CompareOrdinal(a.gameObject.name, b.gameObject.name);
+        }
+
+        private static Prop BuildTemplate(Prop candidate, string prefabName)
+        {
+            // Captured BEFORE Instantiate (Instantiate does not copy a
+            // per-instance MaterialPropertyBlock, unlike every serialized
+            // reference — cf. ReceivedItemSpawner.CapturePropertyBlocks),
+            // and reapplied below: without this the template itself
+            // bakes in the shader-pink/magenta look, and every clone made
+            // from it inherits that broken state for the rest of the
+            // session.
+            var propertyBlocks = ReceivedItemSpawner.CapturePropertyBlocks(candidate.gameObject);
+
+            // Same "disable before Instantiate" trick BuildNeutralizedClone
+            // (and the gourd version before it) uses: it defers the
+            // clone's Awake()/OnEnable() until SetActive(true) is called
+            // explicitly, which here never happens — the template is
+            // meant to stay inactive for the rest of the session.
+            var templateWasActive = candidate.gameObject.activeSelf;
+            GameObject clone;
+            try
+            {
+                candidate.gameObject.SetActive(false);
+                clone = UnityEngine.Object.Instantiate(candidate.gameObject);
+            }
+            finally
+            {
+                // Restored regardless: this candidate is a vanilla
+                // instance RemoveVanillaInstances is about to destroy
+                // anyway (on the host), and on a client it is simply the
+                // real prop players still see until the host's
+                // NetworkServer.Destroy message reaches them.
+                if (templateWasActive)
+                    candidate.gameObject.SetActive(true);
+            }
+
+            clone.name = $"{prefabName} {TemplateNameSuffix}";
+            ReceivedItemSpawner.ApplyPropertyBlocks(clone, propertyBlocks);
+            ReceivedItemSpawner.ClearLightmapReferences(clone);
+            ReceivedItemSpawner.FixMaterialessRenderers(clone);
+            ReceivedItemSpawner.RefreshPropertyBlockHelpers(clone);
+            clone.SetActive(false);
+
+            var identity = clone.GetComponent<NetworkIdentity>();
+            if (identity != null)
+                identity.sceneId = 0;
+
+            return clone.GetComponent<Prop>();
+        }
+
+        private static Prop GetTemplate(GadgetKind kind, int index = 0)
+        {
+            if (!_templates.TryGetValue(kind, out var list) || list == null || list.Count == 0)
+                return null;
+
+            if (index < 0 || index >= list.Count)
+            {
+                // Only a client can get here: told to build an instance it
+                // does not have. Every machine loads the same scene, so this
+                // is not expected — but a clone with the wrong tickets is
+                // better than no clone at all, and the log says which.
+                Plugin.Log.LogWarning(
+                    $"[{nameof(GadgetItemSpawner)}] Asked for {kind} instance {index}, but only {list.Count} were captured here; using the first.");
+                index = 0;
+            }
+
+            var template = list[index];
+            return template != null ? template : null;
+        }
+
+        // Which vanilla instance the next clone of this kind is built from.
+        //
+        // HOST ONLY. It reads this machine's ticket office, and the answer
+        // travels to every client inside the asset id, so nothing about a
+        // client's own office ever matters. The first instance whose tickets
+        // are all free wins: every vanilla one is hidden, so a ticket still
+        // in the office belongs to a clone that is alive right now.
+        private static int ChooseInstance(GadgetKind kind)
+        {
+            if (!_templates.TryGetValue(kind, out var list) || list == null || list.Count == 0)
+                return 0;
+
+            for (var index = 0; index < list.Count; index++)
+            {
+                var template = list[index];
+                if (template == null)
+                    continue;
+
+                var tickets = TicketsOf(template.gameObject);
+
+                // Nothing ticketed in this kind means nothing to share, so
+                // any template will do — and the first always will.
+                if (tickets.Count == 0)
+                    return 0;
+
+                if (tickets.TrueForAll(IsTicketFree))
+                    return index;
+            }
+
+            Plugin.Log.LogWarning(
+                $"[{nameof(GadgetItemSpawner)}] Every one of the {list.Count} vanilla {kind} instance(s) already has a live "
+                + "clone holding its tickets; this one will look right and hold nothing.");
+            return 0;
+        }
+
+        // Ticket 0 is skipped: a component carrying it has no identity to
+        // protect, and counting it would make every such kind look taken.
+        private static List<ushort> TicketsOf(GameObject root)
+        {
+            var tickets = new List<ushort>();
+
+            foreach (var home in root.GetComponentsInChildren<PropHome>(true))
+            {
+                if (home != null && home.ticket != 0)
+                    tickets.Add(home.ticket);
+            }
+
+            foreach (var peck in root.GetComponentsInChildren<PeckSwitch>(true))
+            {
+                if (peck != null && peck.ticket != 0)
+                    tickets.Add(peck.ticket);
+            }
+
+            foreach (var state in root.GetComponentsInChildren<TrackedPeckState>(true))
+            {
+                if (state != null && state.ticket != 0)
+                    tickets.Add(state.ticket);
+            }
+
+            return tickets;
+        }
+
+        private static bool IsTicketFree(ushort ticket)
+        {
+            try
+            {
+                var office = LobbyNetworking.TicketOffice.instance;
+                return office == null || office.tickets == null || !office.tickets.ContainsKey(ticket);
+            }
+            catch (Exception)
+            {
+                return true;
+            }
+        }
+
+        // The other half of the same measurement. On 2026-09-23 the host's
+        // log read "An incoming Backpack arrived before the world-ready
+        // sweep": items replayed at connection can be built before
+        // VanillaGadgetRemover has hidden anything, and at that moment the
+        // vanilla backpack still held its tickets. The clone was refused, and
+        // PropHome only registers in OnEnable, so it never tried again even
+        // once the vanilla let go. So the host hides first, whenever the
+        // sweep has not happened yet in this world.
+        private static void EnsureVanillaHidden()
+        {
+            if (_hiddenThisWorld || !ModConfig.ArchipelagoEnabled.Value)
+                return;
+
+            HideVanillaInstances();
+        }
+
+        // Called by VanillaGadgetRemover whenever no world is ready, so the
+        // next world starts out not hidden.
+        internal static void ForgetWorld()
+        {
+            _hiddenThisWorld = false;
         }
 
         private static float _nextLateCapture;
@@ -351,6 +539,10 @@ namespace BigWalkArchipelago.Core
             Plugin.Log.LogInfo(
                 $"[{nameof(GadgetItemSpawner)}] Hid {hidden} vanilla gadget prop(s) from this machine's map, and is "
                 + $"keeping {_hidden.Count - hidden} that were already off.");
+
+            // Only a sweep that found something counts: one run before the
+            // world has loaded finds nothing, and must not stop the next.
+            _hiddenThisWorld = _hidden.Count > 0;
 
             return hidden;
         }
@@ -562,11 +754,16 @@ namespace BigWalkArchipelago.Core
                     return null;
                 }
 
-                var prop = BuildNeutralizedClone(kind, resolved.Value, Quaternion.identity);
+                EnsureVanillaHidden();
+                if (GetTemplate(kind) == null)
+                    TryCaptureLate(kind);
+
+                var index = ChooseInstance(kind);
+                var prop = BuildNeutralizedClone(kind, resolved.Value, Quaternion.identity, index);
                 if (prop == null)
                     return null;
 
-                NetworkServer.Spawn(prop.gameObject, AssetIds[kind]);
+                NetworkServer.Spawn(prop.gameObject, AssetIdFor(kind, index));
 
                 // Without this the clone stays "fixed" as in its original
                 // resting pose — same reasoning as the gourd version.
@@ -577,7 +774,7 @@ namespace BigWalkArchipelago.Core
 
                 var identity = prop.GetComponent<NetworkIdentity>();
                 Plugin.Log.LogInfo(
-                    $"[{nameof(GadgetItemSpawner)}] Cosmetic {kind} spawned at {prop.transform.position} (netId {(identity != null ? identity.netId : 0)}).");
+                    $"[{nameof(GadgetItemSpawner)}] Cosmetic {kind} #{index} spawned at {prop.transform.position} (netId {(identity != null ? identity.netId : 0)}).");
                 return prop.gameObject;
             }
             catch (Exception ex)
@@ -595,9 +792,9 @@ namespace BigWalkArchipelago.Core
         // ReceivedItemSpawner.BuildNeutralizedClone; the differences are
         // exactly the RewardGourd-only steps that one performs and this
         // has no equivalent for (gourdState, colour, propsToMakeSavable).
-        internal static Prop BuildNeutralizedClone(GadgetKind kind, Vector3 position, Quaternion rotation)
+        internal static Prop BuildNeutralizedClone(GadgetKind kind, Vector3 position, Quaternion rotation, int index = 0)
         {
-            var template = GetTemplate(kind);
+            var template = GetTemplate(kind, index);
             if (template == null)
             {
                 // Capture now rather than wait for the world-ready sweep.
@@ -612,7 +809,7 @@ namespace BigWalkArchipelago.Core
                 // are two lines apart. The props are already in the scene when
                 // the wave arrives; only the sweep had not run yet. So run it.
                 TryCaptureLate(kind);
-                template = GetTemplate(kind);
+                template = GetTemplate(kind, index);
             }
 
             if (template == null)
