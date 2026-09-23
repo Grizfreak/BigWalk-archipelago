@@ -196,6 +196,45 @@ This costs no time of its own — a station gets switched on during any session.
 
 ---
 
+## Results of the first full pass (2026-09-22/23)
+
+Tests 10 and 11 have their own accounts above. The rest, as measured:
+
+| # | What | Result |
+|---|---|---|
+| 1 | A guest cuts a segment | **PASSES.** `[Check] bigKeyBlueZone#cut0` through `#cut4` — all five, from the guest's hands. This was the one that could make a seed silently unwinnable, and it does not. |
+| 2 | A guest places a key in its plinth | **PASSES** end to end: `its door was held back`, then `[Check] bigKeyBlueZone`. The door stays shut on both screens. |
+| 3 | A door granted by an item | **PASSES.** Prediction A holds: it opens on both screens, and again after a world reload. |
+| 4 | A key the slot does not own | **CANNOT HAPPEN.** Keys in a plinth or a monument are not grabbable by anyone, mod or no mod (player, 2026-09-23). Prediction B is moot and `KeyCustody` needs no client half. |
+| 5 | A key delivered to the spawn point | **PREDICTION C DOES NOT HOLD**, and that is the good direction: the guest sees a delivered key exactly where the host does. |
+| 6 | `Ctrl+R` with a guest holding a key | **FAILED, fixed 2026-09-23, untested.** The key left the host's world and stayed in the guest's hands. Unlike a gourd it is teleported rather than unspawned, so nothing about it looks stale on the guest. `StaleHeldPropReleaser` now also lets go when the server's `PlayerHeldInformation` stops naming what these hands hold, after a one-second grace so an ordinary pickup is never mistaken for it. |
+| 7 | The guest leaves and rejoins | **PASSES** once the gadget fix of test 10 landed. |
+| 8 | Colour | **FAILED, fixed 2026-09-23, verified.** The guest saw five identical yellow keys. Prediction D was right that a `MaterialPropertyBlock` is local, but the cause was narrower: `KeyColours.PaintOnce` was only ever called from `KeyCustody.Tick`, which returns early unless `NetworkServer.active`. It had never run anywhere but the host. `KeyColourPainter` paints on every machine, and the player confirms both screens agree. |
+| 9 | The radio wrinkle | **HALF MEASURED.** The host's half is confirmed: `FmStationBreathwork switched on; its music waits for the Archipelago item`, then `[Check] FmStationBreathwork`, and the host hears nothing. Whether a guest hears music the host has not been sent needs a `Radio Music` item in play to mean anything, and none was. |
+| 12 | Gadget persistence across a reload | **PASSES** since the join-burst fix. |
+| 13 | Key spawn position | **PASSES.** `ApRuntime` grants with `toPlayer: _looseGourdsRestored`: a key sent live goes to the player, a key replayed during a reconnection goes to the hub — exactly the gourd rule. The log shows both. |
+| 14 | Key and gourd colours | **FAILED, fixed 2026-09-23.** Two causes stacked: the painter above, and a stale config. Both installs still carried `GourdColor = #FFA62B`, the value measured on 2026-09-22 to render as a featureless glowing blob, because BepInEx never rewrites a key already present in a `.cfg`. The setting is gone; the colour is a constant in the code now. |
+| 15 | `Ctrl+R` must not strip a guest | **PASSES for what it asked**, and opened something else. `2 cosmetic gadget(s) left alone: worn, stowed or holding something that is` — both worn packs survived. But no received backpack accepts anything stowed into it, while a vanilla one does. See below. |
+
+### Found on the way, still open
+
+**A gourd handed to the GUEST hangs in mid-air on the guest's own screen** —
+fixed 2026-09-23, untested. In the host's view it is properly in the guest's
+hands. The log had been naming it all along: `claimed by <player> (via
+SyncVar)` means the server says that player holds it while that machine's own
+`hands.heldProp` does not. For a remote player that is ordinary; for the local
+one it is the bug. `CosmeticGourdSpawnHandler.TryAttachToLocalHands` runs the
+pickup locally now, and the gadget handler does the same.
+
+**A cloned backpack accepts nothing stowed into it.** The suspect is named by
+a warning the log repeats at every gadget spawn: `Failed to add ticket 41356
+to ticketOffice. Duplicate ticket`. See the ticket office section in
+`mod/reverse-engineering-notes.md`. Deliberately not fixed yet — fresh tickets
+mean inventing an identity every machine must agree on. The instrument ships
+instead: `DebugPropLookup.DumpCosmeticGadgets` prints each clone's homes
+beside the hidden vanilla instance of the same prefab, ticket and office
+membership included.
+
 ## Regressions to re-check while two players are available
 
 These worked in co-op before this session and touch code that changed:

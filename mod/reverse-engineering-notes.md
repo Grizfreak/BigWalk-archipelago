@@ -1675,6 +1675,33 @@ same identifier as both location id and item id, a true multiworld
 decoupling question — is an apworld design question; see
 `apworld/design-decisions.md` for the full discussion and its resolution.)
 
+## The ticket office, and why a clone is only half real (2026-09-23)
+
+`TicketOffice` (namespace `LobbyNetworking`) is a
+`Dictionary<ushort, ITicketed>` with `AddTicket`, `RemoveTicket` and
+`GetWithTicket<T>(ushort)`. Five types implement `ITicketed`: `PropHome`,
+`PeckSwitch`, `TrackedPeckState`, `PlayerPose` and `StickyPlatform` — which is
+to say, the things one machine has to be able to name to another. A ticket is
+a shared identity, assigned once and expected to be unique.
+
+A cloned prop inherits its template's tickets, so the office refuses them:
+
+    Failed to add ticket 41356 to ticketOffice. Duplicate ticket
+
+That warning has been in every log since the cosmetic clones existed, and was
+read as noise. It is not: the clone's homes and switches are registered
+nowhere, so anything addressing them by ticket cannot reach them. The measured
+consequence is a received backpack that accepts nothing stowed into it while a
+vanilla one accepts everything (co-op, 2026-09-23).
+
+The obvious repair — hand the clone fresh tickets — is not obviously safe. The
+identity has to be the SAME on every machine, or a placement message resolves
+to different objects on each; and a ticket colliding with a real one aims the
+game at the wrong switch. Any scheme has to derive from something already
+shared (the netId is the candidate) and be proven before it ships. Measure
+first: `DebugPropLookup.DumpCosmeticGadgets` prints a clone's homes next to
+the hidden vanilla one's, tickets and office membership included.
+
 ## Mirror in co-op: two rules learned the hard way (2026-09-22/23)
 
 Both came out of the first session where a guest was sent a filler gadget, and

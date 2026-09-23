@@ -58,6 +58,7 @@ namespace BigWalkArchipelago
             AddComponent<Core.VanillaGadgetRemover>();
             AddComponent<Core.GadgetSpawnHandler>();
             AddComponent<Core.StaleHeldPropReleaser>();
+            AddComponent<Core.KeyColourPainter>();
 
             if (ModConfig.DebugModeEnabled.Value)
             {

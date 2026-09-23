@@ -19,7 +19,6 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<bool> DebugModeEnabled;
         internal static ConfigEntry<bool> ArchipelagoEnabled;
         internal static ConfigEntry<string> ArchipelagoHostPort;
-        internal static ConfigEntry<string> CosmeticGourdColor;
         internal static ConfigEntry<float> CosmeticGourdRestoreInterval;
         internal static ConfigEntry<bool> ShowConnectionStatus;
         internal static ConfigEntry<int> StatusFontSize;
@@ -80,12 +79,6 @@ namespace BigWalkArchipelago
                 "HostPort",
                 "archipelago.gg:",
                 "Last value entered in the host:port field of the hosting screen (Patches/HostMenuConfirmPatch.cs) — persisted so it doesn't need to be retyped on every launch.");
-
-            CosmeticGourdColor = file.Bind(
-                "Archipelago",
-                "GourdColor",
-                "#805020",
-                "Colour of the gourds received from Archipelago, as an HTML hex string (e.g. #805020). Applied through the game's own variant-challenge colouring, so they stand out from the gourds sitting in puzzles. Keep every channel clearly below max (0xFF): measured in-game 2026-09-22, the original default #FFA62B (R at 0xFF exactly) rendered every received gourd as a featureless glowing white blob, no gourd shape visible at all — bloom/overexposure from this same variant-challenge effect, not a tuning issue with the hue. #805020 (no channel above 0x80) renders correctly. Leave empty to keep whatever the cloned template looked like.");
 
             ColorBigKeys = file.Bind(
                 "Archipelago",

@@ -201,18 +201,33 @@ namespace BigWalkArchipelago.Core
         // returns, in unspecified order, so it was arbitrary and could
         // differ between sessions. It came out purple in-game on
         // 2026-09-15, which was luck rather than design.
+        // NOT A SETTING, AND IT USED TO BE ONE (removed 2026-09-23).
+        //
+        // It is a measurement: keep every channel clearly below 0xFF. The
+        // first value, #FFA62B, put R at 0xFF exactly and rendered every
+        // received gourd as a featureless glowing white blob with no gourd
+        // shape at all — bloom through the game's own variant-challenge
+        // effect, measured 2026-09-22, not a matter of taste about the hue.
+        // So the config key offered no freedom worth having; what it offered
+        // was a way to break the look.
+        //
+        // What it actually did was worse than nothing. BepInEx never rewrites
+        // a key already present in a .cfg, so when the default moved to
+        // #805020 both machines silently kept the blob, and co-op found it
+        // the honest way: two players looking at two different colours
+        // (2026-09-23). A per-machine setting for something every player must
+        // see identically is a bug generator.
+        //
+        // Nor does it belong in the YAML, for the reason that decides most
+        // questions in this mod: slot_data reaches the HOST and nobody else,
+        // so a guest would never learn the value and the mismatch would come
+        // straight back one layer up.
+        private const string CosmeticGourdColorHtml = "#805020";
+
         private static void ApplyCosmeticColor(RewardGourd rewardGourd)
         {
-            var configured = ModConfig.CosmeticGourdColor.Value;
-            if (string.IsNullOrWhiteSpace(configured))
+            if (!ColorUtility.TryParseHtmlString(CosmeticGourdColorHtml, out var color))
                 return;
-
-            if (!ColorUtility.TryParseHtmlString(configured.Trim(), out var color))
-            {
-                Plugin.Log.LogWarning(
-                    $"[{nameof(ReceivedItemSpawner)}] '{configured}' is not a readable colour (expected something like #FFA62B); leaving the gourd as cloned.");
-                return;
-            }
 
             rewardGourd.isVariantChallenge = true;
             rewardGourd.variantChallengeColor = color;

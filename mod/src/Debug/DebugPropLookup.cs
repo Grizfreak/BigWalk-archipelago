@@ -151,6 +151,100 @@ namespace BigWalkArchipelago.Debug
         // ground clones (the ones the screenshot showed pink) directly, by
         // the same name suffix ReceivedItemSpawner/GadgetItemSpawner tag
         // every cosmetic spawn with, and dumps their renderers for real.
+        // WHY THIS EXISTS (2026-09-23). A cloned backpack accepts nothing
+        // stowed into it, while a vanilla one accepts everything — measured
+        // in co-op. The suspect was named by a warning the log had been
+        // repeating at every single gadget spawn without anyone reading it:
+        //
+        //     Failed to add ticket 41356 to ticketOffice. Duplicate ticket
+        //
+        // `PropHome` implements `ITicketed`, and `TicketOffice` is a
+        // `Dictionary<ushort, ITicketed>` — so a ticket is the stable,
+        // shared identity by which a home is referred to. A clone inherits
+        // its template's ticket, the office refuses the duplicate, and the
+        // clone's homes end up addressable by nobody.
+        //
+        // That is a hypothesis with a good motive, and it stays a hypothesis
+        // until this prints. It dumps each clone's homes beside the hidden
+        // VANILLA instance of the same prefab, which is still in the scene
+        // since the removal became a local hide — the two lists side by side
+        // should differ in exactly one column if the story above is right.
+        //
+        // It is deliberately not a fix. Handing out fresh tickets means
+        // inventing a shared identity that every machine must agree on, and
+        // getting that wrong does not fail quietly: a ticket that collides
+        // with a real one points the game at the wrong switch. Measure, then
+        // build the scheme.
+        private static void DumpHomeTickets(Prop prop, string label)
+        {
+            var homes = prop.gameObject.GetComponentsInChildren<PropHome>(true);
+            if (homes == null || homes.Length == 0)
+            {
+                Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}]     {label}: no PropHome at all.");
+                return;
+            }
+
+            Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}]     {label}: {homes.Length} home(s)");
+            foreach (var home in homes)
+            {
+                if (home == null)
+                    continue;
+
+                var ticket = home.ticket;
+                var known = "no";
+                try
+                {
+                    var office = LobbyNetworking.TicketOffice.instance;
+                    if (office != null && office.tickets != null && office.tickets.ContainsKey(ticket))
+                        known = office.tickets[ticket] == null
+                            ? "yes (null)"
+                            : (office.tickets[ticket].Pointer == home.Pointer ? "yes, US" : "yes, SOMEBODY ELSE");
+                }
+                catch (Exception ex)
+                {
+                    known = $"unreadable ({ex.Message})";
+                }
+
+                var wornBy = home.parentCharacter != null ? home.parentCharacter.gameObject.name : "<nobody>";
+                Plugin.Log.LogInfo(
+                    $"[{nameof(DebugPropLookup)}]       '{home.gameObject.name}' ticket={ticket} inOffice={known} "
+                    + $"| saveableHomeName={home.saveableHomeName} isInventory={home.isInventory} "
+                    + $"blockPlacing={home.blockPlacing} blockGrabbing={home.blockGrabbing} "
+                    + $"pinGroup={home.pinGroup} "
+                    + $"parentCharacter={wornBy}");
+            }
+        }
+
+        // The hidden vanilla instance of the same prefab, for the comparison
+        // the dump above is for. Inactive since the hiding pass, hence the
+        // Include.
+        private static void DumpVanillaCounterpart(string cosmeticName)
+        {
+            var prefabName = cosmeticName.Replace(
+                BigWalkArchipelago.Core.ReceivedItemSpawner.CosmeticNameSuffix, string.Empty).Trim();
+
+            var all = UnityEngine.Object.FindObjectsByType<Prop>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (all == null)
+                return;
+
+            foreach (var candidate in all)
+            {
+                if (candidate == null || candidate.gameObject == null)
+                    continue;
+
+                var name = candidate.gameObject.name;
+                if (name.Contains(BigWalkArchipelago.Core.ReceivedItemSpawner.CosmeticNameSuffix, System.StringComparison.Ordinal)
+                    || name.Contains("(AP template)", System.StringComparison.Ordinal)
+                    || !name.StartsWith(prefabName, System.StringComparison.Ordinal))
+                    continue;
+
+                DumpHomeTickets(candidate, $"VANILLA '{name}' (active={candidate.gameObject.activeInHierarchy})");
+                return;
+            }
+
+            Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}]     no vanilla '{prefabName}' left in the scene to compare against.");
+        }
+
         internal static void DumpCosmeticGadgets()
         {
             Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}] === cosmetic gadget clones ===");
@@ -171,6 +265,9 @@ namespace BigWalkArchipelago.Debug
 
                 found++;
                 Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}]   '{prop.gameObject.name}' | active={prop.gameObject.activeInHierarchy}");
+
+                DumpHomeTickets(prop, "CLONE");
+                DumpVanillaCounterpart(prop.gameObject.name);
 
                 var renderers = prop.gameObject.GetComponentsInChildren<Renderer>(true);
                 Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}]     {renderers.Length} renderer(s):");

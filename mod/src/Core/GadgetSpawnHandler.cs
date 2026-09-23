@@ -167,8 +167,11 @@ namespace BigWalkArchipelago.Core
                     SettleDeadline[id] = deadline;
                 }
 
-                // Claimed by someone: leave its physics alone, same
-                // reasoning as the gourd handler.
+                // Same two steps as the gourd handler: make the server's
+                // claim true on this machine if it names the local player,
+                // then leave a genuinely held prop's physics alone.
+                CosmeticGourdSpawnHandler.TryAttachToLocalHands(prop);
+
                 var holder = CosmeticGourdSpawnHandler.FindHolderName(prop);
                 if (holder != null)
                 {

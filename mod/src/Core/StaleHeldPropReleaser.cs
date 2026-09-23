@@ -44,7 +44,19 @@ namespace BigWalkArchipelago.Core
 
         private const float CheckIntervalSeconds = 0.25f;
 
+        // How long the server and these hands have to disagree before the
+        // hands give in. Four polls, and the reason it is not zero is the
+        // ordinary pickup: a client attaches a prop locally first and tells
+        // the server after, so for a few frames every legitimate pickup looks
+        // exactly like the desync below. One second is far longer than that
+        // round trip and far shorter than a player notices.
+        private const float DisagreementGraceSeconds = 1f;
+
         private float _nextCheck;
+
+        private static Prop _disputed;
+
+        private static float _disputedSince;
 
         private void Update()
         {
@@ -68,7 +80,13 @@ namespace BigWalkArchipelago.Core
         {
             var hands = FindLocalHands();
             var prop = hands != null ? hands.heldProp : null;
-            if (prop == null || !IsStale(prop))
+            if (prop == null)
+            {
+                _disputed = null;
+                return;
+            }
+
+            if (!IsStale(prop) && !ServerDisagrees(prop))
                 return;
 
             Plugin.Log.LogInfo(
@@ -86,6 +104,79 @@ namespace BigWalkArchipelago.Core
                 try { hands.heldProp = null; }
                 catch (Exception inner) { Plugin.Log.LogWarning($"[{nameof(StaleHeldPropReleaser)}] ...and that failed too: {inner.Message}"); }
             }
+        }
+
+        // The second way a held prop can be a lie, and the one Ctrl+R
+        // produces (measured in co-op, 2026-09-23): the host reclaims a big
+        // key a guest is carrying, and on the guest it stays in their hands.
+        // Nothing about it is stale in the sense above — the object is alive,
+        // spawned and active, because reclaiming a key TELEPORTS it rather
+        // than unspawning it. What has changed is the only thing the server
+        // can tell us without a message of its own: this player's
+        // PlayerHeldInformation no longer names what these hands are holding.
+        //
+        // Exactly the mirror of CosmeticGourdSpawnHandler.TryAttachToLocalHands,
+        // which fixes the same disagreement pointing the other way, and it
+        // needs nothing from the wire that is not already there.
+        private static bool ServerDisagrees(Prop prop)
+        {
+            var identity = prop.GetComponent<NetworkIdentity>();
+            if (identity == null)
+                return false;
+
+            var networking = FindLocalNetworking();
+            if (networking == null)
+                return false;
+
+            bool disagrees;
+            try
+            {
+                var held = networking.playerHeldInformation;
+                disagrees = held.identity == null || held.identity != identity;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(StaleHeldPropReleaser)}] Could not read our own held information: {ex.Message}");
+                return false;
+            }
+
+            if (!disagrees)
+            {
+                _disputed = null;
+                return false;
+            }
+
+            if (_disputed != prop)
+            {
+                _disputed = prop;
+                _disputedSince = Time.time;
+                return false;
+            }
+
+            if (Time.time - _disputedSince < DisagreementGraceSeconds)
+                return false;
+
+            Plugin.Log.LogInfo(
+                $"[{nameof(StaleHeldPropReleaser)}] The server stopped saying we hold netId {identity.netId} "
+                + $"{DisagreementGraceSeconds:0}s ago; letting go of it.");
+            _disputed = null;
+            return true;
+        }
+
+        private static PlayerNetworking FindLocalNetworking()
+        {
+            var players = PlayerCharacter.allPlayerCharacters;
+            if (players == null)
+                return null;
+
+            foreach (var pc in players)
+            {
+                if (pc != null && pc.isLocalPlayer)
+                    return pc.playerNetworking;
+            }
+
+            return null;
         }
 
         private static bool IsStale(Prop prop)

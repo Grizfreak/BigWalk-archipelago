@@ -265,6 +265,29 @@ namespace BigWalkArchipelago.Core
             return _templates.TryGetValue(kind, out var template) && template != null ? template : null;
         }
 
+        private static float _nextLateCapture;
+
+        private const float LateCaptureCooldownSeconds = 1f;
+
+        // Throttled, and deliberately captures ALL the kinds rather than the
+        // one asked for: a spawn wave arrives in one burst, so the first
+        // gadget that finds nothing pays for one scan and the rest of the
+        // burst finds its template waiting. Without the throttle a wave that
+        // is genuinely too early — the scene not loaded at all — would scan
+        // every Prop in the world once per spawn.
+        private static void TryCaptureLate(GadgetKind kind)
+        {
+            if (Time.time < _nextLateCapture)
+                return;
+
+            _nextLateCapture = Time.time + LateCaptureCooldownSeconds;
+
+            Plugin.Log.LogInfo(
+                $"[{nameof(GadgetItemSpawner)}] An incoming {kind} arrived before the world-ready sweep; capturing "
+                + "the templates now.");
+            CaptureTemplates();
+        }
+
         // Called right after CaptureTemplates, on EVERY machine, host and
         // guest alike, and entirely locally.
         //
@@ -575,6 +598,23 @@ namespace BigWalkArchipelago.Core
         internal static Prop BuildNeutralizedClone(GadgetKind kind, Vector3 position, Quaternion rotation)
         {
             var template = GetTemplate(kind);
+            if (template == null)
+            {
+                // Capture now rather than wait for the world-ready sweep.
+                //
+                // A guest joining a world that already has gadgets in it gets
+                // Mirror's whole spawn wave before WorldManager says the world
+                // is ready, so every one of those arrived with no template and
+                // landed as an empty placeholder — 38 of them in one measured
+                // reconnection (2026-09-23), invisible to that player for the
+                // rest of the session. The log also showed how narrow the miss
+                // was: the first placeholder and the first successful capture
+                // are two lines apart. The props are already in the scene when
+                // the wave arrives; only the sweep had not run yet. So run it.
+                TryCaptureLate(kind);
+                template = GetTemplate(kind);
+            }
+
             if (template == null)
             {
                 Plugin.Log.LogInfo(

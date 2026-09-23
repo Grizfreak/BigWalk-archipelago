@@ -229,6 +229,11 @@ namespace BigWalkArchipelago.Core
                 // Claimed by someone: leave it alone for good. SetLoose is
                 // what stops a clone hanging in mid-air, but it is also the
                 // exact opposite of being held.
+                // Before believing the claim, make it true here: the server
+                // may have handed this to the local player without their own
+                // hands ever hearing about it (see TryAttachToLocalHands).
+                TryAttachToLocalHands(prop);
+
                 var holder = FindHolderName(prop);
                 if (holder != null)
                 {
@@ -298,6 +303,73 @@ namespace BigWalkArchipelago.Core
         // for the island's own hand props instead of a gourd) reuses this
         // rather than duplicating it.
         [HideFromIl2Cpp]
+        // Puts into the local player's hands what the server says they are
+        // already holding.
+        //
+        // MEASURED IN CO-OP, 2026-09-23: a gourd handed to the GUEST showed
+        // in the guest's hands on the host's screen, and hung in mid-air on
+        // the guest's own. The reverse case — a gourd handed to the host,
+        // watched from the guest — has worked since 2026-09-20, which is why
+        // this went unnoticed for three days.
+        //
+        // The log had already been naming it without anyone reading it that
+        // way: `claimed by <player> (via SyncVar)` means the server's
+        // PlayerHeldInformation points at this prop while that machine's own
+        // `hands.heldProp` does not. For a REMOTE player that is normal and
+        // nothing to act on — their machine holds it, ours only draws it.
+        // For the LOCAL player it is the bug itself: nothing ever ran the
+        // pickup here, because the pickup was decided on the host.
+        //
+        // So this machine runs it. `PlayerHands.PickUp` is what a real
+        // pickup calls, joint and grasper included; re-asserting a state the
+        // server already holds is idempotent, which is the harmless
+        // direction for a race between the two.
+        internal static bool TryAttachToLocalHands(Prop prop)
+        {
+            var players = PlayerCharacter.allPlayerCharacters;
+            if (players == null || prop == null)
+                return false;
+
+            var propIdentity = prop.GetComponent<Mirror.NetworkIdentity>();
+            if (propIdentity == null)
+                return false;
+
+            foreach (var pc in players)
+            {
+                if (pc == null || !pc.isLocalPlayer)
+                    continue;
+
+                var hands = pc.hands;
+                if (hands == null || hands.heldProp == prop)
+                    return false;
+
+                var networking = pc.playerNetworking;
+                if (networking == null)
+                    return false;
+
+                try
+                {
+                    var held = networking.playerHeldInformation;
+                    if (held.identity == null || held.identity != propIdentity)
+                        return false;
+
+                    hands.PickUp(prop);
+                    Plugin.Log.LogInfo(
+                        $"[{nameof(CosmeticGourdSpawnHandler)}] netId {propIdentity.netId} was handed to this player "
+                        + "by the server but never reached their hands; picking it up locally.");
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning(
+                        $"[{nameof(CosmeticGourdSpawnHandler)}] Could not pick up a prop the server says we hold: {ex.Message}");
+                    return false;
+                }
+            }
+
+            return false;
+        }
+
         internal static string FindHolderName(Prop prop)
         {
             var players = PlayerCharacter.allPlayerCharacters;
