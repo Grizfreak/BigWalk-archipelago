@@ -256,6 +256,17 @@ Two consequences follow, the second one certain to bite in a real seed:
   norm, not the edge case. Same for anything else with a home or a switch in
   it — belts, the gourd carton, and very likely the radio's dial.
 
+## Second pass, 2026-09-23 afternoon: the channel, and what a reconnection does
+
+| What | Result |
+|---|---|
+| The host's overlay on the guest's screen | **PASSES.** `Archipelago (host): connected`, the goal, and the feed as items arrive. |
+| The radio on a guest | **PASSES.** The guest can operate a received radio, a station switched on no longer lights up for them before its item, and a granted station plays for both. Test 9 is closed. |
+| A guest deposits into a monument | **PASSES** — the check is credited on the host. |
+| The Archipelago server dies mid-session | **PASSES**, and better than asked: the Mirror session carries on, a check made while disconnected is sent on reconnection, and so is one made by a host who quit and came back in the meantime. |
+| A guest without the mod joins a modded host | **COULD NOT CONNECT — but not because of the channel.** The host's `Player.log` shows no connection attempt at all between the guest leaving (15:05:46) and coming back with the mod (15:07:40), and the guest's own log without the DLL holds no EOS line whatsoever, where every other log of that machine starts with dozens. The vanilla game does not seem to have reached online services at all. What the guest saw on screen is still to be asked. |
+| A guest reconnects with gourds deposited and stowed | **FAILED, fixed the same day, untested.** On the guest's screen every gourd came out of its monument and out of every backpack — dropped, not lost; the host's world was untouched — and a pack worn before leaving no longer accepted anything. Of 28 gourds rebuilt, 27 ended on `unclaimed after 3s; dropping it`, and 83 gadgets of 86. That rule was written for a prop that has just arrived; a reconnection rebuilds props that are already pinned somewhere, and `SetLoose()` takes a prop out of its home. A homed prop is now left where the server put it (`CosmeticGourdSpawnHandler.FindHomeName`). |
+
 ## Regressions to re-check while two players are available
 
 These worked in co-op before this session and touch code that changed:

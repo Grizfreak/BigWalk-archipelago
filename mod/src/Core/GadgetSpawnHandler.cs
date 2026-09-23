@@ -157,6 +157,18 @@ namespace BigWalkArchipelago.Core
                     continue;
                 }
 
+                // Worn or stowed: taking it loose would pull a backpack off
+                // somebody's back (see CosmeticGourdSpawnHandler.FindHomeName).
+                var homedIn = CosmeticGourdSpawnHandler.FindHomeName(prop);
+                if (homedIn != null)
+                {
+                    var identity = prop.GetComponent<NetworkIdentity>();
+                    Plugin.Log.LogInfo(
+                        $"[{nameof(GadgetSpawnHandler)}] netId {(identity != null ? identity.netId : 0)} sits in {homedIn}; leaving it there.");
+                    doneWith.Add(prop);
+                    continue;
+                }
+
                 if (now < deadline)
                     continue;
 

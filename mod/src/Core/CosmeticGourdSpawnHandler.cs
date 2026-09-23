@@ -244,6 +244,17 @@ namespace BigWalkArchipelago.Core
                     continue;
                 }
 
+                // Homed is claimed too — see FindHomeName.
+                var homedIn = FindHomeName(prop);
+                if (homedIn != null)
+                {
+                    var identity = rewardGourd.GetComponent<Mirror.NetworkIdentity>();
+                    Plugin.Log.LogInfo(
+                        $"[{nameof(CosmeticGourdSpawnHandler)}] netId {(identity != null ? identity.netId : 0)} sits in {homedIn}; leaving it there.");
+                    doneWith.Add(rewardGourd);
+                    continue;
+                }
+
                 // Still nobody's, and out of time: it really is lying
                 // around, so let it fall.
                 //
@@ -368,6 +379,32 @@ namespace BigWalkArchipelago.Core
             }
 
             return false;
+        }
+
+        // A prop that has a home is not lying around, whoever is holding it.
+        //
+        // MEASURED IN CO-OP, 2026-09-23: a guest reconnected and every gourd
+        // came out of its monument and out of every backpack on the guest's
+        // screen — dropped, not lost; the host's world was untouched. Of 28
+        // gourds rebuilt on that reconnection, 27 ended on "unclaimed after
+        // 3s; dropping it", and so did 83 gadgets of 86. The rule behind that
+        // line was written for a gourd that has just ARRIVED — nobody's
+        // hands after three seconds means it is on the ground, so give it
+        // back its physics. A reconnection rebuilds everything that already
+        // exists, much of it pinned somewhere, and SetLoose() does not only
+        // restore physics: it takes a prop out of its home. So a homed prop
+        // is left exactly where the server put it.
+        internal static string FindHomeName(Prop prop)
+        {
+            try
+            {
+                var home = prop != null ? prop.currentHome : null;
+                return home != null ? $"'{home.gameObject.name}' ({home.saveableHomeName})" : null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         internal static string FindHolderName(Prop prop)
