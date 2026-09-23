@@ -136,6 +136,41 @@ namespace BigWalkArchipelago.Core
         // block: 0xB16_9C00 to 0xB16_9E1F.
         internal const int MaxInstancesPerKind = 32;
 
+        // EXTRA SLOTS (2026-09-23). An index at or past the number of vanilla
+        // instances of its kind is not an instance at all: it is a clone the
+        // island has no spare prop for — the gourd carton exists once, so the
+        // second carton a slot receives has nothing left to borrow tickets
+        // from. Such a clone is built from the first template and given
+        // tickets of its own, before it is ever switched on, since PropHome
+        // registers in OnEnable.
+        //
+        // Invented tickets were refused for a day for two reasons, and this is
+        // how each is met:
+        //
+        //  - Every machine must invent the SAME ticket. The formula below reads
+        //    nothing but the kind, the index and the component's rank inside
+        //    the clone, and the index already travels inside the asset id — so
+        //    host and client compute the same number without talking.
+        //
+        //  - An invented ticket must never land on a real one. They are taken
+        //    from the very top of the range (61184 to 65535), where nothing
+        //    observed so far lives (27247, 41356 and 43035 were), and the host
+        //    checks each one against its own office before using a slot at
+        //    all. A taken ticket makes the slot unusable, never overwritten:
+        //    the office refuses duplicates rather than replacing them, so the
+        //    worst a collision can do is leave that one clone empty.
+        //
+        // What stays unmeasured: whether the game hands out any ticket at run
+        // time, after the check. Nothing suggests it does.
+        private const int MaxTicketsPerClone = 8;
+
+        private const int ExtraTicketTop = 65535;
+
+        private static ushort ExtraTicket(GadgetKind kind, int index, int rank)
+        {
+            return (ushort)(ExtraTicketTop - ((((int)kind * MaxInstancesPerKind) + index) * MaxTicketsPerClone + rank));
+        }
+
         internal static uint AssetIdFor(GadgetKind kind, int index)
         {
             return InstanceAssetIdBase + (uint)((int)kind * MaxInstancesPerKind + index);
@@ -335,6 +370,20 @@ namespace BigWalkArchipelago.Core
             return clone.GetComponent<Prop>();
         }
 
+        private static int VanillaCount(GadgetKind kind)
+        {
+            return _templates.TryGetValue(kind, out var list) && list != null ? list.Count : 0;
+        }
+
+        // The template a given index is built from, and whether that index is
+        // an extra slot rather than a vanilla instance of its own.
+        private static Prop ResolveTemplate(GadgetKind kind, int index, out bool extra)
+        {
+            var count = VanillaCount(kind);
+            extra = count > 0 && index >= count;
+            return GetTemplate(kind, extra ? 0 : index);
+        }
+
         private static Prop GetTemplate(GadgetKind kind, int index = 0)
         {
             if (!_templates.TryGetValue(kind, out var list) || list == null || list.Count == 0)
@@ -384,10 +433,84 @@ namespace BigWalkArchipelago.Core
                     return index;
             }
 
+            // Every vanilla instance is in use: go on into the extra slots,
+            // which need as many invented tickets as the kind has ticketed
+            // components.
+            var needed = Math.Min(TicketsOf(list[0].gameObject).Count, MaxTicketsPerClone);
+            for (var index = list.Count; index < MaxInstancesPerKind; index++)
+            {
+                var free = true;
+                for (var rank = 0; rank < needed && free; rank++)
+                    free = IsTicketFree(ExtraTicket(kind, index, rank));
+
+                if (free)
+                    return index;
+            }
+
             Plugin.Log.LogWarning(
-                $"[{nameof(GadgetItemSpawner)}] Every one of the {list.Count} vanilla {kind} instance(s) already has a live "
-                + "clone holding its tickets; this one will look right and hold nothing.");
+                $"[{nameof(GadgetItemSpawner)}] All {MaxInstancesPerKind} {kind} slot(s) are held by live clones; this one "
+                + "will look right and hold nothing.");
             return 0;
+        }
+
+        // Gives an extra-slot clone its invented tickets. Called on the clone
+        // while it is still inactive, so that its components register the new
+        // numbers when it is switched on rather than the template's.
+        //
+        // The rank is the component's position in a fixed walk — homes, then
+        // switches, then tracked states, each in hierarchy order — which is
+        // the same on every machine because every clone of a kind is a copy
+        // of the same prefab. Components carrying ticket 0 are skipped here
+        // exactly as TicketsOf skips them, so both count the same things.
+        private static void AssignExtraTickets(GameObject clone, GadgetKind kind, int index)
+        {
+            var rank = 0;
+            var skipped = 0;
+
+            foreach (var home in clone.GetComponentsInChildren<PropHome>(true))
+            {
+                if (home == null || home.ticket == 0)
+                    continue;
+
+                if (rank < MaxTicketsPerClone)
+                    home.ticket = ExtraTicket(kind, index, rank);
+                else
+                    skipped++;
+                rank++;
+            }
+
+            foreach (var peck in clone.GetComponentsInChildren<PeckSwitch>(true))
+            {
+                if (peck == null || peck.ticket == 0)
+                    continue;
+
+                if (rank < MaxTicketsPerClone)
+                    peck.ticket = ExtraTicket(kind, index, rank);
+                else
+                    skipped++;
+                rank++;
+            }
+
+            foreach (var state in clone.GetComponentsInChildren<TrackedPeckState>(true))
+            {
+                if (state == null || state.ticket == 0)
+                    continue;
+
+                if (rank < MaxTicketsPerClone)
+                    state.ticket = ExtraTicket(kind, index, rank);
+                else
+                    skipped++;
+                rank++;
+            }
+
+            Plugin.Log.LogInfo(
+                $"[{nameof(GadgetItemSpawner)}] {kind} #{index} is an extra slot past the {VanillaCount(kind)} vanilla "
+                + $"instance(s): gave it {Math.Min(rank, MaxTicketsPerClone)} invented ticket(s) from {ExtraTicket(kind, index, 0)} down.");
+
+            if (skipped > 0)
+                Plugin.Log.LogWarning(
+                    $"[{nameof(GadgetItemSpawner)}] {kind} #{index} has {skipped} more ticketed component(s) than the "
+                    + $"{MaxTicketsPerClone} a slot reserves; those keep the template's ticket and will not work.");
         }
 
         // Ticket 0 is skipped: a component carrying it has no identity to
@@ -794,7 +917,7 @@ namespace BigWalkArchipelago.Core
         // has no equivalent for (gourdState, colour, propsToMakeSavable).
         internal static Prop BuildNeutralizedClone(GadgetKind kind, Vector3 position, Quaternion rotation, int index = 0)
         {
-            var template = GetTemplate(kind, index);
+            var template = ResolveTemplate(kind, index, out var extra);
             if (template == null)
             {
                 // Capture now rather than wait for the world-ready sweep.
@@ -809,7 +932,7 @@ namespace BigWalkArchipelago.Core
                 // are two lines apart. The props are already in the scene when
                 // the wave arrives; only the sweep had not run yet. So run it.
                 TryCaptureLate(kind);
-                template = GetTemplate(kind, index);
+                template = ResolveTemplate(kind, index, out extra);
             }
 
             if (template == null)
@@ -828,6 +951,12 @@ namespace BigWalkArchipelago.Core
             var clone = UnityEngine.Object.Instantiate(template.gameObject, position, rotation);
             clone.name = $"{PrefabNames[kind]} {ReceivedItemSpawner.CosmeticNameSuffix}";
             ReceivedItemSpawner.ApplyPropertyBlocks(clone, templatePropertyBlocks);
+
+            // Before activation, never after: the components register their
+            // ticket in OnEnable, and a clone switched on with the template's
+            // numbers is refused and never asks again.
+            if (extra)
+                AssignExtraTickets(clone, kind, index);
 
             var cloneIdentity = clone.GetComponent<NetworkIdentity>();
             if (cloneIdentity != null)
