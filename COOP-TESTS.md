@@ -214,7 +214,7 @@ Tests 10 and 11 have their own accounts above. The rest, as measured:
 | 12 | Gadget persistence across a reload | **PASSES** since the join-burst fix. |
 | 13 | Key spawn position | **PASSES.** `ApRuntime` grants with `toPlayer: _looseGourdsRestored`: a key sent live goes to the player, a key replayed during a reconnection goes to the hub — exactly the gourd rule. The log shows both. |
 | 14 | Key and gourd colours | **FAILED, fixed 2026-09-23.** Two causes stacked: the painter above, and a stale config. Both installs still carried `GourdColor = #FFA62B`, the value measured on 2026-09-22 to render as a featureless glowing blob, because BepInEx never rewrites a key already present in a `.cfg`. The setting is gone; the colour is a constant in the code now. |
-| 15 | `Ctrl+R` must not strip a guest | **PASSES for what it asked**, and opened something else. `2 cosmetic gadget(s) left alone: worn, stowed or holding something that is` — both worn packs survived. But no received backpack accepts anything stowed into it, while a vanilla one does. See below. |
+| 15 | `Ctrl+R` must not strip a guest | **PASSES, closed 2026-09-23.** Worn packs and their contents survive, gourds included since the gourd sweep was given the rule too (it never had been: Ctrl+R took a gourd out of a guest's pack, and the wearer's `PlayerShepherd` threw on the dead collider every physics tick — 1790 exceptions in one `Player.log`, zero once fixed). Host log after the fix: `Gourd resync: 2 loose gourd(s) cleared and 1 left where they were stowed`; totals unchanged, so no duplicate is restocked any more. **And the question the test ended on is answered: a loaded backpack cannot lie on the ground** (player). The pass that keeps a pack because something is homed in it therefore guards nothing for backpacks. It stays anyway: the gourd carton and the belts were not tried, and it costs one lookup per sweep. |
 
 ### Found on the way, still open
 
@@ -230,8 +230,14 @@ SyncVar)` means the server says that player holds it while that machine's own
 one it is the bug. `CosmeticGourdSpawnHandler.TryAttachToLocalHands` runs the
 pickup locally now, and the gadget handler does the same.
 
-**A cloned backpack accepts nothing stowed into it — mechanism confirmed
-2026-09-23, and it depends on ORDER.** Retested on a fresh save, the received
+**A cloned backpack accepts nothing stowed into it — FIXED 2026-09-23 and
+verified the same day:** three backpacks and two gourd cartons, all of them
+accepting a gourd, on both screens. Each clone is now built from a vanilla
+instance of its own (`Cosmetic Backpack #0`, `#1`, `#2`), and past the vanilla
+count — the island has one carton — an extra slot gets invented tickets from
+the top of the range. The account of how it was found, kept below:
+
+**Mechanism confirmed 2026-09-23, and it depends on ORDER.** Retested on a fresh save, the received
 backpack accepted a gourd. The dump (`Ctrl+M`) says why: the hidden vanilla
 backpack's home carries ticket 43035, and the office maps 43035 to *somebody
 else* — the clone. `PropHome` registers its ticket in `OnEnable` and withdraws
