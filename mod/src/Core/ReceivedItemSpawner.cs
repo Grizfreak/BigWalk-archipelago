@@ -461,11 +461,28 @@ namespace BigWalkArchipelago.Core
         // Monument deposits are deliberately untouched: they are persisted
         // (`ap_home_*`), they are what the Archipelago logic counts, and
         // nothing about them can go wrong in a way this would fix.
-        // Everything else goes — on the ground, in a player's hands, on a
-        // carried belt — because the rebuild counts what exists, and
-        // leaving one behind would have it counted twice.
-        internal static int DestroyLooseCosmeticGourds()
+        //
+        // NEITHER IS ANYTHING ELSE THAT HAS A HOME, since 2026-09-23. This
+        // used to take "everything else — on the ground, in a player's hands,
+        // on a carried belt", which is what the player had asked the gadget
+        // sweep NOT to do the day before: "the backpacks and belts worn by
+        // players must not answer this command, and neither must the objects
+        // hanging inside them". The gadget sweep got the rule; this one never
+        // did, and co-op found it — Ctrl+R took a gourd out of a guest's
+        // backpack. Destroying it there did worse than lose a gourd: the
+        // wearer's PlayerShepherd keeps the colliders of everything that
+        // player carries, stowed things included, and it threw a
+        // NullReferenceException on the dead collider every physics tick —
+        // 1790 of them in one host's Player.log before anyone noticed.
+        //
+        // So a homed gourd stays, wherever the home is: a monument, a
+        // backpack, a carton, a belt. What goes is what lies on the ground
+        // or sits in someone's hands. Those that stay outside a monument are
+        // reported through `kept`, because the rebuild counts what exists and
+        // must not put them back a second time.
+        internal static int DestroyLooseCosmeticGourds(out int kept)
         {
+            kept = 0;
             var destroyed = 0;
             var seen = 0;
 
@@ -484,8 +501,12 @@ namespace BigWalkArchipelago.Core
                     continue;
 
                 var home = gourd.prop != null ? gourd.prop.currentHome : null;
-                if (home != null && IsMonumentHome(home))
+                if (home != null)
+                {
+                    if (!IsMonumentHome(home))
+                        kept++;
                     continue;
+                }
 
                 seen++;
 

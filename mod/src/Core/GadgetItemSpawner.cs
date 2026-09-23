@@ -706,6 +706,20 @@ namespace BigWalkArchipelago.Core
             return again;
         }
 
+        // What the sweep leaves standing, by kind, so the rebuild can count
+        // it as already there. Without this the resync cleared its tally to
+        // zero and then restocked every gadget the ledger owed — including
+        // the ones it had just been careful not to touch, which came back as
+        // duplicates.
+        private static void CountKept(Dictionary<GadgetKind, int> kept, Prop prop)
+        {
+            var kind = MatchKind(prop.gameObject.name);
+            if (kind == null)
+                return;
+
+            kept[kind.Value] = kept.TryGetValue(kind.Value, out var count) ? count + 1 : 1;
+        }
+
         private static GadgetKind? MatchKind(string name)
         {
             foreach (var pair in PrefabNames)
@@ -774,8 +788,9 @@ namespace BigWalkArchipelago.Core
         // destroying it would strand whatever is homed inside it, which is
         // the stale-reference bug this whole sweep exists to avoid. A prop
         // that is somebody's home is therefore kept too.
-        internal static int DestroyLooseCosmeticGadgets()
+        internal static int DestroyLooseCosmeticGadgets(out Dictionary<GadgetKind, int> kept)
         {
+            kept = new Dictionary<GadgetKind, int>();
             var destroyed = 0;
             var seen = 0;
             var placed = 0;
@@ -796,8 +811,18 @@ namespace BigWalkArchipelago.Core
                 if (prop == null || !ReceivedItemSpawner.IsCosmeticClone(prop))
                     continue;
 
+                // A gourd is not this sweep's to remove, but it can still be
+                // the reason a backpack or a carton has to stay: until
+                // 2026-09-23 it was skipped before being asked, so a pack
+                // lying on the ground with a gourd in it went, and the gourd
+                // with it.
                 if (prop.GetComponent<RewardGourd>() != null)
+                {
+                    var gourdHome = prop.currentHome;
+                    if (gourdHome != null && gourdHome.parentProp != null)
+                        occupiedHosts.Add(gourdHome.parentProp.GetInstanceID());
                     continue;
+                }
 
                 seen++;
 
@@ -809,6 +834,7 @@ namespace BigWalkArchipelago.Core
                 }
 
                 placed++;
+                CountKept(kept, prop);
 
                 // This prop stays, and so must whatever is holding it: a
                 // backpack whose contents survive it would leave those
@@ -822,6 +848,7 @@ namespace BigWalkArchipelago.Core
                 if (occupiedHosts.Contains(prop.GetInstanceID()))
                 {
                     placed++;
+                    CountKept(kept, prop);
                     continue;
                 }
 

@@ -198,17 +198,22 @@ namespace BigWalkArchipelago.Core.Net
                 return;
             }
 
-            var removed = ReceivedItemSpawner.DestroyLooseCosmeticGourds();
+            var removed = ReceivedItemSpawner.DestroyLooseCosmeticGourds(out var keptGourds);
 
             _looseGourdsRestored = false;
             _looseRestoreBlockedLogged = false;
             _reconciliationLogged = false;
             _looseGourdsRestoredCount = 0;
-            _gourdsSpawnedThisSession = 0;
+
+            // The gourds left in backpacks, cartons and belts still exist, so
+            // they are already spawned as far as the ledger is concerned.
+            // Zero here would restock every one of them a second time.
+            _gourdsSpawnedThisSession = keptGourds;
             _restoreTimer = 0f;
 
             Plugin.Log.LogInfo(
-                $"[{nameof(ApRuntime)}] Gourd resync: {removed} loose gourd(s) cleared, restocking the hub from the ledger.");
+                $"[{nameof(ApRuntime)}] Gourd resync: {removed} loose gourd(s) cleared and {keptGourds} left where "
+                + "they were stowed, restocking the hub from the ledger.");
             ApNotices.Post($"Resync: {removed} gourd(s) cleared, restocking the hub");
         }
 
@@ -232,9 +237,13 @@ namespace BigWalkArchipelago.Core.Net
             if (!NetworkServer.active || Connection.Status != ApConnection.ConnectionStatus.Connected)
                 return;
 
-            var removed = GadgetItemSpawner.DestroyLooseCosmeticGadgets();
+            var removed = GadgetItemSpawner.DestroyLooseCosmeticGadgets(out var keptGadgets);
 
+            // Same reasoning as the gourds: what the sweep spared is still in
+            // the world, and the tally is half of what the restock owes.
             _gadgetsSpawnedThisSession.Clear();
+            foreach (var pair in keptGadgets)
+                _gadgetsSpawnedThisSession[pair.Key] = pair.Value;
             _looseGadgetsRestored = false;
             _looseGadgetsRestoreBlockedLogged = false;
             _gadgetRestoreTimer = 0f;
