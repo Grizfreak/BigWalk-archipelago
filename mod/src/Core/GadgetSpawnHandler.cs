@@ -187,6 +187,8 @@ namespace BigWalkArchipelago.Core
 
         private static GameObject SpawnFromAssetId(Vector3 position, uint assetId)
         {
+            Net.ModChannel.NoteHostHasMod("a gadget of ours was spawned");
+
             if (!GadgetItemSpawner.TryDecodeAssetId(assetId, out var kind, out var index))
             {
                 // Not expected — the handler is only registered for ids this

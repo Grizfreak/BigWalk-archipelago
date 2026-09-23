@@ -19,11 +19,14 @@ namespace BigWalkArchipelago.Core
     // replicates — which the co-op test list had flagged as unverified, and
     // now is not.
     //
-    // A custom network message would be the obvious answer and is closed to
-    // us: Il2CppInterop cannot marshal a delegate taking a non-blittable
-    // struct, which is what sank the first version of
-    // CosmeticGourdSpawnHandler. So each machine watches its own hands
-    // instead, and needs nothing from the wire that is not already there.
+    // A custom network message looked like the obvious answer and was
+    // believed closed: Il2CppInterop cannot marshal a delegate taking a
+    // non-blittable struct, which is what sank the first version of
+    // CosmeticGourdSpawnHandler. That is true of Mirror's TYPED messages
+    // only — the raw handler route is open, and Core/Net/ModChannel uses it
+    // since 2026-09-23. This stays as it is regardless: each machine watching
+    // its own hands needs nothing from the wire, which is the sturdier design
+    // for something that must work on a guest the host cannot reach.
     //
     // The signal is "still held, but no longer really there": a prop whose
     // GameObject has been deactivated, or whose NetworkIdentity no longer

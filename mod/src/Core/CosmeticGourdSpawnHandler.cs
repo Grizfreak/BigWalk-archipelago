@@ -426,6 +426,8 @@ namespace BigWalkArchipelago.Core
         // attach the netId to, so the clone lands where the host put it.
         private static GameObject Spawn(Vector3 position, uint assetId)
         {
+            Net.ModChannel.NoteHostHasMod("a gourd of ours was spawned");
+
             try
             {
                 var rewardGourd = ReceivedItemSpawner.BuildNeutralizedClone(position, Quaternion.identity);

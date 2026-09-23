@@ -97,7 +97,92 @@ namespace BigWalkArchipelago.Core
 
         internal static bool IsGranted(SavableSystem system)
         {
+            // A guest has no ledger of its own — the save, and the client
+            // that fills it, are the host's — so it believes the host
+            // (ModChannel). Everywhere else the ledger is the truth.
+            if (!NetworkServer.active && NetworkClient.active)
+                return MirroredGrants.Contains(system);
+
             return SaveManager.GetIntValue(KeyPrefix + system, 0, false) != 0;
+        }
+
+        // ------------------------------------------------------------------
+        // A guest's radio (2026-09-23)
+        // ------------------------------------------------------------------
+        //
+        // Measured in co-op: on the guest's radio the station's light came on
+        // the moment it was switched on — the suppression below only ever ran
+        // on the host — and the guest heard nothing at all, before or after
+        // the item arrived, because the grant only ever unlocked the host's
+        // FmRadioManager. The unlock lives in RAM, per machine (see the top
+        // of this file), so each machine has to perform its own. The host
+        // tells its guests what it has been granted; each guest suppresses
+        // and unlocks exactly as the host does.
+        //
+        // Nothing here touches a guest's save: the ledger is the host's, and
+        // a guest keeps its copy in memory for as long as it is connected.
+
+        private static readonly HashSet<SavableSystem> MirroredGrants = new();
+
+        // What this world has already unlocked on the guest's side. A world
+        // reload rebuilds FmRadioManager from scratch, so it is forgotten
+        // then and the grants are applied again.
+        private static readonly HashSet<SavableSystem> MirrorUnlockedThisWorld = new();
+
+        internal static void ApplyFromHost(bool itemsInPlay, List<SavableSystem> granted)
+        {
+            Configure(itemsInPlay);
+
+            foreach (var system in granted)
+            {
+                if (MirroredGrants.Add(system))
+                    Plugin.Log.LogInfo($"[{nameof(RadioStations)}] The host was granted {system}; playing it here too.");
+            }
+
+            if (!itemsInPlay)
+                return;
+
+            foreach (var system in granted)
+            {
+                if (!MirrorUnlockedThisWorld.Contains(system))
+                    Pending.Add(system);
+            }
+
+            if (Pending.Count == 0)
+                return;
+
+            try
+            {
+                TickPending();
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(RadioStations)}] Could not unlock the host's stations here: {ex.Message}");
+            }
+
+            foreach (var system in granted)
+            {
+                if (!Pending.Contains(system))
+                    MirrorUnlockedThisWorld.Add(system);
+            }
+        }
+
+        // The world went away: its FmRadioManager, and everything unlocked in
+        // it, went with it.
+        internal static void ForgetMirroredWorld()
+        {
+            MirrorUnlockedThisWorld.Clear();
+        }
+
+        // The guest left the host. Whatever it was told stops being true, and
+        // a later vanilla session must not inherit a suppression it never
+        // asked for.
+        internal static void ForgetMirror()
+        {
+            MirroredGrants.Clear();
+            MirrorUnlockedThisWorld.Clear();
+            Pending.Clear();
+            Configure(false);
         }
 
         // A Broadcast item arrived. Persisted first, applied second: the

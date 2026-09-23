@@ -59,6 +59,7 @@ namespace BigWalkArchipelago
             AddComponent<Core.GadgetSpawnHandler>();
             AddComponent<Core.StaleHeldPropReleaser>();
             AddComponent<Core.KeyColourPainter>();
+            AddComponent<Core.Net.ModChannel>();
 
             if (ModConfig.DebugModeEnabled.Value)
             {

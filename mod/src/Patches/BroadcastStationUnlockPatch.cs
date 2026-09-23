@@ -47,7 +47,13 @@ namespace BigWalkArchipelago.Patches
     {
         private static bool Prefix(BroadcastStation __instance, PeckContext __0)
         {
-            if (!ModConfig.ArchipelagoEnabled.Value || !RadioStations.ItemsInPlay || !NetworkServer.active)
+            // No longer host-only (2026-09-23). A guest's radio lit a station
+            // the moment it was switched on, because this returned early on
+            // any machine that was not the server. On a guest, ItemsInPlay is
+            // only ever true once a host running the mod has said so
+            // (ModChannel), so a guest in a vanilla game — or of a host whose
+            // radio is vanilla — still gets the vanilla behaviour.
+            if (!ModConfig.ArchipelagoEnabled.Value || !RadioStations.ItemsInPlay)
                 return true;
 
             // The original's own first line: anything below 1 is the switch

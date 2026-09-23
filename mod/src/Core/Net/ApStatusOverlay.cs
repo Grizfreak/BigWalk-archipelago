@@ -62,11 +62,20 @@ namespace BigWalkArchipelago.Core.Net
                 return;
 
             // Null whenever there is nothing worth saying — ApRuntime owns
-            // that decision, and it is also what keeps this whole overlay
-            // off a non-host's screen, where no client ever connects.
-            var message = ApRuntime.StatusMessage;
+            // that decision on the host. A guest's ApRuntime never has
+            // anything to say, since no client ever connects there, so a
+            // guest shows what its host last told it instead (ModChannel) —
+            // player request, 2026-09-23: "the host has the info in the top
+            // left, the clients should have it too".
+            var mirrored = string.IsNullOrEmpty(ApRuntime.StatusMessage) && ModChannel.HasFreshSnapshot;
+
+            var message = mirrored ? GuestStatus(ModChannel.MirroredStatus) : ApRuntime.StatusMessage;
             if (string.IsNullOrEmpty(message))
                 return;
+
+            var statusIsWarning = mirrored ? ModChannel.MirroredStatusIsWarning : ApRuntime.StatusIsWarning;
+            var goal = mirrored ? ModChannel.MirroredGoal : ApRuntime.GoalLine;
+            var goalIsWarning = mirrored ? ModChannel.MirroredGoalIsWarning : ApRuntime.GoalLineIsWarning;
 
             var fontSize = Mathf.Clamp(ModConfig.StatusFontSize.Value, 8, 72);
             if (_style == null || _styleFontSize != fontSize)
@@ -85,19 +94,27 @@ namespace BigWalkArchipelago.Core.Net
             }
 
             var y = (float)Margin;
-            y = DrawLine(message, ApRuntime.StatusIsWarning ? WarningColor : InfoColor, fontSize, y);
+            y = DrawLine(message, statusIsWarning ? WarningColor : InfoColor, fontSize, y);
 
             // Full size, next to the status rather than down in the feed.
             // What the slot is playing for belongs with whether it is
             // connected: both are session-long facts, and neither is worth
             // hunting for in a log. The warning colour is reserved for a
             // goal this build cannot detect.
-            var goal = ApRuntime.GoalLine;
             if (!string.IsNullOrEmpty(goal))
-                y = DrawLine(goal, ApRuntime.GoalLineIsWarning ? WarningColor : ProgressColor,
-                             fontSize, y);
+                y = DrawLine(goal, goalIsWarning ? WarningColor : ProgressColor, fontSize, y);
 
             var secondary = Mathf.Max(8, Mathf.RoundToInt(fontSize * SecondaryScale));
+
+            if (mirrored)
+            {
+                foreach (var line in ModChannel.MirroredLines)
+                    y = DrawLine(line.Text, line.Warning ? WarningColor : FeedColor, secondary, y);
+
+                // No resync hint on a guest: Ctrl+R is the host's key, and
+                // the host is the only one it does anything for.
+                return;
+            }
 
             var lines = ApNotices.Lines;
             for (var i = 0; i < lines.Count; i++)
@@ -112,6 +129,20 @@ namespace BigWalkArchipelago.Core.Net
             if (ModConfig.ShowResyncHint.Value && !ApRuntime.StatusIsWarning
                 && ModConfig.ArchipelagoEnabled.Value)
                 DrawLine(ResyncHint(), HintColor, secondary, y);
+        }
+
+        // "Archipelago: connected" on a guest's screen would read as the
+        // GUEST being connected, which it never is. Says whose connection it
+        // is instead.
+        private static string GuestStatus(string status)
+        {
+            if (string.IsNullOrEmpty(status))
+                return status;
+
+            const string prefix = "Archipelago:";
+            return status.StartsWith(prefix, StringComparison.Ordinal)
+                ? "Archipelago (host):" + status.Substring(prefix.Length)
+                : status;
         }
 
         // Returns the y to draw the next line at.

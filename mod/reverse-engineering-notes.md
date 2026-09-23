@@ -1675,6 +1675,38 @@ same identifier as both location id and item id, a true multiworld
 decoupling question — is an apworld design question; see
 `apworld/design-decisions.md` for the full discussion and its resolution.)
 
+## A channel from host to guests, and the rule that shapes it (2026-09-23)
+
+`Core/Net/ModChannel.cs`. Mirror's typed messages stay closed to this mod
+(Il2CppInterop cannot marshal a delegate over a non-blittable struct), but the
+raw route is open: `NetworkClient.handlers` / `NetworkServer.handlers` map a
+`ushort` to a `NetworkMessageDelegate(NetworkConnection, NetworkReader, int)`,
+built from a managed `Action` through its implicit operator, and a raw
+`NetworkWriter` goes out through `NetworkConnection.Send(ArraySegment<byte>, int)`.
+The recipe was read from the member references of the Big TV mod, which does
+exactly this on the same build — not guessed. The compiled DLL was checked to
+bind the non-generic `Send`, as Big TV does: the generic one would serialize
+the buffer as a typed message under another id.
+
+**This build of Mirror disconnects a peer that receives a message id it has no
+handler for** — `NetworkClient: failed to unpack and invoke message.
+Disconnecting.`, and the server's twin, both in `global-metadata.dat`. So
+nobody may send first to a peer not known to run the mod, or a player who
+kept it installed would be thrown out of every vanilla game they joined. The
+handshake:
+
+1. the host spawns a **beacon**, an empty networked object under the mod's
+   asset id `0xB16_9BFE`, with `NetworkIdentity.visible = ForceShown` so no
+   interest management keeps it from anyone. An unknown spawn is not fatal —
+   a guest without the mod logs `Could not spawn assetId` and stays;
+2. a guest that builds the beacon (or any cosmetic of ours) knows the host
+   runs the mod, and only then sends Hello;
+3. the host writes only to connections that said Hello.
+
+What travels is a whole snapshot once a second — the status line, the goal,
+the feed, and the radio's `ItemsInPlay` plus granted stations — so a late or
+lossy guest is simply caught up by the next one.
+
 ## The ticket office, and why a clone is only half real (2026-09-23)
 
 `TicketOffice` (namespace `LobbyNetworking`) is a
