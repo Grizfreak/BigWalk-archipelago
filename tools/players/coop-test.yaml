@@ -10,7 +10,12 @@
 # Options as in solo-smoke: the first gourd deposited is already a check,
 # the goal is minutes away, and the 15-slot postgame monument is out of the
 # way.
-name: CoopWalk
+#
+# CoopWalk2 since 2026-09-23, when the drawbridge stopped being handed over:
+# the first CoopWalk save had the Drawbridge feature granted from the start,
+# and reusing that save would carry the open bridge into a seed that is
+# supposed to make you find it. A new name is a new save.
+name: CoopWalk2
 game: Big Walk
 Big Walk:
   goal: deposits
@@ -18,4 +23,4 @@ Big Walk:
   deposit_locations: all
   green_dome_deposits: excluded
   radio_station_checks: true
-  start_with_drawbridge_open: true
+  start_with_drawbridge_open: false

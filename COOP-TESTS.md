@@ -207,10 +207,10 @@ Tests 10 and 11 have their own accounts above. The rest, as measured:
 | 3 | A door granted by an item | **PASSES.** Prediction A holds: it opens on both screens, and again after a world reload. |
 | 4 | A key the slot does not own | **CANNOT HAPPEN.** Keys in a plinth or a monument are not grabbable by anyone, mod or no mod (player, 2026-09-23). Prediction B is moot and `KeyCustody` needs no client half. |
 | 5 | A key delivered to the spawn point | **PREDICTION C DOES NOT HOLD**, and that is the good direction: the guest sees a delivered key exactly where the host does. |
-| 6 | `Ctrl+R` with a guest holding a key | **FAILED, fixed 2026-09-23, untested.** The key left the host's world and stayed in the guest's hands. Unlike a gourd it is teleported rather than unspawned, so nothing about it looks stale on the guest. `StaleHeldPropReleaser` now also lets go when the server's `PlayerHeldInformation` stops naming what these hands hold, after a one-second grace so an ordinary pickup is never mistaken for it. |
+| 6 | `Ctrl+R` with a guest holding a key | **FAILED TWICE; second fix untested.** The key leaves the host's world and stays in the guest's hands. First fix (guest-side, `StaleHeldPropReleaser` waiting for the server to stop naming the key) was retested 2026-09-23 and did nothing — because nothing ever told the server: its `PlayerHeldInformation` SyncVar kept naming the key. Its counter-test passed, though: nothing fell out of anyone's hands on its own over 15 seconds, so the guest-side half is safe to keep. Second fix: `ReceivedItemSpawner.ClearServerSideHold` makes the host write that SyncVar itself, which reaches every client. |
 | 7 | The guest leaves and rejoins | **PASSES** once the gadget fix of test 10 landed. |
 | 8 | Colour | **FAILED, fixed 2026-09-23, verified.** The guest saw five identical yellow keys. Prediction D was right that a `MaterialPropertyBlock` is local, but the cause was narrower: `KeyColours.PaintOnce` was only ever called from `KeyCustody.Tick`, which returns early unless `NetworkServer.active`. It had never run anywhere but the host. `KeyColourPainter` paints on every machine, and the player confirms both screens agree. |
-| 9 | The radio wrinkle | **HALF MEASURED.** The host's half is confirmed: `FmStationBreathwork switched on; its music waits for the Archipelago item`, then `[Check] FmStationBreathwork`, and the host hears nothing. Whether a guest hears music the host has not been sent needs a `Radio Music` item in play to mean anything, and none was. |
+| 9 | The radio wrinkle | **MEASURED 2026-09-23, and the option text is wrong.** It claims a guest hears a station the moment it is switched on. What happens: the station's light comes on on the guest's radio and not on the host's, and **neither** hears anything — correct for the host, whose music waits for the item. Once `Radio Music` arrives the host hears it (`FmStationSleuthFm granted and playing`) and **the guest still hears nothing, ever**. The guest also cannot operate a received radio properly, while the host can. Only the host runs a client, so only the host ever learns a station was granted: bringing guests in needs the host to tell them, i.e. the network channel. |
 | 12 | Gadget persistence across a reload | **PASSES** since the join-burst fix. |
 | 13 | Key spawn position | **PASSES.** `ApRuntime` grants with `toPlayer: _looseGourdsRestored`: a key sent live goes to the player, a key replayed during a reconnection goes to the hub — exactly the gourd rule. The log shows both. |
 | 14 | Key and gourd colours | **FAILED, fixed 2026-09-23.** Two causes stacked: the painter above, and a stale config. Both installs still carried `GourdColor = #FFA62B`, the value measured on 2026-09-22 to render as a featureless glowing blob, because BepInEx never rewrites a key already present in a `.cfg`. The setting is gone; the colour is a constant in the code now. |
@@ -219,21 +219,36 @@ Tests 10 and 11 have their own accounts above. The rest, as measured:
 ### Found on the way, still open
 
 **A gourd handed to the GUEST hangs in mid-air on the guest's own screen** —
-fixed 2026-09-23, untested. In the host's view it is properly in the guest's
+fixed 2026-09-23, **verified the same day**: in the guest's hands on both
+screens. The guest's log shows the repair firing on a handed-over radio
+(`netId 586 was handed to this player by the server but never reached their
+hands; picking it up locally`); the gourd itself arrived properly this time
+without it, so the original failure is intermittent rather than systematic. In the host's view it is properly in the guest's
 hands. The log had been naming it all along: `claimed by <player> (via
 SyncVar)` means the server says that player holds it while that machine's own
 `hands.heldProp` does not. For a remote player that is ordinary; for the local
 one it is the bug. `CosmeticGourdSpawnHandler.TryAttachToLocalHands` runs the
 pickup locally now, and the gadget handler does the same.
 
-**A cloned backpack accepts nothing stowed into it.** The suspect is named by
-a warning the log repeats at every gadget spawn: `Failed to add ticket 41356
-to ticketOffice. Duplicate ticket`. See the ticket office section in
-`mod/reverse-engineering-notes.md`. Deliberately not fixed yet — fresh tickets
-mean inventing an identity every machine must agree on. The instrument ships
-instead: `DebugPropLookup.DumpCosmeticGadgets` prints each clone's homes
-beside the hidden vanilla instance of the same prefab, ticket and office
-membership included.
+**A cloned backpack accepts nothing stowed into it — mechanism confirmed
+2026-09-23, and it depends on ORDER.** Retested on a fresh save, the received
+backpack accepted a gourd. The dump (`Ctrl+M`) says why: the hidden vanilla
+backpack's home carries ticket 43035, and the office maps 43035 to *somebody
+else* — the clone. `PropHome` registers its ticket in `OnEnable` and withdraws
+it in `OnDisable`, so hiding the vanilla freed 43035 and the clone, built
+afterwards, took it. The night before, the clones were built while the
+vanilla still held it, got `Duplicate ticket`, and never retried.
+
+Two consequences follow, the second one certain to bite in a real seed:
+
+- a clone built before the hiding sweep is dead for the session, even once
+  the ticket is freed — nothing makes it register again;
+- **only one clone per ticket can live at a time.** Every clone of a kind is
+  built from the same template and inherits the same tickets, so the second
+  backpack a slot receives gets `Duplicate ticket` and accepts nothing. With
+  17 filler kinds and 30 to 60 filler items per seed, duplicates are the
+  norm, not the edge case. Same for anything else with a home or a switch in
+  it — belts, the gourd carton, and very likely the radio's dial.
 
 ## Regressions to re-check while two players are available
 

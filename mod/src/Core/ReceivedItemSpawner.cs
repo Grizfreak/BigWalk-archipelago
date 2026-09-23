@@ -548,6 +548,69 @@ namespace BigWalkArchipelago.Core
                     catch (Exception inner) { Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] ...and that failed too: {inner.Message}"); }
                 }
             }
+
+            ClearServerSideHold(prop, players);
+        }
+
+        // THE HALF THE HOST CAN ACTUALLY REACH (2026-09-23, measured in co-op).
+        //
+        // Everything above works for the host's own hands and for nobody
+        // else's: a remote player's hands are that player's machine's
+        // business, and Drop() on the host's copy of them does not replicate
+        // (established 2026-09-15, see StaleHeldPropReleaser). So Ctrl+R
+        // reclaimed a key a guest was carrying, teleported it to the hub, and
+        // left it in the guest's hands on the guest's screen.
+        //
+        // The first fix for that sat on the guest and waited for the server
+        // to stop saying the guest held the key. It never did, and that was
+        // the flaw in it: nothing had told the SERVER. PlayerHeldInformation
+        // is a SyncVar the host owns, and it still named the key long after
+        // the key had left. The host cannot touch remote hands, but it can
+        // write that SyncVar, and a SyncVar write reaches every client —
+        // including the one whose hands are wrong.
+        //
+        // Built from the current value rather than from scratch: the struct
+        // holds a NetworkIdentity, so Il2CppInterop hands it over as a
+        // wrapper with no constructor for "nothing held". The action number
+        // goes UP, never back to zero — a hook that de-duplicates on it would
+        // otherwise take the change for a stale message and ignore it.
+        private static void ClearServerSideHold(Prop prop, Il2CppSystem.Collections.Generic.List<PlayerCharacter> players)
+        {
+            if (!NetworkServer.active || prop == null || players == null)
+                return;
+
+            var identity = prop.GetComponent<NetworkIdentity>();
+            if (identity == null)
+                return;
+
+            foreach (var pc in players)
+            {
+                var networking = pc != null ? pc.playerNetworking : null;
+                if (networking == null)
+                    continue;
+
+                try
+                {
+                    var held = networking.playerHeldInformation;
+                    if (held == null || held.identity == null || held.identity != identity)
+                        continue;
+
+                    held.identity = null;
+                    held.heldType = PlayerHeldInformation.HeldType.Nothing;
+                    held.hasDropData = false;
+                    held.actionNumber = held.actionNumber + 1;
+                    networking.NetworkplayerHeldInformation = held;
+
+                    Plugin.Log.LogInfo(
+                        $"[{nameof(ReceivedItemSpawner)}] {pc.gameObject.name} was still holding netId {identity.netId} "
+                        + "as far as the server knew; cleared, so their own machine lets go too.");
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning(
+                        $"[{nameof(ReceivedItemSpawner)}] Could not clear a player's held information: {ex.Message}");
+                }
+            }
         }
 
         internal static bool IsCosmeticClone(Prop prop)
