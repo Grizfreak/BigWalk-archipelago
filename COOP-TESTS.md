@@ -267,6 +267,20 @@ Two consequences follow, the second one certain to bite in a real seed:
 | A guest without the mod joins a modded host | **COULD NOT CONNECT — but not because of the channel.** The host's `Player.log` shows no connection attempt at all between the guest leaving (15:05:46) and coming back with the mod (15:07:40), and the guest's own log without the DLL holds no EOS line whatsoever, where every other log of that machine starts with dozens. The vanilla game does not seem to have reached online services at all. What the guest saw on screen is still to be asked. |
 | A guest reconnects with gourds deposited and stowed | **FAILED, fixed the same day, untested.** On the guest's screen every gourd came out of its monument and out of every backpack — dropped, not lost; the host's world was untouched — and a pack worn before leaving no longer accepted anything. Of 28 gourds rebuilt, 27 ended on `unclaimed after 3s; dropping it`, and 83 gadgets of 86. That rule was written for a prop that has just arrived; a reconnection rebuilds props that are already pinned somewhere, and `SetLoose()` takes a prop out of its home. A homed prop is now left where the server put it (`CosmeticGourdSpawnHandler.FindHomeName`). |
 
+## Third pass, 2026-09-25: the packaged build, with a real second player
+
+Installed from the zip, on the world's default options (`package-test.yaml`).
+Everything held, and three things were found and fixed on the way:
+
+| What | Result |
+|---|---|
+| A friend with no mod at all joins a modded host | **PASSES.** Connects and plays a vanilla world. The earlier "stuck connecting" came from an install with BepInEx and its other plugins still active and only this mod's DLL removed — not a case a real vanilla player meets. |
+| A guest reconnecting keeps stowed things in place | **PASSES** since `FindHomeName`: gourds stay in monuments and packs, a worn pack keeps working. |
+| Universal Tracker against a real room | **PASSES.** Items given with `/send` show as normal because the server builds them with no flags (`NetworkItem(item, -1, 0)`, for every game); a gourd from `/send_location` shows as progression, which the seed file confirms for all 30. |
+| Round lamps | **FIXED AND VERIFIED.** They desynced and were only ever red. The island keeps its lamps, so their tickets were never free, and the capture had filled every index with buoys, leaving no extra slot; then the `Ctrl+M` census showed the yellow lamp is another prefab (`BuoyProp`, 44 of them, light `#FFB766`) beside `BuoyLight` (65) and `BuoyRedProp` (3). A received lamp now draws its look from all three, with invented tickets. |
+| A new Archipelago game without a working connection | **FIXED AND VERIFIED.** It stops on the first screen's Continue with the reason under the fields; Play on the second screen no longer sticks (the verdict used to be wiped by `OnEnable` between the two). Probes show moving dots, and long answers wrap and shrink to fit. |
+| The mod's version | Shown in a corner of every menu. |
+
 ## Regressions to re-check while two players are available
 
 These worked in co-op before this session and touch code that changed:
