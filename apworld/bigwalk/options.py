@@ -114,7 +114,8 @@ class RadioChecks(DefaultOnToggle):
 
 
 # Stations are named after the music they actually play, not the game's
-# internal names; the dial shows numbers only, so nothing contradicts that.
+# internal names, and numbered by their light on the dial, which carries no
+# labels at all (see data.RADIO_STATIONS).
 class ShuffleRadioMusic(DefaultOnToggle):
     """
     If on, each station's music is an item, and a station stays silent until

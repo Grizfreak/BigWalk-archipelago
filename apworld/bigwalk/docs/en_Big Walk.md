@@ -38,9 +38,15 @@ something another player gives you. Turn `shuffle_radio_music` off in your
 YAML to keep the vanilla radio, where a station plays the moment it is
 switched on.
 
-One wrinkle if you are not the host: only the host's game talks to
-Archipelago, so only the host's radio waits for the item. A guest hears a
-station as soon as somebody switches it on.
+If you are not the host: only the host's game talks to Archipelago, and the
+host's mod tells yours which stations have arrived, so your radio waits for
+the same items and plays the same music. A guest without the mod gets the
+vanilla radio.
+
+The radio's dial has no labels, only a row of lights, so every station and
+its music carry a number: its place on the dial, counted from the first
+light. `Radio Station 01: Bobby` is the first light, `Radio Station 07:
+Bristol` the last.
 
 A few things are handed to you for free so a randomized run does not start
 behind a wall: purple postgame gourds show on the map from the start, and the
@@ -102,8 +108,8 @@ Items:
   Deposit**). A key opens nothing; it is worth six
   checks, and it is the only way to reach them.
 - The 7 Radio Music items, each of which starts one station playing
-  (optional). They are named after the music itself: the game's dial shows
-  numbers and no names, so this is the only place a station is ever named.
+  (optional). They are named after the music itself, which the game never
+  names anywhere, and numbered by the station's light on the dial.
 - **First Arch Door**, **Left Arch Door** and **Right Arch Door**, each of
   which opens that door of the hub, for the doors `lock_arch_doors` keeps
   closed.
