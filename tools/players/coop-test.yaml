@@ -15,11 +15,13 @@
 # the first CoopWalk save had the Drawbridge feature granted from the start,
 # and reusing that save would carry the open bridge into a seed that is
 # supposed to make you find it. A new name is a new save.
-name: CoopWalk2
+# CoopWalk3 since 2026-09-25: the options were renamed after players' words,
+# and a fresh save keeps the sealed-box puzzles unchecked for the pick-up fix.
+name: CoopWalk3
 game: Big Walk
 Big Walk:
-  goal: deposits
-  deposit_goal_amount: 5
-  deposit_locations: all
-  radio_station_checks: true
+  goal: big_collection
+  gourds_required: 5
+  gourd_slot_checks: every_gourd
+  radio_checks: true
   start_with_drawbridge_open: false

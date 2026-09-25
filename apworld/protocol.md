@@ -49,7 +49,7 @@ the tracking player happens to have.
 
 The option-valued fields below keep their original names and values although
 the YAML options were renamed after players' words on 2026-09-25 (`goal:
-gourds` / `secret_ending`, `gourds_required`, `gourd_slot_checks: off /
+big_wall` / `big_goodbye` / `big_game` / `big_collection`, `gourds_required`, `gourd_slot_checks: off /
 every_5 / every_gourd`, `radio_checks`, `shuffle_radio_music`). The mod reads
 the wire names only; `options.GOAL_ON_THE_WIRE` and
 `GOURD_SLOT_CHECKS_ON_THE_WIRE` freeze them, and the old values stay aliases of
@@ -125,7 +125,7 @@ nothing is listening for.
 | Item | Id | Count |
 |---|---|---|
 | `Gourd` | 8600001 | = `total_monument_slots` |
-| Features (Drawbridge, Map Room, Chairlift, Train, Tunnels, Chapel Door, Hub Secret Door) | `B + (int)SaveablePropName` (300–306) | 6 or 7 |
+| Features (Drawbridge, Map Room, Chairlift, Train, Tunnels, Big Wall Door, Spawn Secret Door) | `B + (int)SaveablePropName` (300–306) | 6 or 7 |
 | Big Keys (`<Feature> Key`) | `B + 4000 + (int)SaveablePropName` | 6 or 7 |
 | Radio Music | `B + 1000 + (int)SavableSystem` (30–36) | 7, or 0 when `radio_station_items` is false |
 | Filler (Megaphone, Walkie-Talkie, Backpack, Belt, Flare Gun, Laser, Binoculars, Compass, Folding Map, Radio, Gourd Carton, Torch, Lamp, X-Ray Goggles, Blue/Green/Yellow Flare Gun) | 8609001–8609017 | rest of the pool |
@@ -285,7 +285,7 @@ write and never read it back to ask whether the goal is done — the same rule
 `CheckTracker` already applies to it.
 
 `second_ending` has no flag at all to trigger on. Two buttons held together
-behind the Hub Secret Door start an ending transition and the game returns to
+behind the Spawn Secret Door start an ending transition and the game returns to
 the main menu, writing nothing anywhere: the whole chain was decompiled on
 2026-09-10 and touches `SaveManager` nowhere. So the mod latches the event
 itself under `ap_flag_SecondEnding` (`Core/Net/ApSecondEnding.cs`) and reads
@@ -394,7 +394,7 @@ All of it lives in `../mod/src/Core/Net/`, plus small edits elsewhere.
 | `ApLocationIds.cs` | The §3/§4 arithmetic, with the offsets taken from slot_data. |
 | `ApItemCursor.cs` | The §5 cursor. |
 | `ApGoalFlags.cs` | Latches `EndingGate`/`GauntletComplete` on first non-zero write. |
-| `ApSecondEnding.cs` | §6: latches `ap_flag_SecondEnding` when the Hub Secret Door's gourd comes loose, since the game records nothing. |
+| `ApSecondEnding.cs` | §6: latches `ap_flag_SecondEnding` when the Spawn Secret Door's gourd comes loose, since the game records nothing. |
 | `../../Patches/EndingStartPatch.cs` | §6: where an ending starts — `PeckEffectEndingTransition.OnPeck` (the trigger) and `AutomaticDisconnector.StartEndingTransition` (logged). |
 | `ApStatusOverlay.cs` | The corner of the screen: connection, what the slot is playing for, the item feed, the resync hint. |
 | `../RadioStations.cs` | §11: the station ledger (`ap_radio_*`), the learned dial (`ap_radio_dial_*`), and the live unlock. |
@@ -459,7 +459,7 @@ existed only to hedge this has been removed.*
   measured rather than reasoned: `data.CHAIRLIFT_PUZZLES`, `CHAIRLIFT_RADIO`
   and `TUNNEL_RADIO`, read off the Ctrl+V and Ctrl+B dumps sorted by distance
   to the player. Nothing is left open here.
-- ~~**Is the Hub Secret Door the only thing between a player and the second
+- ~~**Is the Spawn Secret Door the only thing between a player and the second
   ending?**~~ **Settled in play (2026-09-22): yes.** The ending was reached
   and reported on a save whose log read `EndingGate latched: False,
   GauntletComplete latched: False` — neither bell had been rung. In vanilla
@@ -468,7 +468,7 @@ existed only to hedge this has been removed.*
   a save's first session, which is what leaves the door as the only
   requirement. The zone was then walked on foot and finished that way, so
   nothing rests on the debug flight the first run used. The Victory event for
-  `second_ending` therefore sits in a region gated on `Has("Hub Secret Door")`
+  `second_ending` therefore sits in a region gated on `Has("Spawn Secret Door")`
   and nothing else.
   - The trigger itself was never an assumption: what ends that zone is the
     46th gourd, and the mod watches for its release.
@@ -549,7 +549,7 @@ now separate.*
 | Role | Act |
 |---|---|
 | Locations | the 25 cut segments, **plus** placing the key in its receptacle (the 7 deposit locations) — 32 in all |
-| Item | the **feature**: Drawbridge, Map Room, Chairlift, Train, Tunnels, Chapel Door, Hub Secret Door |
+| Item | the **feature**: Drawbridge, Map Room, Chairlift, Train, Tunnels, Big Wall Door, Spawn Secret Door |
 | The key | a check carrier. Placing it in its receptacle is a check and **nothing else** |
 
 **Almost nothing needs suppressing.** The players fore the key and place it

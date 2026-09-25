@@ -118,10 +118,10 @@ def create_victory_event(world: BigWalkWorld) -> None:
     ClientStatus of GOAL rather than a location id (see ../protocol.md).
 
     Which region it lives in is the whole point — both bell goals sit past the
-    Black Monolith Key, the second ending sits past the Hub Secret Door, and a
+    Black Monolith Key, the second ending sits past the Spawn Secret Door, and a
     deposit goal is reachable without ever going near any of them.
 
-    `secret_ending` requires the Hub Secret Door and nothing else, and that is
+    `big_game` requires the Spawn Secret Door and nothing else, and that is
     now MEASURED (2026-09-22). The ending was reached and reported on a save
     whose log read `EndingGate latched: False, GauntletComplete latched:
     False` — neither bell had been rung. In vanilla the path is sealed by a
@@ -133,9 +133,9 @@ def create_victory_event(world: BigWalkWorld) -> None:
     first run used.
     """
     goal = world.options.goal
-    if goal == Goal.option_gourds:
+    if goal == Goal.option_big_collection:
         region_name = regions.OVERWORLD
-    elif goal == Goal.option_secret_ending:
+    elif goal == Goal.option_big_game:
         region_name = regions.GREEN_DOME_ZONE
     else:
         region_name = regions.ENDING_ZONE

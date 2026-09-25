@@ -2,10 +2,10 @@ from .. import data
 from .bases import BigWalkTestBase
 
 
-class TestGauntletGoal(BigWalkTestBase):
+class TestBigGoodbyeGoal(BigWalkTestBase):
     """The default goal: everything past the Black Monolith Key."""
 
-    options = {"goal": "gauntlet"}
+    options = {"goal": "big_goodbye"}
 
     def test_victory_needs_the_black_monolith_key(self) -> None:
         self.collect_all_but(data.BLACK_MONOLITH.item_name)
@@ -15,8 +15,8 @@ class TestGauntletGoal(BigWalkTestBase):
         self.assertTrue(self.can_reach_location("Victory"))
 
 
-class TestEndingGoal(BigWalkTestBase):
-    options = {"goal": "ending"}
+class TestBigWallGoal(BigWalkTestBase):
+    options = {"goal": "big_wall"}
     run_default_tests = False
 
     def test_victory_needs_the_black_monolith_key(self) -> None:
@@ -24,8 +24,8 @@ class TestEndingGoal(BigWalkTestBase):
         self.assertFalse(self.can_reach_location("Victory"))
 
 
-class TestDepositGoal(BigWalkTestBase):
-    options = {"goal": "gourds", "gourds_required": 20}
+class TestBigCollectionGoal(BigWalkTestBase):
+    options = {"goal": "big_collection", "gourds_required": 20}
     run_default_tests = False
 
     def test_victory_needs_gourds_not_keys(self) -> None:
@@ -39,10 +39,10 @@ class TestDepositGoal(BigWalkTestBase):
         self.assertTrue(self.can_reach_location("Victory"))
 
 
-class TestDepositGoalAtEverySlot(BigWalkTestBase):
+class TestBigCollectionGoalAtEverySlot(BigWalkTestBase):
     """The largest deposit goal the option allows is every slot on the island."""
 
-    options = {"goal": "gourds", "gourds_required": data.MAX_MONUMENT_SLOTS}
+    options = {"goal": "big_collection", "gourds_required": data.MAX_MONUMENT_SLOTS}
     run_default_tests = False
 
     def test_every_gourd_is_needed_and_enough(self) -> None:
@@ -52,10 +52,10 @@ class TestDepositGoalAtEverySlot(BigWalkTestBase):
         self.assertTrue(self.can_reach_location("Victory"))
 
 
-class TestSecondEndingGoal(BigWalkTestBase):
-    """The ending behind the Hub Secret Door, and only its item opens it."""
+class TestBigGameGoal(BigWalkTestBase):
+    """The ending behind the Spawn Secret Door, and only its item opens it."""
 
-    options = {"goal": "secret_ending"}
+    options = {"goal": "big_game"}
     run_default_tests = False
 
     def test_victory_needs_the_green_dome(self) -> None:

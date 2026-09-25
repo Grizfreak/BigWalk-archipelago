@@ -15,34 +15,42 @@ class Goal(Choice):
     """
     What you need to do to win. No goal can be done solo.
 
-    - gauntlet: pass behind the big green wall and finish the game. Needs
-      the Chapel Door.
-    - ending: get in the big green wall. Needs the Chapel Door.
-    - secret_ending: reach the secret ending behind the Hub Secret Door.
-      Needs that item, and nothing else: the sphere that normally seals it
-      until you have finished the game is gone from the start.
-    - gourds: place a number of gourds in the towers' slots (see Gourds
-      Required).
+    - big_wall: break the bell inside the Big Wall. Needs the Big Wall
+      Door.
+    - big_goodbye: complete the Silent Gauntlet, behind the Big Wall. Needs
+      the Big Wall Door. Saying farewell afterwards is up to you.
+    - big_game: reach the secret ending behind the Spawn Secret Door. Needs
+      that item, and nothing else: the sphere that normally seals it until
+      you have finished the game is gone from the start.
+    - big_collection: place a number of gourds in the towers' slots (see
+      Gourds Required).
     """
 
     display_name = "Goal"
-    option_gauntlet = 0
-    option_ending = 1
-    option_gourds = 2
-    option_secret_ending = 3
-    # The names this option had before the 2026-09-25 rename, so a YAML
-    # written for the first alpha still reads. They are also what the mod
-    # receives: see GOAL_ON_THE_WIRE.
-    alias_deposits = option_gourds
-    alias_second_ending = option_secret_ending
-    default = 0
+    # Named after the game's achievements, in order of base-game effort;
+    # big_collection has no achievement and comes last as the one goal only
+    # Archipelago offers.
+    option_big_wall = 0
+    option_big_goodbye = 1
+    option_big_game = 2
+    option_big_collection = 3
+    # Every name this option has had before, so an older YAML still reads:
+    # the first alpha's (which are also what the mod receives, see
+    # GOAL_ON_THE_WIRE) and the short-lived ones of 2026-09-25.
+    alias_ending = option_big_wall
+    alias_gauntlet = option_big_goodbye
+    alias_second_ending = option_big_game
+    alias_secret_ending = option_big_game
+    alias_deposits = option_big_collection
+    alias_gourds = option_big_collection
+    default = option_big_goodbye
 
 
 GOAL_ON_THE_WIRE = {
-    "gauntlet": "gauntlet",
-    "ending": "ending",
-    "gourds": "deposits",
-    "secret_ending": "second_ending",
+    "big_wall": "ending",
+    "big_goodbye": "gauntlet",
+    "big_game": "second_ending",
+    "big_collection": "deposits",
 }
 """
 The string slot_data carries for each goal, which is what the mod compares.
@@ -55,7 +63,7 @@ names are also aliases of the option, so the tracker reads them back.
 
 class GourdsRequired(Range):
     """
-    Only relevant if the Goal is "gourds".
+    Only relevant if the Goal is "big_collection".
 
     How many gourds must be placed in the towers' slots to win.
     """
@@ -173,14 +181,14 @@ option_groups = [
 option_presets = {
     # Everything on: the full alpha experience.
     "Full Run": {
-        "goal": Goal.option_gauntlet,
+        "goal": Goal.option_big_goodbye,
         "gourd_slot_checks": GourdSlotChecks.option_every_gourd,
         "radio_checks": True,
         "shuffle_radio_music": True,
     },
-    # Trimmed down: the chapel bell, and a check every five gourds placed.
+    # Trimmed down: the bell inside the Big Wall, and a check every five gourds placed.
     "Short": {
-        "goal": Goal.option_ending,
+        "goal": Goal.option_big_wall,
         "gourd_slot_checks": GourdSlotChecks.option_every_5,
         "radio_checks": True,
         "shuffle_radio_music": True,

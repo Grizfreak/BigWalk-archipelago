@@ -62,7 +62,7 @@ GOURD_ITEM_NAME = "Gourd"
 #     against the 45 below, and the extra one is 4.3m away while the next is
 #     115m — so it really is there, which the roster's distance sort is the
 #     only way to know (the game instantiates every gourd everywhere). It is
-#     a shiny white gourd in the zone behind the Hub Secret Door, released by
+#     a shiny white gourd in the zone behind the Spawn Secret Door, released by
 #     two buttons held at once (`NHoldLogic 2`, minimumMatches=2 — the bells'
 #     mechanism). It carries `saveablePropName = notSavable`.
 #     - It is NOT gourdSecretZoneVice: that value would have printed its own
@@ -97,53 +97,53 @@ class Puzzle(NamedTuple):
 
 
 PUZZLES: tuple[Puzzle, ...] = (
-    Puzzle("gourdCabinFever", 100, "Cabin Fever"),
-    Puzzle("gourdHighButton", 101, "High Button"),
-    Puzzle("gourdFielding", 103, "Fielding"),
-    Puzzle("gourdCannonBall", 104, "Cannon Ball"),
-    Puzzle("gourdInvisibleInk", 105, "Invisible Ink"),
-    Puzzle("gourdTrapRoom", 106, "Trap Room"),
-    Puzzle("gourdMediumSimPress", 107, "Medium Simultaneous Press"),
-    Puzzle("gourdEasySimPress", 108, "Easy Simultaneous Press"),
-    Puzzle("gourdRingRoom", 109, "Ring Room"),
-    Puzzle("gourdObby", 113, "Obby"),
-    Puzzle("gourdCarousel", 114, "Carousel"),
-    Puzzle("gourdCoordinates", 115, "Coordinates"),
-    Puzzle("gourdTelescopeToBox", 116, "Telescope to Box"),
-    Puzzle("gourdObservationRoom", 117, "Observation Room"),
-    Puzzle("gourdWindowLabyrinth", 118, "Window Labyrinth"),
-    Puzzle("gourdBasketball", 121, "Basketball"),
-    Puzzle("gourdConcert", 122, "Concert"),
-    Puzzle("gourdIndoorSemaphore", 123, "Indoor Semaphore"),
-    Puzzle("gourdOpticalTelegraph", 124, "Optical Telegraph"),
+    Puzzle("gourdCabinFever", 100, "Cabin Fever Puzzle"),
+    Puzzle("gourdHighButton", 101, "High Button Puzzle"),
+    Puzzle("gourdFielding", 103, "Fielding Puzzle"),
+    Puzzle("gourdCannonBall", 104, "Cannonball Puzzle"),
+    Puzzle("gourdInvisibleInk", 105, "Invisible Ink Puzzle"),
+    Puzzle("gourdTrapRoom", 106, "Trap Room Puzzle"),
+    Puzzle("gourdMediumSimPress", 107, "Medium Simultaneous Press Puzzle"),
+    Puzzle("gourdEasySimPress", 108, "Easy Simultaneous Press Puzzle"),
+    Puzzle("gourdRingRoom", 109, "Ring Room Puzzle"),
+    Puzzle("gourdObby", 113, "Obby Puzzle"),
+    Puzzle("gourdCarousel", 114, "Carousel Puzzle"),
+    Puzzle("gourdCoordinates", 115, "Coordinates Puzzle"),
+    Puzzle("gourdTelescopeToBox", 116, "Telescope to Box Puzzle"),
+    Puzzle("gourdObservationRoom", 117, "Observation Room Puzzle"),
+    Puzzle("gourdWindowLabyrinth", 118, "Window Labyrinth Puzzle"),
+    Puzzle("gourdBasketball", 121, "Basketball Puzzle"),
+    Puzzle("gourdConcert", 122, "Concert Puzzle"),
+    Puzzle("gourdIndoorSemaphore", 123, "Indoor Semaphore Puzzle"),
+    Puzzle("gourdOpticalTelegraph", 124, "Optical Telegraph Puzzle"),
     # The game's own enum misspells "Priest"; the location name does not.
-    Puzzle("gourdPoetAndPreist", 125, "Poet and Priest"),
-    Puzzle("gourdMemoryBombs", 127, "Memory Bombs"),
-    Puzzle("gourdTileThief", 133, "Tile Thief"),
-    Puzzle("gourdCharadesRooms", 134, "Charades Rooms"),
-    Puzzle("gourdMicrophoneArray", 135, "Microphone Array"),
-    Puzzle("gourdPointersParadise", 137, "Pointer's Paradise"),
-    Puzzle("gourdCoordinatesHolding", 138, "Coordinates Holding"),
-    Puzzle("gourdEggHunt", 139, "Egg Hunt"),
-    Puzzle("gourdTellerWindow", 140, "Teller Window"),
-    Puzzle("gourdSignalFlags", 141, "Signal Flags"),
-    Puzzle("gourdCabinFeverLong", 142, "Cabin Fever Long"),
-    Puzzle("gourdBreadcrumbLoop", 143, "Breadcrumb Loop"),
-    Puzzle("gourdScoutBombs", 144, "Scout Bombs"),
+    Puzzle("gourdPoetAndPreist", 125, "Poet and Priest Puzzle"),
+    Puzzle("gourdMemoryBombs", 127, "Memory Bombs Puzzle"),
+    Puzzle("gourdTileThief", 133, "Tile Thief Puzzle"),
+    Puzzle("gourdCharadesRooms", 134, "Charades Rooms Puzzle"),
+    Puzzle("gourdMicrophoneArray", 135, "Microphone Array Puzzle"),
+    Puzzle("gourdPointersParadise", 137, "Pointer's Paradise Puzzle"),
+    Puzzle("gourdCoordinatesHolding", 138, "Coordinates Holding Puzzle"),
+    Puzzle("gourdEggHunt", 139, "Egg Hunt Puzzle"),
+    Puzzle("gourdTellerWindow", 140, "Teller Window Puzzle"),
+    Puzzle("gourdSignalFlags", 141, "Signal Flags Puzzle"),
+    Puzzle("gourdCabinFeverLong", 142, "Cabin Fever Long Puzzle"),
+    Puzzle("gourdBreadcrumbLoop", 143, "Breadcrumb Loop Puzzle"),
+    Puzzle("gourdScoutBombs", 144, "Scout Bombs Puzzle"),
     # Another game-side typo ("Centuron"), kept only in prop_name.
-    Puzzle("gourdCenturonSong", 147, "Centurion Song"),
-    Puzzle("gourdMusicalHoliday", 148, "Musical Holiday"),
-    Puzzle("gourdKickUpPits", 149, "Kick Up Pits"),
-    Puzzle("gourdSingerAndSelecter", 150, "Singer and Selector"),
-    Puzzle("gourdDancerAndSelecter", 151, "Dancer and Selector"),
-    Puzzle("gourdSpeedObby", 152, "Speed Obby"),
-    Puzzle("gourdBlindfoldCatwalk", 153, "Blindfold Catwalk"),
-    Puzzle("gourdBlindfoldFishtrap", 154, "Blindfold Fishtrap"),
-    Puzzle("gourdPerspectiveCounting", 155, "Perspective Counting"),
-    Puzzle("gourdCenturionSeance", 156, "Centurion Seance"),
-    Puzzle("gourdFlareRun", 157, "Flare Run"),
-    Puzzle("gourdCannonballCommute", 158, "Cannonball Commute"),
-    Puzzle("gourdPoetAndPontiff", 159, "Poet and Pontiff"),
+    Puzzle("gourdCenturonSong", 147, "Centurion Song Puzzle"),
+    Puzzle("gourdMusicalHoliday", 148, "Musical Holiday Puzzle"),
+    Puzzle("gourdKickUpPits", 149, "Kick Up Pits Puzzle"),
+    Puzzle("gourdSingerAndSelecter", 150, "Singer and Selector Puzzle"),
+    Puzzle("gourdDancerAndSelecter", 151, "Dancer and Selector Puzzle"),
+    Puzzle("gourdSpeedObby", 152, "Speed Obby Puzzle"),
+    Puzzle("gourdBlindfoldCatwalk", 153, "Blindfold Catwalk Puzzle"),
+    Puzzle("gourdBlindfoldFishtrap", 154, "Blindfold Fishtrap Puzzle"),
+    Puzzle("gourdPerspectiveCounting", 155, "Perspective Counting Puzzle"),
+    Puzzle("gourdCenturionSeance", 156, "Centurion Seance Puzzle"),
+    Puzzle("gourdFlareRun", 157, "Flare Run Puzzle"),
+    Puzzle("gourdCannonballCommute", 158, "Cannonball Commute Puzzle"),
+    Puzzle("gourdPoetAndPontiff", 159, "Poet and Pontiff Puzzle"),
 )
 
 ABSENT_FROM_THE_BUILD: tuple[str, ...] = (
@@ -305,6 +305,12 @@ class Tower(NamedTuple):
 # the summit bell. Caught by the player, who read "Dam" in an item list and
 # could not tell what it named.
 #
+# Both doors renamed again after the first alpha (2026-09-25), from players'
+# feedback: "Chapel Door" became "Big Wall Door", since nobody called that
+# building a chapel and the game's own achievement calls it the Big Wall; and
+# "Hub Secret Door" became "Spawn Secret Door", since "hub" read as the Green
+# Dome Tower while the door is the one players spawn beside.
+#
 # KEYS ARE NAMED AFTER THEIR TOWER'S COLOUR (2026-09-25), reversing the
 # "<feature> Key" naming above for the keys and their checks only. The first
 # alpha's players found the item list did not read like the game: a key is
@@ -314,7 +320,7 @@ class Tower(NamedTuple):
 # "Green Cup", "Yellow Twist" and "Black Monolith" were never players'
 # names; they survive only in the constants below.
 DRAWBRIDGE_ITEM_NAME = "Drawbridge"
-HUB_SECRET_DOOR_ITEM_NAME = "Hub Secret Door"
+SPAWN_SECRET_DOOR_ITEM_NAME = "Spawn Secret Door"
 
 TOWERS: tuple[Tower, ...] = (
     Tower("bigKeyIntro", 300, DRAWBRIDGE_ITEM_NAME, "Drawbridge", "Drawbridge Key Deposit",
@@ -327,9 +333,9 @@ TOWERS: tuple[Tower, ...] = (
           "bigKeyPlinthTrain", "monoument2", 5, 5),
     Tower("bigKeyYellowZone", 304, "Tunnels", "Yellow Tower", "Yellow Tower Key Deposit",
           "bigKeyPlinthTunnels", "monoument3", 5, 5),
-    Tower("bigKeyBoss", 305, "Chapel Door", "Black Tower", "Black Tower Key Deposit",
+    Tower("bigKeyBoss", 305, "Big Wall Door", "Black Tower", "Black Tower Key Deposit",
           "bigKeyPlinthEnding", "monoumentFinal", 6, 0),
-    Tower("bigKeyOverflow", 306, HUB_SECRET_DOOR_ITEM_NAME, "Green Dome", "Green Dome Key Deposit",
+    Tower("bigKeyOverflow", 306, SPAWN_SECRET_DOOR_ITEM_NAME, "Green Dome", "Green Dome Key Deposit",
           "bigKeyPlinthGoodbye2", "monoumentOverflow", 15, 0),
 )
 
@@ -350,7 +356,7 @@ YELLOW_TWIST = TOWERS[4]
 """The Yellow Tower (`bigKeyYellowZone`); its feature is the tunnels."""
 
 BLACK_MONOLITH = TOWERS[5]
-"""The Black Tower (`bigKeyBoss`); its feature, the Chapel Door, is the way to the ending."""
+"""The Black Tower (`bigKeyBoss`); its feature, the Big Wall Door, is the way to the ending."""
 
 MAX_MONUMENT_SLOTS = sum(tower.slots for tower in TOWERS)
 """Every monument slot on the island: 4 + 5 + 5 + 5 + 5 + 6 + 15 = 45."""

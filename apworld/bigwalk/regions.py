@@ -10,7 +10,7 @@ actually gates progress is the gourd count in rules.py.
 Three structural gates are modelled, all of them big keys:
 
 - **The ending.** The Black Monolith Key (`bigKeyBoss` -> `bigKeyPlinthEnding`)
-  opens the chapel, the field behind it and the Gauntlet beyond that.
+  opens the Big Wall, the field behind it and the Gauntlet beyond that.
 - **The chairlift.** The Green Cup Key opens it, and past it sit the purple
   "variant challenge" gourds and a radio station. Found in play on 2026-09-21:
   until then this file claimed the island was open apart from the ending, which
@@ -18,7 +18,7 @@ Three structural gates are modelled, all of them big keys:
   the seed unbeatable.
 - **The tunnels.** The Yellow Twist Key opens them, and a radio station sits
   past them.
-- **The Hub Secret Door.** Its own item opens it, and the game's second
+- **The Spawn Secret Door.** Its own item opens it, and the game's second
   ending is behind it.
 
 Still deliberately *not* modelled: which puzzle belongs to which tower. That
@@ -43,7 +43,7 @@ OVERWORLD = "Big Walk"
 ENDING_ZONE = "Ending Zone"
 CHAIRLIFT_ZONE = "Past the Chairlift"
 TUNNEL_ZONE = "Past the Tunnels"
-GREEN_DOME_ZONE = "Past the Hub Secret Door"
+GREEN_DOME_ZONE = "Past the Spawn Secret Door"
 
 ENDING_ENTRANCE = f"{OVERWORLD} to {ENDING_ZONE}"
 CHAIRLIFT_ENTRANCE = f"{OVERWORLD} to {CHAIRLIFT_ZONE}"

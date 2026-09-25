@@ -95,7 +95,7 @@ class BigWalkWorld(World):
     """Deposit counts that are locations, e.g. (5, 10, ..., 45)."""
 
     deposit_goal: int
-    """Gourds required to win when the goal is `deposits`."""
+    """Gourds required to win when the goal is `big_collection`."""
 
     @staticmethod
     def interpret_slot_data(slot_data: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -115,7 +115,7 @@ class BigWalkWorld(World):
         # The Green Dome used to be optional (`green_dome_deposits`, removed
         # 2026-09-25 before the first release): its fifteen slots only ever
         # bought deposit checks, which gourd_slot_checks already scales, and
-        # leaving it out took the Hub Secret Door zone with it for nothing.
+        # leaving it out took the Spawn Secret Door zone with it for nothing.
         self.towers = data.TOWERS
         self.gourd_count = data.MAX_MONUMENT_SLOTS
 

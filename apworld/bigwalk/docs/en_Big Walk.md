@@ -26,9 +26,8 @@ the finished key in its receptacle. That is 32 checks across the seven
 towers, all of them earned by hand.
 
 **And the key no longer opens anything.** The drawbridge, the map room, the
-chairlift, the train, the tunnels, the dam and the Hub Secret Door are
-separate
-items. So the two halves come apart: you might be riding the chairlift long
+chairlift, the train, the tunnels, the Big Wall Door and the Spawn Secret
+Door are separate items. So the two halves come apart: you might be riding the chairlift long
 before its key reaches you, or cut all five segments of a key and still be
 waiting on someone else to send you the ride.
 
@@ -53,17 +52,17 @@ removed.
 
 Whichever of these you picked in your YAML:
 
-- **Gauntlet** (default) — pass behind the big green wall and finish the
-  game.
-- **Ending** — get in the big green wall.
-- **Secret Ending** — reach the secret ending, behind the Hub Secret Door.
+- **Big Wall** — break the bell inside the Big Wall.
+- **Big Goodbye** (default) — pass behind the Big Wall and complete the
+  Silent Gauntlet. Saying farewell afterwards is up to you.
+- **Big Game** — reach the secret ending, behind the Spawn Secret Door.
   Nothing else is in the way: the vanilla game seals that path until you
   have finished it once, and the mod removes the seal from your first
   session.
-- **Gourds** — place a set number of gourds in the towers' slots.
+- **Big Collection** — place a set number of gourds in the towers' slots.
 
 Whichever you picked, the corner of the screen names it for the whole session,
-under the connection line, with the running count for **Gourds**.
+under the connection line, with the running count for **Big Collection**.
 
 Both bells need two players hitting two buttons at once, and placing a gourd
 in a tower's slot is a two-player action too. This world is not playable
@@ -88,7 +87,7 @@ Items:
 - **Gourd** — fits any slot of any tower. There are exactly as many as
   there are slots: 45.
 - The 7 features a big key used to open: **Drawbridge**, **Map Room**,
-  **Chairlift**, **Train**, **Tunnels**, **Chapel Door** and **Hub Secret
+  **Chairlift**, **Train**, **Tunnels**, **Big Wall Door** and **Spawn Secret
   Door**. These are what actually open the island.
 - The 7 big keys themselves — **Drawbridge Key**, **Red Tower Key**,
   **Green Tower Key**, **Blue Tower Key**, **Yellow Tower Key**, **Black

@@ -19,7 +19,7 @@ from .bases import BigWalkTestBase, build_like_universal_tracker, world_shape
 # A seed that differs from the defaults in every way that can move a location,
 # a region or a number a rule is written against.
 UNLIKE_THE_DEFAULTS = {
-    "goal": "secret_ending",
+    "goal": "big_game",
     "gourd_slot_checks": "every_gourd",
     "gourds_required": 25,
     "radio_checks": False,
@@ -98,7 +98,7 @@ class TestAnAlphaYamlStillReads(BigWalkTestBase):
     def test_the_old_values_land_on_the_new_ones(self) -> None:
         from ..options import Goal, GourdSlotChecks
 
-        self.assertEqual(self.world.options.goal.value, Goal.option_gourds)
+        self.assertEqual(self.world.options.goal.value, Goal.option_big_collection)
         self.assertEqual(self.world.options.gourd_slot_checks.value, GourdSlotChecks.option_every_5)
 
 
