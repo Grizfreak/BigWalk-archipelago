@@ -56,76 +56,47 @@ namespace BigWalkArchipelago.Core
         {
         }
 
-        private const string OpenedFlagKey = "ap_archdoors_opened";
-
-        private static readonly SavableSystem[] HubShortcutKeys =
-        {
-            SavableSystem.SpawnHubGate,
-            SavableSystem.HubTunnel,
-            SavableSystem.HubShortcutToSportsCreek,
-        };
-
-            // Re-armed on every world load, not latched once for the life
-            // of the process. Going back to the main menu and loading
-            // another save reloads the world without restarting the game,
-            // and the old `_done` flag meant this simply never ran again —
-            // observed in-game on 2026-09-15, where a brand-new save got
-            // neither its hub shortcuts nor its sphere handled because a
-            // previous save had already consumed the one-shot. Running
-            // again is harmless in both cases: the SaveManager flag below
-            // still keeps this to once per save.
+        // SINCE 2026-09-25 THE DOORS ARE ArchDoors' TO DECIDE. `lock_arch_doors`
+        // can hold any of the three closed until its item arrives, so opening
+        // all three on a save's first session — which is what this did, under
+        // an `ap_archdoors_opened` flag — would give away what the slot is
+        // meant to find. This now only says when: a world has become ready on
+        // the host, and slot_data has said which doors are locked (or there
+        // is no Archipelago, and none is). The how is ArchDoors.Enforce, run
+        // on every world load since a door is idempotent to open.
         private bool _worldWasReady;
+        private bool _enforced;
 
         private void Update()
         {
-            // Host authority model, like the rest of the mod (cf. ItemApplier).
             var worldReady = NetworkServer.active && WorldManager.isReadyForEffects;
             if (!worldReady)
             {
+                // A world going away takes its slot's list with it: the next
+                // save may be another slot, or none. Only on the way out, not
+                // while a world loads — slot_data usually arrives then.
+                if (_worldWasReady)
+                    ArchDoors.Forget();
+
                 _worldWasReady = false;
+                _enforced = false;
                 return;
             }
 
-            if (_worldWasReady)
-                return;
-
-            _worldWasReady = true;
-
-            if (SaveManager.GetIntValue(OpenedFlagKey, 0, false) != 0)
-                return;
-
-            SaveManager.SetIntValue(OpenedFlagKey, 1);
-
-            Plugin.Log.LogInfo(
-                $"[{nameof(ArchDoorUnlocker)}] First session on this save: automatically opening the hub shortcuts.");
-
-            var loaded = UnityEngine.Object.FindObjectsByType<TrackedPeckState>(FindObjectsSortMode.None);
-            foreach (var key in HubShortcutKeys)
+            if (!_worldWasReady)
             {
-                TrackedPeckState target = null;
-                if (loaded != null)
-                {
-                    foreach (var state in loaded)
-                    {
-                        if (state != null && state.savableSystem == key)
-                        {
-                            target = state;
-                            break;
-                        }
-                    }
-                }
-
-                if (target != null)
-                {
-                    target.SetState(1);
-                    Plugin.Log.LogInfo($"[{nameof(ArchDoorUnlocker)}]   {key}: immediate effect applied (object found in scene).");
-                }
-                else
-                {
-                    SaveManager.SetIntValue(key.ToString(), 1);
-                    Plugin.Log.LogInfo($"[{nameof(ArchDoorUnlocker)}]   {key}: object not loaded, SaveManager write only (effect on next load).");
-                }
+                _worldWasReady = true;
+                if (!ModConfig.ArchipelagoEnabled.Value)
+                    ArchDoors.ConfigureWithoutArchipelago();
             }
+
+            // Waits for slot_data when Archipelago is on; ArchDoors.Configure
+            // enforces on its own if it arrives while a world is up.
+            if (_enforced || !ArchDoors.Configured)
+                return;
+
+            _enforced = true;
+            ArchDoors.Enforce();
         }
     }
 }

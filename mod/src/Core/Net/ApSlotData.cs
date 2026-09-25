@@ -45,12 +45,17 @@ namespace BigWalkArchipelago.Core.Net
         internal int TotalMonumentSlots { get; private set; }
         internal int[] DepositLocationAmounts { get; private set; } = Array.Empty<int>();
 
+        // Empty by default: an apworld too old to send it has no door items
+        // in its pool, so holding a door for it would keep it shut for good.
+        internal string[] LockedArchDoors { get; private set; } = Array.Empty<string>();
+
         internal long LocationIdBase { get; private set; } = ApLocationIds.DefaultBase;
         internal long RadioIdOffset { get; private set; } = ApLocationIds.DefaultRadioOffset;
         internal long DepositIdOffset { get; private set; } = ApLocationIds.DefaultDepositOffset;
         internal long CutIdOffset { get; private set; } = ApLocationIds.DefaultCutOffset;
         internal long KeyItemIdOffset { get; private set; } = ApLocationIds.DefaultKeyItemOffset;
         internal long GourdItemId { get; private set; } = ApLocationIds.DefaultGourdItemId;
+        internal long ArchDoorIdOffset { get; private set; } = ApLocationIds.DefaultArchDoorOffset;
 
         internal static ApSlotData From(Dictionary<string, object> raw)
         {
@@ -71,6 +76,7 @@ namespace BigWalkArchipelago.Core.Net
             data.BigKeyItems = GetBool(raw, "big_key_items", data.BigKeyItems);
             data.TotalMonumentSlots = GetInt(raw, "total_monument_slots", data.TotalMonumentSlots);
             data.DepositLocationAmounts = GetIntArray(raw, "deposit_location_amounts");
+            data.LockedArchDoors = GetStringArray(raw, "locked_arch_doors");
 
             data.LocationIdBase = GetInt(raw, "location_id_base", (int)data.LocationIdBase);
             data.RadioIdOffset = GetInt(raw, "radio_id_offset", (int)data.RadioIdOffset);
@@ -78,6 +84,7 @@ namespace BigWalkArchipelago.Core.Net
             data.CutIdOffset = GetInt(raw, "cut_id_offset", (int)data.CutIdOffset);
             data.KeyItemIdOffset = GetInt(raw, "key_item_id_offset", (int)data.KeyItemIdOffset);
             data.GourdItemId = GetInt(raw, "gourd_item_id", (int)data.GourdItemId);
+            data.ArchDoorIdOffset = GetInt(raw, "arch_door_id_offset", (int)data.ArchDoorIdOffset);
 
             return data;
         }
@@ -91,7 +98,8 @@ namespace BigWalkArchipelago.Core.Net
                    + $", radio checks {(RadioStationChecks ? "on" : "off")}"
                    + $", radio items {(RadioStationItems ? "on" : "off")}"
                    + $", big key features {(BigKeyFeatures ? "on" : "off")}"
-                   + $", big keys as items {(BigKeyItems ? "on" : "off")}";
+                   + $", big keys as items {(BigKeyItems ? "on" : "off")}"
+                   + $", {LockedArchDoors.Length} arch door(s) locked";
         }
 
         private static string GetString(Dictionary<string, object> raw, string key, string fallback)
@@ -129,6 +137,21 @@ namespace BigWalkArchipelago.Core.Net
                 Plugin.Log.LogWarning($"[{nameof(ApSlotData)}] slot_data['{key}'] is not a boolean ({ex.Message}); using {fallback}.");
                 return fallback;
             }
+        }
+
+        private static string[] GetStringArray(Dictionary<string, object> raw, string key)
+        {
+            if (!raw.TryGetValue(key, out var value) || value is not IEnumerable sequence || value is string)
+                return Array.Empty<string>();
+
+            var result = new List<string>();
+            foreach (var element in sequence)
+            {
+                if (element != null)
+                    result.Add(element.ToString());
+            }
+
+            return result.ToArray();
         }
 
         private static int[] GetIntArray(Dictionary<string, object> raw, string key)

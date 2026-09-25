@@ -25,6 +25,7 @@ RADIO_ID_OFFSET = 1_000
 DEPOSIT_ID_OFFSET = 2_000
 CUT_ID_OFFSET = 3_000
 KEY_ITEM_ID_OFFSET = 4_000
+ARCH_DOOR_ID_OFFSET = 5_000
 # 9_000 and above is the item-only range for things the game has no enum for
 # (filler, traps); see FILLER_ITEMS / TRAP_ITEMS at the bottom of this file.
 
@@ -433,6 +434,25 @@ RADIO_STATIONS: tuple[RadioStation, ...] = (
 # taken in two different zones came back byte-identical. Only distance answers
 # "what is in here".
 
+START_ZONE_PUZZLES: tuple[str, ...] = (
+    "gourdHighButton",
+    "gourdEasySimPress",
+    "gourdTellerWindow",
+    "gourdTelescopeToBox",
+)
+"""
+`SaveablePropName` of each puzzle in the starting zone: the hub players spawn
+at and the tutorial beside it, everything short of the drawbridge and the
+first arch door.
+
+Measured 2026-09-25 by distance to the tutorial's monument (143m to 215m),
+and named by the player: the one you climb on each other for, the one of
+buttons pressed together, the telescope and the teller window. Microphone
+Array sits in the same band, at 173m, and is NOT in the zone — the player
+settled it. As with the chairlift, distance narrows the question and the
+player answers it.
+"""
+
 CHAIRLIFT_PUZZLES: tuple[str, ...] = (
     "gourdCannonballCommute",
     "gourdCharadesRooms",
@@ -607,6 +627,39 @@ def radio_item_id(station: RadioStation) -> int:
     # game's own enum value in both keeps the mod's arithmetic to one rule
     # per category instead of two.
     return BASE_ID + RADIO_ID_OFFSET + station.system_value
+
+
+# --------------------------------------------------------------------------
+# Arch doors (SavableSystem.SpawnHubGate / HubShortcutToSportsCreek / HubTunnel)
+# --------------------------------------------------------------------------
+# The hub's three arch doors, which the mod opens on a save's first session
+# unless `lock_arch_doors` holds some of them back behind an item each.
+#
+# The first is the tutorial's way back to the hub: in vanilla it is opened
+# from the far side once the drawbridge is down, so it and the Drawbridge are
+# the two ways out of the starting zone. The left one (towards Sports Creek)
+# and the right one are shortcuts, which the player confirmed change no
+# reachability, only the length of the walk. Which system is which was
+# measured on 2026-09-25: SpawnHubGate is 11m from the hub's keyhole, the
+# Sports Creek shortcut furthest east, the tunnel between them.
+
+
+class ArchDoor(NamedTuple):
+    system_name: str
+    """`SavableSystem` enum name, the SaveManager key the door's state lives under."""
+    system_value: int
+    """`SavableSystem` enum value; the item id is BASE_ID + ARCH_DOOR_ID_OFFSET + this."""
+    item_name: str
+
+
+FIRST_ARCH_DOOR = ArchDoor("SpawnHubGate", 11, "First Arch Door")
+LEFT_ARCH_DOOR = ArchDoor("HubShortcutToSportsCreek", 13, "Left Arch Door")
+RIGHT_ARCH_DOOR = ArchDoor("HubTunnel", 12, "Right Arch Door")
+ARCH_DOORS: tuple[ArchDoor, ...] = (FIRST_ARCH_DOOR, LEFT_ARCH_DOOR, RIGHT_ARCH_DOOR)
+
+
+def arch_door_item_id(door: ArchDoor) -> int:
+    return BASE_ID + ARCH_DOOR_ID_OFFSET + door.system_value
 
 
 def deposit_location_name(amount: int) -> str:

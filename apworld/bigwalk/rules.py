@@ -97,6 +97,15 @@ def set_entrance_rules(world: BigWalkWorld) -> None:
         Has(data.YELLOW_TWIST.item_name),
     )
 
+    # The way out of the starting zone, gated only while the first arch door
+    # is held closed: then it is the drawbridge or that door. Otherwise the
+    # mod opens the door on the first session and the exit is free.
+    if data.FIRST_ARCH_DOOR in world.locked_arch_doors:
+        world.set_rule(
+            world.get_entrance(regions.STARTING_EXIT),
+            Has(data.DRAWBRIDGE_ITEM_NAME) | Has(data.FIRST_ARCH_DOOR.item_name),
+        )
+
     # The Spawn Secret Door, and the second ending behind it.
     world.set_rule(
         world.get_entrance(regions.GREEN_DOME_ENTRANCE),

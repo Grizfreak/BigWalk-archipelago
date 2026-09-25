@@ -64,6 +64,8 @@ the options so Universal Tracker reads them back.
 | `deposit_location_amounts` | int[] | Ascending deposit counts that are checks, e.g. `[5, 10, ..., 45]`. Possibly empty. |
 | `radio_station_checks` | bool | Whether the seven radio stations are checks. |
 | `radio_station_items` | bool | Whether the music is shuffled too. While true the mod suppresses the game's own station unlock until the matching item arrives (§11). **Default to false** when the field is absent: an apworld too old to send it has no Radio Music items in its pool, so suppressing would make seven stations permanently silent. |
+| `lock_arch_doors` | str | The option as chosen (`all`, `far`, `far_left`, `far_right`, `disabled`), for Universal Tracker. The mod reads the list below instead. |
+| `locked_arch_doors` | list[str] | `SavableSystem` names of the hub's arch doors to hold closed until their item arrives (`SpawnHubGate`, `HubShortcutToSportsCreek`, `HubTunnel`). **Default to empty** when absent: an apworld too old to send it has no door items, so holding a door would keep it shut for good. |
 | `big_key_features` | bool | Whether what a big key opens is an Archipelago item. While true the mod stops a placed key from opening its door and grants the feature on receipt instead (§12). Always `true` from this apworld — it is the model, not an option. **Default to false** when the field is absent, for the same reason as the radio and more sharply: suppressing without items in the pool leaves seven doors that can never open. |
 | `big_key_items` | bool | Whether the big keys themselves are Archipelago items. While true the mod holds every key locked in its stone (`blockGrabbing`) until its item arrives, and a full monument no longer releases one. Always `true` from this apworld. **Default to false** when absent: locking keys that nothing can send leaves all seven unobtainable. |
 | `total_monument_slots` | int | Gourd items in circulation for this slot (45). |
@@ -73,6 +75,7 @@ the options so Universal Tracker reads them back.
 | `deposit_id_offset` | int | 2000. |
 | `cut_id_offset` | int | 3000. See §3. |
 | `key_item_id_offset` | int | 4000. See §4. |
+| `arch_door_id_offset` | int | 5000. See §4. |
 | `gourd_item_id` | int | 8600001. |
 
 ## 3. Location ids
@@ -128,6 +131,7 @@ nothing is listening for.
 | Features (Drawbridge, Map Room, Chairlift, Train, Tunnels, Big Wall Door, Spawn Secret Door) | `B + (int)SaveablePropName` (300–306) | 6 or 7 |
 | Big Keys (`<Feature> Key`) | `B + 4000 + (int)SaveablePropName` | 6 or 7 |
 | Radio Music | `B + 1000 + (int)SavableSystem` (30–36) | 7, or 0 when `radio_station_items` is false |
+| Arch doors (First, Left, Right) | `B + 5000 + (int)SavableSystem` (11–13) | 0 to 3, per `lock_arch_doors` |
 | Filler (Megaphone, Walkie-Talkie, Backpack, Belt, Flare Gun, Laser, Binoculars, Compass, Folding Map, Radio, Gourd Carton, Torch, Lamp, X-Ray Goggles, Blue/Green/Yellow Flare Gun) | 8609001–8609017 | rest of the pool |
 | Trap (Untied Shoelace) | 8609101 | 0 by default |
 

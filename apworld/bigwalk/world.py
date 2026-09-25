@@ -19,6 +19,7 @@ TRACKER_OPTIONS = {
     "deposit_locations": "gourd_slot_checks",
     "radio_station_checks": "radio_checks",
     "radio_station_items": "shuffle_radio_music",
+    "lock_arch_doors": "lock_arch_doors",
 }
 """
 The slot_data fields that are options, mapped to the option each one comes
@@ -58,7 +59,7 @@ class BigWalkWorld(World):
     item_name_groups = items.ITEM_NAME_GROUPS
     location_name_groups = locations.LOCATION_NAME_GROUPS
 
-    origin_region_name = regions.OVERWORLD
+    origin_region_name = regions.STARTING_ZONE
     topology_present = True
 
     # The Big Walk mod is not an Archipelago text client: it needs slot_data
@@ -97,6 +98,9 @@ class BigWalkWorld(World):
     deposit_goal: int
     """Gourds required to win when the goal is `big_collection`."""
 
+    locked_arch_doors: tuple[data.ArchDoor, ...]
+    """Arch doors held closed until their item arrives."""
+
     @staticmethod
     def interpret_slot_data(slot_data: Mapping[str, Any]) -> Mapping[str, Any]:
         """
@@ -121,6 +125,23 @@ class BigWalkWorld(World):
 
         self.deposit_amounts = self._pick_deposit_amounts(self.gourd_count)
         self.deposit_goal = self.options.gourds_required.value
+
+        self.locked_arch_doors = bigwalk_options.LOCKED_ARCH_DOORS[self.options.lock_arch_doors.current_key]
+        self._ask_for_an_early_way_out()
+
+    def _ask_for_an_early_way_out(self) -> None:
+        """
+        With the first arch door locked, the starting zone holds only a
+        handful of checks, and the way out — the Drawbridge or the First
+        Arch Door — must be among the first things this player finds. One of
+        the two, picked at random, is asked for as an early local item; if
+        the Drawbridge is handed over at the start there is nothing to ask.
+        """
+        if data.FIRST_ARCH_DOOR not in self.locked_arch_doors or self.options.start_with_drawbridge_open:
+            return
+
+        way_out = self.random.choice((data.DRAWBRIDGE_ITEM_NAME, data.FIRST_ARCH_DOOR.item_name))
+        self.multiworld.local_early_items[self.player][way_out] = 1
 
     def _take_options_from_tracker(self) -> None:
         """
@@ -200,6 +221,14 @@ class BigWalkWorld(World):
             # vanilla radio and simply gets seven items it ignores, which is
             # the harmless direction for the mismatch to fall.
             "radio_station_items": bool(self.options.shuffle_radio_music),
+
+            # The option for the tracker, and what it means for the mod: the
+            # `SavableSystem` names of the doors to hold closed until their
+            # item arrives. A mod too old to read it opens all three, the
+            # harmless direction — the logic never needs a door shut.
+            "lock_arch_doors": self.options.lock_arch_doors.current_key,
+            "locked_arch_doors": [door.system_name for door in self.locked_arch_doors],
+            "arch_door_id_offset": data.ARCH_DOOR_ID_OFFSET,
 
             # Not an option: it is the model this world is built on. The mod
             # stops a placed key from opening its door only while this is

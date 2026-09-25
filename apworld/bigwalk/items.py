@@ -19,6 +19,7 @@ ITEM_NAME_TO_ID: dict[str, int] = {
     **{tower.item_name: data.feature_item_id(tower) for tower in data.TOWERS},
     **{data.key_item_name(tower): data.key_item_id(tower) for tower in data.TOWERS},
     **{station.item_name: data.radio_item_id(station) for station in data.RADIO_STATIONS},
+    **{door.item_name: data.arch_door_item_id(door) for door in data.ARCH_DOORS},
     **{name: data.BASE_ID + offset for name, offset in data.FILLER_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.TRAP_ITEMS},
 }
@@ -37,6 +38,7 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Features": {tower.item_name for tower in data.TOWERS},
     "Big Keys": {data.key_item_name(tower) for tower in data.TOWERS},
     "Radio Music": set(RADIO_ITEM_NAMES),
+    "Arch Doors": {door.item_name for door in data.ARCH_DOORS},
     "Filler": set(FILLER_ITEM_NAMES),
     "Traps": set(TRAP_ITEM_NAMES),
 }
@@ -60,6 +62,12 @@ def classification_for(name: str) -> ItemClassification:
         # Progression because each one unlocks six locations of its own —
         # five cuts and a placement — and nothing else in the pool can.
         return ItemClassification.progression
+    if name == data.FIRST_ARCH_DOOR.item_name:
+        # One of the two ways out of the starting zone when it is locked.
+        return ItemClassification.progression
+    if name in ITEM_NAME_GROUPS["Arch Doors"]:
+        # Shortcuts: they shorten the walk and gate nothing.
+        return ItemClassification.useful
     if name in TRAP_ITEM_NAMES:
         return ItemClassification.trap
     # A Radio Music item starts a piece of music playing and nothing else: no
@@ -102,6 +110,10 @@ def create_all_items(world: BigWalkWorld) -> None:
     # pool: the count below is what balances it, so nothing special is needed.
     if world.options.shuffle_radio_music:
         pool += [world.create_item(station.item_name) for station in data.RADIO_STATIONS]
+
+    # A locked arch door is an item, and like the radio music it displaces
+    # filler rather than adding to the pool.
+    pool += [world.create_item(door.item_name) for door in world.locked_arch_doors]
 
     unfilled = len(world.multiworld.get_unfilled_locations(world.player))
     pool += [world.create_filler() for _ in range(unfilled - len(pool))]

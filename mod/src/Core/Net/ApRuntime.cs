@@ -643,10 +643,15 @@ namespace BigWalkArchipelago.Core.Net
             // otherwise the save keeps music the new seed has not given it.
             if (_appliedItemCount == 0)
             {
+                ArchDoors.ClearLedger();
                 RadioStations.ClearLedger();
                 KeyFeatures.ClearLedger();
                 KeyCustody.ClearLedger();
             }
+
+            // After the ledger above, so a save just rebound to a new seed is
+            // enforced with the doors that seed has given it: none yet.
+            ArchDoors.Configure(Connection.SlotData.LockedArchDoors);
 
             _lastReportedDepositCount = -1;
             _depositCount = 0;
@@ -1046,6 +1051,9 @@ namespace BigWalkArchipelago.Core.Net
             // resolver rather than a special case inside ItemApplier.
             if (ApLocationIds.TryResolveRadioItem(itemId, out var station))
                 return RadioStations.Grant(station);
+
+            if (ApLocationIds.TryResolveArchDoorItem(itemId, out var archDoor))
+                return ArchDoors.Grant(archDoor);
 
             // A filler gadget item (megaphone, walkie-talkie, backpack,
             // belt, flare gun) — same toPlayer split as the gourd above,

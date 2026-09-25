@@ -56,18 +56,37 @@ def gated_regions() -> dict[str, str]:
     """
     mapping = {name: regions.CHAIRLIFT_ZONE for name in data.chairlift_locations()}
     mapping.update({name: regions.TUNNEL_ZONE for name in data.tunnel_locations()})
+    mapping.update({name: regions.STARTING_ZONE for name in starting_zone_locations()})
     return mapping
 
 
+def starting_zone_locations() -> list[str]:
+    """
+    Everything reachable from the hub without the drawbridge or the first arch
+    door: the tutorial's four puzzles, the drawbridge key's cutting trail and
+    plinth, and as many gourd deposits as the tutorial's monument has slots.
+
+    Only what the player placed in the zone is here. Anything uncertain stays
+    in the overworld, which can make a location later in logic than it is in
+    play but never makes a seed unbeatable.
+    """
+    by_prop = {puzzle.prop_name: puzzle.location_name for puzzle in data.PUZZLES}
+    drawbridge = next(tower for tower in data.TOWERS if tower.item_name == data.DRAWBRIDGE_ITEM_NAME)
+    names = [by_prop[prop_name] for prop_name in data.START_ZONE_PUZZLES]
+    names += list(data.cut_locations(drawbridge))
+    names.append(drawbridge.location_name)
+    names += [data.deposit_location_name(amount) for amount in range(1, drawbridge.slots + 1)]
+    return names
+
+
 def create_all_locations(world: BigWalkWorld) -> None:
-    overworld = world.get_region(world.origin_region_name)
     gated = gated_regions()
 
     def place(location_names: list[str]) -> None:
         """Puts each location in its own region, which is the overworld unless
-        a big key stands between the players and it."""
+        a big key or the starting zone's exit stands between the players and it."""
         for name in location_names:
-            region = world.get_region(gated.get(name, world.origin_region_name))
+            region = world.get_region(gated.get(name, regions.OVERWORLD))
             region.add_locations({name: LOCATION_NAME_TO_ID[name]}, BigWalkLocation)
 
     place([puzzle.location_name for puzzle in data.PUZZLES])
@@ -76,10 +95,7 @@ def create_all_locations(world: BigWalkWorld) -> None:
     # from the start: nothing in the game locks a tower's entrance, and the mod
     # opens the hub shortcuts on the first session of a save anyway. What gates
     # these locations is the gourd count in rules.py, not where they are.
-    overworld.add_locations(
-        {tower.location_name: LOCATION_NAME_TO_ID[tower.location_name] for tower in world.towers},
-        BigWalkLocation,
-    )
+    place([tower.location_name for tower in world.towers])
 
     # The 25 cut segments, in the overworld beside the deposit they lead to.
     #
@@ -94,20 +110,12 @@ def create_all_locations(world: BigWalkWorld) -> None:
     # both this question and the chairlift one were settled: stand in the
     # gated zone, read the distances, then stand somewhere plainly open and
     # read them again. This is the line that would change.
-    overworld.add_locations(
-        {name: LOCATION_NAME_TO_ID[name]
-         for tower in world.towers for name in data.cut_locations(tower)},
-        BigWalkLocation,
-    )
+    place([name for tower in world.towers for name in data.cut_locations(tower)])
 
     if world.options.radio_checks:
         place([station.location_name for station in data.RADIO_STATIONS])
 
-    overworld.add_locations(
-        {data.deposit_location_name(amount): LOCATION_NAME_TO_ID[data.deposit_location_name(amount)]
-         for amount in world.deposit_amounts},
-        BigWalkLocation,
-    )
+    place([data.deposit_location_name(amount) for amount in world.deposit_amounts])
 
     create_victory_event(world)
 

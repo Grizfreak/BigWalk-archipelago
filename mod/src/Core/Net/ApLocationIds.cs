@@ -26,6 +26,7 @@ namespace BigWalkArchipelago.Core.Net
         // physical key a player carries, cuts and places. They had to stop
         // sharing a number the moment the keys became items of their own.
         internal const long DefaultKeyItemOffset = 4_000;
+        internal const long DefaultArchDoorOffset = 5_000;
         internal const long DefaultGourdItemId = DefaultBase + 1;
 
         private static long _base = DefaultBase;
@@ -33,6 +34,7 @@ namespace BigWalkArchipelago.Core.Net
         private static long _depositOffset = DefaultDepositOffset;
         private static long _cutOffset = DefaultCutOffset;
         private static long _keyItemOffset = DefaultKeyItemOffset;
+        private static long _archDoorOffset = DefaultArchDoorOffset;
         private static long _gourdItemId = DefaultGourdItemId;
 
         // A cut segment has no identifier of the game's own — `cuts` is an
@@ -67,6 +69,7 @@ namespace BigWalkArchipelago.Core.Net
             _depositOffset = slotData.DepositIdOffset;
             _cutOffset = slotData.CutIdOffset;
             _keyItemOffset = slotData.KeyItemIdOffset;
+            _archDoorOffset = slotData.ArchDoorIdOffset;
             _gourdItemId = slotData.GourdItemId;
         }
 
@@ -151,6 +154,24 @@ namespace BigWalkArchipelago.Core.Net
 
             var candidate = (SavableSystem)(int)value;
             if (!RadioStations.IsRealStation(candidate))
+                return false;
+
+            system = candidate;
+            return true;
+        }
+
+        // An arch door item carries the door's SavableSystem value, as a
+        // Broadcast item does, one offset further on (apworld/protocol.md §4).
+        internal static bool TryResolveArchDoorItem(long itemId, out SavableSystem system)
+        {
+            var value = itemId - _base - _archDoorOffset;
+            system = SavableSystem.NotSavable;
+
+            if (value < 0 || value > int.MaxValue || !Enum.IsDefined(typeof(SavableSystem), (int)value))
+                return false;
+
+            var candidate = (SavableSystem)(int)value;
+            if (!ArchDoors.IsArchDoor(candidate))
                 return false;
 
             system = candidate;

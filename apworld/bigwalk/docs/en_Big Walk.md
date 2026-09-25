@@ -43,10 +43,16 @@ Archipelago, so only the host's radio waits for the item. A guest hears a
 station as soon as somebody switches it on.
 
 A few things are handed to you for free so a randomized run does not start
-behind a wall: the hub shortcuts are open from the first session on a save,
-purple postgame gourds show on the map from the start, and the sphere that
-normally blocks the true-ending path until you have beaten the game once is
-removed.
+behind a wall: purple postgame gourds show on the map from the start, and the
+sphere that normally blocks the true-ending path until you have beaten the
+game once is removed.
+
+The hub's three arch doors follow `lock_arch_doors`. By default the first one,
+the tutorial's way back to the hub, opens as in the base game, and the two far
+ones, left towards Sports Creek and right, are items: shortcuts that save long
+detours, never required. With `all`, the first one is an item too, and you
+leave the starting area through the Drawbridge or the First Arch Door, one of
+which is always found early.
 
 ## What is the goal of Big Walk when randomized?
 
@@ -98,6 +104,9 @@ Items:
 - The 7 Radio Music items, each of which starts one station playing
   (optional). They are named after the music itself: the game's dial shows
   numbers and no names, so this is the only place a station is ever named.
+- **First Arch Door**, **Left Arch Door** and **Right Arch Door**, each of
+  which opens that door of the hub, for the doors `lock_arch_doors` keeps
+  closed.
 - Filler: a megaphone, a walkie-talkie, a backpack, a belt, a flare gun
   (plain, blue, green or yellow), a laser, binoculars, a compass, a folding
   map, a portable radio, a gourd carton, a torch or X-ray goggles — the

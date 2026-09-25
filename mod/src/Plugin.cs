@@ -68,6 +68,7 @@ namespace BigWalkArchipelago
             {
                 AddComponent<Debug.DebugHotkeys>();
                 AddComponent<Debug.DebugGadgetRigDump>();
+                AddComponent<Debug.DebugWorldLayoutDump>();
                 Log.LogInfo($"[Debug] Debug module active (key: {ModConfig.ToggleFlightKey.Value}).");
             }
 

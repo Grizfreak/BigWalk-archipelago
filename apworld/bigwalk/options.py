@@ -136,11 +136,50 @@ class StartWithDrawbridgeOpen(Toggle):
     If on, you start with the Drawbridge open instead of finding it in the
     multiworld.
 
-    - Doors at the hub will be opened on start no matter what.
+    - The hub's arch doors follow Lock Arch Doors, not this.
     - The Drawbridge Key Deposit stays a check either way.
     """
 
     display_name = "Start With Drawbridge Open"
+
+
+# From the proposed options of the first alpha's players (2026-09-25), less
+# its mention of `lock_map_room`, which this world does not have. The first
+# door is the starting zone's other way out besides the drawbridge; the two
+# far ones are shortcuts, so locking them changes the walk and not the logic.
+class LockArchDoors(Choice):
+    """
+    Which of the hub's three arch doors start closed. Each closed door opens
+    when its own item is found.
+
+    - all: all three. You leave the starting area through the Drawbridge or
+      the First Arch Door, and one of the two is always found early.
+    - far: the Left and Right Arch Doors; the first one opens as usual.
+    - far_left: only the Left Arch Door, towards Sports Creek.
+    - far_right: only the Right Arch Door.
+    - disabled: all three are open from the start.
+
+    The Left and Right doors are shortcuts: without them the whole island is
+    still reachable, the long way round.
+    """
+
+    display_name = "Lock Arch Doors"
+    option_all = 0
+    option_far = 1
+    option_far_left = 2
+    option_far_right = 3
+    option_disabled = 4
+    default = 1
+
+
+LOCKED_ARCH_DOORS = {
+    "all": data.ARCH_DOORS,
+    "far": (data.LEFT_ARCH_DOOR, data.RIGHT_ARCH_DOOR),
+    "far_left": (data.LEFT_ARCH_DOOR,),
+    "far_right": (data.RIGHT_ARCH_DOOR,),
+    "disabled": (),
+}
+"""The doors each value holds closed until their item arrives."""
 
 
 # Hidden until the mod gives a trap an effect: today a trap is a filler item
@@ -167,6 +206,7 @@ class BigWalkOptions(PerGameCommonOptions):
     radio_checks: RadioChecks
     shuffle_radio_music: ShuffleRadioMusic
     start_with_drawbridge_open: StartWithDrawbridgeOpen
+    lock_arch_doors: LockArchDoors
     trap_fill_percentage: TrapFillPercentage
     start_inventory_from_pool: StartInventoryPool
 
@@ -176,6 +216,7 @@ option_groups = [
     OptionGroup("Gourds", [GourdSlotChecks]),
     OptionGroup("Radio", [RadioChecks, ShuffleRadioMusic]),
     OptionGroup("Keys", [StartWithDrawbridgeOpen]),
+    OptionGroup("Doors", [LockArchDoors]),
 ]
 
 option_presets = {
