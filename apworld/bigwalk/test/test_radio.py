@@ -1,7 +1,7 @@
 """
 The radio is the one thing in this world that used to reward itself: switching
 a station on both reported the check and started the music. With
-`radio_station_items` the music becomes an item like everything else, which is
+`shuffle_radio_music` the music becomes an item like everything else, which is
 a contract with the mod as much as a pool change — see ../../protocol.md.
 """
 
@@ -44,7 +44,7 @@ class TestRadioItemsOn(BigWalkTestBase):
 class TestRadioItemsOff(BigWalkTestBase):
     """Vanilla radio: switching a station on still unlocks its own music."""
 
-    options = {"radio_station_items": False}
+    options = {"shuffle_radio_music": False}
     run_default_tests = False
 
     def test_no_music_item_in_the_pool(self) -> None:
@@ -62,7 +62,7 @@ class TestRadioItemsWithoutChecks(BigWalkTestBase):
     radio. Seven fewer locations and seven more items still has to balance.
     """
 
-    options = {"radio_station_checks": False, "radio_station_items": True}
+    options = {"radio_checks": False, "shuffle_radio_music": True}
     run_default_tests = False
 
     def test_pool_still_fits_the_locations(self) -> None:

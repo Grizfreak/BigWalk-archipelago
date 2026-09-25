@@ -19,11 +19,11 @@ from .bases import BigWalkTestBase, build_like_universal_tracker, world_shape
 # A seed that differs from the defaults in every way that can move a location,
 # a region or a number a rule is written against.
 UNLIKE_THE_DEFAULTS = {
-    "goal": "second_ending",
-    "deposit_locations": "all",
-    "deposit_goal_amount": 25,
-    "radio_station_checks": False,
-    "radio_station_items": False,
+    "goal": "secret_ending",
+    "gourd_slot_checks": "every_gourd",
+    "gourds_required": 25,
+    "radio_checks": False,
+    "shuffle_radio_music": False,
 }
 
 
@@ -53,17 +53,53 @@ class TestSlotDataCarriesEveryTrackedOption(BigWalkTestBase):
 
     def test_each_one_is_an_option_and_travels(self) -> None:
         slot_data = self.world.fill_slot_data()
-        for name in bigwalk_world.TRACKER_OPTIONS:
+        for field, name in bigwalk_world.TRACKER_OPTIONS.items():
             with self.subTest(option=name):
                 self.assertIn(name, BigWalkWorld.options_dataclass.type_hints)
-                self.assertIn(name, slot_data)
+                self.assertIn(field, slot_data)
 
     def test_each_one_reads_back_into_the_value_it_was_generated_with(self) -> None:
         slot_data = self.world.fill_slot_data()
-        for name in bigwalk_world.TRACKER_OPTIONS:
+        for field, name in bigwalk_world.TRACKER_OPTIONS.items():
             with self.subTest(option=name):
                 option = getattr(self.world.options, name)
-                self.assertEqual(option.from_any(slot_data[name]).value, option.value)
+                self.assertEqual(option.from_any(slot_data[field]).value, option.value)
+
+
+class TestTheModStillReadsTheSameStrings(BigWalkTestBase):
+    """
+    The options were renamed after players' words on 2026-09-25, and the mod
+    was not: slot_data must keep the strings a released mod compares.
+    """
+
+    options = UNLIKE_THE_DEFAULTS
+
+    def test_the_renamed_values_travel_under_their_old_names(self) -> None:
+        slot_data = self.world.fill_slot_data()
+        self.assertEqual(slot_data["goal"], "second_ending")
+        self.assertEqual(slot_data["deposit_locations"], "all")
+
+    def test_every_value_has_a_wire_name(self) -> None:
+        from ..options import GOAL_ON_THE_WIRE, GOURD_SLOT_CHECKS_ON_THE_WIRE, Goal, GourdSlotChecks
+
+        # name_lookup holds each value's canonical name only, not its aliases
+        # (Archipelago adds `false` to any Choice with an `off` on its own).
+        self.assertEqual(set(GOAL_ON_THE_WIRE), set(Goal.name_lookup.values()))
+        self.assertEqual(set(GOAL_ON_THE_WIRE.values()), {"gauntlet", "ending", "deposits", "second_ending"})
+        self.assertEqual(set(GOURD_SLOT_CHECKS_ON_THE_WIRE), set(GourdSlotChecks.name_lookup.values()))
+        self.assertEqual(set(GOURD_SLOT_CHECKS_ON_THE_WIRE.values()), {"none", "milestones", "all"})
+
+
+class TestAnAlphaYamlStillReads(BigWalkTestBase):
+    """The values' pre-rename spellings are aliases, so a first-alpha YAML still generates."""
+
+    options = {"goal": "deposits", "gourd_slot_checks": "milestones"}
+
+    def test_the_old_values_land_on_the_new_ones(self) -> None:
+        from ..options import Goal, GourdSlotChecks
+
+        self.assertEqual(self.world.options.goal.value, Goal.option_gourds)
+        self.assertEqual(self.world.options.gourd_slot_checks.value, GourdSlotChecks.option_every_5)
 
 
 class TestTheHooksAreShapedTheWayUTChecksThem(BigWalkTestBase):

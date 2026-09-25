@@ -83,12 +83,14 @@ nothing: it carries six checks (five cuts and a deposit), and those six
 locations depend on it and nothing else. The features are what open the
 island, and four of them really guard something: `Chairlift` and `Tunnels`
 each enclose locations (measured in game on 2026-09-21), `Chapel Door` — the
-Black Monolith tower's feature — opens the ending zone, and `Hub Secret Door`
-opens the zone the second ending sits in. No puzzle is locked
+Black Tower's feature — opens the ending zone, and `Hub Secret Door`
+opens the zone the secret ending sits in. No puzzle is locked
 by the mod. The number of gourds received now gates only the gourd deposits
 themselves.
 
-**Goal** — `gauntlet` (default), `ending`, `second_ending` or `deposits`.
+**Goal** — `gauntlet` (default), `ending`, `secret_ending` or `gourds`
+(`second_ending` and `deposits` before 2026-09-25, still accepted, and still
+what slot_data sends — see `protocol.md` §2).
 
 **Universal Tracker** — supported, and no YAML is needed for it:
 `interpret_slot_data` hands the seed's own settings back to UT, which rebuilds

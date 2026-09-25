@@ -100,7 +100,7 @@ def create_all_items(world: BigWalkWorld) -> None:
 
     # Seven Radio Music items displace seven filler rather than adding to the
     # pool: the count below is what balances it, so nothing special is needed.
-    if world.options.radio_station_items:
+    if world.options.shuffle_radio_music:
         pool += [world.create_item(station.item_name) for station in data.RADIO_STATIONS]
 
     unfilled = len(world.multiworld.get_unfilled_locations(world.player))

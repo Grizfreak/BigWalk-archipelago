@@ -13,16 +13,21 @@ from . import options as bigwalk_options
 WORLD_VERSION = "0.1.0"
 """Kept in step with archipelago.json; sent in slot_data so the mod can check it."""
 
-TRACKER_OPTIONS = (
-    "goal",
-    "deposit_goal_amount",
-    "deposit_locations",
-    "radio_station_checks",
-    "radio_station_items",
-)
+TRACKER_OPTIONS = {
+    "goal": "goal",
+    "deposit_goal_amount": "gourds_required",
+    "deposit_locations": "gourd_slot_checks",
+    "radio_station_checks": "radio_checks",
+    "radio_station_items": "shuffle_radio_music",
+}
 """
-The slot_data fields that are options, and the whole of what a re-generation
-needs to land on the same world.
+The slot_data fields that are options, mapped to the option each one comes
+from, and the whole of what a re-generation needs to land on the same world.
+
+The two sides have different names since the options were renamed after the
+words players use (2026-09-25): slot_data kept the names the mod was built
+against. Its Choice values are the pre-rename ones too, which the options
+still accept as aliases, so `from_any` reads them back unchanged.
 
 Every other option decides what goes into the pool, not what the graph looks
 like: `start_with_drawbridge_open` moves one item from the pool to the start
@@ -68,7 +73,7 @@ class BigWalkWorld(World):
     # is picked, so the graph it builds is the seed's graph exactly — as long
     # as it generates with the seed's OPTIONS, which is what these two hooks
     # are for. Left to the tracking player's own YAML, one wrong option moves
-    # the goalposts in silence: `deposit_locations: all` on its own invents
+    # the goalposts in silence: `gourd_slot_checks: every_gourd` on its own invents
     # thirty-six locations.
 
     ut_can_gen_without_yaml = True
@@ -109,13 +114,13 @@ class BigWalkWorld(World):
 
         # The Green Dome used to be optional (`green_dome_deposits`, removed
         # 2026-09-25 before the first release): its fifteen slots only ever
-        # bought deposit checks, which deposit_locations already scales, and
+        # bought deposit checks, which gourd_slot_checks already scales, and
         # leaving it out took the Hub Secret Door zone with it for nothing.
         self.towers = data.TOWERS
         self.gourd_count = data.MAX_MONUMENT_SLOTS
 
         self.deposit_amounts = self._pick_deposit_amounts(self.gourd_count)
-        self.deposit_goal = self.options.deposit_goal_amount.value
+        self.deposit_goal = self.options.gourds_required.value
 
     def _take_options_from_tracker(self) -> None:
         """
@@ -131,16 +136,16 @@ class BigWalkWorld(World):
         if not slot_data:
             return
 
-        for name in TRACKER_OPTIONS:
-            if name in slot_data:
+        for field, name in TRACKER_OPTIONS.items():
+            if field in slot_data:
                 option = getattr(self.options, name)
-                setattr(self.options, name, option.from_any(slot_data[name]))
+                setattr(self.options, name, option.from_any(slot_data[field]))
 
     def _pick_deposit_amounts(self, total_slots: int) -> tuple[int, ...]:
-        choice = self.options.deposit_locations
-        if choice == bigwalk_options.DepositLocations.option_none:
+        choice = self.options.gourd_slot_checks
+        if choice == bigwalk_options.GourdSlotChecks.option_off:
             return ()
-        if choice == bigwalk_options.DepositLocations.option_all:
+        if choice == bigwalk_options.GourdSlotChecks.option_every_gourd:
             return tuple(range(1, total_slots + 1))
 
         # Milestones: every fifth deposit, plus the very last one so that
@@ -179,19 +184,22 @@ class BigWalkWorld(World):
         return {
             "world_version": WORLD_VERSION,
 
-            # Choices travel as their YAML keys rather than their numeric
-            # values: the mod compares strings, and a reordered enum here can
-            # then never silently change what the mod does.
-            "goal": self.options.goal.current_key,
+            # Choices travel as strings rather than their numeric values: the
+            # mod compares strings, and a reordered enum here can then never
+            # silently change what the mod does. They are the pre-rename
+            # names, frozen in the *_ON_THE_WIRE tables, so renaming a YAML
+            # value never needs a matching mod release.
+            "goal": bigwalk_options.GOAL_ON_THE_WIRE[self.options.goal.current_key],
             "deposit_goal_amount": self.deposit_goal,
-            "deposit_locations": self.options.deposit_locations.current_key,
-            "radio_station_checks": bool(self.options.radio_station_checks),
+            "deposit_locations": bigwalk_options.GOURD_SLOT_CHECKS_ON_THE_WIRE[
+                self.options.gourd_slot_checks.current_key],
+            "radio_station_checks": bool(self.options.radio_checks),
 
             # The mod suppresses the game's own radio unlock only while this
             # is true. An older mod that does not read the field keeps the
             # vanilla radio and simply gets seven items it ignores, which is
             # the harmless direction for the mismatch to fall.
-            "radio_station_items": bool(self.options.radio_station_items),
+            "radio_station_items": bool(self.options.shuffle_radio_music),
 
             # Not an option: it is the model this world is built on. The mod
             # stops a placed key from opening its door only while this is

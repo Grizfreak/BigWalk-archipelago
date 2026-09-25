@@ -105,7 +105,7 @@ def set_entrance_rules(world: BigWalkWorld) -> None:
 
 
 def set_completion_rule(world: BigWalkWorld) -> None:
-    if world.options.goal == Goal.option_deposits:
+    if world.options.goal == Goal.option_gourds:
         world.set_rule(
             world.get_location(locations.VICTORY_EVENT_NAME),
             Has(data.GOURD_ITEM_NAME, count=world.deposit_goal),
@@ -113,12 +113,12 @@ def set_completion_rule(world: BigWalkWorld) -> None:
 
     # Every other goal is a place, not a count, and the region the Victory
     # event was put in already carries the requirement: the two bell goals
-    # sit past the Black Monolith Key, and `second_ending` sits past the
+    # sit past the Black Monolith Key, and `secret_ending` sits past the
     # Hub Secret Door.
     #
     # The Gauntlet's seven chambers have no items or checks of their own:
     # nothing in the game persists them individually (`GauntletChamber0..6`
     # were never found written anywhere), so the logic cannot and does not
-    # model them. `second_ending` asks for nothing beyond the door for the
+    # model them. `secret_ending` asks for nothing beyond the door for the
     # same kind of reason — see locations.create_victory_event.
     world.set_completion_rule(Has(locations.VICTORY_EVENT_NAME))

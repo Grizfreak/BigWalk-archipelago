@@ -230,11 +230,16 @@ class Tower(NamedTuple):
     opens — the chairlift, the train, the map room.
 
     The physical key is a SECOND item, named from this one by
-    `key_item_name()`. The two are different things and always have been:
-    a key is a check carrier the players cut and place, and a feature is
-    what actually opens. Keeping the key's name derived from the feature's
-    is what stops a player having to learn that the Green Cup tower is the
-    chairlift one.
+    `key_item_name()` from `key_name`. The two are different things and
+    always have been: a key is a check carrier the players cut and place,
+    and a feature is what actually opens.
+    """
+    key_name: str
+    """
+    What players call the tower this key belongs to — "Red Tower", "Green
+    Dome" — and so the prefix of the key item and of its checks: "Red Tower
+    Key", "Red Tower Key Cut 1", "Red Tower Key Deposit". The drawbridge has
+    no tower and no colour, so its key keeps the drawbridge's name.
     """
     location_name: str
     """Player-facing name of the location "this key was placed in its plinth"."""
@@ -299,23 +304,32 @@ class Tower(NamedTuple):
 # door, and everything past the bell inside it: the field, the Gauntlet and
 # the summit bell. Caught by the player, who read "Dam" in an item list and
 # could not tell what it named.
+#
+# KEYS ARE NAMED AFTER THEIR TOWER'S COLOUR (2026-09-25), reversing the
+# "<feature> Key" naming above for the keys and their checks only. The first
+# alpha's players found the item list did not read like the game: a key is
+# found at, cut along and placed at its TOWER, and the towers are what
+# players name by colour. The features keep their names — they are what
+# opens. The drawbridge has no tower, so its key stays the Drawbridge Key.
+# "Green Cup", "Yellow Twist" and "Black Monolith" were never players'
+# names; they survive only in the constants below.
 DRAWBRIDGE_ITEM_NAME = "Drawbridge"
 HUB_SECRET_DOOR_ITEM_NAME = "Hub Secret Door"
 
 TOWERS: tuple[Tower, ...] = (
-    Tower("bigKeyIntro", 300, DRAWBRIDGE_ITEM_NAME, "Drawbridge Key Deposit",
+    Tower("bigKeyIntro", 300, DRAWBRIDGE_ITEM_NAME, "Drawbridge", "Drawbridge Key Deposit",
           "bigKeyPlinthIntro", "monoumentIntro", 4, 5),
-    Tower("bigKeyRedZone", 301, "Map Room", "Map Room Key Deposit",
+    Tower("bigKeyRedZone", 301, "Map Room", "Red Tower", "Red Tower Key Deposit",
           "bigKeyPlinthMapRoom", "monoument0", 5, 5),
-    Tower("bigKeyGreenZone", 302, "Chairlift", "Chairlift Key Deposit",
+    Tower("bigKeyGreenZone", 302, "Chairlift", "Green Tower", "Green Tower Key Deposit",
           "bigKeyPlinthSkiLift", "monoument1", 5, 5),
-    Tower("bigKeyBlueZone", 303, "Train", "Train Key Deposit",
+    Tower("bigKeyBlueZone", 303, "Train", "Blue Tower", "Blue Tower Key Deposit",
           "bigKeyPlinthTrain", "monoument2", 5, 5),
-    Tower("bigKeyYellowZone", 304, "Tunnels", "Tunnels Key Deposit",
+    Tower("bigKeyYellowZone", 304, "Tunnels", "Yellow Tower", "Yellow Tower Key Deposit",
           "bigKeyPlinthTunnels", "monoument3", 5, 5),
-    Tower("bigKeyBoss", 305, "Chapel Door", "Chapel Door Key Deposit",
+    Tower("bigKeyBoss", 305, "Chapel Door", "Black Tower", "Black Tower Key Deposit",
           "bigKeyPlinthEnding", "monoumentFinal", 6, 0),
-    Tower("bigKeyOverflow", 306, HUB_SECRET_DOOR_ITEM_NAME, "Hub Secret Door Key Deposit",
+    Tower("bigKeyOverflow", 306, HUB_SECRET_DOOR_ITEM_NAME, "Green Dome", "Green Dome Key Deposit",
           "bigKeyPlinthGoodbye2", "monoumentOverflow", 15, 0),
 )
 
@@ -330,13 +344,13 @@ GREEN_DOME = TOWERS[-1]
 """The Green Dome tower (`bigKeyOverflow`), the postgame/true-ending key."""
 
 GREEN_CUP = TOWERS[2]
-"""The Green Cup tower (`bigKeyGreenZone`); its key opens the chairlift."""
+"""The Green Tower (`bigKeyGreenZone`); its feature is the chairlift."""
 
 YELLOW_TWIST = TOWERS[4]
-"""The Yellow Twist tower (`bigKeyYellowZone`); its key opens the tunnels."""
+"""The Yellow Tower (`bigKeyYellowZone`); its feature is the tunnels."""
 
 BLACK_MONOLITH = TOWERS[5]
-"""The Black Monolith tower (`bigKeyBoss`); its key opens the way to the ending."""
+"""The Black Tower (`bigKeyBoss`); its feature, the Chapel Door, is the way to the ending."""
 
 MAX_MONUMENT_SLOTS = sum(tower.slots for tower in TOWERS)
 """Every monument slot on the island: 4 + 5 + 5 + 5 + 5 + 6 + 15 = 45."""
@@ -455,12 +469,12 @@ new one, so it pins the mapping with no room for doubt.
 
 
 def chairlift_locations() -> tuple[str, ...]:
-    """Player-facing names of every location behind the Green Cup Key."""
+    """Player-facing names of every location behind the Chairlift."""
     return _locations_for(CHAIRLIFT_PUZZLES, CHAIRLIFT_RADIO)
 
 
 def tunnel_locations() -> tuple[str, ...]:
-    """Player-facing names of every location behind the Yellow Twist Key."""
+    """Player-facing names of every location behind the Tunnels."""
     return _locations_for((), TUNNEL_RADIO)
 
 
@@ -549,13 +563,11 @@ def key_item_name(tower: Tower) -> str:
     """
     The physical key a player carries, cuts and places.
 
-    Named after the feature rather than after the tower ("Chairlift Key",
-    not "Green Cup Key") so that it matches its own locations — `Chairlift
-    Key Cut 1` and `Chairlift Key Deposit` — and so that nothing has to be
-    memorised to know where a key belongs. That match holds for all seven
-    towers since the deposit renames of 2026-09-21; it used to hold for four.
+    Named after its tower ("Red Tower Key"), like its own locations — `Red
+    Tower Key Cut 1` and `Red Tower Key Deposit` — so that nothing has to be
+    memorised to know where a key belongs.
     """
-    return f"{tower.item_name} Key"
+    return f"{tower.key_name} Key"
 
 
 def key_item_id(tower: Tower) -> int:
@@ -568,7 +580,7 @@ def cut_location_name(tower: Tower, index: int) -> str:
     Numbered from 1 for the player; the mod counts the SyncList from 0, which
     is what `cut_location_id` undoes.
     """
-    return f"{tower.item_name} Key Cut {index + 1}"
+    return f"{tower.key_name} Key Cut {index + 1}"
 
 
 def cut_location_id(tower: Tower, index: int) -> int:

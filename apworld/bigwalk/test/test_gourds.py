@@ -83,7 +83,7 @@ class TestMonumentsBuyOnlyTheirOwnChecks(BigWalkTestBase):
 
     def test_gourd_deposits_still_cost_gourds(self) -> None:
         # The one thing a monument IS still for. Counted in fives because the
-        # default `deposit_locations` is milestones, so 1..4 are not locations.
+        # default `gourd_slot_checks` is every_5, so 1..4 are not locations.
         self.collect_gourds(5)
         self.assertTrue(self.can_reach_location(data.deposit_location_name(5)))
         self.assertFalse(self.can_reach_location(data.deposit_location_name(10)))
@@ -188,3 +188,14 @@ class TestFeatureItems(BigWalkTestBase):
         # the item does, so it is asserted rather than trusted to review.
         for tower in data.TOWERS:
             self.assertNotIn("Key", tower.item_name, tower.item_name)
+
+    def test_keys_and_their_checks_are_named_after_their_tower(self) -> None:
+        # Decided 2026-09-25: players name the towers by colour, and a key is
+        # found, cut and placed at its tower. The drawbridge has no tower.
+        self.assertEqual(
+            [data.key_item_name(tower) for tower in data.TOWERS],
+            ["Drawbridge Key", "Red Tower Key", "Green Tower Key", "Blue Tower Key",
+             "Yellow Tower Key", "Black Tower Key", "Green Dome Key"],
+        )
+        for tower in data.TOWERS:
+            self.assertEqual(tower.location_name, f"{data.key_item_name(tower)} Deposit")

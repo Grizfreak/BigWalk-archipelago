@@ -25,7 +25,7 @@ class TestEndingGoal(BigWalkTestBase):
 
 
 class TestDepositGoal(BigWalkTestBase):
-    options = {"goal": "deposits", "deposit_goal_amount": 20}
+    options = {"goal": "gourds", "gourds_required": 20}
     run_default_tests = False
 
     def test_victory_needs_gourds_not_keys(self) -> None:
@@ -42,7 +42,7 @@ class TestDepositGoal(BigWalkTestBase):
 class TestDepositGoalAtEverySlot(BigWalkTestBase):
     """The largest deposit goal the option allows is every slot on the island."""
 
-    options = {"goal": "deposits", "deposit_goal_amount": data.MAX_MONUMENT_SLOTS}
+    options = {"goal": "gourds", "gourds_required": data.MAX_MONUMENT_SLOTS}
     run_default_tests = False
 
     def test_every_gourd_is_needed_and_enough(self) -> None:
@@ -55,7 +55,7 @@ class TestDepositGoalAtEverySlot(BigWalkTestBase):
 class TestSecondEndingGoal(BigWalkTestBase):
     """The ending behind the Hub Secret Door, and only its item opens it."""
 
-    options = {"goal": "second_ending"}
+    options = {"goal": "secret_ending"}
     run_default_tests = False
 
     def test_victory_needs_the_green_dome(self) -> None:

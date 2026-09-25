@@ -11,7 +11,7 @@ Solving a puzzle no longer hands you its gourd. The puzzle still opens, and
 solving it still sends a check out to the multiworld, but the gourd itself is
 gone — the only gourds you will ever hold are the ones other players send
 you. They arrive at the hub as ordinary, pickable props, and they are
-generic: any gourd fits any monument slot.
+generic: any gourd fits any slot of any tower.
 
 That changes what the monuments are for. Filling one is no longer the reward
 for clearing a tower's puzzles, and it no longer releases that tower's key
@@ -35,7 +35,7 @@ waiting on someone else to send you the ride.
 The radio works like the puzzles rather than like the keys. Switching a
 station on at its tower sends the check, but the music stays off until the
 matching Radio Music item reaches you — so a station, like a gourd, is
-something another player gives you. Turn `radio_station_items` off in your
+something another player gives you. Turn `shuffle_radio_music` off in your
 YAML to keep the vanilla radio, where a station plays the moment it is
 switched on.
 
@@ -53,19 +53,20 @@ removed.
 
 Whichever of these you picked in your YAML:
 
-- **Gauntlet** (default) — break the bell at the top of the Gauntlet.
-- **Ending** — break the chapel bell.
-- **Second Ending** — reach the game's other ending, behind the Hub Secret
-  Door. Nothing else is in the way: the vanilla game seals that path until
-  you have finished it once, and the mod removes the seal from your first
+- **Gauntlet** (default) — pass behind the big green wall and finish the
+  game.
+- **Ending** — get in the big green wall.
+- **Secret Ending** — reach the secret ending, behind the Hub Secret Door.
+  Nothing else is in the way: the vanilla game seals that path until you
+  have finished it once, and the mod removes the seal from your first
   session.
-- **Deposits** — deposit a set number of gourds into the towers' monuments.
+- **Gourds** — place a set number of gourds in the towers' slots.
 
 Whichever you picked, the corner of the screen names it for the whole session,
-under the connection line, with the running count for **Deposits**.
+under the connection line, with the running count for **Gourds**.
 
-Both bells need two players hitting two buttons at once, and depositing a
-gourd in a monument is a two-player action too. This world is not playable
+Both bells need two players hitting two buttons at once, and placing a gourd
+in a tower's slot is a two-player action too. This world is not playable
 solo, and a whole co-op group shares one slot — see the setup guide.
 
 ## What items and locations can get shuffled?
@@ -74,23 +75,26 @@ Locations, 93 of them on the default options:
 
 - Each of the 45 puzzles, when you solve it.
 - Each of the 25 key segments, as you cut it. Five each on the drawbridge and
-  the four coloured towers; the Black Monolith and Green Dome keys come
+  the four coloured towers; the Black Tower and Green Dome keys come
   already finished and have none.
 - Each of the 7 big keys, when it goes into its plinth.
 - Each of the 7 radio stations, when you turn it on (optional).
-- Depositing gourds into monuments — every deposit, every fifth one, or none
-  (optional). Deposits are counted across all monuments together, so it never
-  matters which tower you walk to.
+- Placing gourds in the towers' slots — every gourd, every fifth one, or
+  none (`gourd_slot_checks`). Gourds are counted across all towers together,
+  so it never matters which tower you walk to.
 
 Items:
 
-- **Gourd** — the generic monument currency. There are exactly as many as
-  there are monument slots: 45.
+- **Gourd** — fits any slot of any tower. There are exactly as many as
+  there are slots: 45.
 - The 7 features a big key used to open: **Drawbridge**, **Map Room**,
   **Chairlift**, **Train**, **Tunnels**, **Chapel Door** and **Hub Secret
   Door**. These are what actually open the island.
-- The 7 big keys themselves — **Chairlift Key**, **Map Room Key** and so on,
-  each named after the feature it fits. A key opens nothing; it is worth six
+- The 7 big keys themselves — **Drawbridge Key**, **Red Tower Key**,
+  **Green Tower Key**, **Blue Tower Key**, **Yellow Tower Key**, **Black
+  Tower Key** and **Green Dome Key**, each named after the tower it belongs
+  to, like its checks (**Red Tower Key Cut 1**, **Red Tower Key
+  Deposit**). A key opens nothing; it is worth six
   checks, and it is the only way to reach them.
 - The 7 Radio Music items, each of which starts one station playing
   (optional). They are named after the music itself: the game's dial shows

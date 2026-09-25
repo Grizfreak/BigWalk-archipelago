@@ -47,6 +47,14 @@ lists the fields that matter for that). Dropping an option field here because
 the mod stopped reading it would quietly put the tracker back on whatever YAML
 the tracking player happens to have.
 
+The option-valued fields below keep their original names and values although
+the YAML options were renamed after players' words on 2026-09-25 (`goal:
+gourds` / `secret_ending`, `gourds_required`, `gourd_slot_checks: off /
+every_5 / every_gourd`, `radio_checks`, `shuffle_radio_music`). The mod reads
+the wire names only; `options.GOAL_ON_THE_WIRE` and
+`GOURD_SLOT_CHECKS_ON_THE_WIRE` freeze them, and the old values stay aliases of
+the options so Universal Tracker reads them back.
+
 | Field | Type | Meaning |
 |---|---|---|
 | `world_version` | str | apworld version, e.g. `"0.1.0"`. Log a warning on a mismatch with what the mod was built against; do not refuse to connect. |

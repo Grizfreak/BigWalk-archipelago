@@ -100,7 +100,7 @@ def create_all_locations(world: BigWalkWorld) -> None:
         BigWalkLocation,
     )
 
-    if world.options.radio_station_checks:
+    if world.options.radio_checks:
         place([station.location_name for station in data.RADIO_STATIONS])
 
     overworld.add_locations(
@@ -121,7 +121,7 @@ def create_victory_event(world: BigWalkWorld) -> None:
     Black Monolith Key, the second ending sits past the Hub Secret Door, and a
     deposit goal is reachable without ever going near any of them.
 
-    `second_ending` requires the Hub Secret Door and nothing else, and that is
+    `secret_ending` requires the Hub Secret Door and nothing else, and that is
     now MEASURED (2026-09-22). The ending was reached and reported on a save
     whose log read `EndingGate latched: False, GauntletComplete latched:
     False` — neither bell had been rung. In vanilla the path is sealed by a
@@ -133,9 +133,9 @@ def create_victory_event(world: BigWalkWorld) -> None:
     first run used.
     """
     goal = world.options.goal
-    if goal == Goal.option_deposits:
+    if goal == Goal.option_gourds:
         region_name = regions.OVERWORLD
-    elif goal == Goal.option_second_ending:
+    elif goal == Goal.option_secret_ending:
         region_name = regions.GREEN_DOME_ZONE
     else:
         region_name = regions.ENDING_ZONE

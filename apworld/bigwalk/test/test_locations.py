@@ -9,7 +9,7 @@ def location_names(test: BigWalkTestBase) -> set[str]:
 class TestDepositMilestones(BigWalkTestBase):
     """The default: a check every fifth deposit, plus the last one."""
 
-    options = {"deposit_locations": "milestones"}
+    options = {"gourd_slot_checks": "every_5"}
     run_default_tests = False
 
     def test_milestones_only(self) -> None:
@@ -23,7 +23,7 @@ class TestDepositMilestones(BigWalkTestBase):
 
 
 class TestAllDeposits(BigWalkTestBase):
-    options = {"deposit_locations": "all"}
+    options = {"gourd_slot_checks": "every_gourd"}
     run_default_tests = False
 
     def test_one_check_per_deposit(self) -> None:
@@ -31,7 +31,7 @@ class TestAllDeposits(BigWalkTestBase):
 
 
 class TestNoDeposits(BigWalkTestBase):
-    options = {"deposit_locations": "none"}
+    options = {"gourd_slot_checks": "off"}
     run_default_tests = False
 
     def test_no_deposit_locations_exist(self) -> None:
@@ -40,7 +40,7 @@ class TestNoDeposits(BigWalkTestBase):
 
 
 class TestRadioStationsOff(BigWalkTestBase):
-    options = {"radio_station_checks": False}
+    options = {"radio_checks": False}
     run_default_tests = False
 
     def test_no_radio_locations_exist(self) -> None:
@@ -48,7 +48,7 @@ class TestRadioStationsOff(BigWalkTestBase):
 
 
 class TestRadioStationsOn(BigWalkTestBase):
-    options = {"radio_station_checks": True}
+    options = {"radio_checks": True}
     run_default_tests = False
 
     def test_all_seven_exist_and_need_nothing(self) -> None:
