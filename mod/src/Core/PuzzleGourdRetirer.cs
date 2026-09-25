@@ -40,6 +40,11 @@ namespace BigWalkArchipelago.Core
 
         private static readonly Queue<(RewardGourd gourd, int frame)> Pending = new();
 
+        // A sweep is a FindObjectsByType over every gourd, so not every frame.
+        private const float SweepIntervalSeconds = 3f;
+
+        private float _nextSweep;
+
         internal static void Retire(RewardGourd gourd)
         {
             if (gourd != null)
@@ -48,6 +53,19 @@ namespace BigWalkArchipelago.Core
 
         private void Update()
         {
+            if (NetworkServer.active && WorldManager.isReadyForEffects && Time.time >= _nextSweep)
+            {
+                _nextSweep = Time.time + SweepIntervalSeconds;
+                try
+                {
+                    SweepStrayGourds();
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"[{nameof(PuzzleGourdRetirer)}] Sweep failed, ignored: {ex.Message}");
+                }
+            }
+
             while (Pending.Count > 0 && Pending.Peek().frame < Time.frameCount)
             {
                 var (gourd, _) = Pending.Dequeue();
@@ -59,6 +77,74 @@ namespace BigWalkArchipelago.Core
                 {
                     Plugin.Log.LogWarning($"[{nameof(PuzzleGourdRetirer)}] Could not remove a solved gourd: {ex.Message}");
                 }
+            }
+        }
+
+        // THE GOURDS THAT COME BACK IN A BAG (2026-09-25, first alpha: "any
+        // gourds being stored in the inventory appear at spawn, and picking
+        // them up makes them disappear").
+        //
+        // The game's inventory is not a list of gourds. Dumped on a vanilla
+        // save, `SaveData.inventory` held only carrying gear and gadgets —
+        // belts, backpacks, the gourd carton — which the game puts back at
+        // an InventorySpawn on every load, contents and all. A puzzle gourd
+        // stowed in one comes back at the spawn with it. In this world no
+        // puzzle gourd should be anywhere but in its vise or gone: the alpha's
+        // got into a bag while the sealed-box pick-up still left the gourd in
+        // the host's hands (see the top of this file). Picking one up then
+        // made it go Loose, GourdStatePatch hid it, and it vanished — and at
+        // every guest's join the server complained about three unspawned
+        // GourdProps still referenced, the ones sitting in those bags.
+        //
+        // So, host side and on a timer since zones stream in: any puzzle
+        // gourd that is neither in its vise (Locked) nor in a real home is
+        // taken out of whatever holds it, its check reported if it never was,
+        // and retired like any solved gourd. Locked is never touched — that
+        // is an unsolved puzzle — and neither is a gourd in a home with no
+        // parent prop (a valet or a monument slot).
+        private static void SweepStrayGourds()
+        {
+            var all = UnityEngine.Object.FindObjectsByType<RewardGourd>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (all == null)
+                return;
+
+            foreach (var gourd in all)
+            {
+                var prop = gourd != null ? gourd.prop : null;
+                if (prop == null || ReceivedItemSpawner.IsCosmeticClone(prop)
+                    || !GourdRegistry.TryGetLocationId(prop.saveablePropName, out var locationId))
+                    continue;
+
+                var state = gourd.gourdState;
+                if (state == GourdFlag.GourdState.Locked)
+                    continue;
+
+                var home = prop.currentHome;
+                var inContainer = home != null && home.parentProp != null;
+                var strayOnItsOwn = home == null && state != GourdFlag.GourdState.Hidden
+                    && gourd.gameObject.activeInHierarchy;
+                if (!inContainer && !strayOnItsOwn)
+                    continue;
+
+                Plugin.Log.LogInfo(
+                    $"[{nameof(PuzzleGourdRetirer)}] {prop.saveablePropName} was {state} "
+                    + (inContainer ? $"inside {home.parentProp.gameObject.name}" : "outside its vise")
+                    + "; taking it out of play.");
+
+                if (inContainer)
+                {
+                    try { prop.ServerSetUnpinned(); }
+                    catch (Exception ex) { Plugin.Log.LogWarning($"[{nameof(PuzzleGourdRetirer)}] Could not unpin it: {ex.Message}"); }
+                }
+
+                if (CheckTracker.TryMarkReported(locationId))
+                    Plugin.Reporter.ReportCheck(locationId);
+
+                if (state != GourdFlag.GourdState.Hidden)
+                    gourd.ServerSetGourdState(GourdFlag.GourdState.Hidden);
+
+                Retire(gourd);
             }
         }
 
