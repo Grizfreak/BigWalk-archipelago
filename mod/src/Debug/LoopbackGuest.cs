@@ -1,6 +1,7 @@
 using System;
 using HarmonyLib;
 using Mirror;
+using UnityEngine;
 
 namespace BigWalkArchipelago.Debug
 {
@@ -173,6 +174,64 @@ namespace BigWalkArchipelago.Debug
             Plugin.Log.LogInfo($"{Tag} Joining {HostAddress} over Kcp (NetworkMinder.SetTransportAndConnect)...");
             NetworkMinder.SetTransportAndConnect(HostAddress);
             ShowConnectingMenu();
+        }
+
+        // Where a summoned guest lands: beside the host, not inside them.
+        private const float SummonSideOffset = 1.5f;
+        private const float SummonLift = 0.5f;
+
+        // Host side, on its key: sends the host's position to the loopback
+        // guest through the ModChannel.
+        internal static void SummonGuest()
+        {
+            if (!NetworkServer.active)
+            {
+                Plugin.Log.LogInfo($"{Tag} Only the host calls the guest over.");
+                return;
+            }
+
+            var host = DebugPlayerLookup.FindLocalPlayer();
+            if (host == null)
+            {
+                Plugin.Log.LogInfo($"{Tag} No local player to call the guest to.");
+                return;
+            }
+
+            var sent = BigWalkArchipelago.Core.Net.ModChannel.SendSummon(host.transform.position, host.transform.rotation);
+            Plugin.Log.LogInfo(sent > 0
+                ? $"{Tag} Called {sent} loopback guest(s) over to {host.transform.position}."
+                : $"{Tag} No loopback guest to call: none connected from this PC has said hello.");
+        }
+
+        // Guest side, from the ModChannel: the game's own player teleport,
+        // the one its puzzle teleporters use (PeckEffectTeleporter.Peck ->
+        // PlayerGrease.Teleport, decompiled 2026-09-26). A player's position
+        // belongs to its owner (HouseNetworkTransform sends CmdMove), so a
+        // teleport done here is what the host sees too.
+        internal static void OnSummoned(Vector3 hostPosition, Quaternion hostRotation)
+        {
+            if (!IsGuest)
+                return;
+
+            var me = DebugPlayerLookup.FindLocalPlayer();
+            if (me == null || me.grease == null)
+            {
+                Plugin.Log.LogInfo($"{Tag} Called over by the host, but there is no local player to move yet.");
+                return;
+            }
+
+            var destination = hostPosition + hostRotation * Vector3.right * SummonSideOffset + Vector3.up * SummonLift;
+            var marker = new GameObject("Loopback summon point");
+            try
+            {
+                marker.transform.SetPositionAndRotation(destination, hostRotation);
+                me.grease.Teleport(marker.transform);
+                Plugin.Log.LogInfo($"{Tag} Called over by the host; teleported to {destination}.");
+            }
+            finally
+            {
+                UnityEngine.Object.Destroy(marker);
+            }
         }
 
         private static void ShowConnectingMenu()

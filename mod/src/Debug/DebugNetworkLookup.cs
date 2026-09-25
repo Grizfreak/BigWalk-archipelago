@@ -39,6 +39,7 @@ namespace BigWalkArchipelago.Debug
             Section("process", DumpProcess);
             Section("manager", DumpManager);
             Section("connections", DumpConnections);
+            Section("input", DumpInput);
 
             Plugin.Log.LogInfo($"{Tag} === end of network dump ===");
         }
@@ -135,6 +136,35 @@ namespace BigWalkArchipelago.Debug
                     $"{Tag}   #{connection.connectionId} address='{Safe(() => connection.address)}' "
                     + $"authenticated={connection.isAuthenticated} ready={connection.isReady} player={player} "
                     + $"identifier={Safe(() => Identifier(connection))}");
+            }
+        }
+
+        // Which controllers this instance listens to, and whether it listens
+        // at all while unfocused. The game reads its input through Rewired
+        // (no Unity Input System in the build); this is what deciding
+        // "keyboard for the host, gamepad for the guest" needs measured.
+        private static void DumpInput()
+        {
+            if (!Rewired.ReInput.isReady)
+            {
+                Plugin.Log.LogInfo($"{Tag} Rewired is not ready.");
+                return;
+            }
+
+            Plugin.Log.LogInfo(
+                $"{Tag} Rewired: ignoreInputWhenAppNotInFocus={Rewired.ReInput.configuration.ignoreInputWhenAppNotInFocus}, "
+                + $"joysticks connected={Rewired.ReInput.controllers.joystickCount}, "
+                + $"players={Rewired.ReInput.players.playerCount}");
+
+            for (var i = 0; i < Rewired.ReInput.players.playerCount; i++)
+            {
+                var player = Rewired.ReInput.players.GetPlayer(i);
+                if (player == null)
+                    continue;
+                Plugin.Log.LogInfo(
+                    $"{Tag}   player {player.id} '{player.name}' playing={player.isPlaying} "
+                    + $"keyboard={player.controllers.hasKeyboard} mouse={player.controllers.hasMouse} "
+                    + $"joysticks={player.controllers.joystickCount}");
             }
         }
 

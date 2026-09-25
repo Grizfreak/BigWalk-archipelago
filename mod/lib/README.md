@@ -45,6 +45,9 @@ launch — NOT the dummy DLLs):
   `MultiplexTransport`, `EosTransport`, for the loopback guest
   (`Debug/DebugNetworkLookup.cs`). Copied from the Steam install's
   `BepInEx\interop\`
+- `Rewired_Core.dll` (step 7, 2026-09-26) — `Rewired.ReInput`, the game's
+  input stack, for the same dump (which instance hears which controller).
+  Same origin
 
 From `<game>\BepInEx\core\` (step 3):
 - `Il2CppInterop.Runtime.dll` — `Il2CppObjectBase`, the base of

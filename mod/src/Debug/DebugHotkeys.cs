@@ -221,6 +221,20 @@ namespace BigWalkArchipelago.Debug
                 LoopbackGuest.Join();
                 Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Join returned.");
             }
+
+            if (ModConfig.LoopbackFocusKey.Value.IsDown())
+            {
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Loopback focus key pressed; calling FocusOtherInstance...");
+                LoopbackWindows.FocusOtherInstance();
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] FocusOtherInstance returned.");
+            }
+
+            if (ModConfig.LoopbackSummonKey.Value.IsDown())
+            {
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Loopback summon key pressed; calling SummonGuest...");
+                LoopbackGuest.SummonGuest();
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] SummonGuest returned.");
+            }
         }
 
         private void RecheckCosmeticPickup()

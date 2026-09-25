@@ -68,6 +68,12 @@ namespace BigWalkArchipelago.Core.Net
         private const byte KindHello = 1;
         private const byte KindSnapshot = 2;
 
+        // Debug only: the host calling the loopback guest to its side (see
+        // Debug/LoopbackGuest.cs). Only ever sent to a connection from this
+        // same PC that said hello, so no remote player receives it; a guest
+        // that does not know it ignores it, like any kind but a snapshot.
+        private const byte KindSummon = 3;
+
         private const float SnapshotIntervalSeconds = 1f;
 
         // A guest stops showing the host's overlay once the host has been
@@ -314,6 +320,53 @@ namespace BigWalkArchipelago.Core.Net
             }
         }
 
+        // Sends the summon to every loopback guest that said hello; returns
+        // how many got it.
+        internal static int SendSummon(Vector3 position, Quaternion rotation)
+        {
+            var sent = 0;
+            foreach (var connection in NetworkServer.connections.Values)
+            {
+                if (connection == null || !Announced.Contains(connection.connectionId) || !IsFromThisMachine(connection))
+                    continue;
+
+                try
+                {
+                    var writer = new NetworkWriter();
+                    NetworkWriterExtensions.WriteUShort(writer, MessageId);
+                    writer.WriteByte(KindSummon);
+                    writer.WriteByte(ProtocolVersion);
+                    NetworkWriterExtensions.WriteFloat(writer, position.x);
+                    NetworkWriterExtensions.WriteFloat(writer, position.y);
+                    NetworkWriterExtensions.WriteFloat(writer, position.z);
+                    NetworkWriterExtensions.WriteFloat(writer, rotation.eulerAngles.y);
+                    connection.Send(writer.ToArraySegment(), 0);
+                    sent++;
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning(
+                        $"[{nameof(ModChannel)}] Could not send the summon to guest #{connection.connectionId}: {ex.Message}");
+                }
+            }
+
+            return sent;
+        }
+
+        // A guest on this same PC: connection 0 is the host's own local
+        // client, and every other connection's address is the remote end
+        // (measured 2026-09-26: '127.0.0.1' for the loopback guest).
+        private static bool IsFromThisMachine(NetworkConnectionToClient connection)
+        {
+            if (connection.connectionId == NetworkConnection.LocalConnectionId)
+                return false;
+            if (!System.Net.IPAddress.TryParse(connection.address, out var address))
+                return false;
+            if (address.IsIPv4MappedToIPv6)
+                address = address.MapToIPv4();
+            return System.Net.IPAddress.IsLoopback(address);
+        }
+
         // ------------------------------------------------------------------
         // Guest
         // ------------------------------------------------------------------
@@ -431,6 +484,12 @@ namespace BigWalkArchipelago.Core.Net
             try
             {
                 var kind = reader.ReadByte();
+                if (kind == KindSummon)
+                {
+                    OnSummon(reader);
+                    return;
+                }
+
                 if (kind != KindSnapshot)
                     return;
 
@@ -489,6 +548,21 @@ namespace BigWalkArchipelago.Core.Net
             {
                 Plugin.Log.LogWarning($"[{nameof(ModChannel)}] Unreadable snapshot from the host, ignored: {ex.Message}");
             }
+        }
+
+        // Called from OnClientMessage's try, so nothing escapes it either.
+        private static void OnSummon(NetworkReader reader)
+        {
+            if (reader.ReadByte() != ProtocolVersion)
+                return;
+
+            var position = new Vector3(
+                NetworkReaderExtensions.ReadFloat(reader),
+                NetworkReaderExtensions.ReadFloat(reader),
+                NetworkReaderExtensions.ReadFloat(reader));
+            var yaw = NetworkReaderExtensions.ReadFloat(reader);
+
+            BigWalkArchipelago.Debug.LoopbackGuest.OnSummoned(position, Quaternion.Euler(0f, yaw, 0f));
         }
     }
 }

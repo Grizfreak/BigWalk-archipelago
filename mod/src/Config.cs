@@ -66,6 +66,8 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> DumpCosmeticGadgetsKey;
         internal static ConfigEntry<KeyboardShortcut> DumpNetworkKey;
         internal static ConfigEntry<KeyboardShortcut> LoopbackJoinKey;
+        internal static ConfigEntry<KeyboardShortcut> LoopbackFocusKey;
+        internal static ConfigEntry<KeyboardShortcut> LoopbackSummonKey;
 
         internal static void Bind(ConfigFile file)
         {
@@ -393,6 +395,18 @@ namespace BigWalkArchipelago
                 "LoopbackJoinKey",
                 new KeyboardShortcut(KeyCode.L, KeyCode.LeftControl),
                 "In the loopback guest only (the second instance tools/launch-guest.ps1 starts on the same PC): joins the host on 127.0.0.1 over Kcp, from the title menu. The launcher already makes the guest join on its own when the host is hosting; this is for when it was not yet, or to join again after leaving. Does nothing in any other instance (only has an effect if Debug.Enabled is active).");
+
+            LoopbackFocusKey = file.Bind(
+                "Debug",
+                "LoopbackFocusKey",
+                new KeyboardShortcut(KeyCode.T, KeyCode.LeftControl),
+                "With two instances of the game on this PC (a host and the loopback guest from tools/launch-guest.ps1): gives the keyboard and mouse to the other one. Press it in either window. Both keep running while unfocused (only has an effect if Debug.Enabled is active).");
+
+            LoopbackSummonKey = file.Bind(
+                "Debug",
+                "LoopbackSummonKey",
+                new KeyboardShortcut(KeyCode.C, KeyCode.LeftControl),
+                "On the host, with a loopback guest connected: teleports the guest next to you, through the mod's own network channel and the game's own player teleport. Never reaches a player on another machine (only has an effect if Debug.Enabled is active).");
         }
     }
 }
