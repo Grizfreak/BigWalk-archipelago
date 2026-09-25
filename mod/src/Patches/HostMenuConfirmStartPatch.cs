@@ -33,6 +33,45 @@ namespace BigWalkArchipelago.Patches
         private static bool _bypass;
         private static bool _autoContinuePending;
 
+        // THE SETTINGS ALREADY VERIFIED, remembered across OnEnable
+        // (2026-09-25, found in the first test of the packaged build).
+        //
+        // The player-count screen's Play button stuck on a new save whose
+        // Continue had just been verified. The log showed HostMenuConfirm's
+        // OnEnable running again right after that Continue, and OnEnable
+        // wipes the test result on the reasoning that coming back to this
+        // screen means the fields may have changed. So when the flow reached
+        // this gate a second time the verdict was gone, a fresh probe was
+        // started, and its result was waited on by an Update that no longer
+        // runs once this screen is out of sight — Play waited forever.
+        //
+        // What a verdict belongs to is the settings, not the screen: the
+        // same host, port, slot and password verified a moment ago are still
+        // verified. So they pass at once, and anything changed is tested
+        // again. Kept for a few minutes only, so that a server that has since
+        // gone down is not vouched for indefinitely.
+        private static string _verifiedKey;
+        private static DateTime _verifiedAt;
+        private static readonly TimeSpan VerifiedFor = TimeSpan.FromMinutes(10);
+
+        private static string KeyOf(ApEndpoint endpoint)
+        {
+            return $"{endpoint.Host}:{endpoint.Port}|{endpoint.SlotName}|{endpoint.Password}";
+        }
+
+        private static bool RecentlyVerified(string key)
+        {
+            return _verifiedKey != null
+                && (key == null || key == _verifiedKey)
+                && DateTime.UtcNow - _verifiedAt < VerifiedFor;
+        }
+
+        internal static void RememberVerified(ApEndpoint endpoint)
+        {
+            _verifiedKey = KeyOf(endpoint);
+            _verifiedAt = DateTime.UtcNow;
+        }
+
         [HarmonyPatch(typeof(HostMenuConfirm), nameof(HostMenuConfirm.ActionStart))]
         internal static class ActionStart
         {
@@ -45,6 +84,14 @@ namespace BigWalkArchipelago.Patches
                 var password = __instance.passwordField != null ? __instance.passwordField.text : string.Empty;
                 var isNewSave = IsNewSave(__instance);
 
+                // One line per press, because the order in which this screen
+                // and the player-count screen call in here was never written
+                // down anywhere, and the Play bug above was found by reading
+                // exactly that order out of a log.
+                Plugin.Log.LogInfo(
+                    $"[{nameof(HostMenuConfirmStartPatch)}] Start requested (new save: {isNewSave}, "
+                    + $"test: {ApConnectionTest.Status}).");
+
                 if (!ApEndpoint.TryResolveFromFields(ApEndpoint.CurrentHostAndPort(), slotName, password,
                                                      out var endpoint, out var problem))
                 {
@@ -53,15 +100,29 @@ namespace BigWalkArchipelago.Patches
                     if (!isNewSave)
                         return true;
 
+                    // Fields no longer readable, but this very flow was just
+                    // verified: the second pass through here, not a new game
+                    // typed without an address.
+                    if (RecentlyVerified(null))
+                        return true;
+
                     HostMenuArchipelagoControls.ShowResult(__instance,
                         $"A new Archipelago game needs the host and the slot name ({problem}) - or switch AP : OFF");
                     Update.FlashFields(__instance);
                     return false;
                 }
 
+                if (RecentlyVerified(KeyOf(endpoint)))
+                {
+                    Plugin.Log.LogInfo(
+                        $"[{nameof(HostMenuConfirmStartPatch)}] These settings were verified moments ago; no second test.");
+                    return true;
+                }
+
                 switch (ApConnectionTest.Status)
                 {
                     case ApConnectionTest.TestStatus.Ok:
+                        RememberVerified(endpoint);
                         return true;
 
                     case ApConnectionTest.TestStatus.Testing:

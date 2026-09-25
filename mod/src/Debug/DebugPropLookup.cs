@@ -245,6 +245,106 @@ namespace BigWalkArchipelago.Debug
             Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}]     no vanilla '{prefabName}' left in the scene to compare against.");
         }
 
+        // WHY THIS EXISTS (2026-09-25). A received lamp is built from a
+        // buoy light of the island, and since the same day the buoy is drawn
+        // at random, on the premise that the island's buoys come in the
+        // game's two colours. A player sent five and got five red ones: the
+        // premise is wrong somewhere, and three explanations fit equally
+        // well — the green ones are a different prefab the capture never
+        // matches, they lie beyond the 32 it keeps, or the colour is not the
+        // buoy's own at all and is applied at run time. This tells them apart
+        // in one keypress instead of a fourth guess: every prop whose name
+        // mentions a buoy or a lamp, grouped by name, material and light
+        // colour, with the captured templates counted apart.
+        private static void DumpLampCensus()
+        {
+            Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}] === lamp census ===");
+
+            var all = UnityEngine.Object.FindObjectsByType<Prop>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (all == null)
+                return;
+
+            var groups = new SortedDictionary<string, int>(System.StringComparer.Ordinal);
+            var total = 0;
+
+            foreach (var prop in all)
+            {
+                if (prop == null || prop.gameObject == null)
+                    continue;
+
+                var name = prop.gameObject.name;
+                if (name.IndexOf("Buoy", System.StringComparison.OrdinalIgnoreCase) < 0
+                    && name.IndexOf("Lamp", System.StringComparison.OrdinalIgnoreCase) < 0)
+                    continue;
+
+                total++;
+
+                var role = name.Contains("(AP template)", System.StringComparison.Ordinal) ? "TEMPLATE"
+                    : name.Contains(BigWalkArchipelago.Core.ReceivedItemSpawner.CosmeticNameSuffix, System.StringComparison.Ordinal) ? "CLONE"
+                    : "vanilla";
+
+                var baseName = name;
+                var paren = baseName.IndexOf(" (", System.StringComparison.Ordinal);
+                if (paren > 0)
+                    baseName = baseName.Substring(0, paren);
+
+                var key = $"{role,-8} {baseName} | active={prop.gameObject.activeInHierarchy} | {DescribeLook(prop.gameObject)}";
+                groups[key] = groups.TryGetValue(key, out var count) ? count + 1 : 1;
+            }
+
+            Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}]   {total} prop(s) mention a buoy or a lamp, in {groups.Count} group(s):");
+            foreach (var pair in groups)
+                Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}]   {pair.Value.ToString().PadLeft(3)} x {pair.Key}");
+        }
+
+        // What decides a lamp's colour, whichever it turns out to be: the
+        // emitted light, the first renderer's material, and any colour held in
+        // that renderer's property block or material under the usual names.
+        private static string DescribeLook(GameObject root)
+        {
+            var parts = new List<string>();
+
+            try
+            {
+                var light = root.GetComponentInChildren<Light>(true);
+                parts.Add(light != null ? $"light=#{ColorUtility.ToHtmlStringRGB(light.color)}" : "light=<none>");
+            }
+            catch (System.Exception ex)
+            {
+                parts.Add($"light=<{ex.Message}>");
+            }
+
+            try
+            {
+                var renderers = root.GetComponentsInChildren<Renderer>(true);
+                if (renderers == null || renderers.Length == 0)
+                {
+                    parts.Add("renderer=<none>");
+                    return string.Join(" | ", parts);
+                }
+
+                var renderer = renderers[0];
+                var material = renderer.sharedMaterial;
+                parts.Add($"material={(material != null ? material.name : "<none>")}");
+
+                var block = new MaterialPropertyBlock();
+                renderer.GetPropertyBlock(block);
+                foreach (var property in new[] { "_Color", "_BaseColor", "_TintColor", "_EmissionColor", "_RColor" })
+                {
+                    if (!block.isEmpty && block.HasColor(property))
+                        parts.Add($"block{property}=#{ColorUtility.ToHtmlStringRGB(block.GetColor(property))}");
+                    else if (material != null && material.HasProperty(property))
+                        parts.Add($"mat{property}=#{ColorUtility.ToHtmlStringRGB(material.GetColor(property))}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                parts.Add($"renderer=<{ex.Message}>");
+            }
+
+            return string.Join(" | ", parts);
+        }
+
         internal static void DumpCosmeticGadgets()
         {
             Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}] === cosmetic gadget clones ===");
@@ -292,6 +392,8 @@ namespace BigWalkArchipelago.Debug
             }
 
             Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}] {found} cosmetic clone(s) found.");
+
+            DumpLampCensus();
             Plugin.Log.LogInfo($"[{nameof(DebugPropLookup)}] === end of cosmetic gadget clones ===");
         }
     }

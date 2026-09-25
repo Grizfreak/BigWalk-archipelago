@@ -47,6 +47,7 @@ namespace BigWalkArchipelago
 
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll();
+            Patches.PlayerCountProceedLog.TryApply(_harmony);
 
             AddComponent<Core.Net.ApRuntime>();
             AddComponent<Core.Net.ApStatusOverlay>();
@@ -60,6 +61,7 @@ namespace BigWalkArchipelago
             AddComponent<Core.StaleHeldPropReleaser>();
             AddComponent<Core.KeyColourPainter>();
             AddComponent<Core.Net.ModChannel>();
+            AddComponent<Core.ModVersionLabel>();
 
             if (ModConfig.DebugModeEnabled.Value)
             {
