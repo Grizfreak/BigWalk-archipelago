@@ -409,15 +409,21 @@ namespace BigWalkArchipelago.Core
             return GetTemplate(kind, extra ? (index - usable) % count : index);
         }
 
-        // For kinds with nothing ticketed in them, where any template will do:
-        // take them in turn, so every look the island has gets handed out.
-        private static readonly Dictionary<GadgetKind, int> _rotation = new();
+        // RANDOM, NOT FIRST (player request, 2026-09-25: "a way to randomise
+        // the colour?"). Which free slot the host takes decides what the
+        // clone looks like — each slot's template is a different vanilla
+        // instance, and for the lamp a different buoy, red or green — so
+        // drawing the slot at random draws the look at random, in the
+        // proportions the island itself has.
+        //
+        // Only the host ever draws. The slot it picked travels inside the
+        // asset id and every client builds exactly that one, so the two
+        // screens cannot disagree about a colour.
+        private static readonly System.Random _draw = new();
 
-        private static int NextRotation(GadgetKind kind, int count)
+        private static int PickAtRandom(List<int> candidates)
         {
-            var next = _rotation.TryGetValue(kind, out var value) ? value : 0;
-            _rotation[kind] = next + 1;
-            return next % count;
+            return candidates[_draw.Next(candidates.Count)];
         }
 
         private static Prop GetTemplate(GadgetKind kind, int index = 0)
@@ -452,19 +458,28 @@ namespace BigWalkArchipelago.Core
             if (!_templates.TryGetValue(kind, out var list) || list == null || list.Count == 0 || list[0] == null)
                 return 0;
 
-            // Nothing ticketed in this kind means nothing to share: any
-            // template will do, so they are taken in turn.
+            // Nothing ticketed in this kind means nothing to share: every
+            // template is available, so any of them.
             var needed = Math.Min(TicketsOf(list[0].gameObject).Count, MaxTicketsPerClone);
             if (needed == 0)
-                return NextRotation(kind, list.Count);
+            {
+                var all = new List<int>();
+                for (var index = 0; index < list.Count; index++)
+                    all.Add(index);
+                return PickAtRandom(all);
+            }
 
             var usable = VanillaUsable(kind);
+            var candidates = new List<int>();
             for (var index = 0; index < usable; index++)
             {
                 var template = list[index];
                 if (template != null && TicketsOf(template.gameObject).TrueForAll(IsTicketFree))
-                    return index;
+                    candidates.Add(index);
             }
+
+            if (candidates.Count > 0)
+                return PickAtRandom(candidates);
 
             // Every vanilla instance is in use, or the kind never borrows one:
             // the extra slots, which invent as many tickets as the kind has
@@ -476,8 +491,11 @@ namespace BigWalkArchipelago.Core
                     free = IsTicketFree(ExtraTicket(kind, index, rank));
 
                 if (free)
-                    return index;
+                    candidates.Add(index);
             }
+
+            if (candidates.Count > 0)
+                return PickAtRandom(candidates);
 
             Plugin.Log.LogWarning(
                 $"[{nameof(GadgetItemSpawner)}] All {MaxInstancesPerKind} {kind} slot(s) are held by live clones; this one "
