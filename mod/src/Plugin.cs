@@ -39,7 +39,7 @@ namespace BigWalkArchipelago
         public override void Load()
         {
             Log = base.Log;
-            Log.LogInfo($"{PluginName} v{PluginVersion} loaded.");
+            Log.LogInfo($"{PluginName} v{PluginVersion} loaded (build {BuildFingerprint()}).");
 
             ModConfig.Bind(base.Config);
 
@@ -67,10 +67,30 @@ namespace BigWalkArchipelago
             if (ModConfig.DebugModeEnabled.Value)
             {
                 AddComponent<Debug.DebugHotkeys>();
+                AddComponent<Debug.DebugGadgetRigDump>();
                 Log.LogInfo($"[Debug] Debug module active (key: {ModConfig.ToggleFlightKey.Value}).");
             }
 
             Log.LogInfo("Harmony initialized.");
+        }
+
+        // The first 16 hex digits of this DLL's SHA-256: the same fingerprint
+        // tools/deploy-mod.ps1 prints, so two logs can be matched to one
+        // build. Added 2026-09-25, after a co-op test where the only way to
+        // know which DLL the guest was running was to compare file times.
+        private static string BuildFingerprint()
+        {
+            try
+            {
+                var path = typeof(Plugin).Assembly.Location;
+                using var sha = System.Security.Cryptography.SHA256.Create();
+                using var stream = System.IO.File.OpenRead(path);
+                return System.BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").Substring(0, 16);
+            }
+            catch (System.Exception)
+            {
+                return "unknown";
+            }
         }
     }
 }
