@@ -11,28 +11,15 @@ from . import data
 
 class Goal(Choice):
     """
-    The victory condition for this slot.
+    What you need to do to win. No goal can be done solo.
 
-    - gauntlet: break the bell at the top of the Gauntlet. Requires the Black
-      Monolith Key, which opens the way to the chapel, the field behind it
-      and the Gauntlet.
-    - ending: break the chapel bell. Also requires the Black Monolith Key, but
-      stops well short of the Gauntlet's seven puzzle chambers.
-    - second_ending: reach the game's other ending, the one behind the Hub
-      Secret Door. Requires that item and nothing else: in the vanilla
-      game that zone is sealed behind a sphere that only breaks once the game
-      has been finished, and the mod removes it from the first session, so
-      this is not a postgame goal here.
-    - deposits: deposit a number of gourds into the towers' monuments (see
-      Deposit Goal Amount). Does not require reaching the ending at all.
+    - gauntlet: break the bell at the top of the Gauntlet. Needs the Black Monolith Key.
+    - ending: break the chapel bell. Needs the Black Monolith Key.
+    - second_ending: reach the ending behind the Hub Secret Door. Needs that item;
+      the sphere is gone from the start, so this is not postgame.
+    - deposits: deposit a number of gourds into monuments (see Deposit Goal Amount).
 
-    Both bells need two players pressing two buttons at once. Big Walk's
-    monument deposits are a two-player action as well, so no goal here is
-    solo-friendly.
-
-    "second_ending" needs the Hub Secret Door, so it cannot be played with
-    "green_dome_deposits: excluded", which takes that item out of the world.
-    A slot asking for both is generated as "key_only" instead, with a warning.
+    second_ending does not work with green_dome_deposits: excluded, which becomes key_only.
     """
 
     display_name = "Goal"
@@ -45,11 +32,10 @@ class Goal(Choice):
 
 class DepositGoalAmount(Range):
     """
-    How many gourds must be deposited into monuments to win, when Goal is set
-    to "deposits". Ignored for every other goal.
+    Gourds to deposit to win, with goal: deposits.
 
-    Clamped down to the number of monument slots actually in play if you ask
-    for more than exist (see Green Dome Deposits).
+    - Ignored by every other goal.
+    - Lowered to the number of monument slots in play if set higher.
     """
 
     display_name = "Deposit Goal Amount"
@@ -58,24 +44,16 @@ class DepositGoalAmount(Range):
     default = 30
 
 
+# key_only exists because a filled monument no longer releases anything: the
+# only reason to deposit fifteen more gourds is the deposit checks themselves.
+# It is also the way to play goal: second_ending without that grind.
 class GreenDomeDeposits(Choice):
     """
-    Whether the Green Dome tower takes part. It is the postgame tower, and by
-    far the biggest: 15 deposit slots against 4-6 everywhere else.
+    Whether the Green Dome, the 15-slot postgame tower, takes part.
 
-    - full: it takes part. Its key is in the pool, its deposit is a location,
-      and the pool holds 45 gourds.
-    - key_only: its 15 slots leave, for 30 gourds, but the Hub Secret Door,
-      its key and its key deposit all stay. The grind goes and nothing else
-      does.
-    - excluded: the Hub Secret Door, its key and its deposit location leave
-      the world entirely, for 30 gourds.
-
-    "key_only" exists because the slots and the key were never really one
-    thing in this world: a filled monument no longer releases anything, so
-    the only reason to deposit fifteen more gourds is the deposit checks
-    themselves. It is also the only way to play "goal: second_ending"
-    without the postgame grind, since that goal needs the Hub Secret Door.
+    - full: everything stays. 45 gourds in the pool.
+    - key_only: its 15 slots leave; the Hub Secret Door, its key and key deposit stay. 30 gourds.
+    - excluded: the Hub Secret Door, its key and key deposit leave too. 30 gourds.
     """
 
     display_name = "Green Dome Deposits"
@@ -91,13 +69,11 @@ class GreenDomeDeposits(Choice):
 
 class DepositLocations(Choice):
     """
-    Whether depositing gourds into monuments awards checks of its own, and how
-    often. Deposits are counted globally across every monument, so it never
-    matters which tower a gourd goes into.
+    Checks for depositing gourds, counted across all monuments together.
 
-    - none: no deposit checks at all.
-    - milestones: a check every 5 gourds deposited, plus one for the last one.
-    - all: a check for every single gourd deposited.
+    - none: no deposit checks.
+    - milestones: a check every 5 gourds, plus the last one.
+    - all: a check for every gourd.
     """
 
     display_name = "Deposit Locations"
@@ -113,47 +89,28 @@ class RadioStationChecks(DefaultOnToggle):
     display_name = "Radio Station Checks"
 
 
+# Stations are named after the music they actually play, not the game's
+# internal names; the dial shows numbers only, so nothing contradicts that.
 class RadioStationItems(DefaultOnToggle):
     """
-    Shuffle the radio music itself into the item pool.
+    Shuffle each station's music into the item pool.
 
-    Switching a station on in the game still awards its check, but the music
-    only starts playing once the matching Radio Music item arrives — so the
-    radio behaves like every other check in this world instead of rewarding
-    itself. Seven Radio Music items enter the pool, replacing seven filler.
-
-    Stations are named after the music they actually play, which is not what
-    the game's internal names suggest. The radio dial shows numbers and no
-    names at all, so there is nothing in the world to contradict.
-
-    Turn this off for the vanilla radio, where switching a station on unlocks
-    its music on the spot.
-
-    Only the Archipelago host is affected. Nobody else in the session runs the
-    Archipelago client, so a guest hears a station the moment it is switched
-    on, whether or not the host has received it.
+    - On: switching a station on is still a check, but its music only plays
+      once its Radio Music item arrives. 7 items, replacing filler.
+    - Off: vanilla, a station plays as soon as it is switched on.
     """
 
     display_name = "Radio Station Items"
 
 
+# Off by default since 2026-09-22: the drawbridge turned out not to be the only
+# way out of the tutorial (the mod opens the hub's arch doors on a save's first
+# session), so shuffling it can no longer lock anyone in.
 class StartWithDrawbridgeOpen(Toggle):
     """
-    Start with the Drawbridge already open instead of shuffling it in.
+    Start with the Drawbridge open instead of finding it in the multiworld.
 
-    OFF by default. The drawbridge was believed to be the only way out of the
-    tutorial, which would have made shuffling it a way to lock you in with
-    nothing to do — so this defaulted ON while that was in doubt. Confirmed
-    in play on 2026-09-22 that it is not the only way out: the mod opens the
-    hub's arch doors on a save's first session, and the tutorial is not
-    sealed without the drawbridge. With nothing left to hedge against, the
-    Drawbridge became a feature like the other six and now arrives from the
-    multiworld, which is one more thing to find rather than one fewer.
-
-    Turn it on to have it handed over up front instead.
-
-    It costs you no check either way: the tutorial key itself stays in its
-    tower, and carrying it to its plinth is still a location like any other.
+    - The tutorial key deposit stays a check either way.
     """
 
     display_name = "Start With Drawbridge Open"
@@ -161,10 +118,9 @@ class StartWithDrawbridgeOpen(Toggle):
 
 class TrapFillPercentage(Range):
     """
-    Percentage of the filler items in this slot's pool replaced by traps.
+    Percentage of filler items replaced by traps.
 
-    Defaults to 0 because the mod does not implement any trap effect yet: a
-    trap sent today arrives and does nothing at all.
+    - Traps do nothing yet: keep it at 0.
     """
 
     display_name = "Trap Fill Percentage"
