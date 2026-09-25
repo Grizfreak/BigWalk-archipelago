@@ -227,9 +227,10 @@ both at once is what keeps that warning readable.
 
 **The item names are settled too (2026-09-21): the seven bare nouns stay** —
 `Drawbridge`, `Map Room`, `Chairlift`, `Train`, `Tunnels`, `Chapel Door`,
-`Hub Secret Door`. A prefix earns its place only where it disambiguates: `Radio Music:
-Bobby` needs one because `Bobby` alone says nothing in a multiworld feed,
-`Chairlift` does not.
+`Hub Secret Door`. A prefix earns its place only where it disambiguates: `Radio Music
+01: Bobby` needs one because `Bobby` alone says nothing in a multiworld feed,
+`Chairlift` does not. (The number, added 2026-09-26 from the first alpha's
+feedback, is the station's place on the dial: the dial is unlabelled lights.)
 
 Reviewing that question turned up a real mismatch one step away, and it is
 fixed: three deposit locations were named after their **plinth** rather than
