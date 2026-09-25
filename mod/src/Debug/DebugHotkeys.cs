@@ -215,11 +215,21 @@ namespace BigWalkArchipelago.Debug
                 Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Dump returned.");
             }
 
+            // One key, two jobs: the guest joins, anyone else starts a guest.
             if (ModConfig.LoopbackJoinKey.Value.IsDown())
             {
-                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Loopback join key pressed; calling Join...");
-                LoopbackGuest.Join();
-                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Join returned.");
+                if (LoopbackGuest.IsGuest)
+                {
+                    Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Loopback key pressed in the guest; calling Join...");
+                    LoopbackGuest.Join();
+                    Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Join returned.");
+                }
+                else
+                {
+                    Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Loopback key pressed; calling LaunchGuest...");
+                    LoopbackLauncher.LaunchGuest();
+                    Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] LaunchGuest returned.");
+                }
             }
 
             if (ModConfig.LoopbackFocusKey.Value.IsDown())

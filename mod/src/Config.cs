@@ -394,7 +394,7 @@ namespace BigWalkArchipelago
                 "Debug",
                 "LoopbackJoinKey",
                 new KeyboardShortcut(KeyCode.L, KeyCode.LeftControl),
-                "In the loopback guest only (the second instance tools/launch-guest.ps1 starts on the same PC): joins the host on 127.0.0.1 over Kcp, from the title menu. The launcher already makes the guest join on its own when the host is hosting; this is for when it was not yet, or to join again after leaving. Does nothing in any other instance (only has an effect if Debug.Enabled is active).");
+                "Co-op on one PC. On the host: starts a second instance of the game as the loopback guest, windowed, which joins on its own if you are already hosting a world. In that guest: joins the host on 127.0.0.1 over Kcp from the title menu, for when the host was not hosting yet or to join again after leaving. tools/launch-guest.ps1 starts the same guest from a terminal (only has an effect if Debug.Enabled is active).");
 
             LoopbackFocusKey = file.Bind(
                 "Debug",
