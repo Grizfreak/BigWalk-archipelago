@@ -67,6 +67,9 @@ namespace BigWalkArchipelago
             if (ModConfig.DebugModeEnabled.Value)
             {
                 Debug.LoopbackGuest.DetectRole();
+                Debug.LoopbackGuest.TryApply(_harmony);
+                if (Debug.LoopbackGuest.IsGuest)
+                    AddComponent<Debug.LoopbackGuestMonitor>();
                 AddComponent<Debug.DebugHotkeys>();
                 AddComponent<Debug.DebugGadgetRigDump>();
                 AddComponent<Debug.DebugWorldLayoutDump>();

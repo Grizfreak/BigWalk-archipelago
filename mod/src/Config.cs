@@ -65,6 +65,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> DumpHeldItemKey;
         internal static ConfigEntry<KeyboardShortcut> DumpCosmeticGadgetsKey;
         internal static ConfigEntry<KeyboardShortcut> DumpNetworkKey;
+        internal static ConfigEntry<KeyboardShortcut> LoopbackJoinKey;
 
         internal static void Bind(ConfigFile file)
         {
@@ -386,6 +387,12 @@ namespace BigWalkArchipelago
                 "DumpNetworkKey",
                 new KeyboardShortcut(KeyCode.N, KeyCode.LeftControl),
                 "Logs this process's Mirror setup without changing any of it: the NetworkManager, the active transport and every transport under it (with the Kcp port and whether its server is running), the authenticator, the server's connections with the identifier each one sent, Application.runInBackground, whether Steam is up, and the command line. Written for running a second instance of the game on the same PC as a network guest: it answers whether the host already listens on UDP and what the two instances would share (only has an effect if Debug.Enabled is active).");
+
+            LoopbackJoinKey = file.Bind(
+                "Debug",
+                "LoopbackJoinKey",
+                new KeyboardShortcut(KeyCode.L, KeyCode.LeftControl),
+                "In the loopback guest only (the second instance tools/launch-guest.ps1 starts on the same PC): joins the host on 127.0.0.1 over Kcp, from the title menu. The launcher already makes the guest join on its own when the host is hosting; this is for when it was not yet, or to join again after leaving. Does nothing in any other instance (only has an effect if Debug.Enabled is active).");
         }
     }
 }

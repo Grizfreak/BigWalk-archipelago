@@ -214,6 +214,13 @@ namespace BigWalkArchipelago.Debug
                 DebugNetworkLookup.Dump();
                 Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Dump returned.");
             }
+
+            if (ModConfig.LoopbackJoinKey.Value.IsDown())
+            {
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Loopback join key pressed; calling Join...");
+                LoopbackGuest.Join();
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Join returned.");
+            }
         }
 
         private void RecheckCosmeticPickup()
