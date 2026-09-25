@@ -1,0 +1,10 @@
+name: BeltWalk
+game: Big Walk
+Big Walk:
+  goal: big_collection
+  gourds_required: 5
+  gourd_slot_checks: every_gourd
+  start_inventory:
+    Belt: 2
+    Backpack: 1
+    Gourd: 3

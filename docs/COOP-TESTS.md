@@ -281,14 +281,48 @@ Everything held, and three things were found and fixed on the way:
 | A new Archipelago game without a working connection | **FIXED AND VERIFIED.** It stops on the first screen's Continue with the reason under the fields; Play on the second screen no longer sticks (the verdict used to be wiped by `OnEnable` between the two). Probes show moving dots, and long answers wrap and shrink to fit. |
 | The mod's version | Shown in a corner of every menu. |
 
+## Fourth pass, 2026-09-25 evening: the first alpha's feedback
+
+The alpha's players sent a list of problems (sealed-box pick-ups, belts,
+gourd colours, the host getting every item, arch doors). What was verified
+with two machines the same day, then what is built and still waits for a
+session.
+
+### Verified
+
+| What | Result |
+|---|---|
+| A guest takes a sealed-box puzzle's gourd (Telescope to Box) | **PASSES** since `PuzzleGourdRetirer`. The check goes out, the guest's hands are cleared, nothing throws, and the guest can pick something else up. It used to leave the guest unable to pick anything up for the rest of the session (`NullReferenceException` in `Prop.SetHeld`, mid-Command). |
+| A received belt, on the ground and worn | **PASSES** on both screens, both ways: closed on the ground, a single belt when worn, a flare gun still holsters. It showed a second, hanging belt; the clone's "placed on hanger" state came from the vanilla belt's save key and from the server's copy of its ticket. |
+
+### To test
+
+Deploy with `tools/deploy-mod.ps1` first; the other machine takes
+`F:\shared\BigWalkArchipelago.dll` and its log's first line must show the same
+`loaded (build ...)` fingerprint as the host's.
+
+| # | What | How | Expected |
+|---|---|---|---|
+| 16 | Arch doors held closed, and opened by their item | Solo. Seed from `tools/players/door-test.yaml` (`lock_arch_doors: all`, Left Arch Door at start), new save. | The first arch door (at the hub, beside the keyhole) and the right one stay **closed**; the left one (Sports Creek) is **open**. The log names each door held or opened (`ArchDoors`, `ArchDoorHoldPatch`). |
+| 17 | Arch door opening live | Same room, with the server: `/send DoorWalk First Arch Door`. | The first door opens on the spot, without a reload, and stays open after one. |
+| 18 | Arch doors seen by a guest | Two machines, same room. | The guest sees the same doors open and shut as the host. |
+| 19 | Items go to every player in turn | Two machines, debug on, both with empty hands. Press `Ctrl+I` (simulated gadget) several times. | Gadgets alternate between the two players, appear in front of the one receiving, and land in their hands **on both screens**. |
+| 20 | Nobody's hands are free | Both players hold something, then `Ctrl+I`. | One of them drops what they held and gets the gadget half a second later. The log reads "had full hands; they drop what they held". |
+| 21 | Several items at once | Hands empty, `Ctrl+I` twice quickly. | Both players get one, not one player twice or only one item handed over. |
+| 22 | Gourd colours | Two machines, a seed from `tools/players/belt-test.yaml` (3 gourds at start). | The gourds come in different colours among red, orange, yellow, green, blue and purple; each gourd has the **same colour on both screens**; none is a glowing white blob, including after walking far from the hub and back. |
+| 23 | No `ap_` keys in a vanilla save | Solo. Host the `LGM` save with the Archipelago switch off, walk a little, quit. Back the save up first. | `save_LGM_*.sav` holds no `"key":"ap_` entry. Restore the backup afterwards either way. |
+| 24 | Puzzle gourds stowed in a bag | Only with a save that has one (the alpha host's). | Host log: `PuzzleGourdRetirer ... inside BackpackProp...; taking it out of play`; nothing left at the spawn to pick up. |
+
+---
+
 ## Regressions to re-check while two players are available
 
 These worked in co-op before this session and touch code that changed:
 
 - a gourd received by the host appears in the host's hands on the guest's
   screen, with the right colour and gravity;
-- a gourd arriving while the host's hands are full goes to the nearest player
-  with free hands;
+- a gourd arriving while the host's hands are full goes to a player with free
+  hands (since 2026-09-25 this is test 19's rule, for every arrival);
 - the guest deposits into a monument and the host records it and credits the
   check;
 - the Archipelago server dying does not break the Mirror session.
