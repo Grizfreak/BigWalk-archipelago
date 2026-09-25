@@ -1,0 +1,10 @@
+# The packaged build, installed from the zip the way a player would, on the
+# world's default options. A slot name of its own, so that no earlier save
+# drags its ap_reported_* keys into the run (they are not scoped per seed).
+#
+# Every option is left at its default on purpose: this is the configuration a
+# player who touches nothing gets, and the one worth checking end to end.
+name: PackageTest
+game: Big Walk
+Big Walk:
+  {}
