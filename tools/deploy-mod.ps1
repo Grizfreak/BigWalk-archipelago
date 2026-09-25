@@ -28,6 +28,10 @@
     exist are reported and skipped rather than treated as an error - the
     machines are not all switched on at the same time.
 
+.PARAMETER SharedDrop
+    A folder that also receives BigWalkArchipelago.dll on its own, for the
+    other machine to pick up (F:\shared by default). Skipped if absent.
+
 .PARAMETER SkipBuild
     Deploys the existing build output without rebuilding.
 #>
@@ -39,6 +43,7 @@ param(
         'F:\shared\Big Walk',
         'F:\SteamLibrary\steamapps\common\Big Walk'
     ),
+    [string]$SharedDrop = 'F:\shared',
     [switch]$SkipBuild
 )
 
@@ -109,6 +114,20 @@ foreach ($target in $Targets) {
     $hash = (Get-FileHash (Join-Path $pluginDir 'BigWalkArchipelago.dll') -Algorithm SHA256).Hash
     $results += [pscustomobject]@{ Target = $target; Hash = $hash }
     Write-Host ("  {0,-45} OK" -f $target) -ForegroundColor Green
+}
+
+# The second machine takes its copy from the root of the share, not from the
+# game folder under it (player, 2026-09-25): the DLL goes there on every
+# deploy, so a guest update is one copy on their side.
+if ($SharedDrop -and (Test-Path $SharedDrop)) {
+    try {
+        Copy-Item (Join-Path $buildOut 'BigWalkArchipelago.dll') $SharedDrop -Force
+        Write-Host ("  {0,-45} OK (DLL for the other machine)" -f $SharedDrop) -ForegroundColor Green
+    }
+    catch {
+        Write-Host ("  {0,-45} FAILED" -f $SharedDrop) -ForegroundColor Red
+        Write-Host "      $($_.Exception.Message)" -ForegroundColor DarkRed
+    }
 }
 
 Write-Host ''
