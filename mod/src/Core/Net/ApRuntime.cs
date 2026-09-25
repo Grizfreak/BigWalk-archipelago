@@ -389,6 +389,16 @@ namespace BigWalkArchipelago.Core.Net
                 ResyncGadgets();
             }
 
+            // A gourd spawned last tick and meant for the player's hands is
+            // handed over now, a frame after its spawn went out on the wire
+            // (cf. ReceivedItemSpawner.DrainPendingHandover). Ahead of the
+            // early returns too: with Archipelago off in the config, items
+            // still arrive through the debug simulators (Ctrl+I, F4), and
+            // below the return below they were spawned in front of the
+            // right player and never put in anyone's hands (loopback co-op,
+            // 2026-09-26: no "Item handed to" line in a whole test 19).
+            ReceivedItemSpawner.DrainPendingHandover();
+
             if (!ModConfig.ArchipelagoEnabled.Value)
             {
                 if (!_disabledNoticeLogged)
@@ -428,11 +438,6 @@ namespace BigWalkArchipelago.Core.Net
             }
 
             _worldWasReady = worldReady;
-
-            // A gourd spawned last tick and meant for the player's hands is
-            // handed over now, a frame after its spawn went out on the wire
-            // (cf. ReceivedItemSpawner.DrainPendingHandover).
-            ReceivedItemSpawner.DrainPendingHandover();
 
             // Not hosting: nothing to connect, and anything queued stays
             // queued. This also covers the main menu, where there is no save
