@@ -52,7 +52,8 @@ below for why.
 4. Launch the game **through Steam**. Double-clicking the executable does not
    always load BepInEx.
 5. The first launch is slow — a minute or two of black screen while BepInEx
-   builds its cache.
+   downloads the Unity libraries it needs and builds its cache, so be online
+   for it.
 
 To check it worked, `BepInEx/LogOutput.log` should contain a line reading
 `Big Walk Archipelago v0.1.0 loaded.`

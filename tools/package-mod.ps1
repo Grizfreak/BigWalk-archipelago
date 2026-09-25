@@ -7,11 +7,18 @@
     The zip holds exactly what a clean Steam installation is missing:
 
       doorstop_config.ini, winhttp.dll, dotnet\      <- the BepInEx loader
-      BepInEx\core\, BepInEx\unity-libs\, patchers\  <- BepInEx itself
+      BepInEx\core\, BepInEx\patchers\              <- BepInEx itself
       BepInEx\plugins\BigWalkArchipelago\            <- the mod (3 DLLs)
-      README.txt                                     <- instructions
+      BepInEx\licenses\                              <- every bundled license
+      README.txt, THIRD-PARTY-NOTICES.txt            <- instructions, credits
 
     Deliberately NOT included:
+      - BepInEx\unity-libs\: Unity's own engine assemblies, which belong to
+        Unity Technologies and are not ours to redistribute. BepInEx
+        downloads them itself on the first launch (UnityBaseLibrariesSource
+        in BepInEx.cfg) - the dev install's copy even holds the archive it
+        fetched. Shipped until 2026-09-25, when preparing the first public
+        release turned up that they were in the zip at all;
       - BepInEx\interop\ and BepInEx\cache\: generated on the first launch,
         and tied to the exact game version installed on the target machine;
       - BepInEx\config\: the mod's .cfg regenerates itself, and the one here
@@ -79,12 +86,20 @@ Copy-Item (Join-Path $GameDir 'winhttp.dll') $stage
 Copy-Item (Join-Path $GameDir 'dotnet') (Join-Path $stage 'dotnet') -Recurse
 
 # BepInEx, without interop/, cache/, config/ or the logs.
-foreach ($sub in @('core', 'unity-libs', 'patchers')) {
+foreach ($sub in @('core', 'patchers')) {
     $src = Join-Path $GameDir "BepInEx\$sub"
     if (Test-Path $src) {
         Copy-Item $src (Join-Path $stage "BepInEx\$sub") -Recurse
     }
 }
+
+# Every license the package owes, and the index that says which is whose
+# (mod\packaging\THIRD-PARTY-NOTICES.txt). BepInEx, Doorstop and
+# Il2CppInterop are LGPL, and every other part asks for its license text to
+# travel with the binaries.
+$packaging = Join-Path $repo 'mod\packaging'
+Copy-Item (Join-Path $packaging 'THIRD-PARTY-NOTICES.txt') $stage
+Copy-Item (Join-Path $packaging 'licenses') (Join-Path $stage 'BepInEx\licenses') -Recurse
 
 $pluginDir = Join-Path $stage 'BepInEx\plugins\BigWalkArchipelago'
 New-Item -ItemType Directory -Path $pluginDir -Force | Out-Null
@@ -110,7 +125,8 @@ Installation
 4. Launch the game THROUGH STEAM (not by double-clicking the executable:
    on some machines a direct launch does not load the mod).
 5. The first launch is slow - a minute or two of black screen - while
-   BepInEx builds its cache. The ones after it are normal.
+   BepInEx downloads the Unity libraries it needs and builds its cache,
+   so be online for it. The launches after it are normal.
 
 Checking that it worked
 -----------------------
@@ -127,9 +143,15 @@ Playing together
 
 Uninstalling
 ------------
-Delete winhttp.dll, doorstop_config.ini, dotnet\ and BepInEx\ from the
-game folder. The game goes back to being perfectly vanilla - nothing in its
-own files is ever modified.
+Delete winhttp.dll, doorstop_config.ini, dotnet\, BepInEx\, README.txt and
+THIRD-PARTY-NOTICES.txt from the game folder. The game goes back to being
+perfectly vanilla - nothing in its own files is ever modified.
+
+Credits
+-------
+This package bundles BepInEx, Doorstop, Il2CppInterop, the .NET runtime and
+their libraries, each under its own license: see THIRD-PARTY-NOTICES.txt and
+BepInEx\licenses\.
 '@
 Set-Content -Path (Join-Path $stage 'README.txt') -Value $readme -Encoding utf8
 

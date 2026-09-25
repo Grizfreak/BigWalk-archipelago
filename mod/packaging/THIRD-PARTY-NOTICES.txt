@@ -1,0 +1,128 @@
+Big Walk Archipelago - third-party notices
+==========================================
+
+This package redistributes the software listed below, unmodified. Each part
+belongs to its authors and is distributed under its own license; the full
+text of every license is in BepInEx\licenses\. For the LGPL-licensed parts,
+the complete source code of the version shipped here is available at the
+address given for it.
+
+The Big Walk Archipelago plugin itself is the only part of this package that
+is not listed here.
+
+
+LOADER AND MOD FRAMEWORK
+------------------------
+
+BepInEx 6.0.0-be.781 (commit 637bc7ea751b114364cd659b5e93bc29d3dee447)
+    Files:   BepInEx\core\BepInEx.*
+    License: GNU LGPL 2.1         BepInEx\licenses\BepInEx.LGPL-2.1.txt
+    Source:  https://github.com/BepInEx/BepInEx/tree/637bc7ea751b114364cd659b5e93bc29d3dee447
+
+UnityDoorstop 4.3.0
+    Files:   winhttp.dll, doorstop_config.ini
+    License: GNU LGPL 2.1         BepInEx\licenses\UnityDoorstop.LGPL-2.1.txt
+    Source:  https://github.com/NeighTools/UnityDoorstop
+
+Il2CppInterop 1.5.3 (commit dbda1cb353b0f4253345dc45136d170b9e50a5a0)
+    Files:   BepInEx\core\Il2CppInterop.*
+    License: GNU LGPL 3.0         BepInEx\licenses\Il2CppInterop.LGPL-3.0.txt
+             which incorporates the GNU GPL 3.0, BepInEx\licenses\GPL-3.0.txt
+    Source:  https://github.com/BepInEx/Il2CppInterop/tree/dbda1cb353b0f4253345dc45136d170b9e50a5a0
+
+
+LIBRARIES BUNDLED WITH BEPINEX
+------------------------------
+
+HarmonyX 2.10.2
+    Files:   BepInEx\core\0Harmony.dll
+    License: MIT                  BepInEx\licenses\HarmonyX.MIT.txt
+    Source:  https://github.com/BepInEx/HarmonyX
+
+MonoMod 22.07.31.01
+    Files:   BepInEx\core\MonoMod.*
+    License: MIT                  BepInEx\licenses\MonoMod.MIT.txt
+    Source:  https://github.com/MonoMod/MonoMod
+
+Mono.Cecil 0.11.4
+    Files:   BepInEx\core\Mono.Cecil*
+    License: MIT                  BepInEx\licenses\Mono.Cecil.MIT.txt
+    Source:  https://github.com/jbevain/cecil
+
+Cpp2IL 2022.1.0-pre-release.21, with LibCpp2IL, WasmDisassembler and
+StableNameDotNet from the same repository
+    Files:   BepInEx\core\Cpp2IL.Core.dll, LibCpp2IL.dll,
+             WasmDisassembler.dll, StableNameDotNet.dll
+    License: MIT                  BepInEx\licenses\Cpp2IL.MIT.txt
+    Source:  https://github.com/SamboyCoding/Cpp2IL
+
+Disarm
+    Files:   BepInEx\core\Disarm.dll
+    License: MIT                  BepInEx\licenses\Disarm.MIT.txt
+    Source:  https://github.com/SamboyCoding/Disarm
+
+AsmResolver 6.0.0-beta.5
+    Files:   BepInEx\core\AsmResolver*
+    License: MIT                  BepInEx\licenses\AsmResolver.MIT.txt
+    Source:  https://github.com/Washi1337/AsmResolver
+
+AssetRipper.Primitives 3.2.0 and AssetRipper.CIL
+    Files:   BepInEx\core\AssetRipper.*
+    License: MIT                  BepInEx\licenses\AssetRipper.Primitives.MIT.txt
+                                  BepInEx\licenses\AssetRipper.CIL.MIT.txt
+    Source:  https://github.com/AssetRipper/AssetRipper.Primitives
+             https://github.com/AssetRipper/AssetRipper.CIL
+
+Iced 1.21.0
+    Files:   BepInEx\core\Iced.dll
+    License: MIT                  BepInEx\licenses\Iced.MIT.txt
+    Source:  https://github.com/icedland/iced
+
+Capstone.NET 2.3.2
+    Files:   BepInEx\core\Gee.External.Capstone.dll
+    License: MIT                  BepInEx\licenses\Capstone.NET.MIT.txt
+    Source:  https://github.com/9ee1/Capstone.NET
+
+SemanticVersioning 2.0.2
+    Files:   BepInEx\core\SemanticVersioning.dll
+    License: MIT                  BepInEx\licenses\SemanticVersioning.MIT.txt
+    Source:  https://github.com/adamreeve/semver.net
+
+Dobby
+    Files:   BepInEx\core\dobby.dll
+    License: Apache 2.0           BepInEx\licenses\Dobby.Apache-2.0.txt
+    Source:  https://github.com/jmpews/Dobby
+
+
+RUNTIME
+-------
+
+.NET runtime 6.0.7
+    Files:   dotnet\
+    License: MIT                  BepInEx\licenses\dotnet-runtime.MIT.txt
+             with its own third-party notices,
+             BepInEx\licenses\dotnet-runtime.THIRD-PARTY-NOTICES.txt
+    Source:  https://github.com/dotnet/runtime/tree/v6.0.7
+
+
+USED BY THE BIG WALK ARCHIPELAGO PLUGIN
+---------------------------------------
+
+Archipelago.MultiClient.Net 6.7.1
+    Files:   BepInEx\plugins\BigWalkArchipelago\Archipelago.MultiClient.Net.dll
+    License: MIT                  BepInEx\licenses\Archipelago.MultiClient.Net.MIT.txt
+    Source:  https://github.com/ArchipelagoMW/Archipelago.MultiClient.Net
+
+Newtonsoft.Json 11.0.1-beta2
+    Files:   BepInEx\plugins\BigWalkArchipelago\Newtonsoft.Json.dll
+    License: MIT                  BepInEx\licenses\Newtonsoft.Json.MIT.txt
+    Source:  https://github.com/JamesNK/Newtonsoft.Json
+
+
+NOT INCLUDED
+------------
+
+Unity's own engine libraries, which BepInEx needs to generate its interop, are
+not redistributed here: they belong to Unity Technologies. BepInEx downloads
+them by itself on the first launch, from the address set as
+UnityBaseLibrariesSource in BepInEx\config\BepInEx.cfg.
