@@ -399,21 +399,30 @@ class RadioStation(NamedTuple):
 #
 # The names below are therefore taken from the MusicGroup each station really
 # plays, because that is what the player receives. The game itself shows no
-# station names at all (the radio dial displays numbers), so nothing in the
-# world contradicts this choice — it is an Archipelago convention, and the
-# honest one.
+# station names at all, so nothing in the world contradicts this choice — it
+# is an Archipelago convention, and the honest one.
+#
+# THE NUMBER IS WHAT A PLAYER CAN SEE (first alpha's feedback, 2026-09-25:
+# "there is no way of telling what the station name is in-game"). The radio's
+# dial is a row of lights with no labels (player, 2026-09-26), so a station
+# is told apart by its place on it, counted from 1: `Radio Station 01: Bobby`
+# is the first light. Places measured by the mod, which learns them from the
+# world and keeps them in the save as position + 1: two of our saves
+# (BeltWalk, CoopWalk3) and the first alpha's guest log agree on all seven.
 #
 # `system_name` stays the enum value: it is the SaveManager key and the id
-# arithmetic, and it must never be "corrected" to match the display name.
+# arithmetic, and it must never be "corrected" to match the display name. The
+# ids do not move with the renaming either, so a seed generated before it
+# still reports the same checks.
 
 RADIO_STATIONS: tuple[RadioStation, ...] = (
-    RadioStation("FmStationSleuthFm", 30, "Radio Station: Fourth Space", "Radio Music: Fourth Space"),
-    RadioStation("FmStationKosmische", 31, "Radio Station: Bristol", "Radio Music: Bristol"),
-    RadioStation("FmStationDanceFm", 32, "Radio Station: Dance FM", "Radio Music: Dance FM"),
-    RadioStation("FmStationBreathwork", 33, "Radio Station: Bobby", "Radio Music: Bobby"),
-    RadioStation("FmStationJourneyBeat", 34, "Radio Station: Journey Beat", "Radio Music: Journey Beat"),
-    RadioStation("FmStationAFJ", 35, "Radio Station: Mallets", "Radio Music: Mallets"),
-    RadioStation("FmStationFourthSpace", 36, "Radio Station: Breathwork", "Radio Music: Breathwork"),
+    RadioStation("FmStationSleuthFm", 30, "Radio Station 02: Fourth Space", "Radio Music 02: Fourth Space"),
+    RadioStation("FmStationKosmische", 31, "Radio Station 07: Bristol", "Radio Music 07: Bristol"),
+    RadioStation("FmStationDanceFm", 32, "Radio Station 05: Dance FM", "Radio Music 05: Dance FM"),
+    RadioStation("FmStationBreathwork", 33, "Radio Station 01: Bobby", "Radio Music 01: Bobby"),
+    RadioStation("FmStationJourneyBeat", 34, "Radio Station 04: Journey Beat", "Radio Music 04: Journey Beat"),
+    RadioStation("FmStationAFJ", 35, "Radio Station 06: Mallets", "Radio Music 06: Mallets"),
+    RadioStation("FmStationFourthSpace", 36, "Radio Station 03: Breathwork", "Radio Music 03: Breathwork"),
 )
 
 # --------------------------------------------------------------------------
@@ -490,7 +499,8 @@ TUNNEL_RADIO: str | None = "FmStationDanceFm"
 7.6m away with the next at 252m, and independently confirmed from the server
 side: claiming it printed `RadioWalk sent Novelty Keychain to RadioWalk (Radio
 Station: Dance FM)`. That name means the same station in the old naming and the
-new one, so it pins the mapping with no room for doubt.
+new one, so it pins the mapping with no room for doubt. (It has read `Radio
+Station 05: Dance FM` since the dial numbers were added.)
 """
 
 

@@ -73,7 +73,7 @@ model immune to the softlock identified on 2026-09-11 (Option A).
 **Items** — one generic `Gourd` item, in as many copies as there are monument
 slots in play (30 or 45); the 7 features the big keys used to open
 (`Drawbridge`, `Map Room`, `Chairlift`, `Train`, `Tunnels`, `Big Wall Door`,
-`Spawn Secret Door`); the 7 big keys themselves; the 7 `Radio Music: …` items that make
+`Spawn Secret Door`); the 7 big keys themselves; the 7 `Radio Music 01…07: …` items that make
 each station audible (optional); and filler — the island's own hand props,
 materialized on receipt and taken off the map so they cannot be picked up for
 free. The Drawbridge is handed over at the start by default.

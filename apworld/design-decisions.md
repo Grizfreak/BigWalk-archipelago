@@ -331,7 +331,7 @@ not a bug, and it is now fixed.
 
 **What was decided**
 
-- Seven `Radio Music: …` items, one per station, ids
+- Seven `Radio Music NN: …` items, one per station, ids
   `BASE_ID + RADIO_ID_OFFSET + system_value` — the same numbers as the
   stations' own locations, exactly as the big keys already do it. They
   displace seven filler rather than growing the pool.
@@ -342,11 +342,19 @@ not a bug, and it is now fixed.
   game). `FmStationBreathwork` broadcasts `musicGroup_bobby`,
   `FmStationFourthSpace` broadcasts `musicGroup_breathwork`,
   `FmStationSleuthFm` broadcasts `musicGroup_FourthSpace` — only DanceFm and
-  JourneyBeat match their own label. The game's dial shows numbers and no
-  names, so nothing in the world contradicts the choice, and naming an item
-  after music it does not play would have been a plain lie. The `Radio Music:`
+  JourneyBeat match their own label. The game shows no station names at
+  all, so nothing in the world contradicts the choice, and naming an item
+  after music it does not play would have been a plain lie. The `Radio Music`
   prefix is there so a player reading the item in a multiworld feed knows it
   is a tune and not a key.
+- **Numbered by their place on the dial** (first alpha's feedback,
+  2026-09-25): `Radio Station 01: Bobby` through `Radio Station 07: Bristol`,
+  the same for `Radio Music`. The dial is a row of unlabelled lights, so a
+  station's place on it is the only thing a player can go by; the music name
+  alone told them nothing about which station to switch on. Counted from 1,
+  two digits, as the player asked. The places are the ones the mod learns
+  from the world (`ap_radio_dial_*`), identical in two of our saves and in
+  the alpha's guest log. Ids are unchanged.
 - A **separate option**, `radio_station_items`, rather than folding it into
   `radio_station_checks`. The two are genuinely different wishes: a player may
   want seven more checks without losing their music, or the music shuffled
@@ -481,7 +489,7 @@ Ctrl+R recovery.
 **The naming pass that followed (2026-09-21, before the first release).**
 Reviewing whether the seven features should read `Feature: Chairlift` rather
 than `Chairlift` settled that question with a no — a prefix earns its place
-only where it disambiguates, which `Radio Music: Bobby` needs and `Chairlift`
+only where it disambiguates, which `Radio Music 01: Bobby` needs and `Chairlift`
 does not — and turned up a genuine mismatch next to it. Three deposit
 locations were named after their PLINTH (`Train Station Key Deposit`,
 `Tunnel Key Deposit`, `Goodbye Keyhole Key Deposit`, inherited from the

@@ -2109,7 +2109,9 @@ like the `FmStation*` enum**, and the names do not match either.
 
 One of the seven lines up. The enum names are internal labels that do not
 describe the music the station plays, and the game shows no station names to
-the player at all — the dial displays numbers. The index fallback was removed
+the player at all — the dial is a row of unlabelled lights (player,
+2026-09-26), which is why the apworld numbers each station by its place on it
+(`Radio Station 01: Bobby`, first light). The index fallback was removed
 and replaced by a dial position learned from the world and kept per save.
 
 All seven `BroadcastStation` instances were loaded simultaneously in that
