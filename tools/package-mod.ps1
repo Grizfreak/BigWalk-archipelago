@@ -163,7 +163,23 @@ $zip = Join-Path (Resolve-Path $OutDir) "BigWalkArchipelago-$version-$stamp.zip"
 if (Test-Path $zip) { Remove-Item $zip -Force }
 
 Write-Host '== Compressing ==' -ForegroundColor Cyan
-Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -CompressionLevel Optimal
+# Not Compress-Archive: under Windows PowerShell 5.1 it writes entry names
+# with backslashes, which the zip format does not allow. Windows extracts
+# them anyway, but unzip on Linux (a Steam Deck, Proton) makes files
+# literally called "BepInEx\core\0Harmony.dll" in the game folder.
+Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+$stageRoot = (Resolve-Path $stage).Path.TrimEnd('\') + '\'
+$archive = [System.IO.Compression.ZipFile]::Open($zip, 'Create')
+try {
+    foreach ($file in Get-ChildItem $stage -Recurse -File) {
+        $entry = $file.FullName.Substring($stageRoot.Length).Replace('\', '/')
+        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+            $archive, $file.FullName, $entry, [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+    }
+}
+finally {
+    $archive.Dispose()
+}
 Remove-Item $stage -Recurse -Force
 
 $size = [math]::Round((Get-Item $zip).Length / 1MB, 1)
