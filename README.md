@@ -9,11 +9,11 @@ An [Archipelago](https://archipelago.gg) randomizer for *Big Walk*
 
 → **[How to install and play](SETUP.md)**
 
-**Version 0.1.0 — alpha.** Every path has been exercised in game: checks
-going out, items coming back, big keys cut and placed, and all three goals
-reached. What is thin is mileage. No one has played a seed from first check
-to goal, and the big-key half has only ever run solo. Expect to find things,
-and please report them.
+**Version 0.1.0 — alpha.** Every path has been exercised in game, on two
+machines as well as one: checks going out, items coming back, big keys cut and
+placed, and all four goals reached. What is thin is mileage: no one has yet
+played a seed from the first check to the goal. Expect to find things, and
+please report them.
 
 **Big Walk is co-op, and so is this.** A whole co-op group shares one
 Archipelago slot, and no goal here can be reached alone — see
@@ -191,7 +191,9 @@ Two presets ship with the world: **Full Run** (everything on) and **Short**
 Open an issue on
 [GitHub](https://github.com/Grizfreak/BigWalk-archipelago/issues) and attach
 `BepInEx/LogOutput.log` from the **host's** machine — that is the only one
-that talks to Archipelago.
+that talks to Archipelago. If the problem showed on another player's screen,
+attach theirs as well: in co-op, what goes wrong on a machine is usually only
+visible in that machine's own log.
 
 ## AI disclosure
 

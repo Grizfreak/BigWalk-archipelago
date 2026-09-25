@@ -13,9 +13,9 @@
 There is no separate client to run while you play: the mod talks to
 Archipelago from inside the game.
 
-**This is an alpha.** Every path has been exercised in game, but no one has
-yet played a seed from the first check to the goal, and the big-key half has
-only ever run solo.
+**This is an alpha.** Every path has been exercised in game, on two machines
+as well as one, but no one has yet played a seed from the first check to the
+goal.
 
 ## About BepInEx
 
@@ -183,25 +183,29 @@ anything.
 
 ### Why the others still need the mod installed
 
-Most of what the mod does is host-authoritative and reaches everyone by
-itself: a received gourd is a real networked object, doors and shortcuts
-replicate like any other game state, and the vanilla props removed to make
-room for the filler items are removed for everybody.
+Some of what the mod does reaches everyone by itself: doors and shortcuts
+replicate like any other game state, a check is reported by the host whoever
+made it, and the vanilla props removed for the filler items are removed for
+everybody.
 
-Two things are not. They are local display decisions that Big Walk never
-sends over the network, so a player without the mod simply does not get
-them:
+Most of what a player *sees*, though, their own copy of the mod has to build.
+A player without it:
 
-- the postgame "purple" gourds revealed on the map — they stay invisible on
-  their map;
-- the sphere blocking the way to the true ending — it stays solid **for
-  them**, so they walk into it while the host walks through.
+- sees none of the gourds or gadgets the multiworld sends — they exist for
+  everyone else and are simply not there on that player's screen — and sees
+  the big keys all alike, untinted;
+- gets no Archipelago overlay and hears no radio music, even once it has been
+  granted;
+- does not see the purple postgame gourds on the map, and walks into the
+  sphere on the way to the true ending that the host walks straight through.
 
-And one honest warning: the big keys have only ever run solo. They are built
-on the same host-authoritative model as the gourds, which a real two-machine
-session confirmed in September, but nobody has yet watched a key arrive,
-travel or be cut on a guest's screen. If something looks wrong on the joining
-player's side, that is worth reporting rather than working around.
+A friend without the mod can still join and play — that was tried — but only
+a vanilla-looking world. So everyone installs it.
+
+The big keys have been through a two-machine session too: a guest can carry,
+cut and place a key, and every one of those checks reaches the host. If
+something still looks wrong on the joining player's side, that is worth
+reporting rather than working around.
 
 ### Always keep the same host
 
