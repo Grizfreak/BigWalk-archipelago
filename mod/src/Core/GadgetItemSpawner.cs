@@ -1021,6 +1021,7 @@ namespace BigWalkArchipelago.Core
                 // Without this the clone stays "fixed" as in its original
                 // resting pose — same reasoning as the gourd version.
                 prop.SetLoose();
+                PublishLooseStates(prop.gameObject);
 
                 if (toPlayer && ModConfig.PutGourdInHands.Value)
                     ReceivedItemSpawner.QueueHandover(prop);
@@ -1105,6 +1106,7 @@ namespace BigWalkArchipelago.Core
             }
 
             ReceivedItemSpawner.NeutralizeProgression(prop);
+            StartLooseNotHung(clone);
 
             clone.SetActive(true);
 
@@ -1122,8 +1124,136 @@ namespace BigWalkArchipelago.Core
             ReceivedItemSpawner.ClearLightmapReferences(clone);
             ReceivedItemSpawner.FixMaterialessRenderers(clone);
             ReceivedItemSpawner.RefreshPropertyBlockHelpers(clone);
+            SettleOffTheHanger(clone);
 
             return prop;
+        }
+
+        // A CLONE HAS NEVER BEEN ON A HANGER, SO IT MUST NOT LOOK HUNG
+        // (2026-09-25, measured in co-op after the first alpha's report of a
+        // belt "attached to an unseen object" and worn twice over).
+        //
+        // A belt carries three versions of its mesh: `belt_hung` on its
+        // pavilion hanger, `belt_closed` from its first pick-up on, and `belt`
+        // when worn. The worn/closed pair is switched by the belt's own
+        // IsWornEffects; hung is switched off from outside it, once, when the
+        // vanilla belt first leaves its hanger — and a clone is copied from a
+        // template still hanging, and never leaves a hanger. So it went
+        // around hung for good: on the ground, in hand, and worn, where the
+        // log read `belt=True, belt_hung=True` against vanilla's `belt=True`
+        // alone — the second belt in front of the wearer and in their shadow.
+        //
+        // So a clone starts as a vanilla prop does after its first pick-up:
+        // every `<name>_hung` that has a `<name>_closed` beside it is swapped
+        // for it. By name, because the backpack's straps come in the same
+        // hung/closed pair and have the same history.
+        //
+        // THE MESHES FOLLOW STATES, AND IT IS THE STATES THAT MUST BE RIGHT
+        // (measured the same day, host and guest logs side by side). The
+        // swap below held on the host and not on a guest, because each mesh
+        // is switched by a PeckEffectToggle following one of the belt's own
+        // TrackedPeckStates — `belt_hung` follows "placed on hanger",
+        // `belt_closed` follows "backpack not worn", `belt` follows
+        // "backpackWornSystem" — and a clone copies those states from a
+        // template still on its hanger. The guest's clone read "placed on
+        // hanger" = 1, and the next time its effects were applied the hung
+        // mesh came straight back. So the states are set first, before the
+        // clone is switched on, to what a belt lying loose has: not on a
+        // hanger, not worn. The backpack's straps answer to the same labels.
+        private static readonly Dictionary<string, int> LooseStates = new()
+        {
+            { "placed on hanger", 0 },
+            { "backpack not worn", 1 },
+            { "backpackWornSystem", 0 },
+        };
+
+        //
+        // AND THE STATES MUST NOT BE THE VANILLA PROP'S (decompiled after that
+        // still failed on the guest). TrackedPeckState.Initialize reads its
+        // starting value from the save, under its saveIdentity's saveGuid, and
+        // SetState writes back under the same key. A clone copies the saveGuid
+        // of the vanilla prop it was made from, so it read that belt's
+        // "placed on hanger" = 1 and undid the value set here — and wearing a
+        // clone wrote the vanilla belt's saved state. The clone's states lose
+        // their save identity before they are switched on: a received gadget
+        // is not the island's, and must neither read nor write the island's
+        // record of it.
+        private static void StartLooseNotHung(GameObject clone)
+        {
+            foreach (var state in clone.GetComponentsInChildren<TrackedPeckState>(true))
+            {
+                if (state == null)
+                    continue;
+
+                state.saveIdentity = null;
+
+                if (state.label == null || !LooseStates.TryGetValue(state.label, out var value))
+                    continue;
+
+                try
+                {
+                    var context = state.currentPeckContext;
+                    context.state = value;
+                    state.currentPeckContext = context;
+
+                    var predicted = state.peckContextForPrediction;
+                    predicted.state = value;
+                    state.peckContextForPrediction = predicted;
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning(
+                        $"[{nameof(GadgetItemSpawner)}] Could not set '{state.label}' on a cloned {clone.name}: {ex.Message}");
+                }
+            }
+        }
+
+        // THE GUEST'S VALUE COMES FROM THE HOST (third measurement, same day).
+        // With its save identity gone and its states set before activation, a
+        // guest's clone still read "placed on hanger" = 1. What is left is the
+        // network: a TrackedPeckState is synchronised by its ticket, a clone
+        // borrows the ticket of a vanilla prop, and the server still holds that
+        // vanilla belt's last state — hanging. Only the server can change what
+        // it holds, so the host sets the loose states for real, through
+        // SetState, which publishes them to every client present and to come.
+        private static void PublishLooseStates(GameObject clone)
+        {
+            if (!NetworkServer.active)
+                return;
+
+            foreach (var state in clone.GetComponentsInChildren<TrackedPeckState>(true))
+            {
+                if (state == null || state.label == null || !LooseStates.TryGetValue(state.label, out var value))
+                    continue;
+
+                try
+                {
+                    state.SetState(value);
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning(
+                        $"[{nameof(GadgetItemSpawner)}] Could not publish '{state.label}' for {clone.name}: {ex.Message}");
+                }
+            }
+        }
+
+        private static void SettleOffTheHanger(GameObject clone)
+        {
+            foreach (var renderer in clone.GetComponentsInChildren<Renderer>(true))
+            {
+                var hung = renderer != null ? renderer.gameObject : null;
+                if (hung == null || !hung.name.EndsWith("_hung", StringComparison.Ordinal) || hung.transform.parent == null)
+                    continue;
+
+                var closedName = hung.name.Substring(0, hung.name.Length - "_hung".Length) + "_closed";
+                var closed = hung.transform.parent.Find(closedName);
+                if (closed == null)
+                    continue;
+
+                hung.SetActive(false);
+                closed.gameObject.SetActive(true);
+            }
         }
 
         // THE TWO FALLBACKS BELOW EXIST BECAUSE OF WHAT RETURNING NOTHING
