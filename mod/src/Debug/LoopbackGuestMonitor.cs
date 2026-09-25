@@ -59,10 +59,13 @@ namespace BigWalkArchipelago.Debug
             }
         }
 
-        // On its own try: before the menu scene exists this threw a
-        // NullReferenceException rather than finding nothing (first run,
-        // 2026-09-26), and the Update's once-only warning would then have
-        // hidden any later, real failure.
+        // On its own try: before the menu scene exists this throws rather
+        // than finding nothing (first run, 2026-09-26), and the Update's
+        // once-only warning would then have hidden any later, real failure.
+        // Any exception, not NullReferenceException: the game's own NRE
+        // reaches managed code wrapped in an Il2CppException (its message
+        // starts "System.NullReferenceException:"), which a catch on the
+        // managed type lets straight through — measured on the next run.
         private static bool TitleMenuIsUp()
         {
             try
@@ -70,7 +73,7 @@ namespace BigWalkArchipelago.Debug
                 var menus = MainMenuManager.instance;
                 return menus != null && menus.titleMenu != null && menus.titleMenu.gameObject.activeInHierarchy;
             }
-            catch (NullReferenceException)
+            catch (Exception)
             {
                 return false;
             }
