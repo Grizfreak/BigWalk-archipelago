@@ -23,8 +23,19 @@ namespace BigWalkArchipelago.Core
     {
         private const string KeyPrefix = "ap_reported_";
 
+        // NOT IN A SAVE PLAYED WITHOUT ARCHIPELAGO (2026-09-25). Loading a
+        // vanilla save with the switch off wrote 60 `ap_reported_*` keys into
+        // it — one per puzzle, key and radio already done — for checks that
+        // were only ever logged. With the switch off nothing needs to survive
+        // a restart, so deduplication stays in memory and the save is left as
+        // the player had it.
+        private static readonly HashSet<string> ReportedThisSessionOnly = new();
+
         internal static bool TryMarkReported(string locationId)
         {
+            if (!ModConfig.ArchipelagoEnabled.Value)
+                return ReportedThisSessionOnly.Add(locationId);
+
             var key = KeyPrefix + locationId;
             if (SaveManager.GetIntValue(key, 0, false) != 0)
                 return false;
