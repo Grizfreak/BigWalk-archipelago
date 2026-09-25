@@ -57,6 +57,7 @@ namespace BigWalkArchipelago.Debug
 
         private static void DumpProcess()
         {
+            Plugin.Log.LogInfo($"{Tag} Loopback role: {LoopbackGuest.RoleName}");
             Plugin.Log.LogInfo($"{Tag} Command line: {string.Join(" ", Environment.GetCommandLineArgs())}");
             Plugin.Log.LogInfo(
                 $"{Tag} Application.runInBackground={Application.runInBackground}, isFocused={Application.isFocused}");
@@ -125,7 +126,11 @@ namespace BigWalkArchipelago.Debug
                 if (connection == null)
                     continue;
 
-                var player = connection.identity != null ? connection.identity.gameObject.name : "<no player yet>";
+                // The netId, not the object's name: the game names a player
+                // "PlayerCharacter <identifier>-<n>", which would print in
+                // full the SteamID the identifier column masks (measured
+                // 2026-09-25).
+                var player = connection.identity != null ? $"netId {connection.identity.netId}" : "<no player yet>";
                 Plugin.Log.LogInfo(
                     $"{Tag}   #{connection.connectionId} address='{Safe(() => connection.address)}' "
                     + $"authenticated={connection.isAuthenticated} ready={connection.isReady} player={player} "
