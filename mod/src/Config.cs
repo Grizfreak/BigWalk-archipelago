@@ -12,7 +12,6 @@ namespace BigWalkArchipelago
     // instance, not this static class.
     internal static class ModConfig
     {
-        internal static ConfigEntry<float> CosmeticGourdHandoverRadius;
         internal static ConfigEntry<KeyboardShortcut> HoldTrackedStateKey;
         internal static ConfigEntry<string> HoldTrackedStateName;
         internal static ConfigEntry<int> HoldTrackedStateValue;
@@ -102,13 +101,13 @@ namespace BigWalkArchipelago
                 "Archipelago",
                 "SpawnGourdAtPlayer",
                 true,
-                "Drops a gourd received during play just in front of you instead of at the hub, so you do not have to walk back across the island for it. Only applies to gourds arriving mid-game: the batch rebuilt when a session starts always goes to the hub, since that is stock rather than a gift and the players are not necessarily near the hub when it happens. Falls back to the hub when there is no player in the world yet.");
+                "Drops a gourd or gadget received during play just in front of the player it goes to (see PutGourdInHands for who that is) instead of at the hub, so you do not have to walk back across the island for it. Only applies to gourds arriving mid-game: the batch rebuilt when a session starts always goes to the hub, since that is stock rather than a gift and the players are not necessarily near the hub when it happens. Falls back to the hub when there is no player in the world yet.");
 
             PutGourdInHands = file.Bind(
                 "Archipelago",
                 "PutGourdInHands",
                 true,
-                "Puts a gourd received during play straight into your hands when they are free and the game considers the prop safe to pick up; otherwise it just drops in front of you. Never applies to the batch rebuilt at the start of a session. Note that a gourd received inside a sealed puzzle room stays there until the next world load, hands or not — the game does not let you carry it out.");
+                "Puts a gourd or gadget received during play straight into a player's hands. It goes to a player whose hands are free, the one given the fewest items this session first, ties at random; if nobody's hands are free, to one of everyone the same way, who drops what they were holding first. The count is not saved. With this off, items only drop in front of that player. Never applies to the batch rebuilt at the start of a session. Note that a gourd received inside a sealed puzzle room stays there until the next world load, hands or not — the game does not let you carry it out.");
 
             ResyncGourdsKey = file.Bind(
                 "Archipelago",
@@ -146,11 +145,6 @@ namespace BigWalkArchipelago
                 true,
                 "Shows the resync shortcut under the status line while connected, so the way out of a stranded gourd or key is on screen rather than in a setup guide. Reads whatever ResyncGourdsKey is actually bound to, so rebinding it changes the hint.");
 
-            CosmeticGourdHandoverRadius = file.Bind(
-                "Archipelago",
-                "HandoverRadius",
-                8f,
-                "How far, in metres, a gourd arriving during play will look for another player to hand itself to when your own hands are full. The nearest player with free hands within this distance gets it; if nobody qualifies it just drops on the ground as before. 0 means only you ever get handed one.");
 
             HoldTrackedStateKey = file.Bind(
                 "Debug",

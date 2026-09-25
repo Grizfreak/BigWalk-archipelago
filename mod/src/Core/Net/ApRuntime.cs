@@ -531,6 +531,10 @@ namespace BigWalkArchipelago.Core.Net
         // change.
         private static void OnWorldBecameReady()
         {
+            // Hand-overs belong to the world they were promised in, and the
+            // turn-taking count to the session, which a new world starts.
+            ReceivedItemSpawner.ForgetPendingHandovers();
+
             // The radio unlock lives in RAM only (see Core/RadioStations.cs),
             // so a granted station has to be put back into every new world —
             // exactly like the loose gourds below, and for the same reason.

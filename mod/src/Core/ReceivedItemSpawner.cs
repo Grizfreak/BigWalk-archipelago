@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Mirror;
 using UnityEngine;
@@ -91,9 +92,11 @@ namespace BigWalkArchipelago.Core
 
             try
             {
-                var resolved = ResolveSpawnPosition(toPlayer);
+                var recipient = toPlayer ? ItemRecipients.Choose() : null;
+                var resolved = ResolveSpawnPosition(toPlayer, recipient);
                 if (resolved == null)
                 {
+                    ItemRecipients.Settled(recipient);
                     Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] Nowhere to put a gourd yet (no player and no InventorySpawn loaded), cosmetic spawn skipped.");
                     return null;
                 }
@@ -101,7 +104,10 @@ namespace BigWalkArchipelago.Core
                 var position = resolved.Value;
                 var rewardGourd = CreateNeutralizedClone(position, Quaternion.identity);
                 if (rewardGourd == null)
+                {
+                    ItemRecipients.Settled(recipient);
                     return null;
+                }
 
                 rewardGourd.ServerSetGourdState(GourdFlag.GourdState.Loose);
 
@@ -125,8 +131,7 @@ namespace BigWalkArchipelago.Core
                 // and one frame is not perceptible. What the frame does NOT
                 // buy is certainty that the guest has processed the spawn by
                 // then — only that the server sent it first.
-                if (toPlayer && ModConfig.PutGourdInHands.Value)
-                    _pendingHandover = rewardGourd.prop;
+                QueueHandover(rewardGourd.prop, recipient);
 
                 Plugin.Log.LogInfo(
                     $"[{nameof(ReceivedItemSpawner)}] Cosmetic gourd spawned at {rewardGourd.transform.position}.");
@@ -911,32 +916,92 @@ namespace BigWalkArchipelago.Core
         // own — a gourd and a gadget racing for it in the same tick is a
         // one-in-a-blue-moon collision on a purely cosmetic hand-over, not
         // worth a second mechanism.
-        private static Prop _pendingHandover;
+        // A queue since 2026-09-25, where it used to be a single slot: items
+        // now go to different players, so three arriving in the same tick are
+        // three hand-overs, not one.
+        private static readonly List<PendingHandover> Pending = new();
 
-        internal static void QueueHandover(Prop prop) => _pendingHandover = prop;
-
-        // Called from ApRuntime's Update, which already ticks on the host.
-        internal static void DrainPendingHandover()
+        private sealed class PendingHandover
         {
-            var prop = _pendingHandover;
-            if (prop == null)
+            internal Prop Prop;
+            internal PlayerCharacter Recipient;
+            internal float NotBefore;
+            internal bool DropAsked;
+        }
+
+        // How long a player who had to let go of something is given before
+        // the new item goes into their hands: the drop has to reach their
+        // machine first, or the two holds arrive together and the new one
+        // lands in hands that still think they are full.
+        private const float DropSettleSeconds = 0.5f;
+
+        internal static void QueueHandover(Prop prop, PlayerCharacter recipient)
+        {
+            if (prop == null || recipient == null)
                 return;
 
-            _pendingHandover = null;
+            if (!ModConfig.PutGourdInHands.Value)
+            {
+                ItemRecipients.Settled(recipient);
+                return;
+            }
 
-            // With the netId, so this line can be matched against the other
-            // machine's "Clone settled: netId N" — the only way to tell
-            // "the guest never got the object" from "the guest got a
-            // different object" apart.
-            var identity = prop.GetComponent<NetworkIdentity>();
-            if (TryPutInHands(prop))
-                Plugin.Log.LogInfo(
-                    $"[{nameof(ReceivedItemSpawner)}] Cosmetic gourd handed over (netId {(identity != null ? identity.netId : 0)}).");
+            Pending.Add(new PendingHandover { Prop = prop, Recipient = recipient, NotBefore = Time.time });
+        }
+
+        // Called from ApRuntime's Update, which already ticks on the host.
+        // Always at least one frame after the spawn: see SpawnCosmeticPickup.
+        internal static void DrainPendingHandover()
+        {
+            for (var i = Pending.Count - 1; i >= 0; i--)
+            {
+                var entry = Pending[i];
+                if (Time.time < entry.NotBefore)
+                    continue;
+
+                if (entry.Prop == null || entry.Recipient == null || entry.Recipient.hands == null)
+                {
+                    ItemRecipients.Settled(entry.Recipient);
+                    Pending.RemoveAt(i);
+                    continue;
+                }
+
+                // Everyone's hands were full, so this player was picked anyway:
+                // they let go first, as the players asked, and get the item a
+                // moment later. Asked once; if the hands are still full after
+                // that, the item stays on the ground in front of them.
+                var held = entry.Recipient.hands.heldProp;
+                if (held != null && held != entry.Prop && !entry.DropAsked)
+                {
+                    ReleaseFromHands(held);
+                    entry.DropAsked = true;
+                    entry.NotBefore = Time.time + DropSettleSeconds;
+                    Plugin.Log.LogInfo(
+                        $"[{nameof(ReceivedItemSpawner)}] {entry.Recipient.gameObject.name} had full hands; "
+                        + "they drop what they held and take the new item next.");
+                    continue;
+                }
+
+                Pending.RemoveAt(i);
+                ItemRecipients.Settled(entry.Recipient);
+
+                var identity = entry.Prop.GetComponent<NetworkIdentity>();
+                if (TryPutInHands(entry.Prop, entry.Recipient))
+                    Plugin.Log.LogInfo(
+                        $"[{nameof(ReceivedItemSpawner)}] Item handed to {entry.Recipient.gameObject.name} "
+                        + $"(netId {(identity != null ? identity.netId : 0)}).");
+            }
+        }
+
+        internal static void ForgetPendingHandovers()
+        {
+            Pending.Clear();
+            ItemRecipients.Forget();
         }
 
         // Runs on the host, and every PickUp here is a server-side call by
         // design. playerHeldInformation is a SyncVar written by the server,
-        // so this is the only place from which a player — any player — can
+        // so this is the only place from which a player - any player - can
         // truthfully be given something to hold.
         //
         // The first attempt at handing a gourd to somebody else did it the
@@ -944,67 +1009,21 @@ namespace BigWalkArchipelago.Core
         // desync: the host saw the gourd in their own hands and the guest
         // saw the SAME gourd in theirs (in co-op, 2026-09-16). A client
         // calling PickUp only convinces itself.
-        private static bool TryPutInHands(Prop prop)
+        private static bool TryPutInHands(Prop prop, PlayerCharacter recipient)
         {
-            if (prop == null || !ModConfig.PutGourdInHands.Value || !NetworkServer.active)
+            if (prop == null || recipient == null || !NetworkServer.active)
                 return false;
 
             try
             {
-                // The local player first: the gourd arrived for the host, it
-                // spawned at their feet, and handing it to somebody across
-                // the hub when the host could simply take it would be
-                // surprising.
-                var local = FindLocalPlayerCharacter();
-                if (TryGiveTo(local, prop))
-                    return true;
-
-                var radius = ModConfig.CosmeticGourdHandoverRadius.Value;
-                if (radius <= 0f)
-                    return false;
-
-                // Otherwise the nearest other player with free hands, within
-                // the radius. Nearest rather than first found, so that with
-                // three players it goes to whoever is actually standing
-                // there rather than to whichever one the engine happens to
-                // list first.
-                var origin = prop.transform.position;
-                PlayerCharacter best = null;
-                var bestDistance = float.MaxValue;
-
-                var players = PlayerCharacter.allPlayerCharacters;
-                if (players == null)
-                    return false;
-
-                foreach (var pc in players)
-                {
-                    if (pc == null || pc == local || pc.hands == null || pc.hands.isHoldingSomething)
-                        continue;
-
-                    var distance = Vector3.Distance(origin, pc.transform.position);
-                    if (distance > radius || distance >= bestDistance)
-                        continue;
-
-                    best = pc;
-                    bestDistance = distance;
-                }
-
-                if (best == null)
-                    return false;
-
-                if (!TryGiveTo(best, prop))
-                    return false;
-
-                Plugin.Log.LogInfo(
-                    $"[{nameof(ReceivedItemSpawner)}] Hands full, so the gourd went to another player {bestDistance:0.0}m away.");
-                return true;
+                return TryGiveTo(recipient, prop);
             }
             catch (Exception ex)
             {
-                // Cosmetic to the last: the gourd already exists and is
+                // Cosmetic to the last: the item already exists and is
                 // pickable, so failing to place it in the hands costs
                 // nothing.
-                Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] Could not hand the gourd over: {ex.Message}");
+                Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] Could not hand the item over: {ex.Message}");
                 return false;
             }
         }
@@ -1049,7 +1068,15 @@ namespace BigWalkArchipelago.Core
             // server's prerogative.
             try
             {
-                player.playerNetworking.NetworkplayerHeldInformation = new PlayerHeldInformation(prop);
+                // Numbered past the player's last action. The owning client's
+                // OnSetHeld drops any value numbered below its own latest one
+                // (decompiled 2026-09-25), and a fresh PlayerHeldInformation
+                // is numbered 0: handed to anyone who had ever picked
+                // something up, the item was silently ignored on their screen.
+                var networking = player.playerNetworking;
+                var hold = new PlayerHeldInformation(prop);
+                hold.actionNumber = networking.playerHeldInformation.actionNumber + 1;
+                networking.NetworkplayerHeldInformation = hold;
             }
             catch (Exception ex)
             {
@@ -1120,11 +1147,13 @@ namespace BigWalkArchipelago.Core
         // more likely it is to reach through a wall. A short step is enough
         // to be visible, and the player is by definition standing somewhere
         // valid.
-        internal static Vector3? ResolveSpawnPosition(bool toPlayer)
+        // In front of whoever the item is for since 2026-09-25, which is no
+        // longer necessarily the host (see ItemRecipients).
+        internal static Vector3? ResolveSpawnPosition(bool toPlayer, PlayerCharacter near = null)
         {
             if (toPlayer && ModConfig.SpawnGourdAtPlayer.Value)
             {
-                var player = FindLocalPlayerCharacter();
+                var player = near != null ? near : FindLocalPlayerCharacter();
                 if (player != null)
                 {
                     var t = player.transform;

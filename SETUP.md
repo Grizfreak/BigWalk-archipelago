@@ -262,11 +262,14 @@ the `[Archipelago]` section:
 - `HostPort` — the address remembered from the hosting screen.
 - `ShowConnectionStatus` — the whole corner display; `StatusFontSize`,
   `ShowItemFeed`, `NoticeSeconds` and `ShowResyncHint` tune what it contains.
-- `SpawnGourdAtPlayer`, `PutGourdInHands`, `HandoverRadius` — where a gourd
-  received mid-game ends up. The batch rebuilt at the start of a session
-  always goes to the hub.
-- `GourdColor`, `ColorBigKeys` — how received gourds and keys are tinted so
-  they stand out from the ones sitting in puzzles.
+- `SpawnGourdAtPlayer`, `PutGourdInHands` — who a gourd or gadget received
+  mid-game goes to, and whether it lands in their hands or at their feet. It
+  goes to a player with free hands, the one given the fewest items this
+  session first. The batch rebuilt at the start of a session always goes to
+  the hub.
+- `ColorBigKeys` — whether received keys are tinted so they stand out from
+  the ones sitting at their towers. Received gourds always come in one of six
+  colours.
 - `ResyncGourdsKey` — the Ctrl+R shortcut above.
 
 The `[Debug]` section is off by default and is developer tooling, not

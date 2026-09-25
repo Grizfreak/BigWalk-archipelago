@@ -999,9 +999,11 @@ namespace BigWalkArchipelago.Core
 
             try
             {
-                var resolved = ReceivedItemSpawner.ResolveSpawnPosition(toPlayer);
+                var recipient = toPlayer ? ItemRecipients.Choose() : null;
+                var resolved = ReceivedItemSpawner.ResolveSpawnPosition(toPlayer, recipient);
                 if (resolved == null)
                 {
+                    ItemRecipients.Settled(recipient);
                     Plugin.Log.LogInfo(
                         $"[{nameof(GadgetItemSpawner)}] Nowhere to put a {kind} yet (no player and no InventorySpawn loaded), cosmetic spawn skipped.");
                     return null;
@@ -1014,7 +1016,10 @@ namespace BigWalkArchipelago.Core
                 var index = ChooseInstance(kind);
                 var prop = BuildNeutralizedClone(kind, resolved.Value, Quaternion.identity, index);
                 if (prop == null)
+                {
+                    ItemRecipients.Settled(recipient);
                     return null;
+                }
 
                 NetworkServer.Spawn(prop.gameObject, AssetIdFor(kind, index));
 
@@ -1023,8 +1028,7 @@ namespace BigWalkArchipelago.Core
                 prop.SetLoose();
                 PublishLooseStates(prop.gameObject);
 
-                if (toPlayer && ModConfig.PutGourdInHands.Value)
-                    ReceivedItemSpawner.QueueHandover(prop);
+                ReceivedItemSpawner.QueueHandover(prop, recipient);
 
                 var identity = prop.GetComponent<NetworkIdentity>();
                 Plugin.Log.LogInfo(
