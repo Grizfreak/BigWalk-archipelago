@@ -62,7 +62,7 @@ directly does not load BepInEx on this machine).
       The big keys have only ever been exercised **solo**
 - [x] 11. Filler: the island's own hand props, materialized on receipt and
       removed from the map (2026-09-22)
-- [ ] 12. The big keys on two machines ([`../COOP-TESTS.md`](../COOP-TESTS.md))
+- [ ] 12. The big keys on two machines ([`../docs/COOP-TESTS.md`](../docs/COOP-TESTS.md))
 - [ ] 13. A seed played from the first check to the goal
 
 ## Archipelago configuration

@@ -1,21 +1,23 @@
 # Development
 
 Working notes on the Archipelago integration for *Big Walk*. The player
-documentation is elsewhere: [`README.md`](README.md) for what the
-randomization does, [`SETUP.md`](SETUP.md) for installing and playing.
+documentation is elsewhere: [`README.md`](../README.md) to start,
+[`SETUP.md`](../SETUP.md) for installing and playing, and the game page
+[`apworld/bigwalk/docs/en_Big Walk.md`](../apworld/bigwalk/docs/en_Big%20Walk.md)
+for what the randomization does.
 
 ## The two halves
 
-- [`mod/`](mod/README.md) — the BepInEx mod (IL2CPP, Harmony) that installs
+- [`mod/`](../mod/README.md) — the BepInEx mod (IL2CPP, Harmony) that installs
   into the game: check detection, received items materialized in the world,
   and the hosting screen extended with the Archipelago fields. Design:
-  [`mod/architecture-mod.md`](mod/architecture-mod.md).
-- [`apworld/`](apworld/README.md) — the Python Archipelago world
+  [`mod/architecture-mod.md`](../mod/architecture-mod.md).
+- [`apworld/`](../apworld/README.md) — the Python Archipelago world
   (`bigwalk`): locations, items, logic, options.
-- [`apworld/protocol.md`](apworld/protocol.md) — **the contract between the
+- [`apworld/protocol.md`](../apworld/protocol.md) — **the contract between the
   two**: ids, `slot_data`, what the C# client sends and applies. Read it
   before touching either half.
-- [`tools/`](tools/) — the tooling. `tools/deploy-mod.ps1` builds and deploys
+- [`tools/`](../tools/) — the tooling. `tools/deploy-mod.ps1` builds and deploys
   to every install, then prints a fingerprint and says whether they agree;
   `tools/package-mod.ps1` produces the player zip; `python tools/testroom.py`
   rebuilds the apworld, generates a seed from `tools/players/` and hosts the
@@ -25,9 +27,9 @@ randomization does, [`SETUP.md`](SETUP.md) for installing and playing.
   counters.
 
 Reverse engineering and design decisions:
-[`mod/reverse-engineering-notes.md`](mod/reverse-engineering-notes.md) (how
+[`mod/reverse-engineering-notes.md`](../mod/reverse-engineering-notes.md) (how
 the game works and how the mod hooks into it) and
-[`apworld/design-decisions.md`](apworld/design-decisions.md) (why the world
+[`apworld/design-decisions.md`](../apworld/design-decisions.md) (why the world
 is shaped the way it is).
 
 **To pick the work back up after a break**:

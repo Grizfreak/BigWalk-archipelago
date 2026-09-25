@@ -84,7 +84,7 @@ namespace BigWalkArchipelago.Debug
 
             // Said explicitly, including when it is zero: a tool that prints
             // nothing when it finds nothing is indistinguishable from a tool
-            // that did not run (see the lessons in NEXT-SESSION.md).
+            // that did not run (see the lessons in docs/NEXT-SESSION.md).
             Plugin.Log.LogInfo(
                 $"[{nameof(DebugRadioLookup)}] BroadcastStation instances loaded: {stations.Length}"
                 + (stations.Length == 0 ? " (the towers stream in with the world; walk nearer one)" : string.Empty));

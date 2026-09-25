@@ -1,10 +1,10 @@
 # Where this stands, and what to do next
 
 *Written at the end of the session of 2026-09-21 (second half). The detail lives in
-[`mod/reverse-engineering-notes.md`](mod/reverse-engineering-notes.md) (how
+[`mod/reverse-engineering-notes.md`](../mod/reverse-engineering-notes.md) (how
 the game works and what the mod does to it) and
-[`apworld/design-decisions.md`](apworld/design-decisions.md) (why the world
-is shaped the way it is); [`apworld/protocol.md`](apworld/protocol.md) is
+[`apworld/design-decisions.md`](../apworld/design-decisions.md) (why the world
+is shaped the way it is); [`apworld/protocol.md`](../apworld/protocol.md) is
 the contract between the two. This file is the short version and the
 to-do list.*
 
@@ -182,11 +182,15 @@ Both halves are rebuilt after any change; the artefacts sitting in `dist/` and
 `apworld/dist/` are only as fresh as the last run of those two scripts.
 
 **The player documentation is written (2026-09-22)**:
-[`README.md`](README.md) for what the randomization does and
-[`SETUP.md`](SETUP.md) for installing and playing together, mirrored by the
-two files the Archipelago webhost renders,
-`apworld/bigwalk/docs/en_Big Walk.md` and `.../setup_en.md`. All four say the
-same thing and move together. The working notes moved to
+[`SETUP.md`](../SETUP.md) for installing and playing together, mirrored by
+`apworld/bigwalk/docs/setup_en.md`, and the game page the Archipelago webhost
+renders, `apworld/bigwalk/docs/en_Big Walk.md`, for what the randomization
+does. The two setup files say the same thing and move together.
+[`README.md`](../README.md) stopped mirroring the game page on 2026-09-25 (player
+request, "could the main README be simpler?"): it is a short landing page
+now — what this is, what to download, how to start — and links to the game
+page for the detail, which the webhost's question-and-answer template has to
+carry anyway. The working notes moved to
 [`DEVELOPMENT.md`](DEVELOPMENT.md), and every document in the repository is
 now in English (player decision, 2026-09-22) — including this one from here
 on.

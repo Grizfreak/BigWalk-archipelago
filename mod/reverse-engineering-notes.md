@@ -1738,7 +1738,7 @@ the hidden vanilla one's, tickets and office membership included.
 
 Both came out of the first session where a guest was sent a filler gadget, and
 both are general — they have nothing to do with gadgets in particular. Full
-account in `../COOP-TESTS.md`, test 10.
+account in `../docs/COOP-TESTS.md`, test 10.
 
 **A spawn handler must never return null.** `NetworkClient.RegisterSpawnHandler`
 takes a delegate that builds the object for an incoming assetId. Returning

@@ -10,7 +10,7 @@ namespace BigWalkArchipelago.Core
     // while the host saw them tinted. `KeyColours` writes a
     // `MaterialPropertyBlock`, which is local rendering and travels nowhere —
     // the same reason the radio is local and the mid-air gourd of 2026-09-16
-    // was. Prediction D in `COOP-TESTS.md`, confirmed.
+    // was. Prediction D in `docs/COOP-TESTS.md`, confirmed.
     //
     // The cause was narrower than the prediction, though: `PaintOnce` had only
     // ever been called from `KeyCustody.Tick`, which opens with

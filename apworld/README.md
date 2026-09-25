@@ -28,7 +28,7 @@ The Python Archipelago world for *Big Walk*. The code lives in
       game (see `protocol.md` §11)
 - [x] Big keys (2026-09-21): the door and the key are two separate items, 25
       cut checks and 7 deposits. Exercised in game, but solo only (see
-      [`../COOP-TESTS.md`](../COOP-TESTS.md))
+      [`../docs/COOP-TESTS.md`](../docs/COOP-TESTS.md))
 - [x] Thirteen puzzle locations removed (2026-09-21): they exist in the
       game's metadata but nothing in the shipped build produces them, so
       generation could place progression on a check that can never be sent.
