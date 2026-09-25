@@ -330,20 +330,20 @@ namespace BigWalkArchipelago.Core.Net
             switch (slotData.Goal)
             {
                 case "gauntlet":
-                    goal = "pass behind the big green wall and finish the game";
+                    goal = "Big Goodbye, complete the Silent Gauntlet behind the Big Wall";
                     break;
 
                 case "ending":
-                    goal = "get in the big green wall";
+                    goal = "Big Wall, break the bell inside the Big Wall";
                     break;
 
                 case "second_ending":
-                    goal = "reach the secret ending behind the Hub Secret Door";
+                    goal = "Big Game, reach the secret ending behind the Spawn Secret Door";
                     break;
 
                 case "deposits":
                     var target = slotData.DepositGoalAmount;
-                    goal = $"place {target} gourds in the towers' slots ({_depositCount}/{target})";
+                    goal = $"Big Collection, place {target} gourds in the towers' slots ({_depositCount}/{target})";
                     break;
 
                 default:
