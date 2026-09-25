@@ -222,11 +222,32 @@ namespace BigWalkArchipelago.Core
         // questions in this mod: slot_data reaches the HOST and nobody else,
         // so a guest would never learn the value and the mismatch would come
         // straight back one layer up.
-        private const string CosmeticGourdColorHtml = "#805020";
+        //
+        // SIX COLOURS SINCE 2026-09-25, after the first alpha asked for the
+        // Archipelago logo's colours. Which one a gourd gets is read off its
+        // netId: the one number every machine already agrees on, so every
+        // screen paints it the same without a message saying so. A gourd
+        // respawned in a later session gets a new netId and may change
+        // colour; that was judged not worth a protocol. Every channel stays
+        // at 0xD2 or below, well clear of the 0xFF that blooms (see above).
+        private static readonly string[] CosmeticGourdColorsHtml =
+        {
+            "#C83C3C", // red
+            "#D2782D", // orange
+            "#D2B42D", // yellow
+            "#50A046", // green
+            "#3C78C8", // blue
+            "#8C50B4", // purple
+        };
 
         private static void ApplyCosmeticColor(RewardGourd rewardGourd)
         {
-            if (!ColorUtility.TryParseHtmlString(CosmeticGourdColorHtml, out var color))
+            // netId 0 is the host before NetworkServer.Spawn; the spawn path
+            // re-applies once the real number exists.
+            var identity = rewardGourd.GetComponent<NetworkIdentity>();
+            var netId = identity != null ? identity.netId : 0u;
+            var html = CosmeticGourdColorsHtml[(int)(netId % (uint)CosmeticGourdColorsHtml.Length)];
+            if (!ColorUtility.TryParseHtmlString(html, out var color))
                 return;
 
             rewardGourd.isVariantChallenge = true;
@@ -431,6 +452,9 @@ namespace BigWalkArchipelago.Core
             // offers this exactly so a caller can say what a dynamically
             // spawned object should be identified as.
             NetworkServer.Spawn(rewardGourd.gameObject, CosmeticAssetId);
+
+            // Now that it has a netId, its real colour.
+            ReapplyCosmeticLook(rewardGourd);
 
             // The netId is what the other player's client will be asked to
             // resolve when this gourd ends up in someone's hands, so it is
@@ -1139,10 +1163,20 @@ namespace BigWalkArchipelago.Core
             // the "normally pickable" state); failing that, any loaded gourd
             // will do, since its state will be forced explicitly by the
             // caller right after cloning anyway.
+            //
+            // ONLY A PUZZLE GOURD (2026-09-25). The first alpha's host saw every
+            // received gourd turn into "the glowing white gourd from the Big
+            // Game ending" partway through a session, on their screen alone —
+            // and then the ones in the monuments too. Each machine picks its
+            // own template, and picks again when the cached one unloads; the
+            // shiny white gourd behind the Spawn Secret Door sits beside the
+            // spawn and is a RewardGourd like any other, with a look of its own
+            // that no tint covers. It is `notSavable`, as are the test gourds,
+            // so a template must be a gourd the registry knows: all of those
+            // are the same plain prop on every machine.
             foreach (var candidate in all)
             {
-                if (candidate != null && candidate.prop != null && candidate.gourdState == GourdFlag.GourdState.Loose
-                    && !candidate.gameObject.name.Contains(CosmeticNameSuffix, StringComparison.Ordinal))
+                if (IsPlainPuzzleGourd(candidate) && candidate.gourdState == GourdFlag.GourdState.Loose)
                 {
                     _cachedTemplate = candidate;
                     return candidate;
@@ -1151,8 +1185,7 @@ namespace BigWalkArchipelago.Core
 
             foreach (var candidate in all)
             {
-                if (candidate != null && candidate.prop != null
-                    && !candidate.gameObject.name.Contains(CosmeticNameSuffix, StringComparison.Ordinal))
+                if (IsPlainPuzzleGourd(candidate))
                 {
                     _cachedTemplate = candidate;
                     return candidate;
@@ -1160,6 +1193,13 @@ namespace BigWalkArchipelago.Core
             }
 
             return null;
+        }
+
+        private static bool IsPlainPuzzleGourd(RewardGourd candidate)
+        {
+            return candidate != null && candidate.prop != null
+                && !candidate.gameObject.name.Contains(CosmeticNameSuffix, StringComparison.Ordinal)
+                && GourdRegistry.TryGetLocationId(candidate.prop.saveablePropName, out _);
         }
     }
 }
