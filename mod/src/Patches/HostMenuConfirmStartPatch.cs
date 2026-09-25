@@ -9,11 +9,21 @@ namespace BigWalkArchipelago.Patches
     // twenty minutes later that they mistyped the slot name. Idea noted on
     // 2026-09-15, unblocked once the network client existed.
     //
-    // THE RULE THIS IS BUILT AROUND: it must never be able to stop someone
-    // hosting. A failed probe flashes the offending field, logs why, and
-    // then gets out of the way — pressing Continue again hosts regardless.
-    // An Archipelago server being unreachable is not a reason to be unable
-    // to launch the game, and a bug in this patch must not be either.
+    // THE RULE THIS IS BUILT AROUND, AND ITS ONE EXCEPTION.
+    //
+    // It must never be able to stop someone PLAYING. A failed probe flashes
+    // the offending field, logs why, and then gets out of the way — pressing
+    // Continue again hosts regardless. An Archipelago server being
+    // unreachable is not a reason to be unable to launch the game.
+    //
+    // Except when the save does not exist yet (player request, 2026-09-25).
+    // Creating a NEW Archipelago save offline binds it to a slot nobody has
+    // confirmed exists — its name is locked the moment it is written — and
+    // the first sign of a typo is a whole session later. So a new save with
+    // Archipelago on starts only once the connection has been verified,
+    // and every press of Continue tests again. Playing is still never
+    // blocked: an existing save hosts on the second press as before, and
+    // switching AP : OFF on the same screen starts any game at all.
     //
     // First press runs the probe and holds the screen for the second or so
     // it takes; HostMenuConfirm.Update then continues automatically, so from
@@ -33,13 +43,21 @@ namespace BigWalkArchipelago.Patches
 
                 var slotName = __instance.gameNameField != null ? __instance.gameNameField.text : string.Empty;
                 var password = __instance.passwordField != null ? __instance.passwordField.text : string.Empty;
+                var isNewSave = IsNewSave(__instance);
 
-                // Nothing usable to test yet (no address typed, no slot
-                // name): say nothing and let them host. ApRuntime will
-                // explain itself in the log once the session is up.
                 if (!ApEndpoint.TryResolveFromFields(ApEndpoint.CurrentHostAndPort(), slotName, password,
-                                                     out var endpoint, out _))
-                    return true;
+                                                     out var endpoint, out var problem))
+                {
+                    // An existing save: say nothing and let them host.
+                    // ApRuntime will explain itself once the session is up.
+                    if (!isNewSave)
+                        return true;
+
+                    HostMenuArchipelagoControls.ShowResult(__instance,
+                        $"A new Archipelago game needs the host and the slot name ({problem}) - or switch AP : OFF");
+                    Update.FlashFields(__instance);
+                    return false;
+                }
 
                 switch (ApConnectionTest.Status)
                 {
@@ -49,6 +67,13 @@ namespace BigWalkArchipelago.Patches
                     case ApConnectionTest.TestStatus.Testing:
                         // Already in flight: swallow the press rather than
                         // starting a second probe.
+                        return false;
+
+                    case ApConnectionTest.TestStatus.Failed when isNewSave:
+                        // No consent to host blind for a save that does not
+                        // exist yet: test again, since the fields may well
+                        // have been corrected since.
+                        StartProbe(endpoint);
                         return false;
 
                     case ApConnectionTest.TestStatus.Failed:
@@ -61,18 +86,32 @@ namespace BigWalkArchipelago.Patches
                         return true;
 
                     default:
-                        Plugin.Log.LogInfo(
-                            $"[{nameof(HostMenuConfirmStartPatch)}] Testing the Archipelago connection to "
-                            + $"{endpoint.Host}:{endpoint.Port} as '{endpoint.SlotName}'...");
-
-                        // This probe belongs to Continue, so the Update
-                        // postfix above is allowed to act on its result.
-                        HostMenuArchipelagoControls.Owner =
-                            HostMenuArchipelagoControls.ProbeOwner.Continue;
-                        ApConnectionTest.Start(endpoint);
+                        StartProbe(endpoint);
                         return false;
                 }
             }
+        }
+
+        private static void StartProbe(ApEndpoint endpoint)
+        {
+            Plugin.Log.LogInfo(
+                $"[{nameof(HostMenuConfirmStartPatch)}] Testing the Archipelago connection to "
+                + $"{endpoint.Host}:{endpoint.Port} as '{endpoint.SlotName}'...");
+
+            // This probe belongs to Continue, so the Update postfix is
+            // allowed to act on its result.
+            _autoContinuePending = false;
+            HostMenuArchipelagoControls.NoteTested(endpoint.SlotName);
+            HostMenuArchipelagoControls.Owner = HostMenuArchipelagoControls.ProbeOwner.Continue;
+            ApConnectionTest.Start(endpoint);
+        }
+
+        // The same test the slot-name lock uses: a save the game has already
+        // written carries a file uid, a new one does not.
+        private static bool IsNewSave(HostMenuConfirm menu)
+        {
+            var save = menu.saveData;
+            return save == null || string.IsNullOrEmpty(save.filenameUid);
         }
 
         [HarmonyPatch(typeof(HostMenuConfirm), "Update")]
@@ -108,9 +147,21 @@ namespace BigWalkArchipelago.Patches
 
                     case ApConnectionTest.TestStatus.Failed when !_autoContinuePending:
                         _autoContinuePending = true;
-                        Plugin.Log.LogWarning(
-                            $"[{nameof(HostMenuConfirmStartPatch)}] Archipelago connection failed: {ApConnectionTest.LastError}. "
-                            + "Check the address, the slot name and the password — or press Continue again to host anyway.");
+                        if (IsNewSave(__instance))
+                        {
+                            Plugin.Log.LogWarning(
+                                $"[{nameof(HostMenuConfirmStartPatch)}] Archipelago connection failed: {ApConnectionTest.LastError}. "
+                                + "A new Archipelago game waits for a working connection: fix the fields and press Continue "
+                                + "again, or switch AP : OFF to play without Archipelago.");
+                        }
+                        else
+                        {
+                            Plugin.Log.LogWarning(
+                                $"[{nameof(HostMenuConfirmStartPatch)}] Archipelago connection failed: {ApConnectionTest.LastError}. "
+                                + "Check the address, the slot name and the password — or press Continue again to host anyway.");
+                        }
+
+                        HostMenuArchipelagoControls.ShowLastFailure(__instance);
                         TryFlash(__instance);
                         break;
                 }
@@ -127,6 +178,11 @@ namespace BigWalkArchipelago.Patches
             // (verified against its interop assembly, 2026-09-15), so the
             // JIT cannot even compile Flash there. The warning in the log
             // above says everything this animation says.
+            internal static void FlashFields(HostMenuConfirm menu)
+            {
+                TryFlash(menu);
+            }
+
             private static void TryFlash(HostMenuConfirm menu)
             {
                 try

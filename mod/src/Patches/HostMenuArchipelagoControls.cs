@@ -433,11 +433,19 @@ namespace BigWalkArchipelago.Patches
             var badSlot = error.IndexOf("Slot", StringComparison.OrdinalIgnoreCase) >= 0;
             var badPassword = error.IndexOf("Password", StringComparison.OrdinalIgnoreCase) >= 0;
 
+            // Before blaming the name, ask whether this is even a Big Walk
+            // room (see ApConnectionTest.LastRoomGames). One that is not
+            // means the address reached the wrong room — the port, almost
+            // always — and the name may well be fine.
+            if ((badSlot || badPassword) && !RoomPlaysBigWalk())
+                return "that room is not running Big Walk - check the port first (each archipelago.gg room has its own)"
+                       + PortNote();
+
             if (badSlot && badPassword)
                 return $"no slot called '{_testedSlotName}' here, and the password is wrong too";
 
             if (badSlot)
-                return $"the server does not know a slot called '{_testedSlotName}'";
+                return $"no slot called '{_testedSlotName}' in this Big Walk room - check the host and port, then the name";
 
             if (badPassword)
                 return "wrong Archipelago password";
@@ -454,9 +462,64 @@ namespace BigWalkArchipelago.Patches
                 || error.IndexOf("timeout", StringComparison.OrdinalIgnoreCase) >= 0
                 || error.IndexOf("refused", StringComparison.OrdinalIgnoreCase) >= 0
                 || error.IndexOf("unreachable", StringComparison.OrdinalIgnoreCase) >= 0)
-                return "no server answered - check the host and the port";
+                return "no server answered - check the host and the port" + PortNote();
 
-            return error;
+            return error + PortNote();
+        }
+
+        // True when the room that answered is running Big Walk, or when there
+        // is no way to know (no room answered, or it named no games) — the
+        // benefit of the doubt goes to the name the player typed.
+        private static bool RoomPlaysBigWalk()
+        {
+            var games = ApConnectionTest.LastRoomGames;
+            if (games == null || games.Length == 0)
+                return true;
+
+            foreach (var game in games)
+            {
+                if (string.Equals(game, "Big Walk", StringComparison.Ordinal))
+                    return true;
+            }
+
+            return false;
+        }
+
+        // Said only when the field named no port. It is optional — a server
+        // you run yourself listens on 38281 by default — but on archipelago.gg
+        // every room has its own, and the field is prefilled with a bare
+        // "archipelago.gg:", so a missing port there is the likeliest mistake
+        // on the whole screen (player report, 2026-09-25).
+        private static string PortNote()
+        {
+            var raw = ApEndpoint.CurrentHostAndPort();
+            if (ApEndpoint.HasExplicitPort(raw))
+                return string.Empty;
+
+            return ApEndpoint.IsArchipelagoGg(raw)
+                ? $" (no port given: archipelago.gg rooms each have their own, copy it from the room page)"
+                : $" (no port given, so {ApEndpoint.DefaultPortForDisplay} was tried)";
+        }
+
+        // For HostMenuConfirmStartPatch, which has things to say on this same
+        // line when it refuses to start a new game.
+        internal static void ShowResult(HostMenuConfirm menu, string text)
+        {
+            SetResult(menu, text);
+        }
+
+        // Continue runs its own probe and used to leave this line alone,
+        // saying why only in the log — fine while a second press hosted
+        // anyway, not once a new save waits on the answer: the player has to
+        // read the reason where they are looking.
+        internal static void NoteTested(string slotName)
+        {
+            _testedSlotName = slotName ?? string.Empty;
+        }
+
+        internal static void ShowLastFailure(HostMenuConfirm menu)
+        {
+            SetResult(menu, $"Failed: {Explain(ApConnectionTest.LastError)}");
         }
 
         private static void RefreshToggleLabel(HostMenuConfirm menu)

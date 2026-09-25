@@ -38,6 +38,18 @@ namespace BigWalkArchipelago.Core.Net
 
         internal static string LastError { get; private set; } = string.Empty;
 
+        // The games the room that answered is running, from its RoomInfo —
+        // which the server sends before any login, so a refused login still
+        // leaves it behind. Null when no room answered at all.
+        //
+        // It is what tells "wrong slot name" from "wrong room" (2026-09-25,
+        // player report): every archipelago.gg room shares one host and
+        // differs only by port, so a mistyped port very often reaches
+        // somebody else's live room, which answers — truthfully — that it has
+        // no slot by that name. Blaming the name there sends the player to
+        // fix the one field that was right.
+        internal static string[] LastRoomGames { get; private set; }
+
         internal static TestStatus Status
         {
             get
@@ -75,6 +87,12 @@ namespace BigWalkArchipelago.Core.Net
             try
             {
                 var session = ArchipelagoSessionFactory.CreateSession(endpoint.Host, endpoint.Port);
+                LastRoomGames = null;
+                session.Socket.PacketReceived += packet =>
+                {
+                    if (packet is Archipelago.MultiClient.Net.Packets.RoomInfoPacket info)
+                        LastRoomGames = info.Games;
+                };
 
                 // NoItems, and no slot_data: this connection is about to be
                 // thrown away, so it must not consume the slot's item stream

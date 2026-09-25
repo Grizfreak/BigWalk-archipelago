@@ -93,6 +93,39 @@ namespace BigWalkArchipelago.Core.Net
             return true;
         }
 
+        // Whether the address field names a port, as opposed to one this
+        // mod filled in. Only ever used to explain a failure: a missing port
+        // is fine for a server you run yourself (it listens on 38281 unless
+        // told otherwise), and almost certainly the mistake on
+        // archipelago.gg, where every room has a port of its own.
+        internal static bool HasExplicitPort(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+                return false;
+
+            var value = raw.Trim();
+            foreach (var scheme in new[] { "wss://", "ws://" })
+            {
+                if (value.StartsWith(scheme, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = value.Substring(scheme.Length);
+                    break;
+                }
+            }
+
+            value = value.TrimEnd('/');
+            var separator = value.LastIndexOf(':');
+            return separator >= 0 && separator < value.Length - 1;
+        }
+
+        internal static bool IsArchipelagoGg(string host)
+        {
+            return !string.IsNullOrEmpty(host)
+                && host.Trim().EndsWith("archipelago.gg", StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal const int DefaultPortForDisplay = DefaultPort;
+
         // Accepts what players actually paste: "archipelago.gg:38281",
         // "archipelago.gg", "wss://host:1234", a bare IPv4. Anything the
         // library can be handed as (hostname, port).

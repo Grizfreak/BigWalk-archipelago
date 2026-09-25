@@ -375,13 +375,49 @@ namespace BigWalkArchipelago.Core
             return _templates.TryGetValue(kind, out var list) && list != null ? list.Count : 0;
         }
 
+        // How many indices can borrow a vanilla instance's tickets.
+        //
+        // NONE, for a kind the island keeps (2026-09-25, found with a real
+        // second player). The Lamp is never hidden, so every buoy light's
+        // tickets stay registered to the buoy itself — a lamp clone borrowing
+        // one was refused, every time. Worse, the capture had filled all 32
+        // indices with buoys, which left no extra slot to invent tickets in:
+        // the host's log read "All 32 Lamp slot(s) are held by live clones"
+        // 55 times in one evening, every received lamp fell back to the first
+        // template, its switch was registered nowhere (the desync between
+        // players) and it always wore that template's colour (red, where the
+        // game has two). A kept kind now goes straight to invented tickets,
+        // all 32 of its indices.
+        private static int VanillaUsable(GadgetKind kind)
+        {
+            return KeptInWorld.Contains(kind) ? 0 : VanillaCount(kind);
+        }
+
         // The template a given index is built from, and whether that index is
         // an extra slot rather than a vanilla instance of its own.
+        //
+        // An extra slot walks the templates in turn rather than always taking
+        // the first, so that what a kind looks like in the island — two
+        // colours of buoy light — is what a player receives too. The template
+        // only lends its look to an extra slot, never its tickets, and the
+        // index decides which one, so every machine picks the same.
         private static Prop ResolveTemplate(GadgetKind kind, int index, out bool extra)
         {
             var count = VanillaCount(kind);
-            extra = count > 0 && index >= count;
-            return GetTemplate(kind, extra ? 0 : index);
+            var usable = VanillaUsable(kind);
+            extra = count > 0 && index >= usable;
+            return GetTemplate(kind, extra ? (index - usable) % count : index);
+        }
+
+        // For kinds with nothing ticketed in them, where any template will do:
+        // take them in turn, so every look the island has gets handed out.
+        private static readonly Dictionary<GadgetKind, int> _rotation = new();
+
+        private static int NextRotation(GadgetKind kind, int count)
+        {
+            var next = _rotation.TryGetValue(kind, out var value) ? value : 0;
+            _rotation[kind] = next + 1;
+            return next % count;
         }
 
         private static Prop GetTemplate(GadgetKind kind, int index = 0)
@@ -413,31 +449,27 @@ namespace BigWalkArchipelago.Core
         // in the office belongs to a clone that is alive right now.
         private static int ChooseInstance(GadgetKind kind)
         {
-            if (!_templates.TryGetValue(kind, out var list) || list == null || list.Count == 0)
+            if (!_templates.TryGetValue(kind, out var list) || list == null || list.Count == 0 || list[0] == null)
                 return 0;
 
-            for (var index = 0; index < list.Count; index++)
+            // Nothing ticketed in this kind means nothing to share: any
+            // template will do, so they are taken in turn.
+            var needed = Math.Min(TicketsOf(list[0].gameObject).Count, MaxTicketsPerClone);
+            if (needed == 0)
+                return NextRotation(kind, list.Count);
+
+            var usable = VanillaUsable(kind);
+            for (var index = 0; index < usable; index++)
             {
                 var template = list[index];
-                if (template == null)
-                    continue;
-
-                var tickets = TicketsOf(template.gameObject);
-
-                // Nothing ticketed in this kind means nothing to share, so
-                // any template will do — and the first always will.
-                if (tickets.Count == 0)
-                    return 0;
-
-                if (tickets.TrueForAll(IsTicketFree))
+                if (template != null && TicketsOf(template.gameObject).TrueForAll(IsTicketFree))
                     return index;
             }
 
-            // Every vanilla instance is in use: go on into the extra slots,
-            // which need as many invented tickets as the kind has ticketed
-            // components.
-            var needed = Math.Min(TicketsOf(list[0].gameObject).Count, MaxTicketsPerClone);
-            for (var index = list.Count; index < MaxInstancesPerKind; index++)
+            // Every vanilla instance is in use, or the kind never borrows one:
+            // the extra slots, which invent as many tickets as the kind has
+            // ticketed components.
+            for (var index = usable; index < MaxInstancesPerKind; index++)
             {
                 var free = true;
                 for (var rank = 0; rank < needed && free; rank++)
@@ -450,7 +482,7 @@ namespace BigWalkArchipelago.Core
             Plugin.Log.LogWarning(
                 $"[{nameof(GadgetItemSpawner)}] All {MaxInstancesPerKind} {kind} slot(s) are held by live clones; this one "
                 + "will look right and hold nothing.");
-            return 0;
+            return usable < MaxInstancesPerKind ? usable : 0;
         }
 
         // Gives an extra-slot clone its invented tickets. Called on the clone
@@ -503,9 +535,12 @@ namespace BigWalkArchipelago.Core
                 rank++;
             }
 
+            var why = KeptInWorld.Contains(kind)
+                ? "a kind the island keeps, so it never borrows a vanilla ticket"
+                : $"past the {VanillaCount(kind)} vanilla instance(s)";
             Plugin.Log.LogInfo(
-                $"[{nameof(GadgetItemSpawner)}] {kind} #{index} is an extra slot past the {VanillaCount(kind)} vanilla "
-                + $"instance(s): gave it {Math.Min(rank, MaxTicketsPerClone)} invented ticket(s) from {ExtraTicket(kind, index, 0)} down.");
+                $"[{nameof(GadgetItemSpawner)}] {kind} #{index} is an extra slot ({why}): gave it "
+                + $"{Math.Min(rank, MaxTicketsPerClone)} invented ticket(s) from {ExtraTicket(kind, index, 0)} down.");
 
             if (skipped > 0)
                 Plugin.Log.LogWarning(
