@@ -105,6 +105,31 @@ namespace BigWalkArchipelago.Patches
         // it rather than under the toggle.
         private const float ResultOffsetFactor = 0.34f;
 
+        // THE RESULT LINE WRAPS AND SHRINKS (player report, 2026-09-25: "some
+        // messages do not fit in the window"). It was a copy of Continue —
+        // 300 wide, Continue's large serif, one line, no wrapping — so any
+        // explanation longer than a few words ran out of the card.
+        //
+        // Wider than Continue, because it sits alone in the right-hand column:
+        // centred where TEST CONNECTION is, 460 anchored units still keep
+        // clear of Continue on the left and inside the card on the right
+        // (Continue ends near 304, this starts near 413; the card is 1139.59
+        // wide). As tall as the 88 world units free between TEST CONNECTION
+        // and SUPPRIMER — 66 anchored at the canvas's 4/3 — so a message that
+        // needs two or three lines shrinks its font to stay in that gap
+        // rather than spilling over either button. These follow from the
+        // measurements above; they have not been measured on screen
+        // themselves, so they are the first thing to look at if it crowds.
+        private const float ResultWidth = 460f;
+        private const float ResultHeight = 66f;
+        private const float ResultFontScale = 0.62f;
+        private const float ResultMinFontScale = 0.5f;
+
+        // What the line says while a probe is out, before the moving dots.
+        // Null when nothing is being tested.
+        private static string _testingText;
+        private static int _lastDots = -1;
+
         internal enum ProbeOwner
         {
             None,
@@ -322,8 +347,57 @@ namespace BigWalkArchipelago.Patches
             foreach (var image in clone.GetComponentsInChildren<Image>(true))
                 image.enabled = false;
 
+            FitResultText(clone);
             SetLabel(clone, string.Empty);
             return clone;
+        }
+
+        // See ResultWidth. Best effort: a layout that cannot be applied leaves
+        // the one-line label it replaced, which is ugly but readable.
+        private static void FitResultText(GameObject clone)
+        {
+            try
+            {
+                var rect = clone.GetComponent<RectTransform>();
+                if (rect != null)
+                    rect.sizeDelta = new Vector2(ResultWidth, ResultHeight);
+
+                var label = clone.GetComponentInChildren<TextMeshProUGUI>(true);
+                if (label == null)
+                    return;
+
+                // The text fills its parent exactly, whatever the button it
+                // was cloned from did with its own child.
+                var textRect = label.GetComponent<RectTransform>();
+                if (textRect != null)
+                {
+                    textRect.anchorMin = Vector2.zero;
+                    textRect.anchorMax = Vector2.one;
+                    textRect.offsetMin = Vector2.zero;
+                    textRect.offsetMax = Vector2.zero;
+                }
+
+                var size = label.fontSize * ResultFontScale;
+                label.textWrappingMode = TextWrappingModes.Normal;
+                label.enableAutoSizing = true;
+                label.fontSizeMax = size;
+                label.fontSizeMin = size * ResultMinFontScale;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogInfo($"[{nameof(HostMenuArchipelagoControls)}] Result line left on one line: {ex.Message}");
+            }
+        }
+
+        // While a probe is out the line says so, with dots that keep moving.
+        // Continue's own probe used to say nothing at all: the screen simply
+        // stopped for a second or two with no sign that anything was
+        // happening (player report, 2026-09-25).
+        internal static void ShowTesting(HostMenuConfirm menu, string text)
+        {
+            _testingText = text;
+            _lastDots = -1;
+            SetResult(menu, text + "...");
         }
 
         private static void OnToggle(HostMenuConfirm menu)
@@ -366,7 +440,7 @@ namespace BigWalkArchipelago.Patches
             ApConnectionTest.Reset();
             ApConnectionTest.Start(endpoint);
 
-            SetResult(menu, $"Testing {endpoint.Host}:{endpoint.Port}...");
+            ShowTesting(menu, $"Testing {endpoint.Host}:{endpoint.Port}");
             Plugin.Log.LogInfo(
                 $"[{nameof(HostMenuArchipelagoControls)}] Testing the Archipelago connection to "
                 + $"{endpoint.Host}:{endpoint.Port} as '{endpoint.SlotName}' (test button).");
@@ -376,6 +450,25 @@ namespace BigWalkArchipelago.Patches
         // the probe answers on its own thread and there is nothing to hook.
         internal static void Tick(HostMenuConfirm menu)
         {
+            // Whoever asked, a probe in flight gets its moving dots: three
+            // steps a second, and the label only rewritten when they change.
+            if (_testingText != null)
+            {
+                if (ApConnectionTest.Status == ApConnectionTest.TestStatus.Testing)
+                {
+                    var dots = (int)(Time.unscaledTime * 3f) % 4;
+                    if (dots != _lastDots)
+                    {
+                        _lastDots = dots;
+                        SetResult(menu, _testingText + new string('.', dots));
+                    }
+                }
+                else
+                {
+                    _testingText = null;
+                }
+            }
+
             if (Owner != ProbeOwner.TestButton)
                 return;
 
@@ -438,14 +531,13 @@ namespace BigWalkArchipelago.Patches
             // means the address reached the wrong room — the port, almost
             // always — and the name may well be fine.
             if ((badSlot || badPassword) && !RoomPlaysBigWalk())
-                return "that room is not running Big Walk - check the port first (each archipelago.gg room has its own)"
-                       + PortNote();
+                return "not a Big Walk room - check the port" + PortNote();
 
             if (badSlot && badPassword)
                 return $"no slot called '{_testedSlotName}' here, and the password is wrong too";
 
             if (badSlot)
-                return $"no slot called '{_testedSlotName}' in this Big Walk room - check the host and port, then the name";
+                return $"no slot '{_testedSlotName}' in this room - check the host and port, then the name";
 
             if (badPassword)
                 return "wrong Archipelago password";
@@ -497,8 +589,8 @@ namespace BigWalkArchipelago.Patches
                 return string.Empty;
 
             return ApEndpoint.IsArchipelagoGg(raw)
-                ? $" (no port given: archipelago.gg rooms each have their own, copy it from the room page)"
-                : $" (no port given, so {ApEndpoint.DefaultPortForDisplay} was tried)";
+                ? " (no port given - each archipelago.gg room has its own)"
+                : $" (no port given, tried {ApEndpoint.DefaultPortForDisplay})";
         }
 
         // For HostMenuConfirmStartPatch, which has things to say on this same

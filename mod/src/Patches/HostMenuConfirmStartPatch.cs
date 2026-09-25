@@ -134,7 +134,7 @@ namespace BigWalkArchipelago.Patches
                         // No consent to host blind for a save that does not
                         // exist yet: test again, since the fields may well
                         // have been corrected since.
-                        StartProbe(endpoint);
+                        StartProbe(__instance, endpoint);
                         return false;
 
                     case ApConnectionTest.TestStatus.Failed:
@@ -147,14 +147,16 @@ namespace BigWalkArchipelago.Patches
                         return true;
 
                     default:
-                        StartProbe(endpoint);
+                        StartProbe(__instance, endpoint);
                         return false;
                 }
             }
         }
 
-        private static void StartProbe(ApEndpoint endpoint)
+        private static void StartProbe(HostMenuConfirm menu, ApEndpoint endpoint)
         {
+            HostMenuArchipelagoControls.ShowTesting(menu, $"Checking the connection to {endpoint.Host}:{endpoint.Port}");
+
             Plugin.Log.LogInfo(
                 $"[{nameof(HostMenuConfirmStartPatch)}] Testing the Archipelago connection to "
                 + $"{endpoint.Host}:{endpoint.Port} as '{endpoint.SlotName}'...");
@@ -201,6 +203,7 @@ namespace BigWalkArchipelago.Patches
                 {
                     case ApConnectionTest.TestStatus.Ok when !_autoContinuePending:
                         _autoContinuePending = true;
+                        HostMenuArchipelagoControls.ShowResult(__instance, "Connected");
                         Plugin.Log.LogInfo(
                             $"[{nameof(HostMenuConfirmStartPatch)}] Archipelago connection verified; starting the session.");
                         __instance.ActionStart();
