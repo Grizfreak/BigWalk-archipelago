@@ -59,10 +59,21 @@ namespace BigWalkArchipelago.Debug
             }
         }
 
+        // On its own try: before the menu scene exists this threw a
+        // NullReferenceException rather than finding nothing (first run,
+        // 2026-09-26), and the Update's once-only warning would then have
+        // hidden any later, real failure.
         private static bool TitleMenuIsUp()
         {
-            var menus = MainMenuManager.instance;
-            return menus != null && menus.titleMenu != null && menus.titleMenu.gameObject.activeInHierarchy;
+            try
+            {
+                var menus = MainMenuManager.instance;
+                return menus != null && menus.titleMenu != null && menus.titleMenu.gameObject.activeInHierarchy;
+            }
+            catch (NullReferenceException)
+            {
+                return false;
+            }
         }
 
         private static string CurrentState()
