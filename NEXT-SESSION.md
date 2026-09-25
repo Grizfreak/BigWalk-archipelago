@@ -428,6 +428,16 @@ you why it failed.
   recovers its deposits instead of only its items.
 - **A real in-world button for the gourd resync** instead of Ctrl+R.
 - **Traps.** The item and the YAML option exist, the effect does not.
+- **Freely random colours for received lamps** (player idea, 2026-09-25). Today
+  a received lamp is drawn at random among the island's own buoys, so it can
+  only be red or green. Any hue is possible, with two conditions: the colour
+  must be derived from something both machines share (the netId, or the slot
+  in the asset id), never drawn on each; and it needs a measuring pass first,
+  as the keys did — which shader property tints the buoy's body, since a
+  `MaterialPropertyBlock` accepts a property the shader lacks and silently
+  changes nothing (the `_RColor` lesson of 2026-09-21), and the emitted
+  `Light` colour on top of it. Set aside for the alpha: the game's own two
+  colours match the rest of the island and already work.
 - **Per-tower monument locations (Option C/D)**.
 - ~~**The big-key decomposition, and Key Cutters as checks**~~ — both built on
   2026-09-21, as Task 1 above. The five cuts per tower ARE the Key Cutters
