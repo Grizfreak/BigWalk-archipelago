@@ -64,6 +64,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> SimulateGadgetItemKey;
         internal static ConfigEntry<KeyboardShortcut> DumpHeldItemKey;
         internal static ConfigEntry<KeyboardShortcut> DumpCosmeticGadgetsKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpNetworkKey;
 
         internal static void Bind(ConfigFile file)
         {
@@ -379,6 +380,12 @@ namespace BigWalkArchipelago
                 "DumpCosmeticGadgetsKey",
                 new KeyboardShortcut(KeyCode.M, KeyCode.LeftControl),
                 "Finds every cosmetic gadget clone currently loose in the scene (the ones a filler item spawns) and logs each renderer's actual shader/material/lightmapIndex — for diagnosing the pink/magenta clones directly rather than through a held item, whose visible mesh turned out not to live under prop.gameObject at all (only has an effect if Debug.Enabled is active).");
+
+            DumpNetworkKey = file.Bind(
+                "Debug",
+                "DumpNetworkKey",
+                new KeyboardShortcut(KeyCode.N, KeyCode.LeftControl),
+                "Logs this process's Mirror setup without changing any of it: the NetworkManager, the active transport and every transport under it (with the Kcp port and whether its server is running), the authenticator, the server's connections with the identifier each one sent, Application.runInBackground, whether Steam is up, and the command line. Written for running a second instance of the game on the same PC as a network guest: it answers whether the host already listens on UDP and what the two instances would share (only has an effect if Debug.Enabled is active).");
         }
     }
 }

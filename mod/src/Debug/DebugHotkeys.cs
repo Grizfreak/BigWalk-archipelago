@@ -207,6 +207,13 @@ namespace BigWalkArchipelago.Debug
                 DebugGourdLookup.LogAllLoaded();
                 Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] LogAllLoaded returned.");
             }
+
+            if (ModConfig.DumpNetworkKey.Value.IsDown())
+            {
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Network dump key pressed; calling Dump...");
+                DebugNetworkLookup.Dump();
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Dump returned.");
+            }
         }
 
         private void RecheckCosmeticPickup()

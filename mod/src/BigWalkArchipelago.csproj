@@ -67,6 +67,12 @@
       <HintPath>..\lib\UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- KcpTransport, MultiplexTransport, EosTransport: the game's transports,
+         for the loopback guest (cf. Debug/DebugNetworkLookup.cs). -->
+    <Reference Include="Mirror.Transports">
+      <HintPath>..\lib\Mirror.Transports.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="Unity.TextMeshPro">
       <HintPath>..\lib\Unity.TextMeshPro.dll</HintPath>
       <Private>false</Private>

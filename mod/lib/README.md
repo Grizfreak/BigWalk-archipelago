@@ -41,6 +41,10 @@ launch — NOT the dummy DLLs):
   `TMP_InputField`
 - `UnityEngine.IMGUIModule.dll` (step 5, 2026-09-15) — `OnGUI`/`GUI.Label`,
   for the on-screen Archipelago status (`Core/Net/ApStatusOverlay.cs`)
+- `Mirror.Transports.dll` (step 6, 2026-09-25) — `KcpTransport`,
+  `MultiplexTransport`, `EosTransport`, for the loopback guest
+  (`Debug/DebugNetworkLookup.cs`). Copied from the Steam install's
+  `BepInEx\interop\`
 
 From `<game>\BepInEx\core\` (step 3):
 - `Il2CppInterop.Runtime.dll` — `Il2CppObjectBase`, the base of
