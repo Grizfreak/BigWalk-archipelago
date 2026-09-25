@@ -60,6 +60,11 @@ is usually only visible in that machine's own log.
 Building both halves, testing, and how they fit together:
 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
+## License
+
+[MIT](LICENSE). The mod zip also bundles BepInEx and its dependencies, each
+under its own license, listed in `THIRD-PARTY-NOTICES.txt` inside the zip.
+
 ## AI disclosure
 
 Some of the code, data and documentation here was produced with an LLM. It

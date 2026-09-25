@@ -7,8 +7,11 @@ text of every license is in BepInEx\licenses\. For the LGPL-licensed parts,
 the complete source code of the version shipped here is available at the
 address given for it.
 
-The Big Walk Archipelago plugin itself is the only part of this package that
-is not listed here.
+The Big Walk Archipelago plugin itself (BepInEx\plugins\BigWalkArchipelago\
+BigWalkArchipelago.dll) is the only part of this package that is not listed
+here. It is released under the MIT license, BepInEx\licenses\
+BigWalkArchipelago.MIT.txt, and its source is at
+https://github.com/Grizfreak/BigWalk-archipelago
 
 
 LOADER AND MOD FRAMEWORK

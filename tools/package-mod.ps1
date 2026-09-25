@@ -100,6 +100,8 @@ foreach ($sub in @('core', 'patchers')) {
 $packaging = Join-Path $repo 'mod\packaging'
 Copy-Item (Join-Path $packaging 'THIRD-PARTY-NOTICES.txt') $stage
 Copy-Item (Join-Path $packaging 'licenses') (Join-Path $stage 'BepInEx\licenses') -Recurse
+# The plugin's own license, from the repository root.
+Copy-Item (Join-Path $repo 'LICENSE') (Join-Path $stage 'BepInEx\licenses\BigWalkArchipelago.MIT.txt')
 
 $pluginDir = Join-Path $stage 'BepInEx\plugins\BigWalkArchipelago'
 New-Item -ItemType Directory -Path $pluginDir -Force | Out-Null
@@ -149,7 +151,8 @@ perfectly vanilla - nothing in its own files is ever modified.
 
 Credits
 -------
-This package bundles BepInEx, Doorstop, Il2CppInterop, the .NET runtime and
+The Big Walk Archipelago plugin is released under the MIT license
+(BepInEx\licenses\BigWalkArchipelago.MIT.txt). This package also bundles BepInEx, Doorstop, Il2CppInterop, the .NET runtime and
 their libraries, each under its own license: see THIRD-PARTY-NOTICES.txt and
 BepInEx\licenses\.
 '@
