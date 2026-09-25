@@ -107,6 +107,44 @@ namespace BigWalkArchipelago.Core
         // (2026-09-22) — every other gadget here follows the default (every
         // other filler item must not also be findable for free, see the
         // type comment above), Lamp is the one exception.
+        // Other vanilla props a kind may take its look from, beside its own
+        // PrefabNames entry.
+        //
+        // MEASURED 2026-09-25 with the Ctrl+M lamp census: the island's round
+        // lamps are three prefabs, not one — 65 BuoyLight and 3 BuoyRedProp,
+        // whose light is #FF9980 (red), and 44 BuoyProp, whose light is
+        // #FFB766 (the yellow one). All three share one material with a white
+        // tint, so the colour is baked into the mesh and the light, and a
+        // lamp can only look yellow if it is cloned from a BuoyProp. The
+        // capture used to match BuoyLight alone, which is why five lamps drawn
+        // at random all came out red: every one of the 32 templates was.
+        //
+        // Only where the look is taken from. The clone is still named after
+        // PrefabNames, so everything that recognises a received lamp by name
+        // keeps recognising it; and the Lamp is a kind the island keeps, so
+        // none of these is ever hidden.
+        private static readonly Dictionary<GadgetKind, string[]> AlternatePrefabNames = new()
+        {
+            { GadgetKind.Lamp, new[] { "BuoyProp", "BuoyRedProp" } },
+        };
+
+        private static bool MatchesKind(GadgetKind kind, string name)
+        {
+            if (NameMatches(name, PrefabNames[kind]))
+                return true;
+
+            if (AlternatePrefabNames.TryGetValue(kind, out var alternates))
+            {
+                foreach (var alternate in alternates)
+                {
+                    if (NameMatches(name, alternate))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
         private static readonly HashSet<GadgetKind> KeptInWorld = new()
         {
             GadgetKind.Lamp,
@@ -264,7 +302,7 @@ namespace BigWalkArchipelago.Core
                 if (candidate == null || candidate.gameObject == null)
                     continue;
 
-                if (!NameMatches(candidate.gameObject.name, prefabName) || IsOurs(candidate.gameObject.name))
+                if (!MatchesKind(kind, candidate.gameObject.name) || IsOurs(candidate.gameObject.name))
                     continue;
 
                 candidates.Add(candidate);
@@ -313,7 +351,8 @@ namespace BigWalkArchipelago.Core
 
             _templates[kind] = templates;
             Plugin.Log.LogInfo(
-                $"[{nameof(GadgetItemSpawner)}] {kind}: {templates.Count} template(s) captured, one per vanilla '{prefabName}'.");
+                $"[{nameof(GadgetItemSpawner)}] {kind}: {templates.Count} template(s) captured, one per vanilla "
+                + $"'{prefabName}'{(AlternatePrefabNames.ContainsKey(kind) ? " or its alternates" : string.Empty)}.");
         }
 
         private static int CompareByGuid(Prop a, Prop b)
@@ -459,9 +498,12 @@ namespace BigWalkArchipelago.Core
                 return 0;
 
             // Nothing ticketed in this kind means nothing to share: every
-            // template is available, so any of them.
+            // template is available, so any of them. Asked of every template,
+            // not the first: a kind can mix prefabs (the lamp does) whose
+            // components differ.
             var needed = Math.Min(TicketsOf(list[0].gameObject).Count, MaxTicketsPerClone);
-            if (needed == 0)
+            var anyTicketed = list.Exists(template => template != null && TicketsOf(template.gameObject).Count > 0);
+            if (!anyTicketed)
             {
                 var all = new List<int>();
                 for (var index = 0; index < list.Count; index++)
@@ -486,8 +528,16 @@ namespace BigWalkArchipelago.Core
             // ticketed components.
             for (var index = usable; index < MaxInstancesPerKind; index++)
             {
+                // The tickets of the template this slot would really be built
+                // from: with the lamp's three prefabs mixed in one list, the
+                // first template is not a safe stand-in for all of them.
+                var template = list[(index - usable) % list.Count];
+                var slotNeeds = template != null
+                    ? Math.Min(TicketsOf(template.gameObject).Count, MaxTicketsPerClone)
+                    : needed;
+
                 var free = true;
-                for (var rank = 0; rank < needed && free; rank++)
+                for (var rank = 0; rank < slotNeeds && free; rank++)
                     free = IsTicketFree(ExtraTicket(kind, index, rank));
 
                 if (free)
