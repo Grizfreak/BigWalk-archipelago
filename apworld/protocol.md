@@ -51,16 +51,15 @@ the tracking player happens to have.
 |---|---|---|
 | `world_version` | str | apworld version, e.g. `"0.1.0"`. Log a warning on a mismatch with what the mod was built against; do not refuse to connect. |
 | `goal` | str | `"gauntlet"`, `"ending"`, `"second_ending"` or `"deposits"`. See §6. A goal string the mod does not recognize disarms goal detection and warns loudly rather than guessing. |
-| `deposit_goal_amount` | int | Deposits needed to win when `goal == "deposits"`. Already clamped to what exists; use it as-is. |
+| `deposit_goal_amount` | int | Deposits needed to win when `goal == "deposits"`. Use it as-is. |
 | `deposit_locations` | str | `"none"`, `"milestones"` or `"all"`. Informational — `deposit_location_amounts` is the authoritative list. |
 | `deposit_location_amounts` | int[] | Ascending deposit counts that are checks, e.g. `[5, 10, ..., 45]`. Possibly empty. |
-| `green_dome_deposits` | str | `"full"`, `"key_only"` or `"excluded"`. Informational: `total_monument_slots` and `big_keys_in_play` already say everything the mod acts on. It reports what was GENERATED, which is not always what was asked for — `second_ending` + `"excluded"` generates as `"key_only"`. |
 | `radio_station_checks` | bool | Whether the seven radio stations are checks. |
 | `radio_station_items` | bool | Whether the music is shuffled too. While true the mod suppresses the game's own station unlock until the matching item arrives (§11). **Default to false** when the field is absent: an apworld too old to send it has no Radio Music items in its pool, so suppressing would make seven stations permanently silent. |
 | `big_key_features` | bool | Whether what a big key opens is an Archipelago item. While true the mod stops a placed key from opening its door and grants the feature on receipt instead (§12). Always `true` from this apworld — it is the model, not an option. **Default to false** when the field is absent, for the same reason as the radio and more sharply: suppressing without items in the pool leaves seven doors that can never open. |
 | `big_key_items` | bool | Whether the big keys themselves are Archipelago items. While true the mod holds every key locked in its stone (`blockGrabbing`) until its item arrives, and a full monument no longer releases one. Always `true` from this apworld. **Default to false** when absent: locking keys that nothing can send leaves all seven unobtainable. |
-| `total_monument_slots` | int | Gourd items in circulation for this slot (30 or 45). |
-| `big_keys_in_play` | str[] | `SaveablePropName` names of the big keys this slot uses. Six entries when the Green Dome is excluded. |
+| `total_monument_slots` | int | Gourd items in circulation for this slot (45). |
+| `big_keys_in_play` | str[] | `SaveablePropName` names of the big keys this slot uses (all seven). |
 | `location_id_base` | int | 8600000. See §3. |
 | `radio_id_offset` | int | 1000. |
 | `deposit_id_offset` | int | 2000. |
@@ -104,7 +103,7 @@ would not push every id below it.
 **Never invent ids.** The `Connected` packet carries `missing_locations` and
 `checked_locations`; drop any id that is in neither. That single rule covers
 every case where the world has fewer locations than the game can report:
-radio stations turned off, the Green Dome excluded, and the three unused
+radio stations turned off, deposit checks thinned out, and the three unused
 `FmStation7/8/9` values.
 
 **`gourdSecretZoneVice` (290) is not a location.** It is the only

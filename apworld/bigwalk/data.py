@@ -288,7 +288,7 @@ class Tower(NamedTuple):
 # tower really is called the Green Dome; it was caught when `goal:
 # second_ending` was added and the name propagated into a description of the
 # door that was simply wrong. The tower keeps its name everywhere it means
-# the tower (`GREEN_DOME`, `green_dome_deposits`, its monument); only the
+# the tower (`GREEN_DOME`, its monument); only the
 # feature and the names derived from it moved.
 #
 # The fifth and last, on 2026-09-22: "Dam" became "Chapel Door". It was the
@@ -338,11 +338,8 @@ YELLOW_TWIST = TOWERS[4]
 BLACK_MONOLITH = TOWERS[5]
 """The Black Monolith tower (`bigKeyBoss`); its key opens the way to the ending."""
 
-BASE_MONUMENT_SLOTS = sum(tower.slots for tower in TOWERS if tower is not GREEN_DOME)
-"""Slots in every monument except the Green Dome's: 4 + 5 + 5 + 5 + 5 + 6 = 30."""
-
-MAX_MONUMENT_SLOTS = BASE_MONUMENT_SLOTS + GREEN_DOME.slots
-"""Largest possible total (45), used to size the static deposit location table."""
+MAX_MONUMENT_SLOTS = sum(tower.slots for tower in TOWERS)
+"""Every monument slot on the island: 4 + 5 + 5 + 5 + 5 + 6 + 15 = 45."""
 
 # --------------------------------------------------------------------------
 # Radio stations (SavableSystem.FmStation*)

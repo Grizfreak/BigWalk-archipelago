@@ -20,7 +20,6 @@ from .bases import BigWalkTestBase, build_like_universal_tracker, world_shape
 # a region or a number a rule is written against.
 UNLIKE_THE_DEFAULTS = {
     "goal": "second_ending",
-    "green_dome_deposits": "key_only",
     "deposit_locations": "all",
     "deposit_goal_amount": 25,
     "radio_station_checks": False,
@@ -47,21 +46,6 @@ class TestTheTrackerRebuildsTheSeed(BigWalkTestBase):
         """
         untracked = build_like_universal_tracker({})
         self.assertNotEqual(world_shape(untracked), world_shape(self.multiworld))
-
-
-class TestARepairedOptionSurvives(BigWalkTestBase):
-    """
-    `second_ending` + `excluded` is generated as `key_only` (world.py). What
-    travels in slot_data is the repair, not the request, so the tracker must
-    rebuild the world that exists — Hub Secret Door and all.
-    """
-
-    options = {"goal": "second_ending", "green_dome_deposits": "excluded"}
-
-    def test_the_tracker_sees_the_repaired_world(self) -> None:
-        tracked = build_like_universal_tracker({}, self.world.fill_slot_data())
-        self.assertEqual(world_shape(tracked), world_shape(self.multiworld))
-        self.assertIn("Past the Hub Secret Door", world_shape(tracked)["regions"])
 
 
 class TestSlotDataCarriesEveryTrackedOption(BigWalkTestBase):

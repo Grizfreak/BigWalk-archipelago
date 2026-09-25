@@ -97,14 +97,11 @@ def set_entrance_rules(world: BigWalkWorld) -> None:
         Has(data.YELLOW_TWIST.item_name),
     )
 
-    # The Hub Secret Door, and the second ending behind it. The entrance only
-    # exists when the item that opens it does, so there is no rule to write
-    # for a slot that excluded the tower — and no entrance to leave unruled.
-    if regions.green_dome_in_play(world):
-        world.set_rule(
-            world.get_entrance(regions.GREEN_DOME_ENTRANCE),
-            Has(data.GREEN_DOME.item_name),
-        )
+    # The Hub Secret Door, and the second ending behind it.
+    world.set_rule(
+        world.get_entrance(regions.GREEN_DOME_ENTRANCE),
+        Has(data.GREEN_DOME.item_name),
+    )
 
 
 def set_completion_rule(world: BigWalkWorld) -> None:

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Mapping
 from typing import Any
 
@@ -11,8 +10,6 @@ from worlds.AutoWorld import World
 from . import data, items, locations, regions, rules, web_world
 from . import options as bigwalk_options
 
-logger = logging.getLogger("Big Walk")
-
 WORLD_VERSION = "0.1.0"
 """Kept in step with archipelago.json; sent in slot_data so the mod can check it."""
 
@@ -20,7 +17,6 @@ TRACKER_OPTIONS = (
     "goal",
     "deposit_goal_amount",
     "deposit_locations",
-    "green_dome_deposits",
     "radio_station_checks",
     "radio_station_items",
 )
@@ -72,8 +68,8 @@ class BigWalkWorld(World):
     # is picked, so the graph it builds is the seed's graph exactly — as long
     # as it generates with the seed's OPTIONS, which is what these two hooks
     # are for. Left to the tracking player's own YAML, one wrong option moves
-    # the goalposts in silence: `green_dome_deposits: excluded` on its own
-    # drops a whole region and four locations.
+    # the goalposts in silence: `deposit_locations: all` on its own invents
+    # thirty-six locations.
 
     ut_can_gen_without_yaml = True
     """
@@ -84,20 +80,17 @@ class BigWalkWorld(World):
 
     # --- Derived from the options, computed once in generate_early ---
 
-    green_dome_slots: int
-    """Monument slots the Green Dome tower is considered to have (0 if excluded)."""
-
     towers: tuple[data.Tower, ...]
-    """Towers in play this slot: all seven, or six with the Green Dome excluded."""
+    """Towers in play this slot: always all seven."""
 
     gourd_count: int
-    """`Gourd` items in the pool; exactly enough to fill every monument in play."""
+    """`Gourd` items in the pool; exactly enough to fill every monument."""
 
     deposit_amounts: tuple[int, ...]
     """Deposit counts that are locations, e.g. (5, 10, ..., 45)."""
 
     deposit_goal: int
-    """Gourds required to win when the goal is `deposits` (clamped to what exists)."""
+    """Gourds required to win when the goal is `deposits`."""
 
     @staticmethod
     def interpret_slot_data(slot_data: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -114,35 +107,15 @@ class BigWalkWorld(World):
     def generate_early(self) -> None:
         self._take_options_from_tracker()
 
-        green_dome = self._green_dome_setting()
+        # The Green Dome used to be optional (`green_dome_deposits`, removed
+        # 2026-09-25 before the first release): its fifteen slots only ever
+        # bought deposit checks, which deposit_locations already scales, and
+        # leaving it out took the Hub Secret Door zone with it for nothing.
+        self.towers = data.TOWERS
+        self.gourd_count = data.MAX_MONUMENT_SLOTS
 
-        if green_dome == bigwalk_options.GreenDomeDeposits.option_excluded:
-            self.green_dome_slots = 0
-            self.towers = tuple(tower for tower in data.TOWERS if tower is not data.GREEN_DOME)
-        else:
-            # `key_only` keeps the tower and drops its slots. The two were
-            # only ever bundled by the option: a filled monument releases
-            # nothing in this world, so the Green Dome's fifteen slots buy
-            # deposit checks and nothing else.
-            self.green_dome_slots = (
-                0 if green_dome == bigwalk_options.GreenDomeDeposits.option_key_only
-                else data.GREEN_DOME.slots
-            )
-            self.towers = data.TOWERS
-
-        total_slots = sum(self.slots_for(tower) for tower in self.towers)
-        self.gourd_count = total_slots
-
-        self.deposit_amounts = self._pick_deposit_amounts(total_slots)
-
-        self.deposit_goal = min(self.options.deposit_goal_amount.value, total_slots)
-        if (self.options.goal == bigwalk_options.Goal.option_deposits
-                and self.deposit_goal != self.options.deposit_goal_amount.value):
-            logger.warning(
-                "Big Walk (%s): deposit goal lowered from %d to %d, which is every monument slot "
-                "in play with the current Green Dome Deposits setting.",
-                self.player_name, self.options.deposit_goal_amount.value, self.deposit_goal,
-            )
+        self.deposit_amounts = self._pick_deposit_amounts(self.gourd_count)
+        self.deposit_goal = self.options.deposit_goal_amount.value
 
     def _take_options_from_tracker(self) -> None:
         """
@@ -150,12 +123,8 @@ class BigWalkWorld(World):
         from, while Universal Tracker is re-generating. A no-op everywhere
         else, since nothing sets `re_gen_passthrough` during a real fill.
 
-        The values arrive as `current_key` strings and one clamped int, which
-        `from_any` reads back into the option types. Two of them are already
-        the REPAIRED values rather than what a YAML asked for — the clamped
-        deposit goal and the `second_ending` green-dome fix are both written
-        back to the options before `fill_slot_data` reads them — so this pass
-        re-applies the same repairs to the same numbers and cannot drift.
+        The values arrive as `current_key` strings and one int, which
+        `from_any` reads back into the option types.
         """
         passthrough = getattr(self.multiworld, "re_gen_passthrough", None)
         slot_data = passthrough.get(self.game) if passthrough else None
@@ -167,40 +136,6 @@ class BigWalkWorld(World):
                 option = getattr(self.options, name)
                 setattr(self.options, name, option.from_any(slot_data[name]))
 
-    def _green_dome_setting(self) -> int:
-        """
-        The Green Dome setting this slot really plays, repairing the one
-        combination that cannot work.
-
-        `second_ending` is won behind the Hub Secret Door, and only that
-        item opens it — so a slot asking for that goal while excluding the
-        Green Dome tower is asking for a seed nobody can finish. It is repaired
-        rather than refused, and repaired to `key_only` rather than `full`:
-        the goal needs the key, not fifteen more deposits.
-
-        Written back to the option so that `current_key` — which is what
-        travels in slot_data and what the spoiler log prints — says what was
-        generated rather than what was asked for.
-        """
-        green_dome = self.options.green_dome_deposits.value
-        if (self.options.goal != bigwalk_options.Goal.option_second_ending
-                or green_dome != bigwalk_options.GreenDomeDeposits.option_excluded):
-            return green_dome
-
-        repaired = bigwalk_options.GreenDomeDeposits.option_key_only
-        self.options.green_dome_deposits.value = repaired
-        logger.warning(
-            "Big Walk (%s): goal is second_ending, which is won behind the Hub Secret Door, so "
-            "green_dome_deposits cannot be excluded. Generated as key_only instead: the Hub "
-            "Secret Door and its key stay in the pool, its fifteen deposit slots do not.",
-            self.player_name,
-        )
-        return repaired
-
-    def slots_for(self, tower: data.Tower) -> int:
-        """A tower's monument slot count, honouring the Green Dome option."""
-        return self.green_dome_slots if tower is data.GREEN_DOME else tower.slots
-
     def _pick_deposit_amounts(self, total_slots: int) -> tuple[int, ...]:
         choice = self.options.deposit_locations
         if choice == bigwalk_options.DepositLocations.option_none:
@@ -210,8 +145,8 @@ class BigWalkWorld(World):
 
         # Milestones: every fifth deposit, plus the very last one so that
         # filling every monument always lands on a check. That second part
-        # is defensive today — every total currently reachable (45, 30) is
-        # already a multiple of five — and exists so a future option that
+        # is defensive today — the total (45) is already a multiple of
+        # five — and exists so a future option that
         # changes the totals cannot silently drop the final milestone.
         milestones = set(range(5, total_slots + 1, 5))
         milestones.add(total_slots)
@@ -250,7 +185,6 @@ class BigWalkWorld(World):
             "goal": self.options.goal.current_key,
             "deposit_goal_amount": self.deposit_goal,
             "deposit_locations": self.options.deposit_locations.current_key,
-            "green_dome_deposits": self.options.green_dome_deposits.current_key,
             "radio_station_checks": bool(self.options.radio_station_checks),
 
             # The mod suppresses the game's own radio unlock only while this

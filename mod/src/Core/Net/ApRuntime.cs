@@ -742,7 +742,7 @@ namespace BigWalkArchipelago.Core.Net
                 }
 
                 // The slot decides what exists, not the game: radio stations
-                // can be off, the Green Dome can be excluded. Sending an id
+                // can be off, deposit checks thinned out. Sending an id
                 // this slot does not have is a protocol error, so it is
                 // filtered here rather than hoping the server is forgiving.
                 if (!Connection.BelongsToSlot(id))

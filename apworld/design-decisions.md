@@ -42,8 +42,8 @@ than as fixed choices (the preference already stated on 2026-09-09):
   - **Reopen if the mod ever adds a way to retrieve a deposited gourd**
     (nothing suggests it should): that would invalidate the cumulative
     requirements above, not just relax them.
-- **Gourd pool size** → one `Gourd` item per monument slot in play (45 or 30
-  via `green_dome_deposits`), which is what the "enough generic gourds"
+- **Gourd pool size** → one `Gourd` item per monument slot (45; 30 was
+  possible via `green_dome_deposits` until it was removed), which is what the "enough generic gourds"
   constraint below asked for.
 - **`green_dome_deposits: limited` REMOVED (2026-09-15)**, after the player
   asked the right question about it. The option claimed the Green Dome's
@@ -77,6 +77,18 @@ than as fixed choices (the preference already stated on 2026-09-09):
     `key_only` rather than `full`: the goal needs the key, not the grind.
     The repair is written back to the option so `current_key` — what travels
     in slot_data and what the spoiler prints — says what was generated.
+- **`green_dome_deposits` REMOVED ENTIRELY (2026-09-25)**, before the first
+  public release, on the player's call: "it does nothing and loses the player
+  more than anything". The Green Dome is always in play: 45 gourds, the Hub
+  Secret Door, its key and its zone.
+  - `full` vs `key_only` only ever changed fifteen gourds and the deposit
+    checks they buy, and `deposit_locations` / `deposit_goal_amount` already
+    decide how much of that grind there is.
+  - `excluded` took the Hub Secret Door zone out, which stopped being a
+    postgame grind once the mod removed the sphere: it cut content for nothing,
+    and forced the `second_ending` repair above.
+  - It also made Universal Tracker disagree whenever co-op YAMLs differed on
+    it. Removed before release so no published YAML carries it.
 - **Radio stations** → locations, behind `radio_station_checks`.
 - **Key Cutters, bells as separate checks, per-tower monument locations** →
   still not implemented, still recorded below as leads.

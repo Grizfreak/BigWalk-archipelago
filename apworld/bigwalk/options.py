@@ -19,7 +19,6 @@ class Goal(Choice):
       the sphere is gone from the start, so this is not postgame.
     - deposits: deposit a number of gourds into monuments (see Deposit Goal Amount).
 
-    second_ending does not work with green_dome_deposits: excluded, which becomes key_only.
     """
 
     display_name = "Goal"
@@ -35,36 +34,12 @@ class DepositGoalAmount(Range):
     Gourds to deposit to win, with goal: deposits.
 
     - Ignored by every other goal.
-    - Lowered to the number of monument slots in play if set higher.
     """
 
     display_name = "Deposit Goal Amount"
     range_start = 5
     range_end = data.MAX_MONUMENT_SLOTS
     default = 30
-
-
-# key_only exists because a filled monument no longer releases anything: the
-# only reason to deposit fifteen more gourds is the deposit checks themselves.
-# It is also the way to play goal: second_ending without that grind.
-class GreenDomeDeposits(Choice):
-    """
-    Whether the Green Dome, the 15-slot postgame tower, takes part.
-
-    - full: everything stays. 45 gourds in the pool.
-    - key_only: its 15 slots leave; the Hub Secret Door, its key and key deposit stay. 30 gourds.
-    - excluded: the Hub Secret Door, its key and key deposit leave too. 30 gourds.
-    """
-
-    display_name = "Green Dome Deposits"
-    option_full = 0
-    option_excluded = 2
-    # 1 was `limited`, removed on 2026-09-15 because it claimed the Green
-    # Dome monument could be completed with six gourds and nothing made that
-    # true (see ../design-decisions.md). Not reused: a YAML written with the
-    # numeric value would silently mean something else.
-    option_key_only = 3
-    default = 0
 
 
 class DepositLocations(Choice):
@@ -109,7 +84,7 @@ class RadioStationItems(DefaultOnToggle):
 class StartWithDrawbridgeOpen(Toggle):
     """
     Start with the Drawbridge open instead of finding it in the multiworld.
-
+    - Doors at the hub will be opened on start no matter what.
     - The tutorial key deposit stays a check either way.
     """
 
@@ -133,7 +108,6 @@ class TrapFillPercentage(Range):
 class BigWalkOptions(PerGameCommonOptions):
     goal: Goal
     deposit_goal_amount: DepositGoalAmount
-    green_dome_deposits: GreenDomeDeposits
     deposit_locations: DepositLocations
     radio_station_checks: RadioStationChecks
     radio_station_items: RadioStationItems
@@ -146,22 +120,20 @@ option_groups = [
     OptionGroup("Goal", [Goal, DepositGoalAmount]),
     OptionGroup("Locations", [DepositLocations, RadioStationChecks]),
     OptionGroup("Radio", [RadioStationItems]),
-    OptionGroup("Gourds and Keys", [GreenDomeDeposits, StartWithDrawbridgeOpen]),
+    OptionGroup("Keys", [StartWithDrawbridgeOpen]),
 ]
 
 option_presets = {
     # Everything on: the full alpha experience.
     "Full Run": {
         "goal": Goal.option_gauntlet,
-        "green_dome_deposits": GreenDomeDeposits.option_full,
         "deposit_locations": DepositLocations.option_all,
         "radio_station_checks": True,
         "radio_station_items": True,
     },
-    # Trimmed down: no postgame tower, fewer deposits to grind out.
+    # Trimmed down: the chapel bell, and a deposit check every five gourds.
     "Short": {
         "goal": Goal.option_ending,
-        "green_dome_deposits": GreenDomeDeposits.option_excluded,
         "deposit_locations": DepositLocations.option_milestones,
         "radio_station_checks": True,
         "radio_station_items": True,

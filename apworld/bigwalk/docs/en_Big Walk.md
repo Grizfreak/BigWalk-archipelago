@@ -58,8 +58,7 @@ Whichever of these you picked in your YAML:
 - **Second Ending** — reach the game's other ending, behind the Hub Secret
   Door. Nothing else is in the way: the vanilla game seals that path until
   you have finished it once, and the mod removes the seal from your first
-  session. It needs the Hub Secret Door, so it cannot be combined with
-  `green_dome_deposits: excluded` — asking for both generates as `key_only`.
+  session.
 - **Deposits** — deposit a set number of gourds into the towers' monuments.
 
 Whichever you picked, the corner of the screen names it for the whole session,
@@ -86,7 +85,7 @@ Locations, 93 of them on the default options:
 Items:
 
 - **Gourd** — the generic monument currency. There are exactly as many as
-  there are monument slots in play: 45, or 30 without the Green Dome's.
+  there are monument slots: 45.
 - The 7 features a big key used to open: **Drawbridge**, **Map Room**,
   **Chairlift**, **Train**, **Tunnels**, **Chapel Door** and **Hub Secret
   Door**. These are what actually open the island.

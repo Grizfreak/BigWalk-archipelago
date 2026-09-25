@@ -119,7 +119,6 @@ class TestIdTables(unittest.TestCase):
     def test_monument_slot_counts(self) -> None:
         # Counted in-game with the mod's F6 tool and independently confirmed by
         # a third-party document; both agree on 4 + 5*4 + 6 + 15.
-        self.assertEqual(data.BASE_MONUMENT_SLOTS, 30)
         self.assertEqual(data.MAX_MONUMENT_SLOTS, 45)
 
     def test_every_deposit_amount_has_a_location(self) -> None:

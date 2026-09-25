@@ -39,22 +39,16 @@ class TestDepositGoal(BigWalkTestBase):
         self.assertTrue(self.can_reach_location("Victory"))
 
 
-class TestDepositGoalClampedToAvailableSlots(BigWalkTestBase):
-    """
-    Asking for more deposits than there are slots must not produce an
-    unwinnable seed: the goal is lowered to what exists instead.
-    """
+class TestDepositGoalAtEverySlot(BigWalkTestBase):
+    """The largest deposit goal the option allows is every slot on the island."""
 
-    options = {
-        "goal": "deposits",
-        "deposit_goal_amount": 45,
-        "green_dome_deposits": "excluded",  # only 30 slots remain
-    }
+    options = {"goal": "deposits", "deposit_goal_amount": data.MAX_MONUMENT_SLOTS}
     run_default_tests = False
 
-    def test_goal_is_clamped(self) -> None:
-        self.assertEqual(self.world.deposit_goal, 30)
-        self.collect_gourds(30)
+    def test_every_gourd_is_needed_and_enough(self) -> None:
+        self.collect_gourds(data.MAX_MONUMENT_SLOTS - 1)
+        self.assertFalse(self.can_reach_location("Victory"))
+        self.collect_gourds(1)
         self.assertTrue(self.can_reach_location("Victory"))
 
 
@@ -77,28 +71,4 @@ class TestSecondEndingGoal(BigWalkTestBase):
         # mod removes that seal from the first session. If an in-game test
         # ever shows otherwise, this is the test that should fail first.
         self.collect_by_name(data.GREEN_DOME.item_name)
-        self.assertTrue(self.can_reach_location("Victory"))
-
-
-class TestSecondEndingGoalRepairsAnExcludedGreenDome(BigWalkTestBase):
-    """
-    Asking for the second ending while excluding the tower that opens it must
-    not produce an unfinishable seed: the tower comes back, without its
-    fifteen deposit slots.
-    """
-
-    options = {"goal": "second_ending", "green_dome_deposits": "excluded"}
-    run_default_tests = False
-
-    def test_the_green_dome_comes_back(self) -> None:
-        self.assertEqual(self.world.options.green_dome_deposits.current_key, "key_only")
-        self.assertIn(data.GREEN_DOME, self.world.towers)
-        self.assertTrue(self.get_items_by_name(data.HUB_SECRET_DOOR_ITEM_NAME))
-
-    def test_the_grind_does_not(self) -> None:
-        self.assertEqual(len(self.get_items_by_name(data.GOURD_ITEM_NAME)),
-                         data.BASE_MONUMENT_SLOTS)
-
-    def test_victory_is_reachable(self) -> None:
-        self.collect_by_name(data.HUB_SECRET_DOOR_ITEM_NAME)
         self.assertTrue(self.can_reach_location("Victory"))

@@ -26,7 +26,6 @@ Big Walk:
   goal: deposits
   deposit_goal_amount: 5
   deposit_locations: all
-  green_dome_deposits: excluded
   radio_station_checks: true
   radio_station_items: true
   start_with_drawbridge_open: true
