@@ -66,7 +66,7 @@ own.
    for it. The ones after it are normal.
 
 To check it worked, open `BepInEx/LogOutput.log` and look for a line reading
-`Big Walk Archipelago v0.1.1 loaded (build …).` — the build is a short code that tells two copies of the mod apart.
+`Big Walk Archipelago v0.1.2 loaded (build …).` — the build is a short code that tells two copies of the mod apart.
 
 **Everyone must run the same mod version and the same game version.** A
 mismatch is not always loud: an older mod ignores parts of the seed it does

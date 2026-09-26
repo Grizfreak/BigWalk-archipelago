@@ -21,7 +21,7 @@ namespace BigWalkArchipelago
         // lost to a fresh file — rename the old one by hand if that happens.
         public const string PluginGuid = "com.grizfreak.bigwalk.archipelago";
         public const string PluginName = "Big Walk Archipelago";
-        public const string PluginVersion = "0.1.1";
+        public const string PluginVersion = "0.1.2";
 
         // BasePlugin.Log is an INSTANCE property (confirmed via reflection on
         // BepInEx.Unity.IL2CPP.dll): we deliberately shadow it (`new`) with a

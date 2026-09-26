@@ -11,7 +11,7 @@ from worlds.AutoWorld import World
 from . import data, items, locations, regions, rules, web_world
 from . import options as bigwalk_options
 
-WORLD_VERSION = "0.1.1"
+WORLD_VERSION = "0.1.2"
 """Kept in step with archipelago.json; sent in slot_data so the mod can check it."""
 
 TRACKER_OPTIONS = {
