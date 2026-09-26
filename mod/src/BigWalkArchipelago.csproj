@@ -15,7 +15,7 @@
     <RootNamespace>BigWalkArchipelago</RootNamespace>
     <!-- À garder aligné sur Plugin.PluginVersion : c'est ce numéro que lit
          tools/package-mod.ps1 pour nommer le zip livré aux joueurs. -->
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
 
     <!-- Les <Reference> ci-dessous portent toutes <Private>false</Private> :
          elles existent déjà dans BepInEx/ et BepInEx/interop/ au runtime et ne

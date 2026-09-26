@@ -56,7 +56,7 @@ below for why.
    for it.
 
 To check it worked, `BepInEx/LogOutput.log` should contain a line reading
-`Big Walk Archipelago v0.1.0 loaded.`
+`Big Walk Archipelago v0.1.1 loaded (build …).` — the build is a short code that tells two copies of the mod apart.
 
 Everyone must run the same mod version and the same game version. To
 uninstall, delete the four things you added; nothing in the game's own files
