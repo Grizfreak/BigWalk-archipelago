@@ -40,6 +40,7 @@ namespace BigWalkArchipelago.Debug
             Section("manager", DumpManager);
             Section("connections", DumpConnections);
             Section("input", DumpInput);
+            Section("prefabs", DumpPrefabs);
 
             Plugin.Log.LogInfo($"{Tag} === end of network dump ===");
         }
@@ -166,6 +167,68 @@ namespace BigWalkArchipelago.Debug
                     + $"keyboard={player.controllers.hasKeyboard} mouse={player.controllers.hasMouse} "
                     + $"joysticks={player.controllers.joystickCount}");
             }
+        }
+
+        // What a game WITHOUT the mod can build when the host spawns something
+        // (roadmap X1). Mirror builds a dynamically spawned object on a client
+        // from the prefab registered under its asset id, and a vanilla client
+        // registers exactly NetworkManager.spawnPrefabs. The mod's received
+        // gourds and gadgets are spawned under asset ids of its own, which is
+        // why a player without the mod never sees them; if any prop is in this
+        // list, received items could be spawned from it instead. The save's
+        // inventory is a list of savablePropGuids (the game moves existing
+        // scene props to the InventorySpawn rather than creating any), which
+        // suggests none is — this is the measurement.
+        private static void DumpPrefabs()
+        {
+            var manager = NetworkManager.singleton;
+            if (manager == null)
+            {
+                Plugin.Log.LogInfo($"{Tag} No NetworkManager, no spawnPrefabs.");
+                return;
+            }
+
+            var player = manager.playerPrefab;
+            Plugin.Log.LogInfo($"{Tag} playerPrefab: {(player != null ? player.name : "<none>")}");
+
+            var prefabs = manager.spawnPrefabs;
+            var count = prefabs != null ? prefabs.Count : 0;
+            Plugin.Log.LogInfo($"{Tag} {count} spawnPrefab(s), what a client without the mod can build:");
+            for (var i = 0; i < count; i++)
+            {
+                var prefab = prefabs[i];
+                if (prefab == null)
+                {
+                    Plugin.Log.LogInfo($"{Tag}   [{i}] <null>");
+                    continue;
+                }
+
+                var identity = prefab.GetComponent<NetworkIdentity>();
+                var kinds = new System.Collections.Generic.List<string>();
+                if (prefab.GetComponent<RewardGourd>() != null) kinds.Add("RewardGourd");
+                if (prefab.GetComponent<Prop>() != null) kinds.Add("Prop");
+                if (prefab.GetComponentInChildren<PropHome>(true) != null) kinds.Add("has a PropHome");
+                if (prefab.GetComponent<PlayerCharacter>() != null) kinds.Add("PlayerCharacter");
+
+                Plugin.Log.LogInfo(
+                    $"{Tag}   [{i}] '{prefab.name}' assetId={(identity != null ? identity.assetId.ToString() : "<no NetworkIdentity>")}"
+                    + (kinds.Count > 0 ? $" ({string.Join(", ", kinds)})" : ""));
+            }
+        }
+
+        private static bool _prefabsDumped;
+
+        // Once per process, as soon as the NetworkManager exists: the list is
+        // serialized on the manager and needs no world, so it can be measured
+        // by launching the game and reading the log, with no key to press.
+        internal static void DumpPrefabsOnce()
+        {
+            if (_prefabsDumped || NetworkManager.singleton == null)
+                return;
+
+            _prefabsDumped = true;
+            Plugin.Log.LogInfo($"{Tag} === spawnPrefabs (once per launch) ===");
+            Section("prefabs", DumpPrefabs);
         }
 
         // The identifier the host received for this connection: what

@@ -30,6 +30,8 @@ namespace BigWalkArchipelago.Debug
 
         private void Update()
         {
+            DebugNetworkLookup.DumpPrefabsOnce();
+
             if (_lastCosmeticPickupCheckTime >= 0f && Time.time >= _lastCosmeticPickupCheckTime)
             {
                 RecheckCosmeticPickup();

@@ -20,10 +20,14 @@ it has to be built.
 co-op testable on one PC (Ctrl+L).
 
 **Step 1 — Players without the mod (crossplay: PlayStation, Xbox)**
-- [ ] X1 Find which objects a vanilla game can build (measure)
-- [ ] X2 Received gourds and gadgets visible to players without the mod
-- [ ] X3 Nothing blocks a player without the mod (the true-ending sphere…)
-- [ ] X4 A real session with a console
+*Goal: they can play. Fewer features is acceptable; being blocked is not.*
+- [x] X1 Find which objects a vanilla game can build — only the player and the
+  corpse: no gourd, no gadget
+- [ ] X2 A loopback guest without the mod, to test as a console player would
+- [ ] X3 Nothing blocks a player without the mod (items in someone's hands
+  first, then the true-ending sphere…)
+- [ ] X4 Received items visible to them: reuse the island's own objects
+- [ ] X5 A real session with a console
 
 **Step 2 — Traps (first batch)**
 - [ ] T1 Trap weights as options
@@ -115,6 +119,12 @@ talks to Archipelago; guests learn anything else through the `ModChannel`.
 A console cannot run the mod: every console player is a guest without it,
 and the host has to be a modded PC.
 
+**Definition of done (player, 2026-09-26):** a player without the mod can
+play a seed to the goal alongside modded players — see what they are handed,
+carry it, deposit it, reach every place the seed needs. Losing features on
+their side (colours, the overlay, the radio mirror, the map reveal) is
+acceptable; being blocked, or seeing nothing where others see an item, is not.
+
 Known (tested 2026-09-25): a player without the mod joins a modded host and
 plays; every check they make is reported, because the host detects checks on
 its side. They miss (`SETUP.md`): received gourds and gadgets (spawned under
@@ -123,24 +133,50 @@ them), key tints, the overlay, the radio mirror, the purple gourds on the map,
 and the sphere before the true ending, which the mod removes only where it
 runs.
 
-- **X1 — Research.** Dump `NetworkManager.singleton.spawnPrefabs` (names,
-  asset ids) with Ctrl+N. The inventory gear (backpacks, belts, the carton)
-  comes back at an InventorySpawn on every load, so it is spawned from
-  registered prefabs; the question is whether gourds and gadgets are too.
-- **X2 — To do once X1 answers.** If they are, spawn received items from
-  those prefabs instead of the clones under our asset ids
-  (`ReceivedItemSpawner`, `GadgetItemSpawner`; handlers in
-  `CosmeticGourdSpawnHandler`/`GadgetSpawnHandler`). What must survive:
-  neutralized progression (a received gourd must not count as a puzzle),
-  the hand-over, the resync, the colour for modded players. If they are not,
-  the fallback is to reuse the island's own scene objects (as the gadget
-  clones already borrow a vanilla instance each) — Research.
-- **X3 — Research.** The known blocker: `SecondEndingSphereUnlocker` disables
-  `Spawn_SecondEnding_Sphere_Whole` locally. Find what the sphere's collider
-  is driven by, and whether the server can open it for everyone. Then walk
-  every goal with a guest without the mod (the loopback guest can run without
-  the DLL: remove it from a copy of the install, or add a switch).
-- **X4 — To do, needs a console.** Consoles join over EOS P2P, relayed; the
+- **X1 — Done (2026-09-26).** `NetworkManager.spawnPrefabs` holds ONE
+  prefab, `Corpse` (a Prop with homes for a pack and a belt), and the player
+  prefab is `PlayerCharacter` — dumped by Ctrl+N and once per launch in debug.
+  A vanilla game never creates a prop: the save's inventory is a list of
+  `savablePropGuid`s, and loading MOVES those scene props to the
+  InventorySpawn. So every object a player without the mod can see is a scene
+  object their own game already has, spawned by sceneId. The mod's clones,
+  spawned under asset ids of its own, can never be built there.
+- **X2 — To do.** A loopback guest that runs none of the mod, to test as a
+  console player would. A guest without BepInEx cannot join by address (the
+  vanilla menus join through EOS lobbies, and both instances share one EOS
+  identity), so the practical form is a `--bwap-vanilla` guest: the plugin
+  does the join and its two guest patches (identifier, `OnClientConnect`),
+  and nothing else — no `PatchAll`, no spawn handlers, no `ModChannel`.
+- **X3 — Research, and the likely blocker.** Since 0.1.1 received items go
+  into players' hands. A held item is published in `PlayerHeldInformation`, a
+  SyncVar carrying the object's netId; a client that cannot build that object
+  resolves it to null, and the game's own hook dereferences it inside
+  `DeserializeSyncVars` — measured on 2026-09-22 with a missing spawn handler:
+  `OnDeserialize failed`, then an exception every frame and that player's
+  network state broken for the rest of the session. A player without the mod
+  would hit this whenever anyone holds a received item. Measure it with X2;
+  the cure is X4, and meanwhile a host could hand items only to players whose
+  connection said hello (the `ModChannel` knows) — which does not help when a
+  modded player holds one in front of them. Then the true-ending sphere:
+  `SecondEndingSphereUnlocker` disables `Spawn_SecondEnding_Sphere_Whole`
+  locally; find what drives it and whether the server can open it for
+  everyone. Then walk every goal with an X2 guest.
+- **X4 — Research.** Received items built from the island's own scene
+  objects rather than clones:
+  - **gadgets**: the 70 vanilla instances the mod hides (3 megaphones, 8
+    walkie-talkies, 6 backpacks, 5 belts, 32 lamps, …) would be switched back
+    on and moved instead of cloned, so a vanilla client spawns them by
+    sceneId. Past a kind's vanilla count, clones remain: invisible to players
+    without the mod, and never to be handed to one (X3).
+  - **gourds**: the island has 45 puzzle gourds and 45 monument slots. A
+    solved puzzle's gourd is taken out of play (`PuzzleGourdRetirer`); it could
+    come back as a received gourd instead of a clone. A seed can hand out
+    more gourds than have been solved locally, so a clone is still needed
+    past that — same rules.
+  - to keep: neutralized progression on the host (a received gourd must not
+    count as a puzzle, `NeutralizeProgression`), the hand-over, Ctrl+R, the
+    session rebuild, the colours for modded players.
+- **X5 — To do, needs a console.** Consoles join over EOS P2P, relayed; the
   loopback guest talks Kcp. Check EpicTransport behaviour (packet size,
   fragmentation), the crossplay setting (`settings_crossplay`, the lobby's
   `crossplay`/`platform` attributes) and the same game version on both.
