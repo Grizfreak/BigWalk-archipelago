@@ -643,7 +643,7 @@ def radio_item_id(station: RadioStation) -> int:
 # Arch doors (SavableSystem.SpawnHubGate / HubShortcutToSportsCreek / HubTunnel)
 # --------------------------------------------------------------------------
 # The hub's three arch doors, which the mod opens on a save's first session
-# unless `lock_arch_doors` holds some of them back behind an item each.
+# unless `start_with_arch_doors_open` leaves some of them out, behind an item each.
 #
 # The first is the tutorial's way back to the hub: in vanilla it is opened
 # from the far side once the drawbridge is down, so it and the Drawbridge are

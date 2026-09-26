@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from typing import Any
 
@@ -19,7 +20,7 @@ TRACKER_OPTIONS = {
     "deposit_locations": "gourd_slot_checks",
     "radio_station_checks": "radio_checks",
     "radio_station_items": "shuffle_radio_music",
-    "lock_arch_doors": "lock_arch_doors",
+    "start_with_arch_doors_open": "start_with_arch_doors_open",
 }
 """
 The slot_data fields that are options, mapped to the option each one comes
@@ -36,6 +37,15 @@ inventory — the server hands it over either way — and `trap_fill_percentage`
 only ever picks between two kinds of filler. Neither can move a location.
 
 Kept in step with `fill_slot_data` by a test rather than by care.
+"""
+
+LEGACY_TRACKER_OPTIONS = {
+    "lock_arch_doors": "lock_arch_doors",
+}
+"""
+Fields only an older seed's slot_data carries: `lock_arch_doors` until
+0.1.1, before `start_with_arch_doors_open` replaced it. Read like the ones
+above so the tracker still rebuilds those seeds.
 """
 
 
@@ -126,8 +136,27 @@ class BigWalkWorld(World):
         self.deposit_amounts = self._pick_deposit_amounts(self.gourd_count)
         self.deposit_goal = self.options.gourds_required.value
 
-        self.locked_arch_doors = bigwalk_options.LOCKED_ARCH_DOORS[self.options.lock_arch_doors.current_key]
+        self._read_the_old_arch_door_option()
+        opened = self.options.start_with_arch_doors_open.value
+        self.locked_arch_doors = tuple(door for door in data.ARCH_DOORS if door.item_name not in opened)
         self._ask_for_an_early_way_out()
+
+    def _read_the_old_arch_door_option(self) -> None:
+        """
+        Turn a `lock_arch_doors` from a 0.1.1 YAML or seed into the
+        `start_with_arch_doors_open` that replaced it, which then decides
+        alone — slot_data included, so the tracker sees the new option.
+        """
+        old = self.options.lock_arch_doors
+        if old == bigwalk_options.LockArchDoors.option_unset:
+            return
+
+        logging.warning(
+            f"Big Walk: {self.player_name}'s lock_arch_doors is replaced by start_with_arch_doors_open; "
+            f"reading {old.current_key} as the doors it left open.")
+        locked = bigwalk_options.LOCKED_ARCH_DOORS[old.current_key]
+        self.options.start_with_arch_doors_open = bigwalk_options.StartWithArchDoorsOpen(
+            [door.item_name for door in data.ARCH_DOORS if door not in locked])
 
     def _ask_for_an_early_way_out(self) -> None:
         """
@@ -157,10 +186,15 @@ class BigWalkWorld(World):
         if not slot_data:
             return
 
-        for field, name in TRACKER_OPTIONS.items():
+        for field, name in {**TRACKER_OPTIONS, **LEGACY_TRACKER_OPTIONS}.items():
             if field in slot_data:
                 option = getattr(self.options, name)
                 setattr(self.options, name, option.from_any(slot_data[field]))
+
+        # A newer seed has no `lock_arch_doors`: one left in the tracking
+        # player's YAML must not override the seed's doors.
+        if "lock_arch_doors" not in slot_data:
+            self.options.lock_arch_doors = bigwalk_options.LockArchDoors(bigwalk_options.LockArchDoors.option_unset)
 
     def _pick_deposit_amounts(self, total_slots: int) -> tuple[int, ...]:
         choice = self.options.gourd_slot_checks
@@ -226,7 +260,7 @@ class BigWalkWorld(World):
             # `SavableSystem` names of the doors to hold closed until their
             # item arrives. A mod too old to read it opens all three, the
             # harmless direction — the logic never needs a door shut.
-            "lock_arch_doors": self.options.lock_arch_doors.current_key,
+            "start_with_arch_doors_open": sorted(self.options.start_with_arch_doors_open.value),
             "locked_arch_doors": [door.system_name for door in self.locked_arch_doors],
             "arch_door_id_offset": data.ARCH_DOOR_ID_OFFSET,
 

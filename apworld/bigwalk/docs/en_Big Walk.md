@@ -53,12 +53,14 @@ behind a wall: purple postgame gourds show on the map from the start, and the
 sphere that normally blocks the true-ending path until you have beaten the
 game once is removed.
 
-The hub's three arch doors follow `lock_arch_doors`. By default the first one,
-the tutorial's way back to the hub, opens as in the base game, and the two far
+The hub's three arch doors follow `start_with_arch_doors_open`, the list of
+those open from the start; every other one is an item. By default only the
+First Arch Door, the tutorial's way back to the hub, is open, and the two far
 ones, left towards Sports Creek and right, are items: shortcuts that save long
-detours, never required. With `all`, the first one is an item too, and you
-leave the starting area through the Drawbridge or the First Arch Door, one of
-which is always found early.
+detours, never required. Remove the First Arch Door from the list for a real
+early game: you then leave the starting area through the Drawbridge or the
+First Arch Door, one of which is always found early. Left open, most of the
+island is reachable from the start.
 
 ## What is the goal of Big Walk when randomized?
 

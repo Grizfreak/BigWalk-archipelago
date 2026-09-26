@@ -280,7 +280,7 @@ The mod suppresses each of these; an option turns the suppression off.
   `filler` (item rules) and `disabled` (no locations) to do.
 - Related, Partial: `require_arch_doors` — only the First Arch Door gates
   logic, Left and Right are shortcuts. `linear_arch_doors` — the vanilla
-  buttons are `lock_arch_doors: disabled`.
+  buttons are all three doors in `start_with_arch_doors_open`.
 
 ### Step 7 — More locations
 

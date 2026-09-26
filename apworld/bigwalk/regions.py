@@ -23,7 +23,8 @@ Three structural gates are modelled, all of them big keys:
 - **The way out of the starting zone** (2026-09-25). Players spawn at the hub,
   and the only zone open from there is the tutorial; the drawbridge and the
   first arch door lead on to the rest of the island. The mod opens that door
-  on a save's first session unless `lock_arch_doors: all` holds it closed, so
+  on a save's first session unless `start_with_arch_doors_open` leaves it
+  out, so
   the gate only has a rule in that case: the Drawbridge or the First Arch
   Door. The two far arch doors are shortcuts and gate nothing.
 

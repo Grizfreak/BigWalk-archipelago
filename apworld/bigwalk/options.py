@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from Options import (
-    Choice, DefaultOnToggle, OptionGroup, PerGameCommonOptions, Range, StartInventoryPool, Toggle, Visibility,
+    Choice, DefaultOnToggle, OptionGroup, OptionSet, PerGameCommonOptions, Range, StartInventoryPool, Toggle, Visibility,
 )
 
 from . import data
@@ -137,7 +137,7 @@ class StartWithDrawbridgeOpen(Toggle):
     If on, you start with the Drawbridge open instead of finding it in the
     multiworld.
 
-    - The hub's arch doors follow Lock Arch Doors, not this.
+    - The hub's arch doors follow Start With Arch Doors Open, not this.
     - The Drawbridge Key Deposit stays a check either way.
     """
 
@@ -148,21 +148,32 @@ class StartWithDrawbridgeOpen(Toggle):
 # its mention of `lock_map_room`, which this world does not have. The first
 # door is the starting zone's other way out besides the drawbridge; the two
 # far ones are shortcuts, so locking them changes the walk and not the logic.
+# A set rather than a Choice since 2026-09-26: a player asked to lock the first
+# door alone, and naming every combination took eight values.
+class StartWithArchDoorsOpen(OptionSet):
+    """
+    Which of the hub's three arch doors are open from the start. Every door
+    not listed starts closed and opens when its own item is found.
+
+    - First Arch Door: remove it for a real early game. While it is closed
+      you leave the starting area through it or the Drawbridge, one of which
+      is always found early. Open, most of the island is reachable from the
+      start.
+    - Left Arch Door (towards Sports Creek) and Right Arch Door: shortcuts.
+      Without them the whole island is still reachable, the long way round.
+    """
+
+    display_name = "Start With Arch Doors Open"
+    valid_keys = frozenset(door.item_name for door in data.ARCH_DOORS)
+    default = frozenset({data.FIRST_ARCH_DOOR.item_name})
+
+
+# The Choice that `StartWithArchDoorsOpen` replaced, as released in 0.1.1.
+# Hidden and kept only so a YAML that sets it, or a 0.1.1 seed's slot_data in
+# Universal Tracker, still gets the doors it asked for: an unknown option is
+# only a warning to Archipelago, and would silently fall back to the default.
 class LockArchDoors(Choice):
-    """
-    Which of the hub's three arch doors start closed. Each closed door opens
-    when its own item is found.
-
-    - all: all three. You leave the starting area through the Drawbridge or
-      the First Arch Door, and one of the two is always found early.
-    - far: the Left and Right Arch Doors; the first one opens as usual.
-    - far_left: only the Left Arch Door, towards Sports Creek.
-    - far_right: only the Right Arch Door.
-    - disabled: all three are open from the start.
-
-    The Left and Right doors are shortcuts: without them the whole island is
-    still reachable, the long way round.
-    """
+    """Replaced by Start With Arch Doors Open."""
 
     display_name = "Lock Arch Doors"
     option_all = 0
@@ -170,7 +181,9 @@ class LockArchDoors(Choice):
     option_far_left = 2
     option_far_right = 3
     option_disabled = 4
-    default = 1
+    option_unset = 5
+    default = option_unset
+    visibility = Visibility.none
 
 
 LOCKED_ARCH_DOORS = {
@@ -180,7 +193,7 @@ LOCKED_ARCH_DOORS = {
     "far_right": (data.RIGHT_ARCH_DOOR,),
     "disabled": (),
 }
-"""The doors each value holds closed until their item arrives."""
+"""The doors each value of the old `lock_arch_doors` held closed until their item arrived."""
 
 
 # Hidden until the mod gives a trap an effect: today a trap is a filler item
@@ -207,6 +220,7 @@ class BigWalkOptions(PerGameCommonOptions):
     radio_checks: RadioChecks
     shuffle_radio_music: ShuffleRadioMusic
     start_with_drawbridge_open: StartWithDrawbridgeOpen
+    start_with_arch_doors_open: StartWithArchDoorsOpen
     lock_arch_doors: LockArchDoors
     trap_fill_percentage: TrapFillPercentage
     start_inventory_from_pool: StartInventoryPool
@@ -217,7 +231,7 @@ option_groups = [
     OptionGroup("Gourds", [GourdSlotChecks]),
     OptionGroup("Radio", [RadioChecks, ShuffleRadioMusic]),
     OptionGroup("Keys", [StartWithDrawbridgeOpen]),
-    OptionGroup("Doors", [LockArchDoors]),
+    OptionGroup("Doors", [StartWithArchDoorsOpen]),
 ]
 
 option_presets = {

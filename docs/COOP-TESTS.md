@@ -327,7 +327,7 @@ Deploy with `tools/deploy-mod.ps1` first; the other machine takes
 
 | # | What | How | Expected |
 |---|---|---|---|
-| 16 | Arch doors held closed, and opened by their item | Solo. Seed from `tools/players/door-test.yaml` (`lock_arch_doors: all`, Left Arch Door at start), new save. | The first arch door (at the hub, beside the keyhole) and the right one stay **closed**; the left one (Sports Creek) is **open**. The log names each door held or opened (`ArchDoors`, `ArchDoorHoldPatch`). |
+| 16 | Arch doors held closed, and opened by their item | Solo. Seed from `tools/players/door-test.yaml` (`start_with_arch_doors_open: []`, Left Arch Door at start), new save. | The first arch door (at the hub, beside the keyhole) and the right one stay **closed**; the left one (Sports Creek) is **open**. The log names each door held or opened (`ArchDoors`, `ArchDoorHoldPatch`). |
 | 17 | Arch door opening live | Same room, with the server: `/send DoorWalk First Arch Door`. | The first door opens on the spot, without a reload, and stays open after one. |
 | 18 | Arch doors seen by a guest | Two machines, same room. | The guest sees the same doors open and shut as the host. |
 | 19 | Items go to every player in turn | Two machines, debug on, both with empty hands. Press `Ctrl+I` (simulated gadget) several times. | Gadgets alternate between the two players, appear in front of the one receiving, and land in their hands **on both screens**. |

@@ -24,6 +24,7 @@ UNLIKE_THE_DEFAULTS = {
     "gourds_required": 25,
     "radio_checks": False,
     "shuffle_radio_music": False,
+    "start_with_arch_doors_open": [],
 }
 
 
