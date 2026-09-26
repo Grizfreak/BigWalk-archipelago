@@ -21,6 +21,9 @@ co-op testable on one PC (Ctrl+L).
 
 **Step 1 — Players without the mod (crossplay: PlayStation, Xbox)**
 *Goal: they can play. Fewer features is acceptable; being blocked is not.*
+*Rule: a session where everyone runs the mod plays exactly as 0.1.1. A change
+that would cost modded players anything becomes an off-by-default option, or
+is dropped.*
 - [x] X1 Find which objects a vanilla game can build — only the player and the
   corpse: no gourd, no gadget
 - [x] X2 A loopback guest without the mod, to test as a console player would
@@ -125,6 +128,15 @@ play a seed to the goal alongside modded players — see what they are handed,
 carry it, deposit it, reach every place the seed needs. Losing features on
 their side (colours, the overlay, the radio mirror, the map reveal) is
 acceptable; being blocked, or seeing nothing where others see an item, is not.
+
+**No regression for modded players (player, 2026-09-26), and a hard rule:**
+a session where everyone runs the mod must play exactly as 0.1.1. So:
+anything done for players without the mod is either invisible to modded ones
+(an island gadget instead of a clone looks the same) or applies only while a
+player without the mod is connected (the `ModChannel` knows who said hello).
+Every X4 change re-runs the modded co-op tests (6, 16 to 22) before it stays.
+A change that would cost modded players something becomes an off-by-default
+option, or is dropped.
 
 Known (tested 2026-09-25): a player without the mod joins a modded host and
 plays; every check they make is reported, because the host detects checks on
