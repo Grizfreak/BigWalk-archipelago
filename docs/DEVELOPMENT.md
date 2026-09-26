@@ -21,10 +21,15 @@ for what the randomization does.
   to every install, then prints a fingerprint and says whether they agree;
   `tools/package-mod.ps1` produces the player zip; `python tools/testroom.py`
   rebuilds the apworld, generates a seed from `tools/players/` and hosts the
-  room, printing the details to type in game. `solo-smoke.yaml` validates the
-  chain in a few minutes, `solo-full.yaml` is a real game, and
-  `coop-test.yaml` has a slot name of its own so it does not pollute the
-  counters.
+  room, printing the details to type in game (it refuses a port another room
+  already holds). `solo-smoke.yaml` validates the chain in a few minutes,
+  `solo-full.yaml` is a real game, and `coop-test.yaml` has a slot name of
+  its own so it does not pollute the counters.
+- **Co-op on one PC** (2026-09-26): with `Debug.Enabled` on, host a world and
+  press Ctrl+L — a second instance of the game starts windowed and joins as a
+  real guest over 127.0.0.1. Ctrl+T switches window, Ctrl+C calls the guest
+  over. `tools/launch-guest.ps1` starts the same guest from a terminal. See
+  [`COOP-TESTS.md`](COOP-TESTS.md), Setup, for what still takes two machines.
 
 Reverse engineering and design decisions:
 [`mod/reverse-engineering-notes.md`](../mod/reverse-engineering-notes.md) (how
@@ -85,5 +90,7 @@ python -m pytest test/general -q            # Archipelago conformance
       the save's own name (2026-09-22). All exercised in game the same day,
       except the rule that keeps Ctrl+R off worn and stowed props, which
       cannot be exercised alone — see [`COOP-TESTS.md`](COOP-TESTS.md) test 15
-- [ ] The big keys on two machines — [`COOP-TESTS.md`](COOP-TESTS.md)
+- [x] The big keys on two machines — [`COOP-TESTS.md`](COOP-TESTS.md)
+- [x] The first alpha's feedback (0.1.1, 2026-09-26), tested with the
+      loopback guest except test 24, which needs the alpha host's save
 - [ ] A seed played from the first check to the goal

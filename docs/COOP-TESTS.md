@@ -32,15 +32,36 @@ The third fact is the one the new work has not reckoned with.
 
 ## Setup, and the part that is not optional
 
-**Two machines.** Two local instances do not work: the game authenticates
-through EOS with the Steam identity, and two sessions of one identity on one
-machine do not both get a ticket (`Failed to get auth ticket`). See
-`NEXT-SESSION.md`, "Why two local instances do not work".
+**One PC is enough for most of this (since 2026-09-26): the loopback
+guest.** With `Debug.Enabled` on, host a world as usual through Steam and
+press **Ctrl+L**: a second instance of the same install starts windowed and
+joins as a real Mirror client over Kcp on 127.0.0.1 — every replication bug
+a real guest meets is there to be met. `tools/launch-guest.ps1` does the same
+from a terminal. Then:
 
-**Run `tools/deploy-mod.ps1` and check the hash matches on both machines.** It
-prints one fingerprint and says whether the installs agree. Three co-op tests
-were wasted in one weekend on a guest running older code; the script exists
-because of it.
+- **Ctrl+T**, in either window, hands the keyboard to the other one;
+- **Ctrl+C**, on the host, teleports the guest beside you;
+- **Ctrl+N** dumps either side's network setup, connections and input;
+- **Ctrl+L** in the guest joins again, if the host was not hosting yet.
+
+The guest's log is `BepInEx/LogOutput.1.log`, its Unity log
+`Player-guest.log`. Both instances run the same install, so there is no
+fingerprint to compare. How it works, and why a second instance used not to,
+is in `NEXT-SESSION.md`, "Two instances on one PC".
+
+**What still takes two machines:** real latency; anything specific to
+EpicTransport (packet size, fragmentation, relays), since the loopback guest
+talks Kcp; joining through an EOS lobby or a Steam friend, which it skips;
+two genuinely different accounts; and a last pass before a release.
+
+**With two machines, run `tools/deploy-mod.ps1` and check the hash matches on
+both.** It prints one fingerprint and says whether the installs agree. Three
+co-op tests were wasted in one weekend on a guest running older code; the
+script exists because of it.
+
+**Hosting a test room: pick a port nobody holds.** `tools/testroom.py`
+refuses a port that is already taken, since another room on it (another
+project's, say) would be the one the game connects to.
 
 **The host must be the one hosting the Big Walk session AND the one with the
 Archipelago details filled in.** The slot name is the save name.
@@ -312,6 +333,41 @@ Deploy with `tools/deploy-mod.ps1` first; the other machine takes
 | 22 | Gourd colours | Two machines, a seed from `tools/players/belt-test.yaml` (3 gourds at start). | The gourds come in different colours among red, orange, yellow, green, blue and purple; each gourd has the **same colour on both screens**; none is a glowing white blob, including after walking far from the hub and back. |
 | 23 | No `ap_` keys in a vanilla save | Solo. Host the `LGM` save with the Archipelago switch off, walk a little, quit. Back the save up first. | `save_LGM_*.sav` holds no `"key":"ap_` entry. Restore the backup afterwards either way. |
 | 24 | Puzzle gourds stowed in a bag | Only with a save that has one (the alpha host's). | Host log: `PuzzleGourdRetirer ... inside BackpackProp...; taking it out of play`; nothing left at the spawn to pick up. |
+
+### Results, 2026-09-26: the first loopback pass
+
+All run on one PC with the loopback guest, on the build that became 0.1.1.
+
+| # | Result |
+|---|---|
+| 16 | **PASSES.** `Held closed until their item arrives: SpawnHubGate, HubShortcutToSportsCreek, HubTunnel`, then the Left door (in the start inventory) opened. |
+| 17 | **PASSES.** `/send DoorWalk First Arch Door`: `SpawnHubGate granted`, then `opened`, on the spot. |
+| 18 | **PASSES.** The guest, started by Ctrl+L, sees the same doors. |
+| 19 | **FAILED, fixed, then PASSES.** Items alternated between the two players but never reached anyone's hands: the hand-over queue was drained below the early return taken when Archipelago is off in the config, so only the debug simulators (Ctrl+I) ever met it. A real session was not affected. After the fix, `Item handed to` alternates between the host and `GRIZ_TWR-1`. |
+| 20 | **PASSES.** `had full hands; they drop what they held and take the new item next`, for both players. |
+| 21 | **PASSES.** Two quick items, one each. |
+| 22 | **FAILED, fixed, then PASSES.** All three gourds red, on both screens. `RewardGourd.Awake` copies `variantChallengeColor` into `propertyBlockHelper.colorSettings[0]` once, before the clone has a netId — netId 0, the first of the six colours, every time — and setting the field again later changed nothing, since `Refresh()` pushes `colorSettings`. The colour is now written where Awake writes it, and the log says `took` on both sides. |
+| 23 | **PASSES**, twice: the `LGM` save came back with no `ap_` key. Restored from a copy afterwards. |
+| 24 | **NOT RUN**: it needs a save with a puzzle gourd already in a bag, which only the old sealed-box bug could make. Shipped untested, with a note in the release. The opposite case (nothing touched on ordinary saves) was checked when it was built. |
+| 6 | **PASSES.** Ctrl+R cleared the key from the guest's hands (`GRIZ_TWR-1 was still holding netId 219 ... cleared`) and it went back to the spawn point, on both screens. Note: on its first delivery the key was put back 5 times in 2 s (`tug of war`) rather than the usual one or two, and still settled. |
+
+**Found on the way, and the worst bug of the release: a check made in one save
+was sent for another.** An Archipelago save, then a finished vanilla save
+loaded with the switch off, then the Archipelago save again, all in one run of
+the game: the second load sent the room 59 checks at once — every puzzle, key
+and station of the vanilla save — and got 59 items back. Every check the host
+saw went into one in-memory queue, whatever the switch and whatever the save,
+and the queue went to the next room the process was connected to; the socket
+outlives a return to the menu, so that was the old save's. Now a check made
+with the switch off is never queued, and a world that goes away takes its
+leftovers with it (to its own room if still connected, dropped otherwise: the
+save's `ap_reported_*` ledger replays them on its next connection). Re-run the
+same way: 59 checks in the local log, 0 sent.
+
+**Also checked:** returning to the main menu from a world raises nothing with
+this build. The first alpha host's log showed a NullReferenceException there
+(and three IndexOutOfRangeExceptions mid-play, never seen here); that host ran
+Wine and two movement mods, so neither is attributed to this mod.
 
 ---
 

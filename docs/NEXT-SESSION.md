@@ -8,6 +8,16 @@ is shaped the way it is); [`apworld/protocol.md`](../apworld/protocol.md) is
 the contract between the two. This file is the short version and the
 to-do list.*
 
+**Update, 2026-09-26: 0.1.1.** The first alpha's feedback is done and
+tested, and co-op no longer needs a second machine: host a world with
+`Debug.Enabled` on and press Ctrl+L, and a second instance joins as a real
+guest over 127.0.0.1 ("Two instances on one PC", below). That session also
+found and fixed the worst bug the mod has shipped — a check made in one save
+sent for another — see [`COOP-TESTS.md`](COOP-TESTS.md), "Results,
+2026-09-26". What is left: test 24, which needs the alpha host's save; Task
+2; and, if it is ever worth it, splitting keyboard (host) and gamepad (guest)
+for the loopback guest — Rewired is measured and allows it.
+
 **Start here: co-op.** The big keys are built AND exercised in game — Task 1
 below, with the list of what the session of 2026-09-21 confirmed. What none of
 it has ever met is a second machine, and that is now the most valuable hour
@@ -19,6 +29,7 @@ than work.
 **Before touching anything in game**: `tools/deploy-mod.ps1` builds and
 deploys to every install, then prints one hash and says whether they match.
 Three co-op tests were wasted in one weekend on a guest running older code.
+(With the loopback guest there is one install and nothing to compare.)
 
 **A lesson from 2026-09-21 that will save an hour**: the game instantiates
 every gourd, every broadcast station and every key blank **everywhere**.
@@ -216,10 +227,12 @@ whether the save already stores what you are about to store**:
 `ApItemCursor` had been recording the slot beside the seed all along, and a
 second writer for the same key would have split a pair it compares as a unit.
 
-**The version is settled (2026-09-21): 0.1.0, and there is nothing to do.**
+**The version: 0.1.1 since 2026-09-26** (0.1.0 was the first alpha).
 `Plugin.PluginVersion`, the `.csproj`, `archipelago.json` and `WORLD_VERSION`
-already agree, and the alpha is the first thing to ship publicly, so 0.1.0 is
-what it is called. What matters from here is that the two halves move
+move together, every time. A 0.1.0 seed still plays with the 0.1.1 mod — ids
+unchanged, goals still sent under their old wire names (`GOAL_ON_THE_WIRE`),
+arch doors left open when slot_data has no `locked_arch_doors` — with a
+version warning. What matters from here is that the two halves move
 together: a mod older than its apworld ignores `big_key_features`, so it pins
 keys as before AND never reports the 25 cut checks, which makes a seed
 unbeatable if anything needed sits on one. The mismatch only warns; bumping
@@ -311,22 +324,55 @@ All three goals are now confirmed end to end — `ending` (EndingGate 1 -> 2),
     exercised. `second_ending` was, separately and later the same day — see
     the section below.
 
-## Why two local instances do not work
+## Two instances on one PC (the loopback guest, 2026-09-26)
 
-Tried on 2026-09-18: the game authenticates through EOS with the Steam
-identity, and two sessions of the same identity on one machine do not both
-get a ticket (`Failed to get auth ticket`, then `Failed to Init Host Menu`).
+It used not to work (2026-09-18: `Failed to get auth ticket`, then `Failed
+to Init Host Menu`), and the lead left here then — `KcpTransport
+initialized!` in every log — was the right one. Measured before anything was
+built (Ctrl+N, `Get-NetUDPEndpoint`, and Ghidra):
 
-The lead, if this ever becomes worth an hour or two: **`KcpTransport
-initialized!` appears in every log**, on both machines. The game carries a
-direct UDP transport besides EpicTransport. Forcing the NetworkManager onto
-it with a direct address would let two local instances talk over 127.0.0.1
-without EOS at all — but the hosting screen is gated behind EOS auth, so
-that would have to be bypassed too. It is a mod of its own, not a setting.
+- **The host already listens on UDP 7777.** `NetworkMinder.StartHost` calls
+  `SetToBothTransports` whenever Steam is up: a `MultiplexTransport` over
+  `[KcpTransport, EosTransport]`, Kcp in dual mode. Nothing on the host had
+  to change. No log ever showed it, because Kcp's Info log is a no-op unless
+  its `debugLog` is ticked.
+- **Joining needs no EOS.** The game has its own join-by-address,
+  `NetworkMinder.SetTransportAndConnect(address)`: a non-numeric address
+  picks Kcp. `HouseAuthenticator` checks the version, the password and a
+  "session closed" state, never the platform.
+- **A direct launch quit on its own**, which is most likely what "a direct
+  launch does not load BepInEx" was on 2026-09-15: `SteamManager.Awake` calls
+  `SteamAPI_RestartAppIfNecessary`, which asks Steam to start the game instead,
+  and Steam refuses a second launch. `SteamAppId`/`SteamGameId` in the guest's
+  environment (what Steam itself sets) stop that, with no file added to the
+  install. The guest then logs into EOS too, without trouble.
+- **Two things had to be patched on the guest only.** Both instances share a
+  Steam account, so both sent the host the same `playerIdentifier`, which the
+  host keys `Corpse.FindMatch` and player names on: the guest's
+  `TryGetLocalUserIdentifier` returns false, and the game falls back to the
+  machine name. And `HouseNetworkManager.OnClientConnect` builds an EOS lobby
+  from `EOSLobbyManager.currentLobbyInfo`, which a join by IP never fills: it
+  would throw, and Mirror disconnects a connection whose handler throws. With
+  that field empty, the prefix readies the connection and asks for a player as
+  the method does, and skips the lobby.
+- **Logs stay apart on their own**: BepInEx gives the second instance
+  `LogOutput.1.log`; `-logFile` sends Unity's to `Player-guest.log`. The
+  window mode and size live in PlayerPrefs, which both share, so the launch
+  saves them and a hidden watcher puts them back when the guest exits.
+- **Input** is Rewired (no Unity Input System). Both instances listen to
+  keyboard, mouse and gamepad, and ignore input while unfocused; the game
+  already sets `Application.runInBackground`, so neither stalls.
+
+Code: `mod/src/Debug/Loopback*.cs` (role from `--bwap-guest`, never the
+shared `.cfg`; everything behind `Debug.Enabled`), `tools/launch-guest.ps1`.
+Keys: Ctrl+L (start or join), Ctrl+T (switch window), Ctrl+C (call the guest
+over, through a debug-only ModChannel message sent to loopback connections
+only), Ctrl+N (dump). What it cannot stand in for is listed in
+[`COOP-TESTS.md`](COOP-TESTS.md), Setup.
 
 A solo mod that swaps one connection between two PlayerCharacters
-(`ReplacePlayerForConnection`) cannot help either: every remaining question
-is "does this replicate to a second client", and it has only one.
+(`ReplacePlayerForConnection`) was rejected at the outset: every remaining
+question is "does this replicate to a second client", and it has only one.
 
 ## Open questions that could still bite
 
@@ -514,3 +560,19 @@ same mistake in different clothes: a write performed on the machine that
 does not own the state — `hands.Drop` host-side on a remote player,
 `PickUp` client-side on oneself, and a scene-object clone spawned under an
 assetId no client could resolve.
+
+**A value the game copies in `Awake` cannot be changed by setting it again
+afterwards** (2026-09-26). `RewardGourd.Awake` copies `variantChallengeColor`
+into its `PropertyBlockHelper` once; the mod set the field again after the
+netId existed, called `Refresh()`, and every gourd stayed the colour of netId
+0. Find where the game READS a field before trusting a write to it.
+
+**The game's exceptions reach managed code wrapped.** An NRE thrown inside a
+game getter arrives as an `Il2CppException` whose message starts
+`System.NullReferenceException:`; `catch (NullReferenceException)` lets it
+straight through. Catch `Exception` around game calls that may throw.
+
+**"Something is listening on the port" is not "my room is listening".** The
+first test room of 2026-09-26 never started — another project's server held
+38281 — and a check that only asked whether the port was open said it was
+fine. Ask who owns it; `tools/testroom.py` now refuses a taken port.

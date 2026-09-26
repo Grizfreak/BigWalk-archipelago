@@ -1769,6 +1769,43 @@ The control that caught both, twice: the Lamp. It is the one gadget kind
 "everything missing except exactly the thing we do not touch" is what turned
 each hypothesis into a measurement rather than a guess.
 
+## How a session is hosted and joined (decompiled 2026-09-26)
+
+Read for the loopback guest; the account of what was built on it is in
+`../docs/NEXT-SESSION.md`, "Two instances on one PC".
+
+- **`NetworkMinder`** owns the transports. `StartHost` picks
+  `SetToBothTransports` when `SteamManager.Initialized` (a
+  `MultiplexTransport` over `[KcpTransport, EosTransport]`,
+  `Transport.active` = the multiplex) and `SetToIpTransport` otherwise (Kcp
+  alone). `NetworkManager.transport` itself stays a `ThrottledTransport`.
+  Kcp listens on UDP 7777, dual mode, and logs nothing when it starts.
+- **Joining**: `SetTransportAndConnect(address)` — a numeric address goes
+  through EOS, anything else through Kcp — then `JoinGame`, an inlined
+  `StartClient`. `JoinFriendCard.ActionJoin` then hides its menu and shows
+  `MainMenuManager.connectingMenu`, which the authenticator's error and
+  password paths expect to be up. `ProcessSteamCommandLine` does the same with
+  the Steam launch command line.
+- **`HouseAuthenticator`**: the client sends
+  `InitialialAuthRequestMessage { playerIdentifier, versionNumber }`, the
+  identifier being `HouseSteamManager.TryGetLocalUserIdentifier` (the
+  SteamID) or `SystemInfo.deviceName` when that fails. The host answers 100
+  (in), 150 (password), 200 (wrong password), 220 (version mismatch) or 240
+  ("session closed due to gameplay"). No platform check.
+- **The identifier is what the host keys a player on**: `AddPlayerDelayed`
+  calls `Corpse.FindMatch(identifier)` to hand a returning player the pack and
+  holster they left, and the player object is named
+  `PlayerCharacter <identifier>-<n>`.
+- **`HouseNetworkManager.OnClientConnect`**, on a pure client, readies and
+  adds the player, then builds a `LobbyInfo` from
+  `EOSLobbyManager.currentLobbyInfo` — null after a join by IP, which throws.
+- **`SteamManager.Awake`** calls `SteamAPI_RestartAppIfNecessary` and quits if
+  it answers yes: a direct launch of the exe without `SteamAppId` in its
+  environment (or a `steam_appid.txt`) closes itself.
+- **`RewardGourd.Awake`** is the only place `variantChallengeColor` is used:
+  copied into `propertyBlockHelper.colorSettings[0].color`, then `Refresh()`.
+  Changing the field after Awake changes nothing on screen.
+
 ## Point to test next session: cooperative puzzles without a clamp
 
 Following the discussion above, the player clarified how these "no clamp"

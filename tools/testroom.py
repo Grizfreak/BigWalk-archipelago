@@ -16,7 +16,9 @@ Stdlib only, and it finds Archipelago by itself (see find_archipelago).
 from __future__ import annotations
 
 import argparse
+import re
 import shutil
+import socket
 import subprocess
 import sys
 from pathlib import Path
@@ -149,6 +151,33 @@ def read_slot_name(yaml_name: str) -> str:
     sys.exit(f"No `name:` found in {yaml_name}; cannot tell what to call the save.")
 
 
+def world_version() -> str:
+    """WORLD_VERSION as world.py declares it, so the cheat sheet never goes stale."""
+    source = (REPO / "apworld" / "bigwalk" / "world.py").read_text(encoding="utf-8")
+    match = re.search(r'^WORLD_VERSION\s*=\s*"([^"]+)"', source, re.MULTILINE)
+    return match.group(1) if match else "?"
+
+
+def port_in_use(port: int) -> bool:
+    """
+    Whether something already answers on this port, on either loopback.
+
+    Asked before anything is built: on 2026-09-26 the first test room never
+    started because another project's server held 38281, the room's window
+    said so in passing, and the game connected to that other room. Hosting a
+    second room on a taken port is never what was meant.
+    """
+    for family, host in ((socket.AF_INET, "127.0.0.1"), (socket.AF_INET6, "::1")):
+        with socket.socket(family, socket.SOCK_STREAM) as probe:
+            probe.settimeout(0.5)
+            try:
+                if probe.connect_ex((host, port)) == 0:
+                    return True
+            except OSError:
+                continue
+    return False
+
+
 def print_cheat_sheet(yaml_name: str, port: int) -> None:
     slot = read_slot_name(yaml_name)
     print()
@@ -160,16 +189,17 @@ def print_cheat_sheet(yaml_name: str, port: int) -> None:
     print()
     print("Expected in BepInEx/LogOutput.log:")
     print(f"    [ApRuntime] Connecting to 127.0.0.1:{port} as '{slot}'...")
-    print("    [ApRuntime] Connected. apworld v0.1.0, goal=...")
+    print(f"    [ApRuntime] Connected. apworld v{world_version()}, goal=...")
     print()
     print("Useful commands in this server console:")
     print(f"    /send {slot} Gourd                 spawn a gourd at the hub")
     # The door and the key are two items since 2026-09-21, and the console is
     # where the difference is easiest to see: one opens something, the other
-    # is six checks you carry.
-    print(f"    /send {slot} Map Room              the door: opens live")
-    print(f"    /send {slot} Map Room Key          the key: opens nothing, carries checks")
-    print(f"    /send_location {slot} Cabin Fever  mark a check server-side")
+    # is six checks you carry. Keys are named after their tower, features
+    # after what they open.
+    print(f"    /send {slot} Drawbridge            the door: opens live")
+    print(f"    /send {slot} Drawbridge Key        the key: opens nothing, carries checks")
+    print(f"    /send_location {slot} Cabin Fever Puzzle   mark a check server-side")
     print("    /players                           who is connected")
     print()
     print("The test that matters most: quit the game, relaunch, reconnect —")
@@ -193,6 +223,10 @@ def main() -> None:
                         help="re-host the most recent seed instead of generating a new one, "
                              "keeping the room's history so a save can reconnect to it")
     args = parser.parse_args()
+
+    if not args.no_host and port_in_use(args.port):
+        sys.exit(f"Port {args.port} is already taken, probably by another room. "
+                 f"Pick a free one with --port (and type that port in the game).")
 
     archipelago = find_archipelago(args.archipelago)
     print(f"Archipelago: {archipelago}")

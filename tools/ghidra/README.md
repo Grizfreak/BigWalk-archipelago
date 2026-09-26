@@ -34,7 +34,21 @@ $s = "F:\Archipelago\dev\BigWalk-archipelago\tools\ghidra"
 ```
 
 Output goes to stdout among Ghidra's own logging; redirect to a file and
-grep it. Every line the scripts print is prefixed `INFO  <script>>`.
+grep it. Every line the scripts print is prefixed `INFO  <script>>` — but a
+decompiled body is printed in one go, so only its first line carries the
+prefix: strip the prefix rather than keep only prefixed lines.
+
+**Function names in this project are `Class_Method`**, not `Class$$Method`:
+`FindCallers.java 'NetworkMinder_'` lists that class, `'NetworkMinder$$'`
+finds nothing. Several questions fit in one run — repeat `-postScript`, and
+pass `-readOnly` so the analysed project is left untouched:
+
+```powershell
+& $g "F:\Archipelago\dev\BigWalk-archipelago\mod\gh-pj" "Big Walk" `
+     -process "GameAssembly.dll" -noanalysis -readOnly -scriptPath $s `
+     -postScript FindCallers.java 'KcpTransport_' `
+     -postScript FindCallers.java 'HouseAuthenticator_' > out.txt
+```
 
 `FindCallers` is usually the one to reach for first: it turns "which
 function writes this networked field" into a list, and the names IL2CPP
