@@ -84,11 +84,17 @@ Answers go here, and into the detail below, as they come.
    vanilla game (no Archipelago item on it)? Or something else?
 2. **Filler names** (Baby, Boid, Bouba…): joke items with no effect, or names
    for the gourd item?
-3. **Colours**: which things, beyond gourds and keys — the island's objects,
-   the towers, the players?
-4. **"Randomizing items in the world"**: moving the island's objects to other
-   places (C3), or something else?
-5. **Traps**: annoying or funny, and how often by default?
+
+Answered (2026-09-26):
+
+- **Order**: crossplay first, as listed.
+- **Colours**: the island's objects, and many more things later ("we'll
+  see"). A trap that changes the players' colours is one example: colour can
+  take many forms, in C and in T5 alike.
+- **Randomizing items in the world**: ideas in the air, not a commitment. C3
+  stays a Research idea at the bottom of its step.
+- **Traps**: a mix, tunable — a weight per trap in the YAML (T1), so each
+  group picks the tone.
 
 ---
 
@@ -149,7 +155,7 @@ runs.
 | T2 | Drop Everything, Butterfingers (hands only), Heavy Items (worn packs) | everyone | The host clearing `PlayerHeldInformation`, as the hand-over and Ctrl+R do (`ReceivedItemSpawner.ClearServerSideHold`). "Cannot hold for N seconds" means refusing pick-ups meanwhile: `UserCode_CmdPickUp` runs on the host. |
 | T3 | A door slams shut for a while | everyone | Peck states are server-side; `ArchDoors`/`KeyFeatures` drive them. Must never trap a player out of logic: reopen on a timer, and never a door the seed needs shut forever. |
 | T4 | Gourds scattered | everyone | Loose gourds are server-owned; `ReceivedItemSpawner.ResolveSpawnPosition` places them. Needs a list of safe spots (reachable, not in a sealed puzzle room). |
-| T5 | Teleport, colour chaos, radio hijack | modded players | `PlayerGrease.Teleport` on the player's own machine through the `ModChannel` (as Ctrl+C); the colour writes of C1; `FmRadioManager` is local. |
+| T5 | Teleport, colour chaos (the world, or the players themselves), radio hijack | modded players | `PlayerGrease.Teleport` on the player's own machine through the `ModChannel` (as Ctrl+C); the colour writes of C1/C2 — a player's colour needs its renderer and shader property measured like any other object; `FmRadioManager` is local. |
 | R9 | No Comms, Cutscene, The Mask, Whiteboard Rewrite | — | Research each: where walkie-talkies live, how the monolith cutscene is started, what The Mask is. |
 
 ### Step 3 — Colours and the world
