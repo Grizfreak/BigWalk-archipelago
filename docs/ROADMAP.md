@@ -50,6 +50,8 @@ is dropped.*
 - [ ] G2 Keys and radio stations as collectible goals
 - [ ] G3 Collectibles AND an ending, or collectibles THEN an ending
 - [ ] G4 Towers to fill (per-tower deposits)
+- [ ] G5 Objectives: pick any endings and collectibles for a seed, add or
+  remove each one
 
 **Step 5 — Hints**
 - [ ] H1 Hints when players reach a tower
@@ -254,6 +256,18 @@ Today a goal is one of four: `big_wall`, `big_goodbye`, `big_game`,
 - **G4 — To do, bigger.** `towers_to_goal` and
   `limit_green_dome_deposit_boxes` need per-tower deposits: Option C/D in
   `apworld/design-decisions.md`, set aside for the alpha.
+- **G5 — To do, Decision first.** The user's idea (2026-09-26): instead of one
+  goal, a list of objectives the YAML adds or removes one by one, the way
+  `start_with_arch_doors_open` lists doors — endings (`big_wall` — the
+  document's `big_bell`, worth an alias —, `big_goodbye`, `big_game`, then
+  G1's `big_walk` and R5's `big_climb`, `big_club`) and collectibles
+  (`big_collection`, then G2's keys and radio stations). G3's "and" is then
+  just a list with both kinds; its "then" stays an extra ordering. The mod
+  can detect each of today's four goals but watches only the chosen one
+  (`ApRuntime`, `switch (slotData.Goal)`): it would watch every listed one
+  and send the goal once they are done. To decide: all of them, or a number of them (like
+  `gourds_required`)? And the old `goal` kept hidden and read into the
+  list, as `lock_arch_doors` was.
 
 ### Step 5 — Hints
 
