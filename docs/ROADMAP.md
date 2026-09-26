@@ -5,7 +5,8 @@ through one step at a time: pick the next item, build it, test it, tick it.
 The top half is the list; the bottom half is the detail behind each item,
 found by its id (X1, T2, …).
 
-Sources: the community document "Big Walk Archipelago details" (proposed
+Sources: the community document "Big Walk Archipelago details" (its options
+kept verbatim in [`community-options.yaml`](community-options.yaml); proposed
 options, items and locations, custom tiles, 0.1.0 notes), and the player's
 own wishes (traps, colours, where things are in the world, crossplay).
 
@@ -475,7 +476,8 @@ The mod suppresses each of these; an option turns the suppression off.
 
 ## The document's options, one by one
 
-Every option of "Big Walk Archipelago details", and where it lives. Status as
+Every option of "Big Walk Archipelago details" (kept verbatim in
+[`community-options.yaml`](community-options.yaml)), and where it lives. Status as
 of 2026-09-26.
 
 | Option | Id | Status |

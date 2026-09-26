@@ -1,0 +1,462 @@
+# "Big Walk Archipelago details" — the community's proposed options, as
+# pasted on 2026-09-26. Kept verbatim as the source of docs/ROADMAP.md: the
+# table at its bottom maps each option here to a roadmap id. Not a YAML this
+# world reads (see the NOTE in the description).
+
+name: PlayerBigWalk{NUMBER}
+description: |-
+  Example Big Walk Archipelago options for your consideration
+
+  NOTE:
+  - These options have been written from an outside perspective, knowing nothing about how the game stores objects internally, nor what is feasible nor reasonable to implement. When developing this APworld, these options should be used as a guide but not directly imported.
+  - The default options should reflect a "vanilla + AP" playstyle. Essentially, the player's movements should be unaffected, and locations should be locked as they are in the vanilla game. However, unlocks should not be linear (unless for those where it is tedious for them not to be), sanities should be turned off if they give nothing in the vanilla game (`pedestal_sanity` should be off but not `key_cutter_sanity`), and custom tiles are only added if there are matching games in the multiworld.
+game: Big Walk
+requires:
+  version: 0.6.7
+Big Walk:
+  ################
+  # Game Options #
+  ################
+  progression_balancing:
+    normal: 50
+  accessibility:
+    full: 0
+    minimal: 50
+  ########
+  # Goal #
+  ########
+  # Big Walk has two endings which are both somewhat out of the way, but the vast majority of the game revolves around obtaining collectibles. For Archipelago randomisation, players can choose between endings, collectibles or both, and extra endings are added based on key locations in the vanilla game.
+  goal:
+    # The action that will result in checks being released if applicable.
+    # `ending` - Goal when the specified ending is achieved.
+    # `collectibles` - Goal when the specified collectibles are collected.
+    # `collectibles_and_ending` - Goal when both the specified ending and collectibles are achieved/collected.
+    # `collectibles_then_ending` - Goal when the specified ending is achieved, which is only possible to access once the specified collectibles are collected.
+    ending: 0
+    collectibles: 0
+    collectibles_and_ending: 0
+    collectibles_then_ending: 50
+  ending:
+    # If the goal relates to an ending, this option chooses the ending. `big_goodbye` and `big_game` are vanilla endings, while the others are extra Archipelago endings.
+    # == Vanilla Endings
+    # `big_goodbye` - Have all players go into the light at the far end of the map past the Silent Gauntlet and the wall.
+    # `big_game` - Collect the glowing gourd after depositing the white key into the keyhole in the tutorial area.
+    # == Location Endings
+    # `big_walk` - Deposit the tutorial key into the keyhole by the drawbridge.
+    # `big_bell` - The short version of `big_goodbye`. Destroy the bell inside the big wall.
+    # == Area Endings
+    # `big_climb` - Have all players be at the highest point on the map at once.
+    # `big_club` - Have all players be inside the underground club at once.
+    # WARNING: Refer to the 'v0.1.0 Notes' tab or a later tab if it exists.
+    big_goodbye: 50
+    big_game: 0
+    big_walk: 0
+    big_bell: 0
+    big_climb: 0
+    big_club: 0
+  ################
+  # Collectibles #
+  ################
+  gourds_to_goal:
+    # If the goal includes collectibles, this option chooses how many gourds must be deposited. If `include_big_game_puzzles` is false, this is capped at 38. If `limit_green_dome_deposit_boxes` is true, this is capped at 36. If all collectible options are 0, this is set to 1.
+    random-range-0-45: 50
+  towers_to_goal:
+    # If the goal includes collectibles, this option chooses how many towers (including tutorial) must have their deposit boxes filled. If this is not 0, the selected number of towers will be randomly selected from those available and all other towers' deposit boxes will be locked.
+    random-range-0-7: 50
+  limit_green_dome_deposit_boxes:
+    # Whether the number of gourd deposit boxes in the green dome should be reduced to 6 if `towers_to_goal` is not 0, to be in line with other towers. Set to false for a chance of an endurance test.
+    'true': 50
+    'false': 0
+  keys_to_goal:
+    # If the goal includes collectibles, this option chooses how many keys must be deposited. If `towers_to_goal` is not 0, this is capped to its value.
+    random-range-0-7: 50
+  radio_stations_to_goal:
+    # If the goal includes collectibles, this option chooses how many radio stations must be discovered.
+    random-range-0-7: 50
+  #############
+  # Linearity #
+  #############
+  # The Linearity section refers to aspects of Big Walk that may prove to be tedious when fully randomised, and thus their randomisation can be disabled here.
+  linear_puzzles:
+    # Whether puzzles must be completed in order to receive their respective gourds.
+    'true': 50
+    'false': 0
+  linear_arch_doors:
+    # Whether arch doors must be opened by pressing their respective buttons.
+    'true': 0
+    'false': 50
+  linear_towers:
+    # Whether the deposit boxes of towers must be filled in order to receive their respective keys.
+    # `all_deposit_boxes` - A tower's key is collectable after all its deposit boxes are filled.
+    # `one_deposit_box` - A tower's key is collectable after a random one of its deposit boxes is filled.
+    # `disabled` - Keys are placed throughout the multiworld as Archipelago items.
+    all_deposit_boxes: 0
+    one_deposit_box: 50
+    disabled: 0
+  linear_keys:
+    # Whether keys must be deposited (and the bell in the wall must be destroyed) in order to unlock their associated infrastructure. If false, deposited keys give random Archipelago items.
+    'true': 0
+    'false': 50
+  linear_big_goodbye:
+    # Whether the black sphere puzzles must be completed sequentially in order to reach the Big Goodbye ending. If false, each of these puzzles gives a random Archipelago item.
+    'true': 50
+    'false': 0
+  #############
+  # Locations #
+  #############
+  # The Locations section refers to areas of Big Walk that may be locked or randomised.
+  single_player_mode:
+    # Whether to make the necessary adjustments to the game world and Archipelago logic so that it is possible to goal as a single player. The ‘2 Players’ option must be selected in-game.
+    ‘true’: 0
+    ‘false’: 50
+  lock_number_of_players:
+    # Whether to add Progressive Player Limit items to the pool. With these enabled, the player limit starts at 2 and increases by 1 with each item unlocked. Incompatible with `single_player_mode`.
+    ‘true’: 50
+    ‘false’: 0
+  lock_arch_doors:
+    # Whether to lock the three arch doors behind unlock items.
+    # `all` - All arch doors start closed.
+    # `far` - All but the first arch door nearest the tutorial start closed. Recommended if `lock_map_room` is false.
+    # `far_left` - The arch door behind the first arch door to the left (in the direction of the Green Dome Tower) starts closed.
+    # `far_right` - The arch door behind the first arch door to the right (in the direction of the Red Funnel Tower) starts closed.
+    # `disabled` - All arch doors start open.
+    all: 0
+    far: 50
+    far_left: 0
+    far_right: 0
+    disabled: 0
+  require_arch_doors:
+    # Whether locations beyond the arch doors should require their respective doors to be opened in order for them to be in logic. If this is false, a lot more walking back and forth may be required.
+    'true': 50
+    'false': 0
+  lock_map_room:
+    # Whether to lock the map room behind an unlock item. If false, the map room will start open.
+    'true': 0
+    'false': 50
+  lock_puzzles:
+    # Whether to lock puzzles behind unlock items.
+    # `open` - When a puzzle unlock is obtained, that puzzle is considered to be completable in logic immediately. This may involve lots of walking.
+    # `anchored` - When a puzzle unlock is obtained, that puzzle is considered to be completable in logic only if the closest tower is also unlocked. This can lead to puzzles being completed out of logic, but the randomisation will feel better.
+    # `disabled` - Puzzles are not locked and may be completed right from the start.
+    open: 0
+    anchored: 50
+    disabled: 0
+  lock_towers:
+    # Whether to lock towers behind unlock items.
+    # `progressive_vanilla` - Towers are unlocked in an order that reflects normal gameplay (distance-based with closed arch doors).
+    # `progressive_closest` - Towers are unlocked ordered by distance from the tutorial, starting with the tutorial tower, presuming all arch doors are open.
+    # `random` - Towers are unlocked in a random order.
+    # `disabled` - Towers are unlocked from the start.
+    progressive_vanilla: 0
+    progesssive_closest: 0
+    random: 50
+    disabled: 0
+  fast_golf:
+    # How to speed up the golf puzzles.
+    # `lightweight` - Removes the super heavy condition from the golf ball so it can be easily carried to both golf holes.
+    # `exclude_purple` - Excludes the purple golf hole location.
+    # `disabled` - The golf puzzles behave as they do in the vanilla game.
+    lightweight: 0
+    exclude_purple: 0
+    disabled: 50
+  include_big_game_puzzles:
+    # Whether to include Big Game (purple gourd) puzzles as locations.
+    # `from_start` - Big Game puzzles are available from the start. Recommended if `lock_puzzles` is true.
+    # `when_unlocked` - Big Game puzzles are made available once their single unlock item is collected.
+    # `disabled` - Big Game puzzles cannot be accessed.
+    from_start: 50
+    when_unlocked: 0
+    disabled: 0
+  cabin_fever_time:
+    # The amount of time (in seconds) required to wait in order to complete the Cabin Fever Puzzle. If higher than `cabin_fever_long_time`, will instead match it.
+    180: 50
+  cabin_fever_long_time:
+    # The amount of time (in seconds) required to wait in order to complete the Cabin Fever Long Puzzle.
+    1800: 50
+  ############
+  # Sanities #
+  ############
+  # The Sanities section refers to actions that may or may not be treated as Archipelago locations themselves.
+  pedestal_sanity:
+    # Whether pedestals having active glow orbs placed on them should give Archipelago items. Warning: This adds lots of locations, which will make hints harder to earn.
+    # `all` - Pedestal glow orbs are Archipelago locations and can contain progression items.
+    # `filler` - Pedestal glow orbs are Archipelago locations but will only contain filler items.
+    # `track_only` - Pedestal glow orbs are not Archipelago locations, but will be tracked by the multiworld, persisting their turned-on state.
+    # `disabled` - Pedestal glow orbs are not Archipelago locations and will behave as they do in the vanilla game.
+    all: 0
+    filler: 0
+    track_only: 50
+    disabled: 0
+  backpack_sanity:
+    # Whether backpacks and hip packs should give Archipelago items.
+    # `all` - Backpacks are Archipelago locations and can contain progression items.
+    # `filler` - Backpacks are Archipelago locations but will only contain filler items.
+    # `vanilla` - Backpacks are Archipelago locations which will give themselves as inventory items. It will not be possible to get backpacks from any other location.
+    # `disabled` - Backpacks are not Archipelago locations.
+    all: 0
+    filler: 50
+    vanilla: 0
+    disabled: 0
+  flare_sanity:
+    # Whether flares and flare stations should give Archipelago items.
+    # `all` - Flares are Archipelago locations and can contain progression items.
+    # `filler` - Flares are Archipelago locations but will only contain filler items.
+    # `disabled` - Flares are not Archipelago locations.
+    all: 0
+    filler: 50
+    disabled: 0
+  cut_key_sanity:
+    # Whether key cutters (5 for each of the first 5 towers, for a total of 25) should give Archipelago items.
+    # `all` - Key cutters are Archipelago locations and can contain progression items.
+    # `filler` - Key cutters are Archipelago locations but will only contain filler items.
+    # `disabled` - Key cutters are not Archipelago locations. Recommended if `hint_discovered_key_locations` is enabled.
+    all: 0
+    filler: 50
+    disabled: 0
+  #########
+  # Items #
+  #########
+  # The Items and Puzzle Elements sections refer to gameplay features of Big Walk that may be locked or randomised.
+  lock_abilities:
+    # How to lock player abilities, communication and poses (e.g., jumping, chatting, gesturing, crouching, etc.) behind unlock items.
+    # `ambidextrous` - Abilities are unlocked for both hands at once where applicable.
+    # `handed` - Abilities are unlocked independently for each hand where applicable.
+    # `disabled` - All abilities are available from the start.
+    ambidextrous: 0
+    handed: 50
+    disabled: 0
+  lock_pickups:
+    # How to lock picking up items behind unlock items. This option does not include gameplay-irrelevant items, such as the football and the cowbells in the tutorial area.
+    # `individual` - One unlock item exists for each type of gameplay-relevant item in the game.
+    # `all` - A single unlock item exists that enables picking up all gameplay-relevant items.
+    # `disabled` - Players can pick up all items from the start.
+  ###################
+  # Puzzle Elements #
+  ###################
+  random_basic_tiles:
+    # Whether to randomly replace existing basic tiles with Archipelago-exclusive tiles. Advanced tiles are not randomised due to their complexity.
+    ‘true’: 50
+    ‘false’: 0
+  random_basic_tiles_from_other_games:
+    # Whether to add certain random basic tiles based on whether specific games exist in the multiworld. If any tiles qualify for this, they are forced to appear before other tiles, using their weights from `random_basic_tiles_dict` (unless they are -1).
+    ‘true’: 50
+    ‘false’: 0
+  random_basic_tiles_dict:
+    # A dictionary of basic tiles to choose from if `replace_basic_tiles` is true. The values indicate how likely a tile is to be chosen. There must be at least 9 tiles with values above 0 in this dictionary. -1 fully disables the tile (even if `random_basic_tiles_from_other_games` is satisfied).
+    # Vanilla tiles: ['asterisk', 'diagonal_line', 'dot_and_line', 'e', 'G', 'S', 'spiral', 'triangle', 'vertical_ellipsis']
+    asterisk: 1
+    diagonal_line: 1
+    dot_and_line: 1
+    e: 1
+    G: 1
+    S: 1
+    spiral: 1
+    triangle: 1
+    vertical_ellipsis: 1
+    # Other atlas tiles: ['box', 'dot_in_box', 'blank', 'pose_arms_up', 'pose_arms_out', 'pose_default', 'pose_arms_out_and_up', 'pose_arm_up', 'pose_arm_out', 'pose_sitting_arms_up', 'pose_sitting', 'pose_sitting_arm_up']
+    box: 1
+    dot_in_box: 1
+    blank: 1
+    pose_arms_up: 1
+    pose_arms_out: 1
+    pose_default: 1
+    pose_arms_out_and_up: 1
+    pose_arm_up: 1
+    pose_arm_out: 1
+    pose_sitting_arms_up: 1
+    pose_sitting: 1
+    pose_sitting_arm_up: 1
+    # Custom alphanumeric tiles: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '30', 'A', 'ARE', 'AYE', 'a', 'B', 'BEE', 'b', 'C', 'c', 'D', 'd', 'E', 'F', 'f', 'g', 'H', 'h', 'I', 'i', 'J', 'j', 'K', 'k', 'L', 'l', 'M', 'm', 'N', 'NO',  'n', 'O', 'OK', 'ONE', 'o', 'P', 'p', 'Q', 'q', 'R', 'r', 's', 'T', 'TEE', 'TO', 'TWO', 't', U', 'u', 'V', 'v', 'W', 'WHY', 'w', 'X', 'x', 'Y', 'YES', 'YOU', 'y', 'Z', 'z']
+    ‘0’: 1
+    ‘1’: 1
+    ‘2’: 1
+    ‘3’: 1
+    ‘4’: 1
+    ‘5’: 1
+    ‘6’: 1
+    ‘7’: 1
+    ‘8’: 1
+    ‘9’: 1
+    '30': 1
+    A: 1 # Wordipelago
+    ARE: 1
+    AYE: 1
+    a: 1
+    B: 1
+    BEE: 1
+    b: 1
+    C: 1
+    c: 1
+    D: 1
+    d: 1
+    E: 1
+    F: 1
+    f: 1
+    g: 1 # apAdventure
+    H: 1
+    h: 1
+    I: 1
+    i: 1
+    J: 1
+    j: 1
+    K: 1
+    k: 1
+    L: 1
+    l: 1
+    M: 1
+    m: 1
+    N: 1
+    NO: 1
+    n: 1
+    O: 1
+    OK: 1
+    ONE: 1
+    o: 1
+    P: 1
+    p: 1
+    Q: 1
+    q: 1
+    R: 1
+    r: 1
+    s: 1
+    T: 1 # Dracomino / Tetris
+    TEE: 1
+    TO: 1
+    TWO: 1
+    t: 1
+    U: 1
+    u: 1
+    V: 1 # Civilization V / VI
+    v: 1
+    W: 1
+    WHY: 1
+    w: 1
+    X: 1
+    x: 1
+    Y: 1
+    YES: 1
+    YOU: 1 # Baba Is You
+    y: 1
+    Z: 1
+    z: 1
+    # Custom tower tiles: ['castle', 'cup', 'funnel', 'monolith', 'twist']
+    castle: 1 # Keymaster’s Keep
+    cup: 1
+    funnel: 1
+    monolith: 1
+    twist: 1
+    # Custom line shape tiles: ['arrow_down', 'arrow_left', 'arrow_right', 'arrow_up', 'hash', 'horizontal_line', 'key', 'lambda', 'pitchfork']
+    arrow_down: 1
+    arrow_left: 1
+    arrow_right: 1
+    arrow_up: 1 # Grapple Dog
+    hash: 1 # Archipeladoku
+    horizontal_line: 1
+    key: 1 # Luigi’s Mansion
+    lambda: 1 # Half-Life
+    pitchfork: 1 # Quake
+    # Custom hollow shape tiles: ['cube', 'diamond', 'gem', 'grid_2', 'grid_3', 'grid_4', 'heart', 'hexagon', 'horizontal_rectangle', 'jigsaw', 'octagon', 'pants', 'pentagon', 'semicircle', 'shirt', 'star', 'triforce', 'vertical_rectangle']
+    diamond: 1 # Nodebuster
+    gem: 1 # Spyro games
+    grid_2: 1
+    grid_3: 1
+    grid_4: 1 # The Witness
+    heart: 1 # Undertale / Deltarune
+    hexagon: 1
+    horizontal_rectangle: 1
+    jigsaw: 1 # Jigsaw
+    octagon: 1
+    pants: 1
+    pentagon: 1
+    semicircle: 1 # R.E.P.O.
+    shirt: 1
+    star: 1 # Super Mario 64
+    triforce: 1 # The Legend of Zelda
+    vertical_rectangle: 1 # Balatro
+    # Custom extra tiles: ['archipelago', 'bee', 'car', 'cube', 'die', 'flower', 'hammer', 'happy_face', 'metroid', 'mountain', 'planet', 'portal', 'rock', 'rocket', 'rorschach', 'skull', 'slime', 'strawberry', 'tree', 'tv', 'wedge']
+    archipelago: 1
+    bee: 1
+    car: 1 # Road Trip Adventure / The Simpsons: Hit and Run
+    cube: 1 # Minecraft / Refunct
+    die: 1 # Yacht Dice
+    flower: 1 # Pikmin / Plants vs. Zombies
+    hammer: 1 # Teardown
+    happy_face: 1 # FNAF World / VVVVVV
+    horse_face: 1 # ChecksMate
+    metroid: 1 # Super Metroid
+    mountain: 1 # PEAK
+    planet: 1 # Toy Story 2
+    portal: 1 # Portal 2
+    rock: 1 # Hollow Knight
+    rocket: 1 # Ratchet & Clank
+    rorschach: 1
+    skull: 1
+    slime: 1 # Slime Rancher
+    strawberry: 1 # Celeste Open World / Celeste 64
+    tree: 1 # Terraria
+    tv: 1
+    wedge: 1 # Autopelago
+  #########
+  # Hints #
+  #########
+  hint_discovered_deposit_boxes:
+    # Whether gourd deposit boxes (and tower clear rewards) should be hinted upon reaching their respective towers.
+    'true': 50
+    'false': 0
+  hint_keys:
+    # Whether the locations of keys should be hinted. If `linear_towers` is enabled, this is disabled.
+    # `from_start` - Keys are hinted from the start, adding them to `start_hints`.
+    # `when_discovered` - Keys are hinted upon reaching their respective towers.
+    # `disabled` - Keys are not hinted.
+    from_start: 0
+    when_discovered: 50
+    disabled: 0
+  hint_discovered_key_locations:
+    # Whether key cutters and deposits should be hinted upon reaching their respective towers.
+    'true': 50
+    'false': 0
+  whiteboard_hints:
+    # Whether whiteboard text should be replaced with random hints upon being observed from a fair distance. These hints will persist in Archipelago, but not in-game if a Whiteboard Rewrite Trap is triggered.
+    'true': 50
+    'false': 0
+  #########
+  # Traps #
+  #########
+  trap_percent:
+    # The percentage of filler items that should be traps.
+    random-range-0-100: 50
+  drop_everything_trap_weight:
+    # How likely it is to receive a Drop Everything Trap, where all players drop everything on them instantly.
+    random-range-0-100: 50
+  butterfingers_trap_weight:
+    # How likely it is to receive a Butterfingers Trap, where all players drop what they are holding (not carrying) and cannot hold anything for several seconds.
+    random-range-0-100: 50
+  no_comms_trap_weight:
+    # How likely it is to receive a No Comms Trap, where all items related to verbal communication (walkie talkie, megaphone, etc.) are warped away from all players.
+    random-range-0-100: 50
+  heavy_items_trap_weight:
+    # How likely it is to receive a Heavy Items Trap, where all players drop what they are carrying (not holding) and cannot carry anything for several seconds.
+    random-range-0-100: 50
+  whiteboard_rewrite_trap_weight:
+    # How likely it is to receive a Whiteboard Rewrite Trap, where all text on whiteboards is replaced with one of a select few Archipelago-defined replacements. These replacements are exact or slightly modified strings from real gameplay (useful information is changed), ensuring maximum confusion. Undiscovered whiteboards do not have their text replaced.
+    # Replacements: ["dot and line, sitting, straws", “go to the ski lift”, "going for a laser", “mountain time”, "we're heading to the ramp?", “where did you go”]
+    random-range-0-100: 50
+  cutscene_trap_weight:
+    # How likely it is to receive a Cutscene Trap, where one player at random is forced to watch the cutscene that normally plays upon pressing the buttons in the black monolith tower.
+    random-range-0-100: 50
+  the_mask_trap_weight:
+    # How likely it is to receive a The Mask Trap, where all players are forced to wear The Mask for several seconds.
+    random-range-0-100: 50
+  ###########################
+  # Item & Location Options #
+  ###########################
+  local_items: []
+  non_local_items: []
+  start_inventory: {}
+  start_inventory_from_pool: {}
+  start_hints: []
+  start_location_hints: []
+  exclude_locations: []
+  priority_locations: []
+  item_links: []
+  plando_items: []
