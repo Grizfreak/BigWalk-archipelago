@@ -59,6 +59,11 @@
 .PARAMETER NoJoin
     Never joins on its own, even if the host is hosting: Ctrl+L does it.
 
+.PARAMETER Vanilla
+    The guest runs without the mod: it only joins (--bwap-vanilla), and meets
+    the host as a PlayStation or Xbox player would. Ctrl+Y on the host does
+    the same.
+
 .PARAMETER Force
     Starts the guest even if no host is running. The host has to be the
     first instance: Il2CppInterop regenerates BepInEx\interop\ on the first
@@ -78,6 +83,7 @@ param(
     [int]$Width = 1280,
     [int]$Height = 720,
     [switch]$NoJoin,
+    [switch]$Vanilla,
     [switch]$Force,
     [int]$WatchGuest = 0,
     [string]$Snapshot = ''
@@ -167,7 +173,8 @@ if (Test-Path $prefsKey) {
 # process for the length of the call: a process started directly inherits
 # this console and prints Unity's boot output into it.
 $unityLog = Join-Path $unityLogDir 'Player-guest.log'
-$arguments = "--bwap-guest" + $(if ($join) { " --bwap-join" } else { "" }) +
+$role = if ($Vanilla) { "--bwap-vanilla" } else { "--bwap-guest" }
+$arguments = $role + $(if ($join) { " --bwap-join" } else { "" }) +
     " -logFile `"$unityLog`" -screen-fullscreen 0 -screen-width $Width -screen-height $Height"
 
 $previous = @{}

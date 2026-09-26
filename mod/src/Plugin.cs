@@ -43,6 +43,18 @@ namespace BigWalkArchipelago
 
             ModConfig.Bind(base.Config);
 
+            // First, because one role loads almost nothing: the loopback
+            // guest without the mod (roadmap X2).
+            if (ModConfig.DebugModeEnabled.Value)
+            {
+                Debug.LoopbackGuest.DetectRole();
+                if (Debug.LoopbackGuest.IsVanilla)
+                {
+                    LoadAsGuestWithoutTheMod();
+                    return;
+                }
+            }
+
             Reporter = new Core.Net.ApReporter();
 
             _harmony = new Harmony(PluginGuid);
@@ -66,7 +78,6 @@ namespace BigWalkArchipelago
 
             if (ModConfig.DebugModeEnabled.Value)
             {
-                Debug.LoopbackGuest.DetectRole();
                 Debug.LoopbackGuest.TryApply(_harmony);
                 if (Debug.LoopbackGuest.IsGuest)
                     AddComponent<Debug.LoopbackGuestMonitor>();
@@ -77,6 +88,24 @@ namespace BigWalkArchipelago
             }
 
             Log.LogInfo("Harmony initialized.");
+        }
+
+        // The loopback guest that stands in for a console player: it joins,
+        // and that is all. No PatchAll, none of the mod's components — so no
+        // spawn handler for the mod's gourds and gadgets, no ModChannel (it
+        // never says hello, so the host never writes to it), no overlay. What
+        // the host sends it meets the game as it ships. Kept: the two guest
+        // patches (an identity of its own, no EOS lobby to throw on), the
+        // monitor that joins and logs each step, and a few debug keys.
+        private void LoadAsGuestWithoutTheMod()
+        {
+            _harmony = new Harmony(PluginGuid);
+            Debug.LoopbackGuest.TryApply(_harmony);
+            AddComponent<Debug.LoopbackGuestMonitor>();
+            AddComponent<Debug.DebugHotkeys>();
+            Log.LogInfo(
+                "[LoopbackGuest] Without the mod: only the join is loaded (no patches, no spawn handlers, "
+                + "no ModChannel). This instance meets the host as a console player would.");
         }
 
         // The first 16 hex digits of this DLL's SHA-256: the same fingerprint

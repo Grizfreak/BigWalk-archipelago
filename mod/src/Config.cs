@@ -68,6 +68,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> LoopbackJoinKey;
         internal static ConfigEntry<KeyboardShortcut> LoopbackFocusKey;
         internal static ConfigEntry<KeyboardShortcut> LoopbackSummonKey;
+        internal static ConfigEntry<KeyboardShortcut> LoopbackVanillaGuestKey;
 
         internal static void Bind(ConfigFile file)
         {
@@ -407,6 +408,12 @@ namespace BigWalkArchipelago
                 "LoopbackSummonKey",
                 new KeyboardShortcut(KeyCode.C, KeyCode.LeftControl),
                 "On the host, with a loopback guest connected: teleports the guest next to you, through the mod's own network channel and the game's own player teleport. Never reaches a player on another machine (only has an effect if Debug.Enabled is active).");
+
+            LoopbackVanillaGuestKey = file.Bind(
+                "Debug",
+                "LoopbackVanillaGuestKey",
+                new KeyboardShortcut(KeyCode.Y, KeyCode.LeftControl),
+                "On the host: like LoopbackJoinKey, but the second instance runs without the mod — it only joins, and meets the host's items, messages and objects as a PlayStation or Xbox player would. For testing that players without the mod are never blocked (only has an effect if Debug.Enabled is active).");
         }
     }
 }

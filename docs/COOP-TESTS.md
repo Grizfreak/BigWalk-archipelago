@@ -42,7 +42,10 @@ from a terminal. Then:
 - **Ctrl+T**, in either window, hands the keyboard to the other one;
 - **Ctrl+C**, on the host, teleports the guest beside you;
 - **Ctrl+N** dumps either side's network setup, connections and input;
-- **Ctrl+L** in the guest joins again, if the host was not hosting yet.
+- **Ctrl+L** in the guest joins again, if the host was not hosting yet;
+- **Ctrl+Y**, on the host, starts a guest **without the mod** instead: it
+  only joins, and meets the host as a PlayStation or Xbox player would
+  (`ROADMAP.md`, X2).
 
 The guest's log is `BepInEx/LogOutput.1.log`, its Unity log
 `Player-guest.log`. Both instances run the same install, so there is no

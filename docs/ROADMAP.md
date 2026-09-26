@@ -23,7 +23,8 @@ co-op testable on one PC (Ctrl+L).
 *Goal: they can play. Fewer features is acceptable; being blocked is not.*
 - [x] X1 Find which objects a vanilla game can build — only the player and the
   corpse: no gourd, no gadget
-- [ ] X2 A loopback guest without the mod, to test as a console player would
+- [x] X2 A loopback guest without the mod, to test as a console player would
+  (Ctrl+Y on the host)
 - [ ] X3 Nothing blocks a player without the mod (items in someone's hands
   first, then the true-ending sphere…)
 - [ ] X4 Received items visible to them: reuse the island's own objects
@@ -141,12 +142,17 @@ runs.
   InventorySpawn. So every object a player without the mod can see is a scene
   object their own game already has, spawned by sceneId. The mod's clones,
   spawned under asset ids of its own, can never be built there.
-- **X2 — To do.** A loopback guest that runs none of the mod, to test as a
-  console player would. A guest without BepInEx cannot join by address (the
-  vanilla menus join through EOS lobbies, and both instances share one EOS
-  identity), so the practical form is a `--bwap-vanilla` guest: the plugin
-  does the join and its two guest patches (identifier, `OnClientConnect`),
-  and nothing else — no `PatchAll`, no spawn handlers, no `ModChannel`.
+- **X2 — Done (2026-09-26), joining a host untested.** A loopback guest that
+  runs none of the mod, to test as a console player would. A guest without
+  BepInEx cannot join by address (the vanilla menus join through EOS lobbies,
+  and both instances share one EOS identity), so it is a `--bwap-vanilla`
+  guest: `Plugin.Load` returns after the join and its two guest patches
+  (identifier, `OnClientConnect`), the connection monitor and three debug keys
+  (Ctrl+N, Ctrl+L to join, Ctrl+T) — no `PatchAll`, none of the mod's
+  components, no `ModChannel`, so it never says hello. Started by **Ctrl+Y** on
+  the host, or `tools/launch-guest.ps1 -Vanilla`. Smoke-tested alone: only
+  `LoopbackGuestMonitor` and `DebugHotkeys` are registered. The join path is
+  the modded guest's, which is tested.
 - **X3 — Research, and the likely blocker.** Since 0.1.1 received items go
   into players' hands. A held item is published in `PlayerHeldInformation`, a
   SyncVar carrying the object's netId; a client that cannot build that object
@@ -157,7 +163,15 @@ runs.
   would hit this whenever anyone holds a received item. Measure it with X2;
   the cure is X4, and meanwhile a host could hand items only to players whose
   connection said hello (the `ModChannel` knows) — which does not help when a
-  modded player holds one in front of them. Then the true-ending sphere:
+  modded player holds one in front of them.
+  **Test for X3 (next session):** host a world (Archipelago on or off), press
+  Ctrl+Y and let the guest join. Then Ctrl+I several times, both hands empty
+  first, then with things held. Watch: on the guest's screen, does it see the
+  items (expected: no) and can it still move and pick up the island's own
+  objects; in `LogOutput.1.log` and `Player-guest.log`, `Could not spawn
+  assetId` (expected, harmless) against `OnDeserialize failed` or a
+  NullReferenceException repeating (the blocker); in the host's log, no
+  `runs the mod` line for that guest. Then the true-ending sphere:
   `SecondEndingSphereUnlocker` disables `Spawn_SecondEnding_Sphere_Whole`
   locally; find what drives it and whether the server can open it for
   everyone. Then walk every goal with an X2 guest.

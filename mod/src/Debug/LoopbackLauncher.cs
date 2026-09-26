@@ -36,7 +36,9 @@ namespace BigWalkArchipelago.Debug
         private const int Height = 720;
         private const string PrefsKey = @"Software\House House\Big Walk";
 
-        internal static void LaunchGuest()
+        // withoutTheMod: the guest runs --bwap-vanilla, i.e. only the join —
+        // the stand-in for a PlayStation or Xbox player (roadmap X2).
+        internal static void LaunchGuest(bool withoutTheMod)
         {
             using var self = Process.GetCurrentProcess();
             var others = Process.GetProcessesByName(self.ProcessName);
@@ -58,7 +60,7 @@ namespace BigWalkArchipelago.Debug
             var gameDir = Path.GetDirectoryName(exe);
             var hosting = NetworkServer.active;
             var unityLog = Path.Combine(Application.persistentDataPath, "Player-guest.log");
-            var arguments = LoopbackGuest.GuestArgument
+            var arguments = (withoutTheMod ? LoopbackGuest.VanillaArgument : LoopbackGuest.GuestArgument)
                 + (hosting ? " " + LoopbackGuest.JoinArgument : "")
                 + $" -logFile \"{unityLog}\" -screen-fullscreen 0 -screen-width {Width} -screen-height {Height}";
 
@@ -104,7 +106,8 @@ namespace BigWalkArchipelago.Debug
             }
 
             Plugin.Log.LogInfo(
-                $"{Tag} Guest started: process {guest.Id}, {Width}x{Height} windowed, log BepInEx\\LogOutput.1.log "
+                $"{Tag} Guest{(withoutTheMod ? " without the mod" : "")} started: process {guest.Id}, "
+                + $"{Width}x{Height} windowed, log BepInEx\\LogOutput.1.log "
                 + (hosting
                     ? "(joins on its own once its title menu is up)."
                     : "(not hosting yet: host a world, then press Ctrl+L in the guest's window)."));

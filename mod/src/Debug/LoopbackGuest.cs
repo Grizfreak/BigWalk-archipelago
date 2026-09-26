@@ -28,25 +28,41 @@ namespace BigWalkArchipelago.Debug
         // 7777: join as soon as the title menu is up, instead of on Ctrl+L.
         internal const string JoinArgument = "--bwap-join";
 
+        // A guest that plays as a console player would: without the mod
+        // (roadmap X2). It implies --bwap-guest. Plugin.Load then loads the
+        // join and nothing else — no patch of the mod's, no spawn handler, no
+        // ModChannel — so the host's received items, beacon and messages meet
+        // exactly what a game without the mod has. The two guest patches
+        // below stay: they stand in for what a console player's own join
+        // would provide (an identity of their own, an EOS lobby behind the
+        // connection), not for any feature of the mod.
+        internal const string VanillaArgument = "--bwap-vanilla";
+
         internal const string HostAddress = "127.0.0.1";
 
         private const string Tag = "[" + nameof(LoopbackGuest) + "]";
 
         internal static bool IsGuest { get; private set; }
 
+        internal static bool IsVanilla { get; private set; }
+
         internal static bool AutoJoin { get; private set; }
 
-        internal static string RoleName => IsGuest ? "loopback guest" : "host or solo";
+        internal static string RoleName =>
+            IsVanilla ? "loopback guest without the mod" : IsGuest ? "loopback guest" : "host or solo";
 
-        // Called once from Plugin.Load, inside the debug block. Says what it
-        // decided either way: a role that is only logged when it is "guest"
-        // cannot tell a missing argument from a probe that never ran.
+        // Called once from Plugin.Load, before anything else is set up, and
+        // only with Debug.Enabled. Says what it decided either way: a role
+        // that is only logged when it is "guest" cannot tell a missing
+        // argument from a probe that never ran.
         internal static void DetectRole()
         {
             foreach (var argument in Environment.GetCommandLineArgs())
             {
                 if (string.Equals(argument, GuestArgument, StringComparison.OrdinalIgnoreCase))
                     IsGuest = true;
+                else if (string.Equals(argument, VanillaArgument, StringComparison.OrdinalIgnoreCase))
+                    IsGuest = IsVanilla = true;
                 else if (string.Equals(argument, JoinArgument, StringComparison.OrdinalIgnoreCase))
                     AutoJoin = true;
             }
@@ -54,7 +70,7 @@ namespace BigWalkArchipelago.Debug
             AutoJoin &= IsGuest;
 
             Plugin.Log.LogInfo(IsGuest
-                ? $"{Tag} Role: loopback guest ({GuestArgument} is on the command line); "
+                ? $"{Tag} Role: {RoleName} ({(IsVanilla ? VanillaArgument : GuestArgument)} is on the command line); "
                   + (AutoJoin ? $"joins {HostAddress} as soon as the title menu is up." : "press Ctrl+L to join.")
                 : $"{Tag} Role: host or solo (no {GuestArgument} on the command line).");
         }

@@ -56,6 +56,15 @@ namespace BigWalkArchipelago.Debug
             if (focused != null && focused.GetComponent<TMP_InputField>() != null)
                 return;
 
+            // The loopback guest without the mod loaded none of what the other
+            // tools reach into; it keeps the keys that look at the network or
+            // move between windows, and nothing that acts on the world.
+            if (LoopbackGuest.IsVanilla)
+            {
+                UpdateLoopbackKeys();
+                return;
+            }
+
             if (ModConfig.ToggleFlightKey.Value.IsDown())
                 DebugFlightTool.Toggle();
 
@@ -210,6 +219,13 @@ namespace BigWalkArchipelago.Debug
                 Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] LogAllLoaded returned.");
             }
 
+            UpdateLoopbackKeys();
+        }
+
+        // The network dump and the loopback keys, shared with the loopback
+        // guest without the mod, which runs nothing else from this file.
+        private static void UpdateLoopbackKeys()
+        {
             if (ModConfig.DumpNetworkKey.Value.IsDown())
             {
                 Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Network dump key pressed; calling Dump...");
@@ -229,9 +245,16 @@ namespace BigWalkArchipelago.Debug
                 else
                 {
                     Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Loopback key pressed; calling LaunchGuest...");
-                    LoopbackLauncher.LaunchGuest();
+                    LoopbackLauncher.LaunchGuest(withoutTheMod: false);
                     Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] LaunchGuest returned.");
                 }
+            }
+
+            if (ModConfig.LoopbackVanillaGuestKey.Value.IsDown() && !LoopbackGuest.IsGuest)
+            {
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Vanilla guest key pressed; calling LaunchGuest...");
+                LoopbackLauncher.LaunchGuest(withoutTheMod: true);
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] LaunchGuest returned.");
             }
 
             if (ModConfig.LoopbackFocusKey.Value.IsDown())
