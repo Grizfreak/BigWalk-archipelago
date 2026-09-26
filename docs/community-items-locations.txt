@@ -1,0 +1,272 @@
+"Big Walk Archipelago details", tab "Items & Locations" - the community's
+proposed items and locations, as pasted on 2026-09-26. Kept verbatim as a
+source of docs/ROADMAP.md (see its last section). The options tab is
+community-options.yaml.
+
+Items & Locations
+
+Note that this is not an exhaustive list of items and locations, nor is it fully accurate in terms of naming (although great care has been taken to use accurate puzzle names).
+
+Map (uses incorrect names): https://mapgenie.io/big-walk/maps/island
+
+Items
+Locations
+
+Items
+
+Abilities
+Jumping
+Left Hand Pointing
+Left Hand Raising
+Left Hand Extending
+Right Hand Pointing
+Right Hand Raising
+Right Hand Extending
+Crouching
+Chair Sitting
+Floor Sitting
+Item Unlocks (Carrying)
+Backpacks Unlock
+Binoculars Unlock
+Clocks Unlock
+Compasses Unlock
+Flare Guns Unlock
+Flashlights Unlock
+Glow Orbs Unlock
+Gourd Holder Unlock
+Hip Packs Unlock
+Keys Unlock
+Laser Pointers Unlock
+Map Unlock
+Megaphones Unlock
+Paintbrushes Unlock
+Purple Gourds Unlock
+Radios Unlock
+Red Gourds Unlock
+Scanners Unlock
+Walkie Talkies Unlock
+Inventory Items
+Backpack
+Binoculars
+Clock
+Compass
+Flare Gun
+Flashlight
+Glow Orb
+Gourd Holder
+Hip Pack
+Laser Pointer
+Map
+Megaphone
+Paintbrush
+Radio
+Scanner
+Walkie Talkie
+Arch Doors
+Tutorial Arch Door Open
+Left Arch Door Open
+Right Arch Door Open
+Tower Unlocks
+Tutorial Deposit Boxes Unlock
+Tutorial Deposit Boxes Key
+Red Funnel Tower Unlock
+Red Funnel Tower Key
+Green Cup Tower Unlock
+Green Cup Tower Key
+Blue Castle Tower Unlock
+Blue Castle Tower Key
+Yellow Twist Tower Unlock
+Yellow Twist Tower Key
+Black Monolith Tower Unlock
+Black Monolith Tower Key
+Green Dome Tower Unlock
+Green Dome Tower Key
+Traps
+Drop Everything Trap
+Butterfingers Trap
+No Comms Trap
+Heavy Items Trap
+Whiteboard Rewrite Trap
+Cutscene Trap
+The Mask Trap
+Filler (misnamings of Gourds)
+Baby
+Boid
+Bouba
+Boyo
+Butternut Squash
+Child
+Doodad
+Jelly Baby
+Peanut
+Peg and Head
+Plumbus
+Red Nub
+Thing
+
+Locations
+
+Item Pickups
+Backpack Pickup
+Binoculars Pickup
+Clock Pickup
+Compass Pickup
+Small Cowbell Pickup
+Medium Cowbell Pickup
+Large Cowbell Pickup
+Flare Gun Pickup
+Flashlight Pickup
+Glow Orb Pickup
+Gourd Holder Pickup
+Hip Pack Pickup
+Key Pickup
+Laser Pointer Pickup
+Map Pickup
+Megaphone Pickup
+Paintbrush Pickup
+Purple Gourd Pickup
+Radio Pickup
+Red Gourd Pickup
+Scanner Pickup
+Walkie Talkie Pickup
+Puzzles
+Basketball Puzzle
+Blindfold Catwalk Puzzle
+Blindfold Fish Trap Puzzle
+Breadcrumb Loop Puzzle
+Cabin Fever Puzzle
+Cabin Fever Long Puzzle
+Cannonball Puzzle
+Cannonball Commute Puzzle
+Carousel Puzzle
+Centurion Seance Puzzle
+Centurion Song Puzzle
+Charades Rooms Puzzle
+Concert Puzzle
+Coordinates Holding Puzzle
+Coordinates Puzzle
+Dancer and Selector Puzzle
+Easy Sim Press Puzzle
+Egg Hunt Puzzle
+Fielding Puzzle
+Flare Run Puzzle
+High Button Puzzle
+Indoor Semaphore Puzzle
+Invisible Ink Puzzle
+Kick Up Pits Puzzle
+Medium Sim Press Puzzle
+Memory Bombs Puzzle
+Microphone Array Puzzle
+Musical Holiday Puzzle
+Obby Puzzle
+Observation Room Puzzle
+Optical Telegraph Puzzle
+Perspective Counting Puzzle
+Poet and Pontiff Puzzle
+Poet and Priest Puzzle
+Pointers' Paradise Puzzle
+Ring Room Puzzle
+Scout Bombs Puzzle
+Signal Flags Puzzle
+Singer and Selector Puzzle
+Speed Obby Puzzle
+Telescope to Box Puzzle
+Teller Window Puzzle
+Tile Thief Puzzle
+Trap Room Puzzle
+Window Labyrinth Puzzle
+Completion Rewards
+Tutorial: Gourd Deposit Box 1
+Tutorial: Gourd Deposit Box 2
+Tutorial: Gourd Deposit Box 3
+Tutorial: Gourd Deposit Box 4
+Tutorial: All Gourds Deposited
+Tutorial: Key Cutter 1
+Tutorial: Key Cutter 2
+Tutorial: Key Cutter 3
+Tutorial: Key Cutter 4
+Tutorial: Key Cutter 5
+Drawbridge Key Deposit
+Red Funnel Tower: Gourd Deposit Box 1
+Red Funnel Tower: Gourd Deposit Box 2
+Red Funnel Tower: Gourd Deposit Box 3
+Red Funnel Tower: Gourd Deposit Box 4
+Red Funnel Tower: Gourd Deposit Box 5
+Red Funnel Tower: All Gourds Deposited
+Red Funnel Tower: Key Cutter 1
+Red Funnel Tower: Key Cutter 2
+Red Funnel Tower: Key Cutter 3
+Red Funnel Tower: Key Cutter 4
+Red Funnel Tower: Key Cutter 5
+Map Room Key Deposit
+Green Cup Tower: Gourd Deposit Box 1
+Green Cup Tower: Gourd Deposit Box 2
+Green Cup Tower: Gourd Deposit Box 3
+Green Cup Tower: Gourd Deposit Box 4
+Green Cup Tower: Gourd Deposit Box 5
+Green Cup Tower: All Gourds Deposited
+Green Cup Tower: Key Cutter 1
+Green Cup Tower: Key Cutter 2
+Green Cup Tower: Key Cutter 3
+Green Cup Tower: Key Cutter 4
+Green Cup Tower: Key Cutter 5
+Chairlift Station Key Deposit
+Blue Castle Tower: Gourd Deposit Box 1
+Blue Castle Tower: Gourd Deposit Box 2
+Blue Castle Tower: Gourd Deposit Box 3
+Blue Castle Tower: Gourd Deposit Box 4
+Blue Castle Tower: Gourd Deposit Box 5
+Blue Castle Tower: All Gourds Deposited
+Blue Castle Tower: Key Cutter 1
+Blue Castle Tower: Key Cutter 2
+Blue Castle Tower: Key Cutter 3
+Blue Castle Tower: Key Cutter 4
+Blue Castle Tower: Key Cutter 5
+Train Station Key Deposit
+Yellow Twist Tower: Gourd Deposit Box 1
+Yellow Twist Tower: Gourd Deposit Box 2
+Yellow Twist Tower: Gourd Deposit Box 3
+Yellow Twist Tower: Gourd Deposit Box 4
+Yellow Twist Tower: Gourd Deposit Box 5
+Yellow Twist Tower: All Gourds Deposited
+Yellow Twist Tower: Key Cutter 1
+Yellow Twist Tower: Key Cutter 2
+Yellow Twist Tower: Key Cutter 3
+Yellow Twist Tower: Key Cutter 4
+Yellow Twist Tower: Key Cutter 5
+Underground Tunnel Key Deposit
+Black Monolith Tower: Gourd Deposit Box 1
+Black Monolith Tower: Gourd Deposit Box 2
+Black Monolith Tower: Gourd Deposit Box 3
+Black Monolith Tower: Gourd Deposit Box 4
+Black Monolith Tower: Gourd Deposit Box 5
+Black Monolith Tower: Gourd Deposit Box 6
+Black Monolith Tower: All Gourds Deposited
+Wall Key Deposit
+Green Dome Tower: Gourd Deposit Box 1
+Green Dome Tower: Gourd Deposit Box 2
+Green Dome Tower: Gourd Deposit Box 3
+Green Dome Tower: Gourd Deposit Box 4
+Green Dome Tower: Gourd Deposit Box 5
+Green Dome Tower: Gourd Deposit Box 6
+Green Dome Tower: Gourd Deposit Box 7
+Green Dome Tower: Gourd Deposit Box 8
+Green Dome Tower: Gourd Deposit Box 9
+Green Dome Tower: Gourd Deposit Box 10
+Green Dome Tower: Gourd Deposit Box 11
+Green Dome Tower: Gourd Deposit Box 12
+Green Dome Tower: Gourd Deposit Box 13
+Green Dome Tower: Gourd Deposit Box 14
+Green Dome Tower: Gourd Deposit Box 15
+Green Dome Tower: All Gourds Deposited
+Tutorial Key Deposit
+Radio Stations (incomplete, add names from save game data)
+Radio Station 1
+Radio Station 2
+Radio Station 3
+Radio Station 4
+Radio Station 5
+Radio Station 6
+Radio Station 7
+All Radio Stations
+Firework Launchers

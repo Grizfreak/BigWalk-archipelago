@@ -6,7 +6,8 @@ The top half is the list; the bottom half is the detail behind each item,
 found by its id (X1, T2, …).
 
 Sources: the community document "Big Walk Archipelago details" (its options
-kept verbatim in [`community-options.yaml`](community-options.yaml); proposed
+kept verbatim in [`community-options.yaml`](community-options.yaml), its items
+and locations in [`community-items-locations.txt`](community-items-locations.txt); proposed
 options, items and locations, custom tiles, 0.1.0 notes), and the player's
 own wishes (traps, colours, where things are in the world, crossplay).
 
@@ -51,7 +52,9 @@ is dropped.*
 - [ ] U5 Checks remembered per seed, not per save (`ap_reported_*`)
 - [ ] U6 A PopTracker pack with the island's map (Universal Tracker works today)
 - [ ] U7 The game's own skip aids (`SkipAidToggler`) as an option (research)
-- [ ] U8 Joke filler items (Baby, Boid, Bouba…), no effect
+- [ ] U8 Joke filler items (the document's 13 misnamings of gourds), no effect
+- [ ] U9 Names players use: towers by their full name (Red Funnel Tower, …),
+  the document's spellings
 
 **Step 3 — Traps**
 - [ ] T1 Trap weights as options (`trap_percent` exists, hidden)
@@ -105,11 +108,14 @@ is dropped.*
   the Gauntlet, the secret ending's gourd
 - [ ] S6 The game's other saved switches: the Black Tower's inner door, the
   Poet and Priest / Poet and Pontiff doors (research what each is)
-- [ ] S7 The island's other objects (cowbells, compass, binoculars, …: every
-  one has a `savablePropGuid`)
+- [ ] S7 A check for the first pick-up of each kind of object (the
+  document's 22 "Pickups": cowbells, compass, clock, …)
 - [ ] S8 A check for reaching each tower (the host sees every position)
 - [ ] S9 `pedestal_sanity`: glow orbs on pedestals, `track_only` included
   (research)
+- [ ] S10 Firework launchers (research: where they are, what firing one saves)
+- [ ] S11 The objects the document lists and the filler lacks: clock,
+  paintbrush, glow orb, scanner, cowbells
 
 **Later — research first**
 - [ ] R1 Lock puzzles / towers behind items (`lock_puzzles`, `lock_towers`)
@@ -280,10 +286,20 @@ and from what a whole seed will ask of players.
 - **U7 — Research.** The game has skip aids of its own (`SkipAidToggler`,
   `SaveData.skipAidsActive`): find what they skip, and whether an option
   turning them on from the start is worth it.
-- **U8 — To do.** Joke filler items (player, 2026-09-26): the document's
-  names (Baby, Boid, Bouba…), with no effect beyond their line in the item
-  feed. Mixed with today's filler, the island's objects; their share could be
+- **U8 — To do.** Joke filler items (player, 2026-09-26), the document's
+  "misnamings of Gourds": Baby, Boid, Bouba, Boyo, Butternut Squash, Child,
+  Doodad, Jelly Baby, Peanut, Peg and Head, Plumbus, Red Nub, Thing. No effect
+  beyond their line in the item feed. Mixed with today's filler, the island's objects; their share could be
   an option. apworld: new ids and names; mod: a feed line, nothing spawned.
+- **U9 — Decision.** The document's names against ours. Towers: it says Red
+  Funnel, Green Cup, Blue Castle, Yellow Twist, Black Monolith, Green Dome
+  Tower; our locations say "Red Tower Key Deposit" and so on. Key deposits:
+  it names them by what they open (Map Room Key Deposit, Chairlift Station,
+  Train Station, Underground Tunnel, Wall, Tutorial); ours by tower. Puzzles
+  match but for three spellings (Sim Press, Pointers', Fish Trap). Ids do not
+  move, so the mod is untouched; a YAML naming a location (exclude_locations,
+  plando) would need the new name, so do it once, before 1.0, with the old
+  names accepted where Archipelago allows.
 
 ### Step 3 — Traps
 
@@ -422,24 +438,46 @@ The mod suppresses each of these; an option turns the suppression off.
   `PoetAndPontiffDoors` (61): saved switches, the last two next to known
   puzzles (`gourdPoetAndPreist`, `gourdPoetAndPontiff`). Find what each one is
   before deciding whether it is a check.
-- **S7 — Decision.** Task 2 in `NEXT-SESSION.md`, beyond backpacks and flares:
-  every object has a `savablePropGuid`. Same open question: what "obtaining"
-  an object lying there means (picked up once? taken home?).
+- **S7 — Decision, with a proposal.** Task 2 in `NEXT-SESSION.md`: every
+  object has a `savablePropGuid`. The document answers what "obtaining" one
+  means: one location per KIND, the first pick-up of any of them — Backpack,
+  Binoculars, Clock, Compass, the three Cowbells, Flare Gun, Flashlight, Glow
+  Orb, Gourd Holder, Hip Pack, Key, Laser Pointer, Map, Megaphone, Paintbrush,
+  Purple Gourd, Radio, Red Gourd, Scanner, Walkie Talkie Pickup. Pick-ups go
+  through `UserCode_CmdPickUp` on the host (R2), so a player without the mod
+  counts too. Overlaps S1/S2: settle the three together.
 - **S8 — To do.** A check for reaching each tower, on H1's trigger.
 - **S9 — Research.** `pedestal_sanity`: the glow orbs on pedestals, not looked
   at. `track_only` (no location, but the multiworld remembers which are lit)
   needs DataStorage, like U3.
+- **S10 — Research.** Firework launchers, listed by the document with no
+  detail. No class and no `SavableSystem` value names them, so they are scene
+  objects: find them (Ctrl+J away from the hub) and what firing one changes.
+- **S11 — Research.** The document's inventory items against today's filler
+  (`data.FILLER_ITEMS`). Already there under other names: Flashlight (Torch),
+  Hip Pack (Belt), Gourd Holder (Gourd Carton), Map (Folding Map), Laser
+  Pointer (Laser). Missing: Clock (`ClockProp`, not usable held), Paintbrush
+  and Glow Orb (not in the hub's dump — the Ctrl+J inventory only covered
+  what the hub loads), Scanner (perhaps `CoordinateTrackerProp`, or the X-Ray
+  Goggles), the cowbells. Each needs a vanilla instance to clone.
 
 ### Later — research first
 
 - **R1.** `lock_puzzles` (`open`, `anchored`), `lock_towers`
   (`progressive_vanilla`, `progressive_closest`, `random`): how to hold a
-  puzzle or a tower shut (its vise, its peck states) is unmeasured.
+  puzzle or a tower shut (its vise, its peck states) is unmeasured. The
+  document's items: one "<Tower> Unlock" per tower, the tutorial's deposit
+  boxes included.
 - **R2.** `lock_pickups`: refuse in `UserCode_CmdPickUp` on the host; reaches
-  every player, modded or not.
+  every player, modded or not. The document's 19 "Unlock" items (`individual`):
+  Backpacks, Binoculars, Clocks, Compasses, Flare Guns, Flashlights, Glow
+  Orbs, Gourd Holder, Hip Packs, Keys, Laser Pointers, Map, Megaphones,
+  Paintbrushes, Purple Gourds, Radios, Red Gourds, Scanners, Walkie Talkies.
 - **R3.** `lock_abilities`: input is Rewired (measured with Ctrl+N); blocking
   an action is local, so every player would need the mod — conflicts with
-  Step 1.
+  Step 1. The document's ten: Jumping, Crouching, Chair Sitting, Floor
+  Sitting, and Pointing, Raising, Extending for each hand (`handed`; one item
+  per pair with `ambidextrous`).
 - **R4.** `single_player_mode` (every co-op mechanism needs a one-player
   path; the debug tools that force peck states show it is possible),
   `lock_number_of_players` (player-count screen and `maxConnections` known).
@@ -517,3 +555,27 @@ of 2026-09-26.
 | `drop_everything`, `butterfingers`, `heavy_items` trap weights | T1, T2 | To do |
 | `no_comms`, `whiteboard_rewrite`, `cutscene`, `the_mask` trap weights | T1, R9 | Research |
 | `accessibility`, `progression_balancing` defaults | Q3 | Archipelago's defaults kept |
+
+### The items and locations tab
+
+From [`community-items-locations.txt`](community-items-locations.txt).
+
+| Group | Id | Status |
+|---|---|---|
+| Abilities (10) | R3 | Research |
+| Item Unlocks (19) | R2 | Research |
+| Inventory Items (16) | S11 | Filler has 11 of them under other names |
+| Arch Doors (3) | — | Done (0.1.2) |
+| Tower Unlocks: "<Tower> Unlock" | R1 | Research |
+| Tower Unlocks: "<Tower> Key" | — | Done (the big keys: door and key, two items) |
+| Traps (7) | T2, R9 | To do / Research |
+| Filler, misnamings of Gourds (13) | U8 | To do |
+| Item Pickups (22) | S7 (S1, S2) | Decision |
+| Puzzles (45) | — | Done, all 45; three spellings differ (U9) |
+| Gourd Deposit Boxes, per tower | G4 | Aggregated today (45 deposit checks, one counter) |
+| "<Tower>: All Gourds Deposited" | S3 | To do |
+| Key Cutters (25) | L5 | Done |
+| Key Deposits (7) | — | Done; named by tower, not by what they open (U9) |
+| Radio Stations (7) | — | Done, named from the save data as asked |
+| All Radio Stations | S3 | To do |
+| Firework Launchers | S10 | Research |
