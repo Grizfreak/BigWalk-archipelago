@@ -14,9 +14,9 @@ tested, and co-op no longer needs a second machine: host a world with
 guest over 127.0.0.1 ("Two instances on one PC", below). That session also
 found and fixed the worst bug the mod has shipped — a check made in one save
 sent for another — see [`COOP-TESTS.md`](COOP-TESTS.md), "Results,
-2026-09-26". What is left: test 24, which needs the alpha host's save; Task
-2; and, if it is ever worth it, splitting keyboard (host) and gamepad (guest)
-for the loopback guest — Rewired is measured and allows it.
+2026-09-26". What is left: test 24, which needs the alpha host's save. **Everything after
+0.1.1 is planned in [`ROADMAP.md`](ROADMAP.md)** — the to-do list toward 1.0,
+worked through one step at a time.
 
 **Start here: co-op.** The big keys are built AND exercised in game — Task 1
 below, with the list of what the session of 2026-09-21 confirmed. What none of

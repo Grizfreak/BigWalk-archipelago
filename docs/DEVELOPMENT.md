@@ -37,6 +37,8 @@ the game works and how the mod hooks into it) and
 [`apworld/design-decisions.md`](../apworld/design-decisions.md) (why the world
 is shaped the way it is).
 
+**What to do next**: [`ROADMAP.md`](ROADMAP.md) — the to-do list toward 1.0, a short list on top and the detail behind each item below it.
+
 **To pick the work back up after a break**:
 [`NEXT-SESSION.md`](NEXT-SESSION.md) — where the project stands, what is left
 to test, the open questions and the leads deliberately not taken.
