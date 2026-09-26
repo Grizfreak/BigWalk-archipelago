@@ -73,6 +73,10 @@ namespace BigWalkArchipelago.Core.Net
 
         // Loose-gourd reconciliation, per connection (see RestoreLooseGourds).
         private static bool _worldWasReady;
+
+        // Same predicate as _worldWasReady, but followed whether or not
+        // Archipelago is on (see ReleasePendingChecksWithTheWorld).
+        private static bool _worldWasPresent;
         private static bool _looseGourdsRestored;
         private static bool _looseRestoreBlockedLogged;
         private static bool _reconciliationLogged;
@@ -148,7 +152,38 @@ namespace BigWalkArchipelago.Core.Net
             if (string.IsNullOrEmpty(locationName) || !NetworkServer.active)
                 return;
 
+            // And with Archipelago off: such a check belongs to no seed. It
+            // used to wait here all the same, and go to whichever room the
+            // process connected to next (2026-09-26: a finished vanilla save
+            // loaded with the switch off, then an Archipelago save in the
+            // same session, sent that room 59 checks in one go and got 59
+            // items back). The log line is all a check made with the switch
+            // off is for.
+            if (!ModConfig.ArchipelagoEnabled.Value)
+                return;
+
             PendingLocationNames.Enqueue(locationName);
+        }
+
+        // The world that made the checks still waiting here is going away.
+        // They belong to its save and to no other: the next world may be a
+        // different save, connected to a different room. So they go now if
+        // the socket is still that save's, and are dropped otherwise — the
+        // save keeps every one in its ap_reported_* ledger, and
+        // ResendKnownChecks replays that ledger on its next connection.
+        private static void ReleasePendingChecksWithTheWorld()
+        {
+            if (Connection.Status == ApConnection.ConnectionStatus.Connected)
+                FlushPendingChecks();
+
+            var dropped = 0;
+            while (PendingLocationNames.TryDequeue(out _))
+                dropped++;
+
+            if (dropped > 0)
+                Plugin.Log.LogInfo(
+                    $"[{nameof(ApRuntime)}] {dropped} check(s) still waiting for the server went with the world that made "
+                    + "them; its save resends them on its next connection.");
         }
 
         // Puts the player's gourds back within reach, without quitting.
@@ -398,6 +433,16 @@ namespace BigWalkArchipelago.Core.Net
             // right player and never put in anyone's hands (loopback co-op,
             // 2026-09-26: no "Item handed to" line in a whole test 19).
             ReceivedItemSpawner.DrainPendingHandover();
+
+            // Ahead of the early returns as well, and tracked apart from
+            // _worldWasReady below: the switch can be turned off on the
+            // hosting screen between two worlds, and a world left with
+            // checks still queued must let go of them whatever the next one
+            // is played with.
+            var worldPresent = NetworkServer.active && WorldManager.isReadyForEffects;
+            if (!worldPresent && _worldWasPresent)
+                ReleasePendingChecksWithTheWorld();
+            _worldWasPresent = worldPresent;
 
             if (!ModConfig.ArchipelagoEnabled.Value)
             {
