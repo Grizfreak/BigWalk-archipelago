@@ -50,6 +50,7 @@ is dropped.*
 - [ ] U5 Checks remembered per seed, not per save (`ap_reported_*`)
 - [ ] U6 A PopTracker pack with the island's map (Universal Tracker works today)
 - [ ] U7 The game's own skip aids (`SkipAidToggler`) as an option (research)
+- [ ] U8 Joke filler items (Baby, Boid, Bouba…), no effect
 
 **Step 3 — Traps**
 - [ ] T1 Trap weights as options (`trap_percent` exists, hidden)
@@ -92,7 +93,7 @@ is dropped.*
   (`linear_arch_doors`)
 - [ ] L7 Places past the Left and Right Arch Doors need their door in logic
   (`require_arch_doors`)
-- [ ] L8 Puzzles give their own gourd (`linear_puzzles`, see question 1)
+- [ ] L8 Puzzles give their own gourd (`linear_puzzles`)
 
 **Step 8 — More locations**
 - [ ] S1 Backpacks and hip packs (`backpack_sanity`, with its `vanilla` mode)
@@ -131,16 +132,17 @@ is dropped.*
 
 ## Open questions
 
-Answers go here, and into the detail below, as they come.
-
-1. **`linear_puzzles`**: `true` = the puzzle gives its own gourd as in the
-   vanilla game (no Archipelago item on it)? Or something else?
-2. **Filler names** (Baby, Boid, Bouba…): joke items with no effect, or names
-   for the gourd item?
-3. **Objectives (G5)**: must a seed finish every objective listed, or only a
-   number of them?
+Answers go here, and into the detail below, as they come. None open today.
 
 Answered (2026-09-26):
+
+- **`linear_puzzles`, `linear_towers`**: gourds and keys stay where the
+  vanilla game puts them. A cleared puzzle holds its own gourd; a filled
+  tower monument gives its own key. Neither is randomized (L8, L1).
+- **Filler names** (Baby, Boid, Bouba…): joke items, no effect (U8).
+- **Objectives (G5)**: an option listing what the seed asks for; players add
+  or remove each objective, the way `start_with_arch_doors_open` lists doors.
+  Every listed objective must be done.
 
 - **Order**: crossplay first, as listed.
 - **Colours**: the island's objects, and many more things later ("we'll
@@ -277,6 +279,10 @@ and from what a whole seed will ask of players.
 - **U7 — Research.** The game has skip aids of its own (`SkipAidToggler`,
   `SaveData.skipAidsActive`): find what they skip, and whether an option
   turning them on from the start is worth it.
+- **U8 — To do.** Joke filler items (player, 2026-09-26): the document's
+  names (Baby, Boid, Bouba…), with no effect beyond their line in the item
+  feed. Mixed with today's filler, the island's objects; their share could be
+  an option. apworld: new ids and names; mod: a feed line, nothing spawned.
 
 ### Step 3 — Traps
 
@@ -325,7 +331,7 @@ Today a goal is one of four: `big_wall`, `big_goodbye`, `big_game`,
 - **G4 — To do, bigger.** `towers_to_goal` and
   `limit_green_dome_deposit_boxes` need per-tower deposits: Option C/D in
   `apworld/design-decisions.md`, set aside for the alpha.
-- **G5 — To do, Decision first.** The user's idea (2026-09-26): instead of one
+- **G5 — To do.** The user's idea (2026-09-26): instead of one
   goal, a list of objectives the YAML adds or removes one by one, the way
   `start_with_arch_doors_open` lists doors — endings (`big_wall` — the
   document's `big_bell`, worth an alias —, `big_goodbye`, `big_game`, then
@@ -334,9 +340,9 @@ Today a goal is one of four: `big_wall`, `big_goodbye`, `big_game`,
   just a list with both kinds; its "then" stays an extra ordering. The mod
   can detect each of today's four goals but watches only the chosen one
   (`ApRuntime`, `switch (slotData.Goal)`): it would watch every listed one
-  and send the goal once they are done. To decide: all of them, or a number
-  of them (like `gourds_required`)? And the old `goal` kept hidden and read
-  into the list, as `lock_arch_doors` was.
+  and send the goal once they are done. Every listed objective is required
+  (answered 2026-09-26): choosing is done by adding or removing. The old
+  `goal` is kept hidden and read into the list, as `lock_arch_doors` was.
 - **G6 — To do, apworld only.** `big_bell` as an alias of `big_wall` (the
   document's name). `gourds_to_goal` is capped in the document by what a seed
   really holds: 38 gourds without the purple ones (L4), 36 with a six-slot
@@ -358,8 +364,12 @@ Today a goal is one of four: `big_wall`, `big_goodbye`, `big_game`,
 The mod suppresses each of these; an option turns the suppression off.
 
 - **L1 — Partial.** `linear_towers`: keys are Archipelago items today
-  (`disabled`). `all_deposit_boxes` is the vanilla behaviour `KeyCustody`
-  holds back; `one_deposit_box` is new.
+  (`disabled`). On (answered 2026-09-26): filling a tower's monument gives
+  its own key, as in the vanilla game, and the key is not randomized — the
+  vanilla behaviour `KeyCustody` holds back today. The document's
+  `one_deposit_box` (the key after one random slot) is a variant to weigh.
+  apworld: the key items leave the pool and the monument's last deposit
+  holds its key as a locked item, so the location count does not move.
 - **L2 — Partial.** `linear_keys`: features are items and deposits are checks
   (`false`). `true` is the vanilla door, held back by `PropPinDoorPatch`.
 - **L3 — To do.** `lock_map_room: false`: the Map Room starts open, like
@@ -381,8 +391,12 @@ The mod suppresses each of these; an option turns the suppression off.
   that door in logic — which needs those places listed: which puzzles, keys
   and stations are "past" the Left and Right doors. Only meaningful for doors
   that start closed.
-- **L8 — Decision.** `linear_puzzles`: open question 1. `false` is today
-  (a puzzle is a check, its gourd an item).
+- **L8 — To do.** `linear_puzzles` (answered 2026-09-26): on, a cleared
+  puzzle holds its own gourd, as in the vanilla game, and gourds are not
+  randomized. `false` is today (a puzzle is a check, its gourd an item).
+  apworld: each puzzle location holds its gourd as a locked item; mod: let
+  the game release the puzzle's gourd instead of retiring it
+  (`PuzzleGourdRetirer`) and spawning a received one.
 
 ### Step 8 — More locations
 
@@ -474,7 +488,7 @@ of 2026-09-26.
 | `gourds_to_goal` | G6 | Done as `gourds_required`; caps to come |
 | `towers_to_goal`, `limit_green_dome_deposit_boxes` | G4 | To do |
 | `keys_to_goal`, `radio_stations_to_goal` | G2 | To do |
-| `linear_puzzles` | L8 | Question 1 |
+| `linear_puzzles` | L8 | To do |
 | `linear_arch_doors` | L6 | Research |
 | `linear_towers` | L1 | `disabled` only |
 | `linear_keys` | L2 | `false` only |
