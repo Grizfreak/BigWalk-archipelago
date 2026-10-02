@@ -62,6 +62,38 @@ early game: you then leave the starting area through the Drawbridge or the
 First Arch Door, one of which is always found early. Left open, most of the
 island is reachable from the start.
 
+### Puzzle parts
+
+Off by default. With `lock_puzzle_needs` on, what a puzzle is built from stops
+being scenery and becomes an item: its buttons, its panels, its speakers, its
+timer. A puzzle is never behind an item of its own, and nothing stops you
+walking in; it is simply missing the parts you have not been sent yet. They
+are not on the map until their item arrives, and then they appear, for
+everybody, wherever they are.
+
+There are 17: **Buttons**, **Synchronized Buttons**, **Icon Panels**,
+**Drawing Panels**, **Pose Panels**, **Sound Panels**, **Point Panels**,
+**Speakers**, **Lights**, **Teapots**, **Timed Tomato**, **Golf Ball**,
+**Big Head Mask**, **Ink Viewer**, **Counter**, **Coordinates Computer** and
+**Eggs**. A part is global: Buttons turns on every puzzle button on the
+island, for every player. The generator only counts on a puzzle once you
+hold every part it needs, so a puzzle may be possible earlier than the logic
+expects (you found a way round) but never the other way.
+
+The tutorial's puzzles need parts too. So that you are never left with nothing
+to do, you start with one of them, picked at random among the ones a tutorial
+puzzle can be solved with (`start_with_random_puzzle_need`, on by default);
+`start_with_puzzle_needs` lists parts you want from the start as well.
+
+Left alone on purpose: door handles, the train's controls, the hub gates, the
+lookouts, the radio stations, the Silent Gauntlet and everything at the end of
+the game. Putting a puzzle's parts back is shown in the corner of the screen:
+`Puzzle parts missing (12): buttons, icon panels, ...`.
+
+**Everyone in a co-op group must run the same build of the mod** for this: the
+host tells each guest what is still missing, and a guest on another build
+sees every part and can use it.
+
 ## What is the goal of Big Walk when randomized?
 
 Whichever of these you picked in your YAML:
@@ -115,6 +147,9 @@ Items:
 - **First Arch Door**, **Left Arch Door** and **Right Arch Door**, each of
   which opens that door of the hub, for the doors `lock_arch_doors` keeps
   closed.
+- With `lock_puzzle_needs`, the 17 **puzzle parts** above (optional). Each is
+  named after the part with "Unlock": **Buttons Unlock**, **Icon Panels
+  Unlock**, and so on.
 - Filler: a megaphone, a walkie-talkie, a backpack, a belt, a flare gun
   (plain, blue, green or yellow), a laser, binoculars, a compass, a folding
   map, a portable radio, a gourd carton, a torch or X-ray goggles — the
@@ -140,11 +175,14 @@ text client kept open beside the game, or the BepInEx log.
 
 A gourd drops at the hub as a physical prop you can pick up and carry — or
 straight into your hands, if you are already playing and they are free — and
-so does a big key, uncut and tinted to tell it from the others. A feature
+so does a big key, uncut and tinted to tell it from the others. Whose hands
+it goes to is decided the same way for both: a player whose hands are free first,
+and if nobody's are, someone who then puts down what they hold. A feature
 opens on the spot, wherever you are and whatever the matching key is doing:
 the chairlift simply starts running. A Radio Music item starts its station
 playing, and it stays available for the rest of the run. A filler prop lands
-beside you. Everything else is silent.
+beside you. A puzzle part puts its objects back on the map, everywhere at
+once. Everything else is silent.
 
 `Ctrl+R` brings back anything of yours that has ended up somewhere you
 cannot reach — gourds, keys and filler props alike, including whatever is in

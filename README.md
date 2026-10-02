@@ -40,7 +40,9 @@ host types the Archipelago details — but every player installs the mod
 - **Checks**: the puzzle gourds, cutting and placing the big keys, the radio
   stations, and depositing gourds into the monuments.
 - **Items**: gourds, the big keys, the doors they used to open, each station's
-  music, and the island's own gadgets.
+  music, the island's own gadgets and, if you turn it on, the parts the
+  puzzles are built from (`lock_puzzle_needs`: their buttons, panels,
+  speakers... are not on the map until you are sent them).
 - **Goal**: the Gauntlet's bell, the chapel bell, the second ending, or a
   number of deposits.
 

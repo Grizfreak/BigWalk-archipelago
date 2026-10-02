@@ -58,7 +58,9 @@ below for why.
 To check it worked, `BepInEx/LogOutput.log` should contain a line reading
 `Big Walk Archipelago v0.1.2 loaded (build …).` — the build is a short code that tells two copies of the mod apart.
 
-Everyone must run the same mod version and the same game version. To
+Everyone must run the same mod version and the same game version, and since
+0.1.2 the same build: the host and its guests talk through a channel that
+changed, and a guest on another build ignores its host. To
 uninstall, delete the four things you added; nothing in the game's own files
 is ever modified.
 

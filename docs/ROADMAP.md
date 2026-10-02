@@ -118,7 +118,10 @@ is dropped.*
   paintbrush, glow orb, scanner, cowbells
 
 **Later — research first**
-- [ ] R1 Lock puzzles / towers behind items (`lock_puzzles`, `lock_towers`)
+- [x] R1a `lock_puzzles: open` — built (2026-09-28), **removed 2026-10-02**: no
+  puzzle sits behind an item of its own; see R1c for what replaced it
+- [x] R1c `lock_puzzle_needs` — the parts a puzzle is built from are items
+- [ ] R1b `lock_towers`
 - [ ] R2 Lock picking things up (`lock_pickups`)
 - [ ] R3 Lock abilities: jump, crouch, gestures (`lock_abilities`)
 - [ ] R4 One-player mode; player limit as items
@@ -463,11 +466,43 @@ The mod suppresses each of these; an option turns the suppression off.
 
 ### Later — research first
 
-- **R1.** `lock_puzzles` (`open`, `anchored`), `lock_towers`
-  (`progressive_vanilla`, `progressive_closest`, `random`): how to hold a
-  puzzle or a tower shut (its vise, its peck states) is unmeasured. The
-  document's items: one "<Tower> Unlock" per tower, the tutorial's deposit
-  boxes included.
+- **R1a — Built (2026-09-28), removed (2026-10-02).** `lock_puzzles: open`
+  gave every puzzle an Unlock item of its own, logic-only. The decision, once
+  it was running: no puzzle is blocked behind an Archipelago item, only by the
+  objects it needs to be solved — which is R1c. The 41 items, the option and
+  its tests are gone; ids 10000 to 10159 stay unused so that no id a seed may
+  carry ever changes meaning. A YAML that still sets `lock_puzzles` is only
+  warned about by Archipelago.
+- **R1c.** `lock_puzzle_needs` + `start_with_puzzle_needs`, logic-only like
+  R1: what a puzzle is built from (17 needs: buttons, synchronized buttons,
+  icon/drawing/pose/sound/point panels, speakers, lights, teapots, timed
+  tomato, golf ball, big head mask, ink viewer, counter, coordinates
+  computer, eggs) becomes an item, and a puzzle needs all of its own. `data.PUZZLE_TAGS`
+  holds the player's 2026-10-02 pass per puzzle, `coop`/`throwable`/`item_pickup`
+  included as tags without items (a head count and player abilities, for
+  R2/R3/R4); the Gauntlet's stages are recorded in `GAUNTLET_STAGE_TAGS`,
+  unused. The tutorial's four stay free. Interpretations to confirm in
+  `data.py`: Carousel's "panel buttons", Tile Thief's "speaker panels",
+  "in logic with coordinates computer".
+  **Mod side, 2026-10-02 (works solo and with a guest):** `Core/PuzzleNeeds` +
+  `Core/PuzzleNeedHider` hide the objects of every need whose item has not
+  arrived (`SetActive(false)` locally on each machine, rechecked every second),
+  classified by prefab name read off the game (Ctrl+E). The host keeps the
+  ledger (`ap_need_<key>`) and tells guests the locked list in its snapshot
+  (ModChannel protocol v2). Debug: Ctrl+Q locks/unlocks everything, Ctrl+W the
+  next need, Ctrl+E names what is under the crosshair, Ctrl+D noon.
+  `tools/players/needs-test.yaml` is the seed; "Icon Panels Unlock" etc. can be
+  cheated in with `!getitem` from a second TextOnly client.
+  Still to check: 8 `Light_Table_Red` found where 5 were expected, 37 eggs for
+  36, the `Intercoms` container hidden whole, the 12 train-car buttons (not
+  hidden: unknown if puzzle or train), Tile Thief's mixed tiles, and the
+  Gauntlet (left alone: its needs are not in the logic). The tiles are hidden,
+  the boards and the split-flap displays stay.
+- **R1b.** `lock_towers`
+  (`progressive_vanilla`, `progressive_closest`, `random`): `anchored`
+  needs a puzzle-to-nearest-tower mapping that does not exist yet in
+  data.py. The document's items: one "<Tower> Unlock" per tower, the
+  tutorial's deposit boxes included.
 - **R2.** `lock_pickups`: refuse in `UserCode_CmdPickUp` on the host; reaches
   every player, modded or not. The document's 19 "Unlock" items (`individual`):
   Backpacks, Binoculars, Clocks, Compasses, Flare Guns, Flashlights, Glow
@@ -537,7 +572,8 @@ of 2026-09-26.
 | `lock_arch_doors` | — | Done, as `start_with_arch_doors_open` (0.1.2) |
 | `require_arch_doors` | L7 | `false` only |
 | `lock_map_room` | L3 | `true` only |
-| `lock_puzzles`, `lock_towers` | R1 | Research |
+| `lock_puzzles` | R1a, R1b | Dropped: puzzles are not locked behind items (R1c instead) |
+| `lock_towers` | R1b | Research |
 | `fast_golf`, `cabin_fever_time`, `cabin_fever_long_time` | R6 | Research |
 | `include_big_game_puzzles` | L4 | `from_start` only |
 | `pedestal_sanity` | S9 | Research |

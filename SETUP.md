@@ -70,7 +70,11 @@ To check it worked, open `BepInEx/LogOutput.log` and look for a line reading
 
 **Everyone must run the same mod version and the same game version.** A
 mismatch is not always loud: an older mod ignores parts of the seed it does
-not know about, which can make a game unwinnable rather than crash.
+not know about, which can make a game unwinnable rather than crash. Since
+0.1.2 this goes for the build too, not only the version number: the host and
+its guests talk to each other through a channel that changed, and a guest on
+another build ignores its host. The line in `BepInEx/LogOutput.log` above
+tells you which one you have.
 
 To uninstall, delete `winhttp.dll`, `doorstop_config.ini`, `dotnet/` and
 `BepInEx/`. Nothing in the game's own files is ever modified.
@@ -226,6 +230,12 @@ underneath it and the resync shortcut below that. It is off for everyone
 else, who never connects. `ShowConnectionStatus` turns the whole thing off,
 `StatusFontSize` resizes it, and `ShowItemFeed` keeps the status line while
 dropping the feed.
+
+With `lock_puzzle_needs` on, a line under the connection says what is still
+missing: `Puzzle parts missing (12): buttons, icon panels, ...`, or "all
+found" once everything has arrived. Guests see it too. A part is something a
+puzzle is built from (its buttons, its panels, its speakers...) and it is not
+on the map until its item reaches the group.
 
 What it cannot show you is the rest of the multiworld — who received what you
 sent, or what anyone else is doing. Keep Archipelago's **Text Client** open

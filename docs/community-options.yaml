@@ -13,6 +13,8 @@ description: |-
 game: Big Walk
 requires:
   version: 0.6.7
+  game:
+    Big Walk: 0.1.2
 Big Walk:
   ################
   # Game Options #

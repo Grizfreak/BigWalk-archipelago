@@ -391,6 +391,39 @@ branches on slot_data before doing anything.
 
 ---
 
+## Puzzle needs — checked in the map (2026-10-02)
+
+`data.PUZZLE_TAGS` comes from the player's pass through the map, then
+checked on site with the mod's Ctrl+E:
+
+- **Carousel** has icon panels as well as buttons: corrected.
+- **Perspective Counting** has a counter and buttons only; **Signal Flags**
+  has icon panels, a counter and buttons, no poses. Both as listed.
+
+## Puzzle needs in co-op (added 2026-10-02)
+
+Checked with a loopback guest, on a real multiworld: a need the host receives
+shows again on both sides; a guest joining after an item was received sees the
+same things hidden as the host; a guest that quits and comes back does too
+(host and guest logs agree: 16 locked, 394 of 763 objects showing). The host
+cannot reload its world with a guest connected — the guest is dropped — so
+that case does not exist.
+
+Still to do, ideally with a real second machine, since a second PC adds
+latency, packet loss and a possibly different build.
+
+### Results, 2026-10-02 (solo, `needs-test.yaml`, slot `BWTest`)
+
+| What | Result |
+|---|---|
+| The 17 puzzle needs, each received with `!getitem` | **PASSES.** For every need the objects shown again equal the objects hidden (e.g. buttons 393 of 425, icon panels 135 of 135, lights 7 of 7). |
+| A big key received with hands free | **PASSES.** `bigKeyIntro granted and delivered`, `Item handed to … (netId 219)`, then `in somebody's hands, left alone`; the key is in the player's hand. It used to land two metres ahead of the body. |
+| A big key received with full hands | **PASSES.** `PlayerCharacter …-0 had full hands; they drop what they held and take the new item next`, then `Item handed to …-0 (netId 24)` and `bigKeyRedZone: in somebody's hands, left alone`. |
+| A need received with a guest connected (icon panels, buttons) | **FAILED, fixed, then PASSES.** The guest never got the icon panels: the host hid the replicated tiles with `SetActive(false)`, and Mirror sends a joining client only the objects that are ACTIVE on the server, so what was hidden when the guest arrived was never sent, and showing it again later does not send it either. Replicated objects (a `NetworkIdentity` on them or below: tiles, kettles, eggs, mask, cannonball, coordinates prop, tomato dispenser) are now only made invisible and untouchable (renderers, colliders, bodies kept still) and stay active. After the fix: `icon_panels: showed 135 of 135` on both sides in the same second. |
+| A fresh save on a fresh seed of the same slot | **PASSES.** `0 item(s) already applied to this save`; every need locked at connection (the ledger was empty), then the seed's one start need (`buttons`) granted by the replay: 16 locked of 17, 393 objects showing. |
+
+---
+
 ## Filler gadgets — untested in co-op (added 2026-09-22)
 
 *Everything below was built and exercised solo today (see `NEXT-SESSION.md`
