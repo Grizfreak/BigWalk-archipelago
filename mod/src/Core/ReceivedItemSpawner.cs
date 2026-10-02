@@ -87,6 +87,7 @@ namespace BigWalkArchipelago.Core
         // when it happens (player's call, 2026-09-15).
         internal static GameObject SpawnCosmeticPickup(bool toPlayer)
         {
+            using var activity = ModActivity.Enter("cosmetic gourd spawn");
             if (!NetworkServer.active)
                 return null;
 
@@ -156,6 +157,7 @@ namespace BigWalkArchipelago.Core
         // SpawnCosmeticPickup).
         internal static GameObject SpawnCosmeticPickupPinnedTo(PropHome propHome)
         {
+            using var activity = ModActivity.Enter("cosmetic gourd restore");
             if (!NetworkServer.active || propHome == null)
                 return null;
 
@@ -404,23 +406,14 @@ namespace BigWalkArchipelago.Core
             var templatePropertyBlocks = CapturePropertyBlocks(template.gameObject);
 
             // Workaround for the Mirror pitfall (point 1 at the top of the
-            // file): disabling the template before Instantiate makes the
-            // clone inherit the inactive state, which defers Awake()/
-            // OnEnable() until SetActive(true) further below — giving time
-            // to fix sceneId and neutralize saveablePropName/startHome while
-            // the clone is still inactive.
-            var templateWasActive = template.gameObject.activeSelf;
-            GameObject clone;
-            try
-            {
-                template.gameObject.SetActive(false);
-                clone = UnityEngine.Object.Instantiate(template.gameObject, position, rotation);
-            }
-            finally
-            {
-                if (templateWasActive)
-                    template.gameObject.SetActive(true);
-            }
+            // file): the clone must not wake up (Awake()/OnEnable()) until its
+            // sceneId and saveablePropName/startHome have been neutralized.
+            //
+            // It is born under an INACTIVE parent rather than by switching the
+            // template off and on around Instantiate: the template is never
+            // touched, and the clone wakes only when it is unparented below.
+            var holder = TemplateHolder();
+            var clone = UnityEngine.Object.Instantiate(template.gameObject, position, rotation, holder);
 
             clone.name = $"{template.gameObject.name} {CosmeticNameSuffix}";
 
@@ -451,6 +444,7 @@ namespace BigWalkArchipelago.Core
             // the file) — not after ServerSetGourdState, which actually
             // triggered a false check in testing.
             NeutralizeProgression(rewardGourd.prop);
+            DetachExternalPecks(rewardGourd.prop, clone.transform);
             var propsToMakeSavable = rewardGourd.propsToMakeSavable;
             if (propsToMakeSavable != null)
             {
@@ -470,6 +464,9 @@ namespace BigWalkArchipelago.Core
             // with the default bare appearance.
             ApplyPropertyBlocks(clone, templatePropertyBlocks);
 
+            // Wakes the clone: Awake()/OnEnable() run here, on the neutralized
+            // object, as they did when SetActive(true) was what woke it.
+            clone.transform.SetParent(null, true);
             clone.SetActive(true);
 
             // SpawnedFromInstantiate (point 2 at the top of the file): set
@@ -482,6 +479,59 @@ namespace BigWalkArchipelago.Core
             RefreshCosmeticColor();
 
             return rewardGourd;
+        }
+
+        // THE REAL CAUSE OF THE STRAY CHECK (found 2026-10-03, from the stack
+        // of the check itself). A gourd sealed in a puzzle (Coordinates
+        // Holding, reproduced) has Prop.onPickUpSwitch & co. pointing at a
+        // PeckSwitch that belongs to the puzzle, outside the gourd. Instantiate
+        // only remaps references INSIDE the cloned hierarchy, so the clone
+        // kept the puzzle's own switch: handing the clone to a player ran
+        // Prop.SetHeld -> PeckSwitch.Peck -> TrackedPeckState.SetState ->
+        // ServerSetGourdState(Loose) on the REAL gourd, and GourdStatePatch
+        // reported the puzzle as solved. Any switch the clone does not own is
+        // let go; one inside it is left alone.
+        private static void DetachExternalPecks(Prop prop, Transform root)
+        {
+            if (prop == null)
+                return;
+
+            var detached = new List<string>();
+            prop.useHeldSwitch = Detach(prop.useHeldSwitch, root, "useHeldSwitch", detached);
+            prop.useHeldUpSwitch = Detach(prop.useHeldUpSwitch, root, "useHeldUpSwitch", detached);
+            prop.onDropSwitch = Detach(prop.onDropSwitch, root, "onDropSwitch", detached);
+            prop.onEjectSwitch = Detach(prop.onEjectSwitch, root, "onEjectSwitch", detached);
+            prop.onUseAsKey = Detach(prop.onUseAsKey, root, "onUseAsKey", detached);
+            prop.onPickUpSwitch = Detach(prop.onPickUpSwitch, root, "onPickUpSwitch", detached);
+
+            if (detached.Count > 0)
+                Plugin.Log.LogInfo(
+                    $"[{nameof(ReceivedItemSpawner)}] Clone let go of the puzzle's own switches: {string.Join(", ", detached)}.");
+        }
+
+        private static PeckSwitch Detach(PeckSwitch peck, Transform root, string field, List<string> detached)
+        {
+            if (peck == null || peck.transform.IsChildOf(root))
+                return peck;
+
+            detached.Add($"{field} -> '{peck.gameObject.name}'");
+            return null;
+        }
+
+        private static Transform _templateHolder;
+
+        // An inactive, never-destroyed parent for clones in the making.
+        private static Transform TemplateHolder()
+        {
+            if (_templateHolder == null)
+            {
+                var holder = new GameObject("AP clone holder");
+                holder.SetActive(false);
+                UnityEngine.Object.DontDestroyOnLoad(holder);
+                _templateHolder = holder.transform;
+            }
+
+            return _templateHolder;
         }
 
         private static RewardGourd CreateNeutralizedClone(Vector3 position, Quaternion rotation)
@@ -618,6 +668,16 @@ namespace BigWalkArchipelago.Core
             if (prop == null || players == null)
                 return;
 
+            using (ModActivity.Enter("release from hands"))
+            {
+                var what = $"'{prop.gameObject.name}' (saveablePropName {prop.saveablePropName}, home {prop.currentHome?.saveableHomeName})";
+                Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] Releasing {what}.");
+                ReleaseFromHandsCore(prop, players);
+            }
+        }
+
+        private static void ReleaseFromHandsCore(Prop prop, Il2CppSystem.Collections.Generic.List<PlayerCharacter> players)
+        {
             foreach (var pc in players)
             {
                 if (pc?.hands == null || pc.hands.heldProp != prop)
@@ -991,6 +1051,7 @@ namespace BigWalkArchipelago.Core
         // Always at least one frame after the spawn: see SpawnCosmeticPickup.
         internal static void DrainPendingHandover()
         {
+            using var activity = ModActivity.Enter("handover");
             for (var i = Pending.Count - 1; i >= 0; i--)
             {
                 var entry = Pending[i];
@@ -1246,6 +1307,7 @@ namespace BigWalkArchipelago.Core
                 if (IsPlainPuzzleGourd(candidate) && candidate.gourdState == GourdFlag.GourdState.Loose)
                 {
                     _cachedTemplate = candidate;
+                    LogTemplate(candidate);
                     return candidate;
                 }
             }
@@ -1255,11 +1317,21 @@ namespace BigWalkArchipelago.Core
                 if (IsPlainPuzzleGourd(candidate))
                 {
                     _cachedTemplate = candidate;
+                    LogTemplate(candidate);
                     return candidate;
                 }
             }
 
             return null;
+        }
+
+        // Which puzzle's gourd the cosmetic clones are built from: a clone
+        // carries that gourd's components, and one of them may still answer to
+        // its puzzle (a stray gourdCoordinatesHolding check, 2026-10-03).
+        private static void LogTemplate(RewardGourd template)
+        {
+            var name = $"'{template.gameObject.name}' ({template.prop.saveablePropName})";
+            Plugin.Log.LogInfo($"[{nameof(ReceivedItemSpawner)}] Cosmetic gourds are cloned from {name}.");
         }
 
         private static bool IsPlainPuzzleGourd(RewardGourd candidate)

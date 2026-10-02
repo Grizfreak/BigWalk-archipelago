@@ -994,6 +994,7 @@ namespace BigWalkArchipelago.Core
         // the hub instead.
         internal static GameObject SpawnCosmeticPickup(GadgetKind kind, bool toPlayer)
         {
+            using var activity = ModActivity.Enter("cosmetic gadget spawn");
             if (!NetworkServer.active)
                 return null;
 

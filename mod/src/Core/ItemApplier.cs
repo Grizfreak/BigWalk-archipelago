@@ -24,6 +24,7 @@ namespace BigWalkArchipelago.Core
         // stocks them at the hub instead. See ReceivedItemSpawner.
         internal static bool ApplyGourdItem(bool toPlayer)
         {
+            using var activity = ModActivity.Enter("apply gourd item");
             if (!NetworkServer.active)
             {
                 Plugin.Log.LogWarning(
@@ -53,6 +54,7 @@ namespace BigWalkArchipelago.Core
         // rather than an invented Postcard. See GadgetItemSpawner.
         internal static bool ApplyGadgetItem(GadgetKind kind, bool toPlayer)
         {
+            using var activity = ModActivity.Enter("apply gadget item");
             if (!NetworkServer.active)
             {
                 Plugin.Log.LogWarning(

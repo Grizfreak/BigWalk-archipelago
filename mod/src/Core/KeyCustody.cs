@@ -390,6 +390,7 @@ namespace BigWalkArchipelago.Core
         // exactly where it is.
         internal static int ResyncToSpawn()
         {
+            using var activity = ModActivity.Enter("key resync");
             if (!KeysAreItems || !NetworkServer.active)
                 return 0;
 
@@ -464,6 +465,7 @@ namespace BigWalkArchipelago.Core
         // and the two are indistinguishable from in front of the screen.
         internal static void SettleDelivered()
         {
+            using var activity = ModActivity.Enter("key settle");
             if (Delivered.Count == 0)
                 return;
 

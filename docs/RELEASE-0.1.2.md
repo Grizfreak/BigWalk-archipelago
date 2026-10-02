@@ -5,7 +5,7 @@ hand from the texts below. The assets are in `dist/`:
 
 | File | What | SHA-256 |
 |---|---|---|
-| `BigWalkArchipelago-0.1.2.zip` | the mod, BepInEx included, for every player | `36b5be003e31fea6e573c85e4fe2f3e206da37ffb405360bbca9aa8b64d5a599` |
+| `BigWalkArchipelago-0.1.2.zip` | the mod, BepInEx included, for every player | `40c0d85cd36b8295dafbd1ce61d624e055f42eb8bce6d7df15dd9a10eef793c6` |
 | `bigwalk.apworld` | the world, for whoever generates | `6cb6240a393b9d9a87084f2c01d7e00e8bf2661c41b41a463a2ee0a265ff3331` |
 
 The tag points at the commit that carries these checksums. The version number is
