@@ -16,58 +16,35 @@ already 0.1.2 in the plugin, the `.csproj`, `archipelago.json` and
 
 ## GitHub release notes
 
-**Big Walk Archipelago 0.1.2**
+Same shape as the 0.1.1 page.
 
-New: the parts a puzzle is built from can be items.
+```markdown
+## Big Walk Archipelago 0.1.2 (alpha)
 
-With `lock_puzzle_needs` on (off by default), a puzzle's buttons, panels,
-speakers, lights, timer and so on are not on the island until their item
-reaches you. There are 17 of them: Buttons, Synchronized Buttons, Icon /
-Drawing / Pose / Sound / Point Panels, Speakers, Lights, Teapots, Timed Tomato,
-Golf Ball, Big Head Mask, Ink Viewer, Counter, Coordinates Computer and Eggs.
-They appear for every player at once. No puzzle is ever blocked behind an item
-of its own: it is simply missing parts, and the generator only counts on it
-once you hold them all. You start with one random part so a tutorial puzzle is
-always doable (`start_with_random_puzzle_need`); `start_with_puzzle_needs`
-adds more. A line in the corner says which are still missing.
+Update both files: the mod zip for every player, the apworld for whoever generates. **Everyone in a session must run the same build of the mod.**
 
-Also:
+### Added
+- `lock_puzzle_needs` option (off by default): what a puzzle is built from becomes an item. Buttons, Synchronized Buttons, Icon / Drawing / Pose / Sound / Point Panels, Speakers, Lights, Teapots, Timed Tomato, Golf Ball, Big Head Mask, Ink Viewer, Counter, Coordinates Computer and Eggs are not on the island until their item arrives, then they appear for every player. No puzzle is ever behind an item of its own.
+- `start_with_random_puzzle_need` (on by default) gives one random part at the start so a tutorial puzzle is always doable, and `start_with_puzzle_needs` lists parts to start with.
+- A line in the corner says which puzzle parts are still missing, for the host and its guests.
+- `start_with_arch_doors_open` option: any of the hub's arch doors, the first one included, can be an item. It replaces `lock_arch_doors`.
+- A session journal, `BepInEx/session-journal.tsv`: every item, check and opened part with the time and where you stood. Send it with a bug report.
+- Debug keys (with `Debug.Enabled`): Ctrl+E names what is under the crosshair, Ctrl+Z logs the state of every part, Ctrl+Q / Ctrl+W lock and unlock parts, Ctrl+D fixes noon, Ctrl+P sends a DeathLink.
 
-- `start_with_arch_doors_open`: hold any of the hub's three arch doors closed,
-  the First one included. It replaces `lock_arch_doors`, which old YAMLs and
-  seeds still use.
-- A big key that arrives while you play goes into somebody's hands, like a
-  gourd, instead of landing in front of whoever the mod picked.
-- A session journal (`BepInEx/session-journal.tsv`): every item, check and
-  opened part with the time and where you stood. Handy for bug reports.
-- Debug keys, behind `Debug.Enabled`: Ctrl+E (what am I looking at), Ctrl+Z
-  (state of every part), Ctrl+Q / Ctrl+W (lock or unlock parts), Ctrl+D (noon),
-  Ctrl+P (send a DeathLink).
+### Changed
+- A big key received while you play goes into somebody's hands, like a gourd, instead of landing in front of whoever the mod picked.
+- The channel between a host and its guests changed: a guest on another build ignores its host and sees every part.
 
-Fixed:
+### Fixed
+- Archipelago 0.6.7 read the apworld as version 0.0.0 and rejected any YAML with a `requires` line.
 
-- The `.apworld` now carries `version` / `compatible_version` in its manifest.
-  Without them Archipelago 0.6.7 read the world as 0.0.0 and rejected any YAML
-  with a `requires` line.
-- A radio station's button could be hidden with the puzzle buttons near it.
-- The slot's settings survive a trip back to the menu.
+### Known limits
+- The Silent Gauntlet and the end of the game are left alone: their parts are never hidden.
+- 12 buttons in the train cars are not hidden (we do not know whether they are puzzle buttons or train controls).
+- Tested on one PC with a second local instance, not on two machines. A puzzle gourd stowed in a bag (0.1.1's fix) is still untested.
 
-**Upgrading**
-
-- Replace the mod and the `.apworld`. Old seeds still play (ids never change).
-- **Everyone in a session must run the same build.** The channel between host
-  and guests changed: a guest on another build ignores its host and sees
-  every part.
-- Old YAMLs keep working; unknown options are only warned about.
-
-**Known limits**
-
-- The Silent Gauntlet and the end of the game are left alone: their parts are
-  never hidden.
-- 12 buttons in the train cars are not hidden (we do not know if they are
-  puzzle buttons or train controls).
-- Test 24 (a puzzle gourd stowed in a bag) has still never been run.
-- Tested on one PC with a second local instance, not on two machines.
+0.1.1 seeds still work with this mod; the new options need a seed generated with the 0.1.2 apworld.
+```
 
 ---
 

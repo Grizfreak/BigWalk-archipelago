@@ -58,10 +58,6 @@ unwinnable, which is why every player of a session should run the same build.
   which Archipelago 0.6.7 requires: it loaded the world as version 0.0.0 and
   refused any YAML with a `requires` line. `apworld/build.py` now writes them
   into the package.
-- A radio station's button could be hidden along with the puzzle buttons of the
-  folder it stands in.
-- The slot's configuration is kept when the host returns to the menu and loads
-  the save again (the Archipelago connection outlives the menu).
 
 ## 0.1.1
 
