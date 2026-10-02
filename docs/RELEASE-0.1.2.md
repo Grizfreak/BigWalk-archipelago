@@ -1,13 +1,14 @@
 # Release 0.1.2: drafts
 
-Nothing here has been published. The assets are in `dist/`:
+The tag `v0.1.2` is pushed. The release page and the Discord post are made by
+hand from the texts below. The assets are in `dist/`:
 
-| File | What | Checksum (SHA-256, first 16) |
+| File | What | SHA-256 |
 |---|---|---|
-| `BigWalkArchipelago-0.1.2.zip` | the mod, BepInEx included, for every player | `36b5be003e31fea6` |
-| `bigwalk.apworld` | the world, for whoever generates | `902afd938ecf268d` |
+| `BigWalkArchipelago-0.1.2.zip` | the mod, BepInEx included, for every player | `36b5be003e31fea6e573c85e4fe2f3e206da37ffb405360bbca9aa8b64d5a599` |
+| `bigwalk.apworld` | the world, for whoever generates | `6cb6240a393b9d9a87084f2c01d7e00e8bf2661c41b41a463a2ee0a265ff3331` |
 
-Tag `v0.1.2` on the commit that carries `CHANGELOG.md`. The version number is
+The tag points at the commit that carries these checksums. The version number is
 already 0.1.2 in the plugin, the `.csproj`, `archipelago.json` and
 `WORLD_VERSION`.
 
