@@ -145,6 +145,17 @@ class BigWalkWorld(World):
         opened = self.options.start_with_arch_doors_open.value
         self.locked_arch_doors = tuple(door for door in data.ARCH_DOORS if door.item_name not in opened)
         self._ask_for_an_early_way_out()
+        self._hint_the_keys()
+
+    def _hint_the_keys(self) -> None:
+        """
+        `hint_keys: from_start` adds the seven big keys to the player's start
+        hints, which the server turns into hints when the room opens. Nothing
+        here moves an item or a location, so it never reaches slot_data.
+        """
+        if self.options.hint_keys != bigwalk_options.HintKeys.option_from_start:
+            return
+        self.options.start_hints.value |= {data.key_item_name(tower) for tower in self.towers}
 
     def _pick_a_random_puzzle_need(self) -> None:
         """

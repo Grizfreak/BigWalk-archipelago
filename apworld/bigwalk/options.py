@@ -244,6 +244,22 @@ class StartWithRandomPuzzleNeed(DefaultOnToggle):
     display_name = "Start With Random Puzzle Need"
 
 
+class HintKeys(Choice):
+    """
+    Whether the server tells you, from the first minute, where the seven big
+    keys are in the multiworld.
+
+    - off: nothing is hinted.
+    - from_start: the seven Big Key items are hinted at the start, as if
+      they were listed in Start Hints. Anything you list there stays.
+    """
+
+    display_name = "Hint Keys"
+    option_off = 0
+    option_from_start = 1
+    default = option_off
+
+
 # Hidden until the mod gives a trap an effect: today a trap is a filler item
 # with a different name, and offering the option would promise otherwise.
 class TrapFillPercentage(Range):
@@ -273,6 +289,7 @@ class BigWalkOptions(PerGameCommonOptions):
     lock_puzzle_needs: LockPuzzleNeeds
     start_with_puzzle_needs: StartWithPuzzleNeeds
     start_with_random_puzzle_need: StartWithRandomPuzzleNeed
+    hint_keys: HintKeys
     trap_fill_percentage: TrapFillPercentage
     start_inventory_from_pool: StartInventoryPool
 
@@ -281,7 +298,7 @@ option_groups = [
     OptionGroup("Goal", [Goal, GourdsRequired]),
     OptionGroup("Gourds", [GourdSlotChecks]),
     OptionGroup("Radio", [RadioChecks, ShuffleRadioMusic]),
-    OptionGroup("Keys", [StartWithDrawbridgeOpen]),
+    OptionGroup("Keys", [StartWithDrawbridgeOpen, HintKeys]),
     OptionGroup("Doors", [StartWithArchDoorsOpen]),
     OptionGroup("Puzzles", [LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed]),
 ]

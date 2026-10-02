@@ -47,7 +47,7 @@ Agreed on 2026-10-02. An item that is not named here is parked until after 0.1.8
 
 | Version | The core | Rides along (why) | To settle first |
 |---|---|---|---|
-| **0.1.3** | The Silent Gauntlet as real checks and locations, with items that open the floors (S5 and the seven stages; their needs are already in `data.GAUNTLET_STAGE_TAGS`) | S4 lookout lights, S6 the other saved switches, U7 the game's skip aids (they sit near the Gauntlet): same family, *what does the game save*. U1 hints for keys from the start, S3 "All Radio Stations" / "All Gourds Deposited", L7 `require_arch_doors`: apworld only, no risk. U3 a new save gets its deposits back: felt on every seed. | How a stage is detected: the chambers are saved nowhere (`GauntletChamber0..6` never found written), so each needs a trigger of its own. The option from the document that decouples opening a door from clearing the stage. `PuzzleNeedHider` stops leaving the Gauntlet alone once its stages are in the logic. Testing: the debug keys (Keypad 4, End) fake the held buttons; only the synchronized buttons (stage 4) and the timed tomato (stage 3) need real timing. |
+| **0.1.3** | The Silent Gauntlet as real checks and locations, with items that open the floors (S5 and the seven stages; their needs are already in `data.GAUNTLET_STAGE_TAGS`) | S4 lookout lights, S6 the other saved switches, U7 the game's skip aids (they sit near the Gauntlet): same family, *what does the game save*. U1 hints for keys from the start, L7 `require_arch_doors`: apworld only, no risk. U3 a new save gets its deposits back: felt on every seed. | How a stage is detected: the chambers are saved nowhere (`GauntletChamber0..6` never found written), so each needs a trigger of its own. The option from the document that decouples opening a door from clearing the stage. `PuzzleNeedHider` stops leaving the Gauntlet alone once its stages are in the logic. Testing: the debug keys (Keypad 4, End) fake the held buttons; only the synchronized buttons (stage 4) and the timed tomato (stage 3) need real timing. |
 | **0.1.4** | Traps (T1 to T5, R9) | U8 joke filler (same pool as the traps), C1 a palette per seed and C2 colours for keys and buoys (T5's colour chaos is a colour trap) | The trap item exists (`Untied Shoelace`, hidden `trap_fill_percentage`) with no effect. An effect is local to each machine, like the hider. Whether to receive DeathLinks too (sending is on Ctrl+P). |
 | **0.1.5** | Objectives to spice up a run (G1 to G6, G5 first) | H1 to H3 hints and S8 a check per tower reached (one trigger, "tower reached"), U9 the names players use for the towers | G5 lists what a seed asks for, the way `start_with_arch_doors_open` lists doors. |
 | **0.1.6** | Locking the players' ways to communicate: R3 `lock_abilities` (body) and R2 `lock_pickups` (megaphone, walkie-talkie, radio) | R9's "No Comms" is the trap sibling | Input is Rewired and blocked locally, which every player can do. R2 refuses a pick-up on the host (`UserCode_CmdPickUp`). |
@@ -57,7 +57,7 @@ Agreed on 2026-10-02. An item that is not named here is parked until after 0.1.8
 After 0.1.8, without a date: quality of life U2, U4, U5 (placed in the version that needs them), research R1b `lock_towers`, R4 one-player mode, R5, R6, R7, R8, S9, S10, and U6 PopTracker (an external pack, any time). Before 1.0: Q1 a seed played from the first check to the goal (the multiworld run in progress, if it gets there), Q2 every option described (kept up to date with each version), Q3 the defaults, Q4 test 24 (when a save has one). Tooling D1 (keyboard for the host, gamepad for the guest) only when it gets in the way.
 
 **Step 2 — Quality of life** *(new: small, and felt on every seed)*
-- [ ] U1 Hints for keys from the start (`hint_keys: from_start`) — apworld only
+- [x] U1 Hints for keys from the start (`hint_keys: from_start`) — apworld only
 - [ ] U2 The map shows which puzzles still hold a check
 - [ ] U3 A new save gets its deposits back, not only its items (DataStorage)
 - [ ] U4 A button in the world for the gourd resync, instead of Ctrl+R
@@ -114,7 +114,7 @@ After 0.1.8, without a date: quality of life U2, U4, U5 (placed in the version t
 **Step 8 — More locations**
 - [ ] S1 Backpacks and hip packs (`backpack_sanity`, with its `vanilla` mode)
 - [ ] S2 Flares and flare stations (`flare_sanity`)
-- [ ] S3 "All Radio Stations", "<Tower>: All Gourds Deposited"
+- [x] S3 Dropped (2026-10-02): "All Radio Stations" is an objective (G5), not a check; a per-tower "All Gourds Deposited" cannot be kept in logic
 - [ ] S4 The four lookout lights (`LookoutLight*`, saved like the radio)
 - [ ] S5 The endings as checks when they are not the goal: the Big Wall bell,
   the Gauntlet, the secret ending's gourd
@@ -209,7 +209,7 @@ still true:
 Not in the document; gathered from the leads set aside in `NEXT-SESSION.md`
 and from what a whole seed will ask of players.
 
-- **U1 — To do, apworld only.** `hint_keys: from_start`: the seven key
+- **U1 — Done (0.1.3), apworld only.** `hint_keys: from_start`: the seven key
   locations go into `start_location_hints`. The other two values are H2.
 - **U2 — To do.** The map already shows the purple gourds
   (`VariantGourdMapUnlocker`); it could mark each puzzle whose check is not
@@ -366,8 +366,9 @@ The mod suppresses each of these; an option turns the suppression off.
 - **S1** also has a `vanilla` mode in the document: each backpack is a
   location that gives itself, and no other location gives one. **S2** covers
   the flare stations as well as the flares.
-- **S3 — To do.** "All Radio Stations" (seven are tracked); "<Tower>: All
-  Gourds Deposited" goes with G4.
+- **S3 — Dropped (2026-10-02).** "All Radio Stations" would be an objective, a G5 candidate, not a check. "<Tower>: All
+  Gourds Deposited" cannot be kept in logic: gourds go in any tower in any
+  order and never come out.
 - **S4 — To do.** `LookoutLightRed/Green/Blue/Yellow` (`SavableSystem` 21–24)
   are saved flags like the radio stations (30–36), so `SaveValuePatch` sees
   them written. Check in game what lights one, and that any player count can.
