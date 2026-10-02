@@ -41,6 +41,17 @@ everyone runs the mod plays as the previous version unless an option is turned
 on. A change that would cost modded players something becomes an off-by-default
 option, or is dropped.
 
+## Versions planned (player, 2026-10-02)
+
+Everything below the list that is not named here is parked for after 0.1.6.
+
+| Version | What | Items | To settle first |
+|---|---|---|---|
+| **0.1.3** | The Silent Gauntlet as real checks and locations, with items that open the floors | S5, plus the Gauntlet's seven stages (their needs are already recorded in `data.GAUNTLET_STAGE_TAGS`) | How a stage is detected: the chambers are not saved anywhere (`GauntletChamber0..6` were never found written), so each needs a trigger of its own. The player's wish (document): an option that decouples opening a door from clearing the stage. The puzzle-needs exclusion of the Gauntlet (`PuzzleNeedHider`) is lifted here, once its stages are in the logic. |
+| **0.1.4** | Traps | T1, T2, T3, T4, T5, R9 | The trap item exists (`Untied Shoelace`, hidden `trap_fill_percentage`) with no effect yet. An effect is local to each machine, like the hider; whether to also receive DeathLinks (sending is on Ctrl+P). |
+| **0.1.5** | Objectives to spice up a run | G1 to G6, G5 first | G5 lists what a seed asks for, the way `start_with_arch_doors_open` lists doors. |
+| **0.1.6** | Locking the players' ways to communicate | R3 (`lock_abilities`); R9's "No Comms" is the trap sibling | Is it the body (jump, crouch, sit, point, raise, extend, per hand) or also voice, megaphone, walkie-talkie? R3 covers the first; the second is R2 and R9. Input is Rewired and blocked locally, which every player can do now. |
+
 **Step 2 — Quality of life** *(new: small, and felt on every seed)*
 - [ ] U1 Hints for keys from the start (`hint_keys: from_start`) — apworld only
 - [ ] U2 The map shows which puzzles still hold a check
