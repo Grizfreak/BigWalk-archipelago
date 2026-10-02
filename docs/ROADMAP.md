@@ -9,14 +9,13 @@ Sources: the community document "Big Walk Archipelago details" (its options
 kept verbatim in [`community-options.yaml`](community-options.yaml), its items
 and locations in [`community-items-locations.txt`](community-items-locations.txt); proposed
 options, items and locations, custom tiles, 0.1.0 notes), and the player's
-own wishes (traps, colours, where things are in the world, crossplay).
+own wishes (traps, colours, where things are in the world).
 
 ---
 
 ## The list
 
-Order is a proposal: crossplay first, because it changes how everything after
-it has to be built. Every option of the community document has an id here —
+Order is a proposal. Every option of the community document has an id here —
 the table at the very bottom maps each one — and ideas of our own come on top
 of it (S4–S9, U1–U7).
 
@@ -30,19 +29,17 @@ on); custom tiles only when a matching game is in the multiworld.
 co-op testable on one PC (Ctrl+L). 0.1.2 so far: `start_with_arch_doors_open`
 (any set of arch doors locked, the First one alone included).
 
-**Step 1 — Players without the mod (crossplay: PlayStation, Xbox)**
-*Goal: they can play. Fewer features is acceptable; being blocked is not.*
-*Rule: a session where everyone runs the mod plays exactly as 0.1.1. A change
-that would cost modded players anything becomes an off-by-default option, or
-is dropped.*
-- [x] X1 Find which objects a vanilla game can build — only the player and the
-  corpse: no gourd, no gadget
-- [x] X2 A loopback guest without the mod, to test as a console player would
-  (Ctrl+Y on the host)
-- [ ] X3 Nothing blocks a player without the mod (items in someone's hands
-  first, then the true-ending sphere…)
-- [ ] X4 Received items visible to them: reuse the island's own objects
-- [ ] X5 A real session with a console
+**Step 1 — Players without the mod: dropped (2026-10-02).** Every player of a
+session runs the mod; a guest without it is no longer supported, so the work
+that was to make one playable (X3 nothing blocks them, X4 received items they
+can see, X5 a real session with a console) is deleted. What was learned stays
+below: X1 (a vanilla game can only build the player and the corpse, no gourd,
+no gadget) and X2 (a loopback guest without the mod, Ctrl+Y on the host).
+
+**The rule for modded players** (kept from that step): a session where
+everyone runs the mod plays as the previous version unless an option is turned
+on. A change that would cost modded players something becomes an off-by-default
+option, or is dropped.
 
 **Step 2 — Quality of life** *(new: small, and felt on every seed)*
 - [ ] U1 Hints for keys from the start (`hint_keys: from_start`) — apworld only
@@ -154,7 +151,7 @@ Answered (2026-09-26):
   or remove each objective, the way `start_with_arch_doors_open` lists doors.
   Every listed objective must be done.
 
-- **Order**: crossplay first, as listed.
+- **Order**: as listed. The crossplay step was dropped on 2026-10-02.
 - **Colours**: the island's objects, and many more things later ("we'll
   see"). A trap that changes the players' colours is one example: colour can
   take many forms, in C and in T5 alike.
@@ -177,94 +174,20 @@ peck states, positions of networked objects, registered prefabs. Anything the
 mod paints, places or plays locally is for modded players only. Only the host
 talks to Archipelago; guests learn anything else through the `ModChannel`.
 
-### Step 1 — Players without the mod, and crossplay
+### Step 1 — Players without the mod: dropped
 
-A console cannot run the mod: every console player is a guest without it,
-and the host has to be a modded PC.
+Closed on 2026-10-02: every player runs the mod, and a guest without it is not
+supported any more (a console cannot run it, so there is no console player
+either). X3, X4 and X5 are deleted with their notes. What was measured and is
+still true:
 
-**Definition of done (player, 2026-09-26):** a player without the mod can
-play a seed to the goal alongside modded players — see what they are handed,
-carry it, deposit it, reach every place the seed needs. Losing features on
-their side (colours, the overlay, the radio mirror, the map reveal) is
-acceptable; being blocked, or seeing nothing where others see an item, is not.
-
-**No regression for modded players (player, 2026-09-26), and a hard rule:**
-a session where everyone runs the mod must play exactly as 0.1.1. So:
-anything done for players without the mod is either invisible to modded ones
-(an island gadget instead of a clone looks the same) or applies only while a
-player without the mod is connected (the `ModChannel` knows who said hello).
-Every X4 change re-runs the modded co-op tests (6, 16 to 22) before it stays.
-A change that would cost modded players something becomes an off-by-default
-option, or is dropped.
-
-Known (tested 2026-09-25): a player without the mod joins a modded host and
-plays; every check they make is reported, because the host detects checks on
-its side. They miss (`SETUP.md`): received gourds and gadgets (spawned under
-the mod's own asset ids, which a vanilla client cannot build, so invisible to
-them), key tints, the overlay, the radio mirror, the purple gourds on the map,
-and the sphere before the true ending, which the mod removes only where it
-runs.
-
-- **X1 — Done (2026-09-26).** `NetworkManager.spawnPrefabs` holds ONE
-  prefab, `Corpse` (a Prop with homes for a pack and a belt), and the player
-  prefab is `PlayerCharacter` — dumped by Ctrl+N and once per launch in debug.
-  A vanilla game never creates a prop: the save's inventory is a list of
-  `savablePropGuid`s, and loading MOVES those scene props to the
-  InventorySpawn. So every object a player without the mod can see is a scene
-  object their own game already has, spawned by sceneId. The mod's clones,
-  spawned under asset ids of its own, can never be built there.
-- **X2 — Done (2026-09-26), joining a host untested.** A loopback guest that
-  runs none of the mod, to test as a console player would. A guest without
-  BepInEx cannot join by address (the vanilla menus join through EOS lobbies,
-  and both instances share one EOS identity), so it is a `--bwap-vanilla`
-  guest: `Plugin.Load` returns after the join and its two guest patches
-  (identifier, `OnClientConnect`), the connection monitor and three debug keys
-  (Ctrl+N, Ctrl+L to join, Ctrl+T) — no `PatchAll`, none of the mod's
-  components, no `ModChannel`, so it never says hello. Started by **Ctrl+Y** on
-  the host, or `tools/launch-guest.ps1 -Vanilla`. Smoke-tested alone: only
-  `LoopbackGuestMonitor` and `DebugHotkeys` are registered. The join path is
-  the modded guest's, which is tested.
-- **X3 — Research, and the likely blocker.** Since 0.1.1 received items go
-  into players' hands. A held item is published in `PlayerHeldInformation`, a
-  SyncVar carrying the object's netId; a client that cannot build that object
-  resolves it to null, and the game's own hook dereferences it inside
-  `DeserializeSyncVars` — measured on 2026-09-22 with a missing spawn handler:
-  `OnDeserialize failed`, then an exception every frame and that player's
-  network state broken for the rest of the session. A player without the mod
-  would hit this whenever anyone holds a received item. Measure it with X2;
-  the cure is X4, and meanwhile a host could hand items only to players whose
-  connection said hello (the `ModChannel` knows) — which does not help when a
-  modded player holds one in front of them.
-  **Test for X3 (next session):** host a world (Archipelago on or off), press
-  Ctrl+Y and let the guest join. Then Ctrl+I several times, both hands empty
-  first, then with things held. Watch: on the guest's screen, does it see the
-  items (expected: no) and can it still move and pick up the island's own
-  objects; in `LogOutput.1.log` and `Player-guest.log`, `Could not spawn
-  assetId` (expected, harmless) against `OnDeserialize failed` or a
-  NullReferenceException repeating (the blocker); in the host's log, no
-  `runs the mod` line for that guest. Then the true-ending sphere:
-  `SecondEndingSphereUnlocker` disables `Spawn_SecondEnding_Sphere_Whole`
-  locally; find what drives it and whether the server can open it for
-  everyone. Then walk every goal with an X2 guest.
-- **X4 — Research.** Received items built from the island's own scene
-  objects rather than clones:
-  - **gadgets**: the 70 vanilla instances the mod hides (3 megaphones, 8
-    walkie-talkies, 6 backpacks, 5 belts, 32 lamps, …) would be switched back
-    on and moved instead of cloned, so a vanilla client spawns them by
-    sceneId. Past a kind's vanilla count, clones remain: invisible to players
-    without the mod, and never to be handed to one (X3).
-  - **gourds**: the island has 45 puzzle gourds and 45 monument slots. A
-    solved puzzle's gourd is taken out of play (`PuzzleGourdRetirer`); it could
-    come back as a received gourd instead of a clone. A seed can hand out
-    more gourds than have been solved locally, so a clone is still needed
-    past that — same rules.
-  - to keep: neutralized progression on the host (a received gourd must not
-    count as a puzzle, `NeutralizeProgression`), the hand-over, Ctrl+R, the
-    session rebuild, the colours for modded players.
-- **X5 — To do, needs a console.** Consoles join over EOS P2P, relayed; the
-  loopback guest talks Kcp. Check EpicTransport behaviour (packet size,
-  fragmentation), the crossplay setting (`settings_crossplay`, the lobby's
-  `crossplay`/`platform` attributes) and the same game version on both.
+- **X1.** A vanilla game can only build the player and the corpse: no gourd, no
+  gadget. Everything a modded host spawns for its guests is for modded guests.
+- **X2.** `tools/launch-guest.ps1 -Vanilla` and Ctrl+Y on the host start a
+  loopback guest without the mod, joining over Kcp.
+- A player without the mod that joins a modded host is still tolerated by the
+  code (the `ModChannel` handshake never writes to a peer that did not say
+  hello), but nothing is tested or promised for them.
 
 ### Step 2 — Quality of life
 
@@ -447,8 +370,7 @@ The mod suppresses each of these; an option turns the suppression off.
   Binoculars, Clock, Compass, the three Cowbells, Flare Gun, Flashlight, Glow
   Orb, Gourd Holder, Hip Pack, Key, Laser Pointer, Map, Megaphone, Paintbrush,
   Purple Gourd, Radio, Red Gourd, Scanner, Walkie Talkie Pickup. Pick-ups go
-  through `UserCode_CmdPickUp` on the host (R2), so a player without the mod
-  counts too. Overlaps S1/S2: settle the three together.
+  through `UserCode_CmdPickUp` on the host (R2), so every player counts. Overlaps S1/S2: settle the three together.
 - **S8 — To do.** A check for reaching each tower, on H1's trigger.
 - **S9 — Research.** `pedestal_sanity`: the glow orbs on pedestals, not looked
   at. `track_only` (no location, but the multiworld remembers which are lit)
@@ -509,8 +431,8 @@ The mod suppresses each of these; an option turns the suppression off.
   Orbs, Gourd Holder, Hip Packs, Keys, Laser Pointers, Map, Megaphones,
   Paintbrushes, Purple Gourds, Radios, Red Gourds, Scanners, Walkie Talkies.
 - **R3.** `lock_abilities`: input is Rewired (measured with Ctrl+N); blocking
-  an action is local, so every player would need the mod — conflicts with
-  Step 1. The document's ten: Jumping, Crouching, Chair Sitting, Floor
+  an action is local, so every player needs the mod (they all run it). The
+  document's ten: Jumping, Crouching, Chair Sitting, Floor
   Sitting, and Pointing, Raising, Extending for each hand (`handed`; one item
   per pair with `ambidextrous`).
 - **R4.** `single_player_mode` (every co-op mechanism needs a one-player
@@ -580,7 +502,7 @@ of 2026-09-26.
 | `backpack_sanity` | S1 | To do |
 | `flare_sanity` | S2 | To do |
 | `cut_key_sanity` | L5 | `all` only |
-| `lock_abilities` | R3 | Research; conflicts with Step 1 |
+| `lock_abilities` | R3 | Research |
 | `lock_pickups` | R2 | Research |
 | `random_basic_tiles`, `…_from_other_games`, `…_dict` | R8 | Research |
 | `hint_discovered_deposit_boxes` | H1 | To do |
