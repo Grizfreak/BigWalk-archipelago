@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Il2CppInterop.Runtime.Attributes;
 using Mirror;
 using UnityEngine;
@@ -63,7 +64,7 @@ namespace BigWalkArchipelago.Core.Net
 
         // Both ends must speak the same version; a mismatch is logged once
         // and ignored rather than half-read.
-        private const byte ProtocolVersion = 1;
+        private const byte ProtocolVersion = 2;
 
         private const byte KindHello = 1;
         private const byte KindSnapshot = 2;
@@ -311,6 +312,12 @@ namespace BigWalkArchipelago.Core.Net
                 foreach (var system in granted)
                     writer.WriteByte((byte)(int)system);
 
+                NetworkWriterExtensions.WriteBool(writer, PuzzleNeeds.Enabled);
+                var lockedNeeds = PuzzleNeeds.LockedNeeds();
+                writer.WriteByte((byte)lockedNeeds.Count);
+                foreach (var need in lockedNeeds)
+                    NetworkWriterExtensions.WriteString(writer, need);
+
                 connection.Send(writer.ToArraySegment(), 0);
             }
             catch (Exception ex)
@@ -390,7 +397,10 @@ namespace BigWalkArchipelago.Core.Net
         private static void ResetGuest()
         {
             if (_hostHasMod || _receivedAt >= 0f)
+            {
                 RadioStations.ForgetMirror();
+                PuzzleNeeds.ForgetMirror();
+            }
 
             _clientHandlerRegistered = false;
             _beaconHandlerRegistered = false;
@@ -528,6 +538,12 @@ namespace BigWalkArchipelago.Core.Net
                 for (var i = 0; i < grantedCount; i++)
                     granted.Add((SavableSystem)reader.ReadByte());
 
+                var needsEnabled = NetworkReaderExtensions.ReadBool(reader);
+                var lockedNeeds = new List<string>();
+                var lockedCount = reader.ReadByte();
+                for (var i = 0; i < lockedCount; i++)
+                    lockedNeeds.Add(NetworkReaderExtensions.ReadString(reader));
+
                 var first = _receivedAt < 0f;
 
                 MirroredStatus = string.IsNullOrEmpty(status) ? null : status;
@@ -543,6 +559,7 @@ namespace BigWalkArchipelago.Core.Net
                         $"[{nameof(ModChannel)}] First word from the host: '{MirroredStatus}'. Showing the overlay here too.");
 
                 RadioStations.ApplyFromHost(radioItemsInPlay, granted);
+                PuzzleNeeds.ApplyFromHost(needsEnabled, lockedNeeds);
             }
             catch (Exception ex)
             {

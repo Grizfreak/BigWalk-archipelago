@@ -67,6 +67,10 @@
       <HintPath>..\lib\UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>..\lib\UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <!-- KcpTransport, MultiplexTransport, EosTransport: the game's transports,
          for the loopback guest (cf. Debug/DebugNetworkLookup.cs). -->
     <Reference Include="Mirror.Transports">

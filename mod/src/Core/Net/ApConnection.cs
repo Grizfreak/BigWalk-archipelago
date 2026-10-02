@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Archipelago.MultiClient.Net;
+using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Models;
@@ -316,6 +317,29 @@ namespace BigWalkArchipelago.Core.Net
             catch (Exception ex)
             {
                 Plugin.Log.LogWarning($"[{nameof(ApConnection)}] Failed to report the goal: {ex.Message}");
+                return false;
+            }
+        }
+
+        // A DeathLink for the friend's game (debug key, 2026-10-02). It is a
+        // Bounce packet tagged "DeathLink", which the server hands only to
+        // clients that asked for the tag: this one need not have, since it is
+        // sending and not listening — Big Walk has no death to receive.
+        // Whether it kills anything is the other game's business.
+        internal bool SendDeathLink(string cause)
+        {
+            if (_status != ConnectionStatus.Connected)
+                return false;
+
+            try
+            {
+                var service = _session.CreateDeathLinkService();
+                service.SendDeathLink(new DeathLink(SlotName, cause));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(ApConnection)}] Failed to send a DeathLink: {ex.Message}");
                 return false;
             }
         }

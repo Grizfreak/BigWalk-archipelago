@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using BigWalkArchipelago.Core;
 using HouseCulling;
 using TMPro;
@@ -13,6 +14,8 @@ namespace BigWalkArchipelago.Debug
     // polling cost during normal use.
     internal class DebugHotkeys : MonoBehaviour
     {
+        private static int _nextNeed;
+
         // Constructor required by Il2CppInterop for any type injected in IL2CPP.
         public DebugHotkeys(IntPtr ptr) : base(ptr)
         {
@@ -217,6 +220,42 @@ namespace BigWalkArchipelago.Debug
                 Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Gourd roster key pressed; calling LogAllLoaded...");
                 DebugGourdLookup.LogAllLoaded();
                 Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] LogAllLoaded returned.");
+            }
+
+            if (ModConfig.PositionPingKey.Value.IsDown())
+                DebugPositionPing.Log();
+
+            if (ModConfig.LookAtKey.Value.IsDown())
+                DebugLookAt.Log();
+
+            if (ModConfig.DaylightKey.Value.IsDown())
+                DebugDaylight.Toggle();
+
+            if (ModConfig.LockButtonsKey.Value.IsDown())
+            {
+                // All needs at once: if any is open, lock them all, else open them all.
+                var lockThem = PuzzleNeeds.All.Any(need => !PuzzleNeeds.IsLocked(need));
+                foreach (var need in PuzzleNeeds.All)
+                    PuzzleNeeds.SetLocked(need, lockThem);
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Every puzzle need {(lockThem ? "locked" : "unlocked")}.");
+                SessionJournal.Write("debug", $"every need {(lockThem ? "locked" : "unlocked")} by hand");
+            }
+
+            if (ModConfig.SendDeathLinkKey.Value.IsDown())
+                Core.Net.ApRuntime.SendDeathLink();
+
+            if (ModConfig.NeedStatusKey.Value.IsDown())
+                PuzzleNeedHider.LogStatus(detailed: true);
+
+            if (ModConfig.LockNextNeedKey.Value.IsDown())
+            {
+                // One need at a time, in order, to try each in turn.
+                var need = PuzzleNeeds.All[_nextNeed % PuzzleNeeds.All.Length];
+                _nextNeed++;
+                var lockIt = !PuzzleNeeds.IsLocked(need);
+                PuzzleNeeds.SetLocked(need, lockIt);
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Need {need} {(lockIt ? "locked" : "unlocked")}.");
+                SessionJournal.Write("debug", $"{need} {(lockIt ? "locked" : "unlocked")} by hand");
             }
 
             UpdateLoopbackKeys();

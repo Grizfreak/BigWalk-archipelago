@@ -57,6 +57,13 @@ namespace BigWalkArchipelago.Core.Net
         internal long GourdItemId { get; private set; } = ApLocationIds.DefaultGourdItemId;
         internal long ArchDoorIdOffset { get; private set; } = ApLocationIds.DefaultArchDoorOffset;
 
+        // FALSE and empty by default, like the others that take something
+        // away: an apworld too old to send them has no need items in its
+        // pool, so hiding the objects would hide them for good.
+        internal bool LockPuzzleNeeds { get; private set; }
+        internal string[] PuzzleNeedKeys { get; private set; } = Array.Empty<string>();
+        internal long PuzzleNeedIdOffset { get; private set; } = 11_000;
+
         internal static ApSlotData From(Dictionary<string, object> raw)
         {
             var data = new ApSlotData();
@@ -77,6 +84,8 @@ namespace BigWalkArchipelago.Core.Net
             data.TotalMonumentSlots = GetInt(raw, "total_monument_slots", data.TotalMonumentSlots);
             data.DepositLocationAmounts = GetIntArray(raw, "deposit_location_amounts");
             data.LockedArchDoors = GetStringArray(raw, "locked_arch_doors");
+            data.LockPuzzleNeeds = GetBool(raw, "lock_puzzle_needs", data.LockPuzzleNeeds);
+            data.PuzzleNeedKeys = GetStringArray(raw, "puzzle_need_keys");
 
             data.LocationIdBase = GetInt(raw, "location_id_base", (int)data.LocationIdBase);
             data.RadioIdOffset = GetInt(raw, "radio_id_offset", (int)data.RadioIdOffset);
@@ -85,6 +94,7 @@ namespace BigWalkArchipelago.Core.Net
             data.KeyItemIdOffset = GetInt(raw, "key_item_id_offset", (int)data.KeyItemIdOffset);
             data.GourdItemId = GetInt(raw, "gourd_item_id", (int)data.GourdItemId);
             data.ArchDoorIdOffset = GetInt(raw, "arch_door_id_offset", (int)data.ArchDoorIdOffset);
+            data.PuzzleNeedIdOffset = GetInt(raw, "puzzle_need_id_offset", (int)data.PuzzleNeedIdOffset);
 
             return data;
         }
@@ -99,7 +109,8 @@ namespace BigWalkArchipelago.Core.Net
                    + $", radio items {(RadioStationItems ? "on" : "off")}"
                    + $", big key features {(BigKeyFeatures ? "on" : "off")}"
                    + $", big keys as items {(BigKeyItems ? "on" : "off")}"
-                   + $", {LockedArchDoors.Length} arch door(s) locked";
+                   + $", {LockedArchDoors.Length} arch door(s) locked"
+                   + $", puzzle needs {(LockPuzzleNeeds ? "locked" : "free")}";
         }
 
         private static string GetString(Dictionary<string, object> raw, string key, string fallback)

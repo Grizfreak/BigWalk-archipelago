@@ -72,6 +72,7 @@ namespace BigWalkArchipelago
             AddComponent<Core.GadgetSpawnHandler>();
             AddComponent<Core.StaleHeldPropReleaser>();
             AddComponent<Core.PuzzleGourdRetirer>();
+            AddComponent<Core.PuzzleNeedHider>();
             AddComponent<Core.KeyColourPainter>();
             AddComponent<Core.Net.ModChannel>();
             AddComponent<Core.ModVersionLabel>();
@@ -84,6 +85,8 @@ namespace BigWalkArchipelago
                 AddComponent<Debug.DebugHotkeys>();
                 AddComponent<Debug.DebugGadgetRigDump>();
                 AddComponent<Debug.DebugWorldLayoutDump>();
+                AddComponent<Debug.DebugPuzzleMapDump>();
+                AddComponent<Debug.DebugPuzzleNeedsDump>();
                 Log.LogInfo($"[Debug] Debug module active (key: {ModConfig.ToggleFlightKey.Value}).");
             }
 

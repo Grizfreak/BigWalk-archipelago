@@ -106,6 +106,19 @@ namespace BigWalkArchipelago.Core.Net
 
             var secondary = Mathf.Max(8, Mathf.RoundToInt(fontSize * SecondaryScale));
 
+            // What is still locked, so a player does not look for a button that
+            // has not arrived. Short: the first few, then a count.
+            if (PuzzleNeeds.Active)
+            {
+                var locked = PuzzleNeeds.LockedNeeds();
+                locked.Sort(StringComparer.Ordinal);
+                var shown = string.Join(", ", locked.Take(6).Select(n => n.Replace('_', ' ')));
+                var line = locked.Count == 0
+                    ? "Puzzle parts: all found"
+                    : $"Puzzle parts missing ({locked.Count}): {shown}{(locked.Count > 6 ? ", ..." : string.Empty)}";
+                y = DrawLine(line, FeedColor, secondary, y);
+            }
+
             if (mirrored)
             {
                 foreach (var line in ModChannel.MirroredLines)

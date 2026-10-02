@@ -62,6 +62,21 @@ namespace BigWalkArchipelago.Core.Net
         private static readonly ConcurrentQueue<string> PendingLocationNames = new();
 
         private static readonly ApConnection Connection = new();
+
+        private static float _lastDeathLink = -10f;
+
+        // Debug key only. The host holds the connection; a guest has none.
+        internal static void SendDeathLink()
+        {
+            if (Time.unscaledTime - _lastDeathLink < 3f)
+                return;
+
+            _lastDeathLink = Time.unscaledTime;
+            var cause = $"{Connection.SlotName} pressed the DeathLink key";
+            var sent = Connection.SendDeathLink(cause);
+            ApNotices.Post(sent ? "DeathLink sent" : "DeathLink not sent: not connected", warning: !sent);
+            SessionJournal.Write("deathlink", sent ? "sent" : "not sent");
+        }
         private static readonly List<long> SendBuffer = new();
 
         // Position in the slot's ordered received-items list. _seen counts
@@ -414,6 +429,12 @@ namespace BigWalkArchipelago.Core.Net
             // of the time.
             KeyCustody.SettleDelivered();
 
+            // Every frame too, same reasoning: the lock this suppresses can
+            // be flipped by the vanilla game the instant a monument fills,
+            // and the 1s poll below was measured too coarse to hold it
+            // against a player standing right there (cf. KeyCustody.cs).
+            KeyCustody.EnforceCustodyTick();
+
             // Read before the early returns below so the key always gets
             // an answer in the log, even when the mod is in a state where
             // it will decline to act.
@@ -701,11 +722,21 @@ namespace BigWalkArchipelago.Core.Net
                 RadioStations.ClearLedger();
                 KeyFeatures.ClearLedger();
                 KeyCustody.ClearLedger();
+                PuzzleNeeds.ClearLedger();
             }
 
             // After the ledger above, so a save just rebound to a new seed is
             // enforced with the doors that seed has given it: none yet.
             ArchDoors.Configure(Connection.SlotData.LockedArchDoors);
+
+            // Same place and same reason: after the ledger, so a rebound save
+            // starts with every need locked.
+            PuzzleNeeds.Configure(
+                Connection.SlotData.LockPuzzleNeeds,
+                Connection.SlotData.PuzzleNeedKeys,
+                ApLocationIds.Base + Connection.SlotData.PuzzleNeedIdOffset);
+            SessionJournal.Write(
+                "connected", $"{Connection.SlotName} | {Connection.SlotData.Describe()} | {_appliedItemCount} item(s) already applied");
 
             _lastReportedDepositCount = -1;
             _depositCount = 0;
@@ -1031,6 +1062,8 @@ namespace BigWalkArchipelago.Core.Net
                 // already owed forty gourds still posts forty of them in one
                 // frame, which is why ApNotices collapses repeats.
                 ApNotices.Post($"Received: {item.ItemName}");
+                SessionJournal.Write(
+                    "item", $"{item.ItemName} | from {item.Player?.Name} | at {item.LocationName}", withPosition: false);
 
                 try
                 {
@@ -1108,6 +1141,9 @@ namespace BigWalkArchipelago.Core.Net
 
             if (ApLocationIds.TryResolveArchDoorItem(itemId, out var archDoor))
                 return ArchDoors.Grant(archDoor);
+
+            if (PuzzleNeeds.TryResolveItem(itemId, out var need))
+                return PuzzleNeeds.Grant(need);
 
             // A filler gadget item (megaphone, walkie-talkie, backpack,
             // belt, flare gun) — same toPlayer split as the gourd above,

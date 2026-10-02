@@ -59,6 +59,8 @@ namespace BigWalkArchipelago.Core.Net
 
         internal static long GourdItemId => _gourdItemId;
 
+        internal static long Base => _base;
+
         internal static void Configure(ApSlotData slotData)
         {
             if (slotData == null)

@@ -61,6 +61,13 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<string> KeyColorProperty;
         internal static ConfigEntry<KeyboardShortcut> DumpPropsKey;
         internal static ConfigEntry<KeyboardShortcut> DumpGourdRosterKey;
+        internal static ConfigEntry<KeyboardShortcut> PositionPingKey;
+        internal static ConfigEntry<KeyboardShortcut> LookAtKey;
+        internal static ConfigEntry<KeyboardShortcut> DaylightKey;
+        internal static ConfigEntry<KeyboardShortcut> LockButtonsKey;
+        internal static ConfigEntry<KeyboardShortcut> LockNextNeedKey;
+        internal static ConfigEntry<KeyboardShortcut> NeedStatusKey;
+        internal static ConfigEntry<KeyboardShortcut> SendDeathLinkKey;
         internal static ConfigEntry<KeyboardShortcut> SimulateGadgetItemKey;
         internal static ConfigEntry<KeyboardShortcut> DumpHeldItemKey;
         internal static ConfigEntry<KeyboardShortcut> DumpCosmeticGadgetsKey;
@@ -366,6 +373,48 @@ namespace BigWalkArchipelago
                 "DumpGourdRosterKey",
                 new KeyboardShortcut(KeyCode.V, KeyCode.LeftControl),
                 "Lists every RewardGourd loaded around you with its saveablePropName and whether it is a purple 'variant challenge' gourd. Written to settle which puzzles sit behind the chairlift: the world's logic assumes the island is open apart from the ending, and a puzzle that is not would make some seeds unbeatable. Press it in the gated zone and again somewhere plainly open — the difference is the set that needs its own region (only has an effect if Debug.Enabled is active).");
+
+            PositionPingKey = file.Bind(
+                "Debug",
+                "PositionPingKey",
+                new KeyboardShortcut(KeyCode.X, KeyCode.LeftControl),
+                "Logs the player's current world position and, of every puzzle and big-key plinth known to the Archipelago world, the single nearest one and its distance — for labelling what a puzzle needs (a sound cue, a timer, a held item, ...) against the coordinates already pulled from DebugPuzzleMapDump, without having to eyeball which dot on a map you are standing next to (only has an effect if Debug.Enabled is active).");
+
+            LookAtKey = file.Bind(
+                "Debug",
+                "LookAtKey",
+                new KeyboardShortcut(KeyCode.E, KeyCode.LeftControl),
+                "Logs the object under the crosshair (hierarchy path, components of it and of its parents, nearest puzzle) and everything with a collider within four metres — for naming a puzzle's parts (a speaker, a teapot, a light, a panel) that no class name gives away (only has an effect if Debug.Enabled is active).");
+
+            DaylightKey = file.Bind(
+                "Debug",
+                "DaylightKey",
+                new KeyboardShortcut(KeyCode.D, KeyCode.LeftControl),
+                "Fixes the time of day at noon (and stops the clock); press again to let it run (only has an effect if Debug.Enabled is active).");
+
+            LockButtonsKey = file.Bind(
+                "Debug",
+                "LockButtonsKey",
+                new KeyboardShortcut(KeyCode.Q, KeyCode.LeftControl),
+                "Locks every puzzle need (their objects on the map are hidden), or unlocks them all; for trying lock_puzzle_needs without a server (only has an effect if Debug.Enabled is active).");
+
+            LockNextNeedKey = file.Bind(
+                "Debug",
+                "LockNextNeedKey",
+                new KeyboardShortcut(KeyCode.W, KeyCode.LeftControl),
+                "Locks or unlocks the next puzzle need in the list, one per press, to try them one by one (only has an effect if Debug.Enabled is active).");
+
+            NeedStatusKey = file.Bind(
+                "Debug",
+                "NeedStatusKey",
+                new KeyboardShortcut(KeyCode.Z, KeyCode.LeftControl),
+                "Logs, with the time, what this machine believes about the puzzle needs: its role, which are locked and how many objects of each are showing. Press it whenever something looks wrong, so the log says when (only has an effect if Debug.Enabled is active).");
+
+            SendDeathLinkKey = file.Bind(
+                "Debug",
+                "SendDeathLinkKey",
+                new KeyboardShortcut(KeyCode.P, KeyCode.LeftControl),
+                "Sends a DeathLink to the multiworld (a Bounce packet tagged DeathLink), for a friend whose game listens for them. Host only: a guest has no connection (only has an effect if Debug.Enabled is active).");
 
             SimulateGadgetItemKey = file.Bind(
                 "Debug",

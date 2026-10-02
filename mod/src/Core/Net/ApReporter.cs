@@ -16,6 +16,7 @@ namespace BigWalkArchipelago.Core.Net
         public void ReportCheck(string locationId)
         {
             _log.ReportCheck(locationId);
+            SessionJournal.Write("check", locationId);
 
             // Queued, not sent: this runs inside a Harmony patch on a game
             // write, and ApRuntime owns when anything reaches the socket.
