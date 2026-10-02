@@ -6,6 +6,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+from Options import OptionError
 from worlds.AutoWorld import World
 
 from . import data, items, locations, regions, rules, web_world
@@ -21,6 +22,9 @@ TRACKER_OPTIONS = {
     "radio_station_checks": "radio_checks",
     "radio_station_items": "shuffle_radio_music",
     "start_with_arch_doors_open": "start_with_arch_doors_open",
+    "lock_puzzle_needs": "lock_puzzle_needs",
+    "start_with_puzzle_needs": "start_with_puzzle_needs",
+    "start_with_random_puzzle_need": "start_with_random_puzzle_need",
 }
 """
 The slot_data fields that are options, mapped to the option each one comes
@@ -136,10 +140,33 @@ class BigWalkWorld(World):
         self.deposit_amounts = self._pick_deposit_amounts(self.gourd_count)
         self.deposit_goal = self.options.gourds_required.value
 
+        self._pick_a_random_puzzle_need()
         self._read_the_old_arch_door_option()
         opened = self.options.start_with_arch_doors_open.value
         self.locked_arch_doors = tuple(door for door in data.ARCH_DOORS if door.item_name not in opened)
         self._ask_for_an_early_way_out()
+
+    def _pick_a_random_puzzle_need(self) -> None:
+        """
+        Write one random need into `start_with_puzzle_needs` when none of
+        the player's already opens a tutorial puzzle. The pick lands in the
+        option itself, so slot_data carries the result and Universal Tracker,
+        which finds the foothold already there, draws nothing.
+        """
+        if not self.options.lock_puzzle_needs:
+            return
+
+        candidates = data.tutorial_footholds(self.options.start_with_puzzle_needs.value)
+        if candidates and not self.options.start_with_random_puzzle_need:
+            # Measured: generation does not fail here, it never ends, so
+            # say so before it gets that far.
+            raise OptionError(
+                f"Big Walk: {self.player_name} starts with nothing to do. With lock_puzzle_needs on, list "
+                "buttons or sync_buttons in start_with_puzzle_needs, or turn start_with_random_puzzle_need "
+                "on, so that one of the tutorial's puzzles can be solved from the start.")
+        if candidates:
+            picked = self.random.choice(candidates)
+            self.options.start_with_puzzle_needs.value = set(self.options.start_with_puzzle_needs.value) | {picked.key}
 
     def _read_the_old_arch_door_option(self) -> None:
         """
@@ -263,6 +290,19 @@ class BigWalkWorld(World):
             "start_with_arch_doors_open": sorted(self.options.start_with_arch_doors_open.value),
             "locked_arch_doors": [door.system_name for door in self.locked_arch_doors],
             "arch_door_id_offset": data.ARCH_DOOR_ID_OFFSET,
+
+            "lock_puzzle_needs": bool(self.options.lock_puzzle_needs),
+            "start_with_puzzle_needs": sorted(self.options.start_with_puzzle_needs.value),
+            "start_with_random_puzzle_need": bool(self.options.start_with_random_puzzle_need),
+
+            # Read by the mod: with `lock_puzzle_needs` on, it hides the
+            # objects of every need whose item it has not received. The
+            # items the player starts with arrive in the server's list like
+            # any other, so `start_with_puzzle_needs` is only for the tracker.
+            # The keys are in the order of their item ids (base + offset +
+            # position), which is how the mod turns an id into a need.
+            "puzzle_need_keys": [need.key for need in data.PUZZLE_NEEDS],
+            "puzzle_need_id_offset": data.PUZZLE_NEED_ID_OFFSET,
 
             # Not an option: it is the model this world is built on. The mod
             # stops a placed key from opening its door only while this is

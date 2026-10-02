@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from rule_builder.rules import Has
+from rule_builder.rules import Has, HasAll
 
 from . import data, locations, regions
 from .options import Goal
@@ -39,6 +39,7 @@ def set_all_rules(world: BigWalkWorld) -> None:
     set_key_deposit_rules(world)
     set_key_cut_rules(world)
     set_gourd_deposit_rules(world)
+    set_puzzle_rules(world)
     set_entrance_rules(world)
     set_completion_rule(world)
 
@@ -73,6 +74,31 @@ def set_gourd_deposit_rules(world: BigWalkWorld) -> None:
             world.get_location(data.deposit_location_name(amount)),
             Has(data.GOURD_ITEM_NAME, count=amount),
         )
+
+
+def set_puzzle_rules(world: BigWalkWorld) -> None:
+    """
+    With `lock_puzzle_needs`, a puzzle is in logic once every item it is built
+    from has been received (`data.PUZZLE_TAGS`). It is a rule the mod never
+    enforces on the puzzle itself: the mod only hides the parts until their
+    item arrives (mod/src/Core/PuzzleNeedHider.cs). Solving one early sends its
+    check early; it only stops generation relying on it. No puzzle sits behind
+    an item of its own.
+
+    The tutorial's four (`data.START_ZONE_PUZZLES`) are gated like the others:
+    they are built from things too. They sit in the one region nothing else in
+    this world locks (arch doors and the drawbridge only gate the way OUT of
+    it), so a seed that left one of them with nothing to do would have no
+    location reachable at empty state: `start_with_random_puzzle_need` is what
+    keeps one of them doable.
+    """
+    if not world.options.lock_puzzle_needs:
+        return
+
+    for puzzle in data.PUZZLES:
+        required = [need.item_name for need in data.puzzle_needs(puzzle)]
+        if required:
+            world.set_rule(world.get_location(puzzle.location_name), HasAll(*required))
 
 
 def set_entrance_rules(world: BigWalkWorld) -> None:

@@ -77,6 +77,11 @@ the options so Universal Tracker reads them back.
 | `key_item_id_offset` | int | 4000. See §4. |
 | `arch_door_id_offset` | int | 5000. See §4. |
 | `gourd_item_id` | int | 8600001. |
+| `lock_puzzle_needs` | bool | Whether what a puzzle is built from is an item (§13). While true the mod hides the objects of every need whose item has not arrived. **Default to false** when absent: hiding objects for an apworld that sends no need items would hide them for good. |
+| `start_with_puzzle_needs` | list[str] | The needs the player starts with, for Universal Tracker. Informational for the mod: the items themselves arrive in the server's list. |
+| `start_with_random_puzzle_need` | bool | The option as chosen, for Universal Tracker. The pick it made is already in `start_with_puzzle_needs`. |
+| `puzzle_need_keys` | str[] | The needs, in the order of their item ids: an item's id is `location_id_base + puzzle_need_id_offset + position`. |
+| `puzzle_need_id_offset` | int | 11000. See §13. |
 
 ## 3. Location ids
 
@@ -671,3 +676,36 @@ hook would have fired the drawbridge's five checks the moment the mod pinned
 the precollected Tutorial Key at connection time. Under this design the mod
 pins nothing, so a key sitting in its plinth is one the players carried there,
 and the five cuts behind it are genuinely theirs.
+
+## 13. Puzzle needs as items
+
+`lock_puzzle_needs` turns what a puzzle is built from (its buttons, panels,
+speakers, a tomato, a mask...) into items. The generator only ever requires a
+puzzle once every need it has is in hand; `apworld/bigwalk/data.py`
+(`PUZZLE_TAGS`) is the table. Nothing is enforced for a client that ignores
+this section.
+
+The mod enforces it by **hiding the objects of a need** until its item arrives
+(`SetActive(false)` on each machine, rechecked every second because Mirror can
+re-enable them), never by refusing entry or presses. A need is global to the
+map, not per player. Every player must run the mod: a guest without it would
+see, and use, everything.
+
+- **Item ids** are `location_id_base + puzzle_need_id_offset + i`, `i` being the
+  position in `puzzle_need_keys`. The keys are `buttons`, `sync_buttons`,
+  `icon_panels`, `drawing_panels`, `pose_panels`, `sound_panels`,
+  `point_panels`, `speakers`, `lights`, `teapots`, `timed_tomato`, `golf_ball`,
+  `big_head`, `ink_viewer`, `counter`, `coordinates_computer` and `eggs`.
+- **The ledger** is `ap_need_<key>` in the save, like the arch doors', cleared
+  when the cursor is back at zero. A need not in the ledger is locked at every
+  connection.
+- **The items the player starts with** (`start_with_puzzle_needs`, and the one
+  `start_with_random_puzzle_need` picks) arrive in the server's list like any
+  other, so the mod treats them the same way.
+- **Co-op:** the host's snapshot (`ModChannel`, protocol v2) carries whether the
+  option is on and the list of needs still locked; a guest adopts it and hides
+  its own copies.
+- **Left alone on purpose:** the Silent Gauntlet (the logic does not model its
+  needs, so hiding anything there could put the goal behind a missing item),
+  door handles (`BasicKnob`), and the train's own controls.
+

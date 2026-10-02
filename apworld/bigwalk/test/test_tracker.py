@@ -25,6 +25,7 @@ UNLIKE_THE_DEFAULTS = {
     "radio_checks": False,
     "shuffle_radio_music": False,
     "start_with_arch_doors_open": [],
+    "lock_puzzle_needs": True,
 }
 
 

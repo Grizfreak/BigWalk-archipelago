@@ -196,6 +196,54 @@ LOCKED_ARCH_DOORS = {
 """The doors each value of the old `lock_arch_doors` held closed until their item arrived."""
 
 
+class LockPuzzleNeeds(Toggle):
+    """
+    Whether what a puzzle is built from becomes an item you must find first:
+    its buttons, its panels, its speakers, its timer and so on. A puzzle is
+    only ever required once you hold every one of them. Nothing in the game
+    stops you solving a puzzle early; this changes what
+    the generator may ask of you.
+
+    Which of them are items is up to Start With Puzzle Needs: the ones you
+    list are in your inventory from the start.
+
+    - The tutorial's puzzles need things too.
+    - Needing a second player, throwing and picking things up are not items.
+    """
+
+    display_name = "Lock Puzzle Needs"
+
+
+class StartWithPuzzleNeeds(OptionSet):
+    """
+    Which puzzle needs you already have when Lock Puzzle Needs is on. Every
+    need not listed is an item to find.
+
+    Needs: buttons, sync_buttons, icon_panels, drawing_panels, pose_panels,
+    sound_panels, point_panels, speakers, lights, teapots, timed_tomato,
+    golf_ball, big_head, ink_viewer, counter, coordinates_computer, eggs.
+    """
+
+    display_name = "Start With Puzzle Needs"
+    valid_keys = data.PUZZLE_NEED_KEYS
+    default = frozenset()
+
+
+class StartWithRandomPuzzleNeed(DefaultOnToggle):
+    """
+    With Lock Puzzle Needs on, start with one random need, so that at least
+    one of the tutorial's puzzles is doable from the first minute. Nothing is
+    added if Start With Puzzle Needs already allows one.
+
+    The tutorial's puzzles need buttons or synchronized buttons, so it is one
+    of those two. Turning this off is only possible when Start With Puzzle
+    Needs lists one of them: a seed with nothing to do at the start cannot be
+    generated.
+    """
+
+    display_name = "Start With Random Puzzle Need"
+
+
 # Hidden until the mod gives a trap an effect: today a trap is a filler item
 # with a different name, and offering the option would promise otherwise.
 class TrapFillPercentage(Range):
@@ -222,6 +270,9 @@ class BigWalkOptions(PerGameCommonOptions):
     start_with_drawbridge_open: StartWithDrawbridgeOpen
     start_with_arch_doors_open: StartWithArchDoorsOpen
     lock_arch_doors: LockArchDoors
+    lock_puzzle_needs: LockPuzzleNeeds
+    start_with_puzzle_needs: StartWithPuzzleNeeds
+    start_with_random_puzzle_need: StartWithRandomPuzzleNeed
     trap_fill_percentage: TrapFillPercentage
     start_inventory_from_pool: StartInventoryPool
 
@@ -232,6 +283,7 @@ option_groups = [
     OptionGroup("Radio", [RadioChecks, ShuffleRadioMusic]),
     OptionGroup("Keys", [StartWithDrawbridgeOpen]),
     OptionGroup("Doors", [StartWithArchDoorsOpen]),
+    OptionGroup("Puzzles", [LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed]),
 ]
 
 option_presets = {

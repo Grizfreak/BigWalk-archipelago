@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from BaseClasses import Item, ItemClassification
+from Options import OptionError
 
 from . import data
 
@@ -20,6 +21,7 @@ ITEM_NAME_TO_ID: dict[str, int] = {
     **{data.key_item_name(tower): data.key_item_id(tower) for tower in data.TOWERS},
     **{station.item_name: data.radio_item_id(station) for station in data.RADIO_STATIONS},
     **{door.item_name: data.arch_door_item_id(door) for door in data.ARCH_DOORS},
+    **{need.item_name: data.puzzle_need_item_id(need) for need in data.PUZZLE_NEEDS},
     **{name: data.BASE_ID + offset for name, offset in data.FILLER_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.TRAP_ITEMS},
 }
@@ -27,7 +29,11 @@ ITEM_NAME_TO_ID: dict[str, int] = {
 FILLER_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.FILLER_ITEMS)
 TRAP_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.TRAP_ITEMS)
 
+GUARANTEED_GEAR: dict[str, int] = {"Backpack": 2, "Belt": 2, "Gourd Carton": 1}
+
 RADIO_ITEM_NAMES: tuple[str, ...] = tuple(station.item_name for station in data.RADIO_STATIONS)
+
+PUZZLE_NEED_ITEM_NAMES: tuple[str, ...] = tuple(need.item_name for need in data.PUZZLE_NEEDS)
 
 # Two groups per tower, and they are genuinely different things. A Feature
 # is the door — the chairlift, the train, the map room — and opens on
@@ -39,6 +45,7 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Big Keys": {data.key_item_name(tower) for tower in data.TOWERS},
     "Radio Music": set(RADIO_ITEM_NAMES),
     "Arch Doors": {door.item_name for door in data.ARCH_DOORS},
+    "Puzzle Needs": set(PUZZLE_NEED_ITEM_NAMES),
     "Filler": set(FILLER_ITEM_NAMES),
     "Traps": set(TRAP_ITEM_NAMES),
 }
@@ -68,6 +75,10 @@ def classification_for(name: str) -> ItemClassification:
     if name in ITEM_NAME_GROUPS["Arch Doors"]:
         # Shortcuts: they shorten the walk and gate nothing.
         return ItemClassification.useful
+    if name in ITEM_NAME_GROUPS["Puzzle Needs"]:
+        # Only ever created when lock_puzzle_needs is on, where each one is
+        # required by every puzzle built from it.
+        return ItemClassification.progression
     if name in TRAP_ITEM_NAMES:
         return ItemClassification.trap
     # A Radio Music item starts a piece of music playing and nothing else: no
@@ -83,7 +94,9 @@ def create_item(world: BigWalkWorld, name: str) -> BigWalkItem:
 def get_random_filler_item_name(world: BigWalkWorld) -> str:
     if world.random.randint(1, 100) <= world.options.trap_fill_percentage:
         return world.random.choice(TRAP_ITEM_NAMES)
-    return world.random.choice(FILLER_ITEM_NAMES)
+    # Gear comes from the guaranteed block in create_all_items, so a top-up
+    # filler (create_filler is also called later by the generator) skips it.
+    return world.random.choice([n for n in FILLER_ITEM_NAMES if n not in GUARANTEED_GEAR])
 
 
 def create_all_items(world: BigWalkWorld) -> None:
@@ -115,7 +128,31 @@ def create_all_items(world: BigWalkWorld) -> None:
     # filler rather than adding to the pool.
     pool += [world.create_item(door.item_name) for door in world.locked_arch_doors]
 
+    # The needs the player starts with are handed over up front, like the
+    # drawbridge, and never enter the pool.
+    if world.options.lock_puzzle_needs:
+        for need in data.PUZZLE_NEEDS:
+            if need.key in world.options.start_with_puzzle_needs.value:
+                world.push_precollected(world.create_item(need.item_name))
+            else:
+                pool.append(world.create_item(need.item_name))
+
     unfilled = len(world.multiworld.get_unfilled_locations(world.player))
-    pool += [world.create_filler() for _ in range(unfilled - len(pool))]
+    filler_needed = unfilled - len(pool)
+    if filler_needed < 0:
+        raise OptionError(
+            f"Big Walk: {world.player_name}'s options need {len(pool)} items for only {unfilled} "
+            "locations. lock_puzzle_needs adds up to 17 items; raise gourd_slot_checks, turn radio_checks "
+            "on, list more start_with_puzzle_needs, or turn lock_puzzle_needs off to make room.")
+    # Backpacks and belts are the only gear a player can wear, and a carton is
+    # the one bulk container for gourds, so a seed that rolls none of them (one
+    # name in seventeen each in the random draw) is a run without a bag. A few
+    # are guaranteed instead, carved out of the filler
+    # headroom and never past it — a tight pool loses them before it errors.
+    for name, count in GUARANTEED_GEAR.items():
+        take = min(count, filler_needed)
+        pool += [world.create_item(name) for _ in range(take)]
+        filler_needed -= take
+    pool += [world.create_filler() for _ in range(filler_needed)]
 
     world.multiworld.itempool += pool

@@ -28,6 +28,15 @@ KEY_ITEM_ID_OFFSET = 4_000
 ARCH_DOOR_ID_OFFSET = 5_000
 # 9_000 and above is the item-only range for things the game has no enum for
 # (filler, traps); see FILLER_ITEMS / TRAP_ITEMS at the bottom of this file.
+# 10_000..10_159 held the per-puzzle Unlock items of `lock_puzzles`, removed
+# before it was ever released (2026-10-02: no puzzle sits behind an item of its
+# own). The range stays empty rather than being reused, and PUZZLE_NEED_ID_OFFSET
+# below keeps its number, so no id a seed may carry ever changes meaning.
+PUZZLE_NEED_ID_OFFSET = 11_000
+"""
+Item-only: `lock_puzzle_needs`' items, numbered by their position in
+PUZZLE_NEEDS. Clear of the 9_000s' filler and traps.
+"""
 
 CUT_STRIDE = 10
 """
@@ -146,6 +155,150 @@ PUZZLES: tuple[Puzzle, ...] = (
     Puzzle("gourdCannonballCommute", 158, "Cannonball Commute Puzzle"),
     Puzzle("gourdPoetAndPontiff", 159, "Poet and Pontiff Puzzle"),
 )
+
+class PuzzleNeed(NamedTuple):
+    key: str
+    """Tag used in PUZZLE_TAGS and as the player-facing option value."""
+    item_name: str
+
+
+PUZZLE_NEEDS: tuple[PuzzleNeed, ...] = (
+    PuzzleNeed("buttons", "Buttons Unlock"),
+    PuzzleNeed("sync_buttons", "Synchronized Buttons Unlock"),
+    PuzzleNeed("icon_panels", "Icon Panels Unlock"),
+    PuzzleNeed("drawing_panels", "Drawing Panels Unlock"),
+    PuzzleNeed("pose_panels", "Pose Panels Unlock"),
+    PuzzleNeed("sound_panels", "Sound Panels Unlock"),
+    PuzzleNeed("point_panels", "Point Panels Unlock"),
+    PuzzleNeed("speakers", "Speakers Unlock"),
+    PuzzleNeed("lights", "Lights Unlock"),
+    PuzzleNeed("teapots", "Teapots Unlock"),
+    PuzzleNeed("timed_tomato", "Timed Tomato Unlock"),
+    PuzzleNeed("golf_ball", "Golf Ball Unlock"),
+    PuzzleNeed("big_head", "Big Head Mask Unlock"),
+    PuzzleNeed("ink_viewer", "Ink Viewer Unlock"),
+    PuzzleNeed("counter", "Counter Unlock"),
+    PuzzleNeed("coordinates_computer", "Coordinates Computer Unlock"),
+    PuzzleNeed("eggs", "Eggs Unlock"),
+)
+"""
+What a puzzle can need that this world turns into an item (`lock_puzzle_needs`).
+The order is load-bearing: an item's id is its position here.
+
+The eggs of Egg Hunt are a need of their own, like the tomato, the golf ball
+and the mask: objects belonging to one puzzle, hidden until the item arrives.
+
+Not in this list on purpose: `coop`, `throwable` and `item_pickup`. They are
+tags in PUZZLE_TAGS and nothing more. A second player is a head count, not
+something found, and throwing and picking up are abilities of the player,
+which belong to the `lock_*` options still on the roadmap (R2, R3).
+"""
+
+PUZZLE_NEED_KEYS: frozenset[str] = frozenset(need.key for need in PUZZLE_NEEDS)
+PUZZLE_NEEDS_BY_KEY: dict[str, PuzzleNeed] = {need.key: need for need in PUZZLE_NEEDS}
+
+NON_ITEM_TAGS: frozenset[str] = frozenset({"coop", "throwable", "item_pickup"})
+
+PUZZLE_TAGS: dict[str, frozenset[str]] = {
+    # Categorised in game by the player (2026-10-02), puzzle by puzzle.
+    # Wording kept from that pass where it was ambiguous:
+    #   - Carousel: "panel buttons, buttons" turned out, on site
+    #     (2026-10-02), to be buttons and icon panels.
+    #   - Tile Thief: "speaker panels" read as sound panels (answers), not
+    #     speakers (the tool), which it does not list separately.
+    #   - Coordinates and Coordinates Holding: "in logic with coordinates
+    #     computer" read as needing the computer itself.
+    #   - Cabin Fever (both), High Button, Perspective Counting: the
+    #     player noted they could be cheated or are not truly synced; the
+    #     need is kept as listed.
+    "gourdCabinFever": frozenset({"coop", "buttons"}),
+    "gourdHighButton": frozenset({"coop", "buttons"}),
+    "gourdFielding": frozenset({"coop", "timed_tomato"}),
+    "gourdCannonBall": frozenset({"golf_ball"}),
+    "gourdInvisibleInk": frozenset({"coop", "buttons", "icon_panels", "ink_viewer"}),
+    "gourdTrapRoom": frozenset({"coop", "buttons", "icon_panels"}),
+    "gourdMediumSimPress": frozenset({"coop", "sync_buttons"}),
+    "gourdEasySimPress": frozenset({"coop", "sync_buttons"}),
+    "gourdRingRoom": frozenset({"coop", "speakers", "icon_panels", "lights", "buttons"}),
+    "gourdObby": frozenset({"coop", "sync_buttons"}),
+    "gourdCarousel": frozenset({"buttons", "icon_panels"}),
+    "gourdCoordinates": frozenset({"coop", "sync_buttons", "coordinates_computer"}),
+    "gourdTelescopeToBox": frozenset({"coop", "buttons"}),
+    "gourdObservationRoom": frozenset({"coop", "lights", "icon_panels", "buttons"}),
+    "gourdWindowLabyrinth": frozenset({"coop", "timed_tomato"}),
+    "gourdBasketball": frozenset({"throwable"}),
+    "gourdConcert": frozenset({"coop", "buttons"}),
+    "gourdIndoorSemaphore": frozenset({"coop", "pose_panels"}),
+    "gourdOpticalTelegraph": frozenset({"coop", "pose_panels"}),
+    "gourdPoetAndPreist": frozenset({"coop", "drawing_panels", "buttons"}),
+    "gourdMemoryBombs": frozenset({"buttons"}),
+    "gourdTileThief": frozenset({"icon_panels", "drawing_panels", "pose_panels", "sound_panels", "buttons"}),
+    "gourdCharadesRooms": frozenset({"coop", "icon_panels", "buttons"}),
+    "gourdMicrophoneArray": frozenset({"coop", "buttons"}),
+    "gourdPointersParadise": frozenset({"coop", "buttons"}),
+    "gourdCoordinatesHolding": frozenset({"coop", "buttons", "coordinates_computer"}),
+    "gourdEggHunt": frozenset({"eggs", "buttons"}),
+    "gourdTellerWindow": frozenset({"coop", "icon_panels", "buttons"}),
+    "gourdSignalFlags": frozenset({"coop", "icon_panels", "counter", "buttons"}),
+    "gourdCabinFeverLong": frozenset({"coop", "buttons"}),
+    "gourdBreadcrumbLoop": frozenset({"coop", "sync_buttons"}),
+    "gourdScoutBombs": frozenset({"coop", "buttons", "teapots", "point_panels"}),
+    "gourdCenturonSong": frozenset({"coop", "buttons"}),
+    "gourdMusicalHoliday": frozenset({"coop", "buttons"}),
+    "gourdKickUpPits": frozenset(),
+    "gourdSingerAndSelecter": frozenset({"coop", "buttons", "sound_panels", "speakers"}),
+    "gourdDancerAndSelecter": frozenset({"coop", "buttons", "sound_panels"}),
+    "gourdSpeedObby": frozenset({"coop", "timed_tomato", "sync_buttons"}),
+    "gourdBlindfoldCatwalk": frozenset({"coop", "big_head"}),
+    "gourdBlindfoldFishtrap": frozenset({"coop", "big_head", "icon_panels", "buttons"}),
+    "gourdPerspectiveCounting": frozenset({"coop", "counter", "buttons"}),
+    "gourdCenturionSeance": frozenset({"coop", "buttons", "speakers", "lights"}),
+    "gourdFlareRun": frozenset({"coop", "buttons"}),
+    "gourdCannonballCommute": frozenset({"golf_ball"}),
+    "gourdPoetAndPontiff": frozenset({"coop", "buttons", "drawing_panels"}),
+}
+"""
+Every puzzle's requirements, by `prop_name`. A tag is either a PUZZLE_NEEDS key
+(which `lock_puzzle_needs` turns into an item) or one of NON_ITEM_TAGS.
+"""
+
+GAUNTLET_STAGE_TAGS: tuple[frozenset[str], ...] = (
+    frozenset({"coop", "icon_panels", "buttons"}),
+    frozenset({"coop", "buttons"}),
+    frozenset({"coop", "timed_tomato"}),
+    frozenset({"coop", "sync_buttons"}),
+    frozenset({"coop", "teapots", "buttons"}),
+    frozenset({"coop", "icon_panels", "buttons", "ink_viewer"}),
+    frozenset({"coop", "buttons"}),
+)
+"""
+The Silent Gauntlet's seven stages, in order. Recorded and unused: the stages
+have no checks of their own (rules.py, set_completion_rule), so no rule reads
+this yet. It is here for the day an option decouples a stage clearing from the
+door it opens.
+"""
+
+
+def puzzle_needs(puzzle: Puzzle) -> tuple[PuzzleNeed, ...]:
+    """The items `lock_puzzle_needs` asks for before this puzzle is in logic, in PUZZLE_NEEDS order."""
+    tags = PUZZLE_TAGS[puzzle.prop_name]
+    return tuple(need for need in PUZZLE_NEEDS if need.key in tags)
+
+
+def tutorial_footholds(started: frozenset[str] | set[str]) -> tuple[PuzzleNeed, ...]:
+    """
+    The needs that, added to `started`, make one of the tutorial's puzzles
+    doable on their own: the candidates for `start_with_random_puzzle_need`.
+    Empty when `started` already opens one.
+    """
+    def opens(have: set[str]) -> bool:
+        return any(all(need.key in have for need in puzzle_needs(puzzle))
+                   for puzzle in PUZZLES if puzzle.prop_name in START_ZONE_PUZZLES)
+
+    if opens(set(started)):
+        return ()
+    return tuple(need for need in PUZZLE_NEEDS if opens(set(started) | {need.key}))
+
 
 ABSENT_FROM_THE_BUILD: tuple[str, ...] = (
     "gourdBunker",
@@ -584,6 +737,10 @@ TRAP_ITEMS: tuple[tuple[str, int], ...] = (
 
 def puzzle_location_id(puzzle: Puzzle) -> int:
     return BASE_ID + puzzle.prop_value
+
+
+def puzzle_need_item_id(need: PuzzleNeed) -> int:
+    return BASE_ID + PUZZLE_NEED_ID_OFFSET + PUZZLE_NEEDS.index(need)
 
 
 def key_deposit_location_id(tower: Tower) -> int:
