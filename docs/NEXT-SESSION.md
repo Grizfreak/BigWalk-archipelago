@@ -8,6 +8,16 @@ is shaped the way it is); [`apworld/protocol.md`](../apworld/protocol.md) is
 the contract between the two. This file is the short version and the
 to-do list.*
 
+**Update, 2026-10-03: the Gauntlet recon (0.1.3).** `gauntlet_mode` needs the
+wiring of each stage, which no save records. `Debug.Enabled` on, then
+**Keypad 5** writes `BepInEx/gauntlet-dump-<n>.tsv` (everything within
+`Debug/DumpGauntletRadius`, 80 m: states with their value and what listens to
+each, switches, collective-press switches, combinators). Per stage, press it
+standing in the chamber at four moments, and note which file is which: at
+arrival, after the puzzle, after the collective button, and at the next
+arrival. What changes between two files in the `state` column is what that
+step drives. Avoid F7 at the first stage's entrance (it froze once there).
+
 **Update, 2026-09-26: 0.1.1.** The first alpha's feedback is done and
 tested, and co-op no longer needs a second machine: host a world with
 `Debug.Enabled` on and press Ctrl+L, and a second instance joins as a real

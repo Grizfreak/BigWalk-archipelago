@@ -45,6 +45,8 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<string> RemotePeckSwitchName;
         internal static ConfigEntry<float> FlightSpeedMultiplier;
         internal static ConfigEntry<KeyboardShortcut> ForceNearbyCombinatorKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpGauntletKey;
+        internal static ConfigEntry<float> DumpGauntletRadius;
         internal static ConfigEntry<KeyboardShortcut> ForceEndingFlagsKey;
         internal static ConfigEntry<KeyboardShortcut> ApplyBigKeyOverflowKey;
         internal static ConfigEntry<KeyboardShortcut> SpawnCosmeticPickupKey;
@@ -283,6 +285,18 @@ namespace BigWalkArchipelago
                 "FireRemotePeckSwitchKey",
                 new KeyboardShortcut(KeyCode.PageUp),
                 "Remotely triggers (PeckSwitch.Peck(), without having to stand in front of it) all PeckSwitch instances in the zone whose name contains RemotePeckSwitchName — to solo-test a mechanism designed for 2 players (only has an effect if Debug.Enabled is active).");
+
+            DumpGauntletKey = file.Bind(
+                "Debug",
+                "DumpGauntletKey",
+                new KeyboardShortcut(KeyCode.Keypad5),
+                "Writes the wiring of everything within DumpGauntletRadius of the player (states and their current value, what listens to each, switches, collective-press switches, combinators) to BepInEx/gauntlet-dump-<n>.tsv. Press it before and after a step in the Silent Gauntlet and compare the two files (only has an effect if Debug.Enabled is active).");
+
+            DumpGauntletRadius = file.Bind(
+                "Debug",
+                "DumpGauntletRadius",
+                80f,
+                "Radius in metres of DumpGauntletKey's dump.");
 
             ForceNearbyCombinatorKey = file.Bind(
                 "Debug",

@@ -134,6 +134,13 @@ namespace BigWalkArchipelago.Debug
                 ModConfig.HoldTrackedStateValue.Value,
                 30f);
 
+            if (ModConfig.DumpGauntletKey.Value.IsDown())
+            {
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Gauntlet dump key pressed; calling Dump...");
+                DebugGauntletDump.Dump(ModConfig.DumpGauntletRadius.Value, string.Empty);
+                Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Dump returned.");
+            }
+
             if (ModConfig.ForceNearbyCombinatorKey.Value.IsDown())
             {
                 // Logged BEFORE the call, and on purpose. On 2026-09-18 four
