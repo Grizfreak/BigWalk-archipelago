@@ -20,6 +20,15 @@ HERE = Path(__file__).parent
 PACKAGE = HERE / "bigwalk"
 DEFAULT_OUTPUT = HERE / "dist" / "bigwalk.apworld"
 
+# What Archipelago's own packager writes into the manifest of an .apworld
+# (worlds/Files.py: container_version and compatible_version). They belong in
+# the PACKAGE, not in the source archipelago.json — Archipelago's
+# test_world_manifest refuses a source manifest that defines `version` — and
+# 0.6.7 refuses to read the world's version without them: it loads the world
+# as 0.0.0 and rejects any YAML with a `requires` line.
+CONTAINER_VERSION = 7
+COMPATIBLE_VERSION = 7
+
 EXCLUDED_DIRS = {"__pycache__", ".pytest_cache"}
 EXCLUDED_SUFFIXES = {".pyc", ".pyo"}
 
@@ -49,7 +58,11 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(args.output, "w", zipfile.ZIP_DEFLATED) as archive:
         for path in files:
-            archive.write(path, Path("bigwalk") / path.relative_to(PACKAGE))
+            if path == PACKAGE / "archipelago.json":
+                packaged = {**manifest, "version": CONTAINER_VERSION, "compatible_version": COMPATIBLE_VERSION}
+                archive.writestr("bigwalk/archipelago.json", json.dumps(packaged, indent=2) + "\n")
+            else:
+                archive.write(path, Path("bigwalk") / path.relative_to(PACKAGE))
 
     print(f"{args.output} - {manifest['game']} v{manifest['world_version']}, {len(files)} files")
 
