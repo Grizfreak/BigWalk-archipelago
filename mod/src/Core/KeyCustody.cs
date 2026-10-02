@@ -204,15 +204,31 @@ namespace BigWalkArchipelago.Core
                 TickPending(toPlayer: false);
         }
 
-        // Called from ApRuntime's poll tick. Two jobs, and the first one runs
-        // every tick for as long as a session lasts: hold the lock on every
-        // key this slot has not been given.
-        internal static void Tick()
+        // Called every frame from ApRuntime.Update(), ahead of the 1s poll
+        // gate and its early returns — same reasoning as SettleDelivered
+        // there. The vanilla release this suppresses (a monument filling)
+        // can flip `blockGrabbing` the instant its condition is met, and a
+        // player standing at it can grab the key well inside a 1-second
+        // window. Confirmed in play, 2026-09-27: four gourds deposited into
+        // the tutorial drawbridge's slots popped the black key loose and it
+        // was carried and used before the item that was supposed to release
+        // it had ever been granted.
+        internal static void EnforceCustodyTick()
         {
             if (!KeysAreItems || !NetworkServer.active)
                 return;
 
             EnforceCustody();
+        }
+
+        // Called from ApRuntime's poll tick, once a second: the two jobs
+        // here don't need every-frame precision the way holding the lock
+        // does.
+        internal static void Tick()
+        {
+            if (!KeysAreItems || !NetworkServer.active)
+                return;
+
             TickPending(toPlayer: false);
             KeyColours.PaintOnce();
         }
@@ -311,9 +327,20 @@ namespace BigWalkArchipelago.Core
             if (prop == null)
                 return false;
 
-            var destination = ReceivedItemSpawner.ResolveSpawnPosition(toPlayer);
+            // A key arriving during play goes into somebody's hands, like a
+            // gourd or a gadget (player request, 2026-10-02: the Drawbridge
+            // Key landed two metres ahead of a body nobody was watching).
+            // The same choice of recipient and the same hand-over, so a key
+            // and a gourd take turns between the players alike. Without a
+            // recipient, or when the hands cannot take it, it stays where it
+            // was put, in front of them.
+            var recipient = toPlayer ? ItemRecipients.Choose() : null;
+            var destination = ReceivedItemSpawner.ResolveSpawnPosition(toPlayer, recipient);
             if (destination == null)
+            {
+                ItemRecipients.Settled(recipient);
                 return false;
+            }
 
             // Unlocked first and unconditionally, because this is the half
             // that decides whether the key can be obtained at all.
@@ -330,6 +357,7 @@ namespace BigWalkArchipelago.Core
                 Plugin.Log.LogWarning(
                     $"[{nameof(KeyCustody)}] {propName}: Prop.ServerSetUnpinned threw ({ex.Message}). The key is "
                     + "unlocked but stays in its stone at the tower — go and fetch it there.");
+                ItemRecipients.Settled(recipient);
                 return true;
             }
 
@@ -346,6 +374,12 @@ namespace BigWalkArchipelago.Core
             }
 
             Delivered.Add((propName, destination.Value, Time.time + RecheckDelaySeconds, 0));
+
+            // One frame later, for the reason the gourd's hand-over gives: the
+            // spawn and the "is holding it" SyncVar must not share a frame.
+            if (recipient != null)
+                ReceivedItemSpawner.QueueHandover(prop, recipient);
+
             return true;
         }
 
@@ -438,6 +472,16 @@ namespace BigWalkArchipelago.Core
                 var entry = Delivered[i];
                 var prop = FindKey(entry.key);
 
+                // In somebody's hands it moves with them, and putting it back
+                // where it was delivered would take it away from the player
+                // it was just handed to.
+                if (prop != null && IsHeld(prop))
+                {
+                    Delivered.RemoveAt(i);
+                    Plugin.Log.LogInfo($"[{nameof(KeyCustody)}] {entry.key}: in somebody's hands, left alone.");
+                    continue;
+                }
+
                 if (prop != null && Time.time < entry.at
                     && Vector3.Distance(prop.transform.position, entry.target) > StrayMetres)
                 {
@@ -462,6 +506,21 @@ namespace BigWalkArchipelago.Core
                               + "that has to be won at the cause."));
                 Report(entry.key, entry.target);
             }
+        }
+
+        private static bool IsHeld(Prop prop)
+        {
+            var players = PlayerCharacter.allPlayerCharacters;
+            if (players == null)
+                return false;
+
+            foreach (var pc in players)
+            {
+                if (pc != null && pc.hands != null && pc.hands.heldProp == prop)
+                    return true;
+            }
+
+            return false;
         }
 
         private static void Report(SaveablePropName propName, Vector3 target)
