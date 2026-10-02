@@ -43,14 +43,18 @@ option, or is dropped.
 
 ## Versions planned (player, 2026-10-02)
 
-Everything below the list that is not named here is parked for after 0.1.6.
+Agreed on 2026-10-02. An item that is not named here is parked until after 0.1.8.
 
-| Version | What | Items | To settle first |
+| Version | The core | Rides along (why) | To settle first |
 |---|---|---|---|
-| **0.1.3** | The Silent Gauntlet as real checks and locations, with items that open the floors | S5, plus the Gauntlet's seven stages (their needs are already recorded in `data.GAUNTLET_STAGE_TAGS`) | How a stage is detected: the chambers are not saved anywhere (`GauntletChamber0..6` were never found written), so each needs a trigger of its own. The player's wish (document): an option that decouples opening a door from clearing the stage. The puzzle-needs exclusion of the Gauntlet (`PuzzleNeedHider`) is lifted here, once its stages are in the logic. |
-| **0.1.4** | Traps | T1, T2, T3, T4, T5, R9 | The trap item exists (`Untied Shoelace`, hidden `trap_fill_percentage`) with no effect yet. An effect is local to each machine, like the hider; whether to also receive DeathLinks (sending is on Ctrl+P). |
-| **0.1.5** | Objectives to spice up a run | G1 to G6, G5 first | G5 lists what a seed asks for, the way `start_with_arch_doors_open` lists doors. |
-| **0.1.6** | Locking the players' ways to communicate | R3 (`lock_abilities`); R9's "No Comms" is the trap sibling | Is it the body (jump, crouch, sit, point, raise, extend, per hand) or also voice, megaphone, walkie-talkie? R3 covers the first; the second is R2 and R9. Input is Rewired and blocked locally, which every player can do now. |
+| **0.1.3** | The Silent Gauntlet as real checks and locations, with items that open the floors (S5 and the seven stages; their needs are already in `data.GAUNTLET_STAGE_TAGS`) | S4 lookout lights, S6 the other saved switches, U7 the game's skip aids (they sit near the Gauntlet): same family, *what does the game save*. U1 hints for keys from the start, S3 "All Radio Stations" / "All Gourds Deposited", L7 `require_arch_doors`: apworld only, no risk. U3 a new save gets its deposits back: felt on every seed. | How a stage is detected: the chambers are saved nowhere (`GauntletChamber0..6` never found written), so each needs a trigger of its own. The option from the document that decouples opening a door from clearing the stage. `PuzzleNeedHider` stops leaving the Gauntlet alone once its stages are in the logic. Testing: the debug keys (Keypad 4, End) fake the held buttons; only the synchronized buttons (stage 4) and the timed tomato (stage 3) need real timing. |
+| **0.1.4** | Traps (T1 to T5, R9) | U8 joke filler (same pool as the traps), C1 a palette per seed and C2 colours for keys and buoys (T5's colour chaos is a colour trap) | The trap item exists (`Untied Shoelace`, hidden `trap_fill_percentage`) with no effect. An effect is local to each machine, like the hider. Whether to receive DeathLinks too (sending is on Ctrl+P). |
+| **0.1.5** | Objectives to spice up a run (G1 to G6, G5 first) | H1 to H3 hints and S8 a check per tower reached (one trigger, "tower reached"), U9 the names players use for the towers | G5 lists what a seed asks for, the way `start_with_arch_doors_open` lists doors. |
+| **0.1.6** | Locking the players' ways to communicate: R3 `lock_abilities` (body) and R2 `lock_pickups` (megaphone, walkie-talkie, radio) | R9's "No Comms" is the trap sibling | Input is Rewired and blocked locally, which every player can do. R2 refuses a pick-up on the host (`UserCode_CmdPickUp`). |
+| **0.1.7** | More locations: S1 backpacks, S2 flares, S7 the first pick-up of each kind, S11 the objects the filler lacks | They reuse R2's host-side pick-up hook | S1, S2 and S7 overlap: settle the three together. |
+| **0.1.8** | The vanilla behaviours back as options: L1 to L6, L8 | | Defaults stay "vanilla + AP" (the rule above). |
+
+After 0.1.8, without a date: quality of life U2, U4, U5 (placed in the version that needs them), research R1b `lock_towers`, R4 one-player mode, R5, R6, R7, R8, S9, S10, and U6 PopTracker (an external pack, any time). Before 1.0: Q1 a seed played from the first check to the goal (the multiworld run in progress, if it gets there), Q2 every option described (kept up to date with each version), Q3 the defaults, Q4 test 24 (when a save has one). Tooling D1 (keyboard for the host, gamepad for the guest) only when it gets in the way.
 
 **Step 2 — Quality of life** *(new: small, and felt on every seed)*
 - [ ] U1 Hints for keys from the start (`hint_keys: from_start`) — apworld only
