@@ -1,6 +1,6 @@
 # Release 0.1.2: drafts
 
-The tag `v0.1.2` is pushed. The release page and the Discord post are made by
+The tag `0.1.2` is pushed (no "v", like `0.1.0` and `0.1.1`). The release page and the Discord post are made by
 hand from the texts below. The assets are in `dist/`:
 
 | File | What | SHA-256 |
@@ -50,22 +50,35 @@ Update both files: the mod zip for every player, the apworld for whoever generat
 
 ## Discord
 
-> **Big Walk Archipelago 0.1.2 is out** 🎉
->
-> The big one: **puzzle parts as items**. Turn on `lock_puzzle_needs` and the
-> buttons, panels, speakers, lights, teapots, tomatoes... of the puzzles are
-> not on the island until someone sends them to you. 17 items, they show up
-> for everyone at once, and no puzzle is ever locked behind an item of its own.
-> You start with one random part so you are never stuck in the tutorial.
->
-> Also: hold any arch door closed (`start_with_arch_doors_open`), big keys land
-> in your hands like gourds, a session journal for bug reports, and a fix for
-> Archipelago 0.6.7 rejecting `requires` lines.
->
-> ⚠️ **Everyone in a session needs the same build** this time (the co-op
-> channel changed). Mod + `.apworld` are on the release page; old seeds still
-> play.
->
-> Known limits: the Gauntlet and the ending are untouched, and we have only
-> tested on one PC with a local second instance. If something looks wrong, press
-> **Ctrl+Z** right then and send us `BepInEx/session-journal.tsv`.
+Same shape as the 0.1.1 post.
+
+```markdown
+# Big Walk AP - 0.1.2 (alpha)
+**THE APWORLD AND MOD** -> https://github.com/Grizfreak/BigWalk-archipelago/releases/tag/0.1.2
+Setup Guide is available here -> https://github.com/Grizfreak/BigWalk-archipelago/blob/master/SETUP.md
+The big one: the parts of a puzzle can now be items. And everyone needs the same build this time, see **Updating**.
+
+## Added
+-   `lock_puzzle_needs` option (off by default): buttons, panels, speakers, lights, teapots, the tomato, the golf ball, the mask, the ink viewer, the counter, the coordinates computer and the eggs are not on the island until their item reaches you, then they show up for everyone. 17 items. No puzzle is ever locked behind an item of its own.
+-   `start_with_random_puzzle_need` (on by default) gives you one random part to begin with, so a tutorial puzzle is always doable. `start_with_puzzle_needs` lists more.
+-   A line in the corner tells you which puzzle parts are still missing.
+-   `start_with_arch_doors_open` option: any of the hub's arch doors, the first one included, can be an item. It replaces `lock_arch_doors`.
+-   A session journal, `BepInEx/session-journal.tsv`: every item, check and opened part with the time and where you stood.
+
+## Changed
+-   A big key received mid-game goes into somebody's hands, like a gourd, instead of landing in front of whoever the mod picked.
+-   The channel between the host and its guests changed: a guest on another build ignores its host.
+
+## Fixed
+-   Archipelago 0.6.7 read the apworld as version 0.0.0 and rejected any YAML with a `requires` line.
+
+## Known limits
+-   The Silent Gauntlet and the end of the game are left alone.
+-   12 buttons in the train cars are not hidden (we don't know if they are puzzle buttons or train controls).
+-   Only tested on one PC with a second local instance. Tell us if you see anything odd on two machines!
+
+## Updating
+-   **Everyone** reinstalls the mod zip, **and everyone must run the same build**; the host's generator gets the new `bigwalk.apworld`.
+-   A 0.1.1 seed keeps working with the new mod. The new options need a new seed.
+-   Bug reports: `BepInEx/LogOutput.log` and `BepInEx/session-journal.tsv` from the host, and from any player who saw the problem. Press **Ctrl+Z** (needs `Debug.Enabled`) the moment something looks wrong: it leaves a timestamped marker. <-- it will help me to debug your case if you have any problems
+```
