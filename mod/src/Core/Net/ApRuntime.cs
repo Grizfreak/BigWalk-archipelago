@@ -630,6 +630,9 @@ namespace BigWalkArchipelago.Core.Net
             KeyFeatures.RearmFromLedger();
             KeyCustody.RearmFromLedger();
 
+            // The stones of the world that went away are gone with their states.
+            KeyCustody.ForgetReleaseLogics();
+
             _looseGourdsRestored = false;
             _looseRestoreBlockedLogged = false;
             _reconciliationLogged = false;

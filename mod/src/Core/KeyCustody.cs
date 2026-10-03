@@ -103,6 +103,85 @@ namespace BigWalkArchipelago.Core
             return SaveManager.GetIntValue(KeyPrefix + propName, 0, false) != 0;
         }
 
+        // --- Holding the release itself ---
+        //
+        // `blockGrabbing`, above, only stops a key being picked up while it sits in
+        // its stone. It does not stop the stone letting the key go: when a monument
+        // fills, the game LAUNCHES the key out of its stone, and a key lying free
+        // is in no home any more, so the lock on the home no longer reaches it.
+        // Found 2026-10-03: four gourds into the drawbridge's slots and the key
+        // flew out, in front of the player and ready to carry, with its item never
+        // sent (the second time, after 2026-09-27).
+        //
+        // So the release is refused where it starts. Each of the seven stones has
+        // a TrackedPeckState that runs it, 0 at rest and 1 and above while it
+        // lets go: `KeyStoneLogic` for six of them (states 1 "start release", 2
+        // "launch"), `KeyScrewLogic` for the Green Dome's (1 "animating", 2
+        // "grabbable"). Refusing a state above 0 while the key's item is missing
+        // keeps the key in its stone, as the gates of the Gauntlet are held.
+        private static readonly Dictionary<int, SaveablePropName> KeyByLogic = new();
+        private static readonly HashSet<int> NotAReleaseLogic = new();
+
+        // The patch's question, asked on every state change of the game: a flag,
+        // then a set lookup, and a name only the first time a state is seen.
+        internal static bool IsReleaseHeld(TrackedPeckState state, out SaveablePropName propName)
+        {
+            propName = SaveablePropName.notSavable;
+            if (!KeysAreItems || state == null)
+                return false;
+
+            var id = state.GetInstanceID();
+            if (!KeyByLogic.TryGetValue(id, out propName))
+            {
+                if (NotAReleaseLogic.Contains(id))
+                    return false;
+
+                var name = state.gameObject.name;
+                if (name != "KeyStoneLogic" && name != "KeyScrewLogic")
+                {
+                    NotAReleaseLogic.Add(id);
+                    return false;
+                }
+
+                // Not cached when its key is not loaded yet: asked again next time.
+                if (!TryFindKeyOf(state, out propName))
+                    return false;
+
+                KeyByLogic[id] = propName;
+            }
+
+            return !IsGranted(propName);
+        }
+
+        // The key a release logic belongs to: the one whose stone sits under the same
+        // parent (`BigKeyInStone`, `BigKeyInBox`, `BigKeyInScrew`).
+        private static bool TryFindKeyOf(TrackedPeckState logic, out SaveablePropName propName)
+        {
+            propName = SaveablePropName.notSavable;
+            var parent = logic.transform.parent;
+            if (parent == null)
+                return false;
+
+            foreach (var prop in GourdRegistry.LoadedBigKeys())
+            {
+                var stone = prop.startHome;
+                if (stone != null && stone.transform.IsChildOf(parent))
+                {
+                    propName = prop.saveablePropName;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // A world went away: its states did too.
+        internal static void ForgetReleaseLogics()
+        {
+            KeyByLogic.Clear();
+            NotAReleaseLogic.Clear();
+        }
+
         // A key item arrived. Persisted first, delivered second: the ledger is
         // what survives the world reload, and the key lying at the hub is only
         // this session's copy of it.
