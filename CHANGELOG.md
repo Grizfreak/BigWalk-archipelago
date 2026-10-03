@@ -6,6 +6,38 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## 0.1.3 (in progress)
+
+### New
+
+- **The Silent Gauntlet** (`gauntlet_mode`, `vanilla` by default). With
+  `locked_stages`, each of the seven stages is a check (solving its puzzle)
+  and its way up is an item: **Gauntlet Stage 1 Door** to **Stage 7 Door**.
+  The buttons that opened the stairways when everyone held them are gone, and a
+  stage's wall and stairway stay shut until its item arrives. The `big_goodbye` goal needs all
+  seven.
+  - `gauntlet_puzzles_required` (on by default): on, the puzzle is still needed
+    to open the wall inside the stage, which then also waits for the stage's
+    item. Off, the item opens the wall at once, so the puzzles can be done in
+    any order, or skipped; they stay checks.
+  - `gauntlet_stages_local` (on by default): keeps the seven items in your own
+    world.
+  - With `lock_puzzle_needs`, a stage's check also needs the parts its puzzle
+    is built from. The mod does not hide those parts in the Gauntlet yet.
+- **`hint_keys: from_start`**: the seven big keys are hinted from the first
+  minute.
+
+### Changed
+
+- The channel between the host and its guests is now version 3: everyone
+  needs 0.1.3.
+
+### Dropped
+
+- "All Radio Stations" as a check (it is an objective, for 0.1.5) and "<Tower>:
+  All Gourds Deposited" (gourds go in any tower in any order, so it cannot be
+  kept in logic).
+
 ## 0.1.2
 
 ### New

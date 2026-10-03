@@ -260,6 +260,53 @@ class HintKeys(Choice):
     default = option_off
 
 
+class GauntletMode(Choice):
+    """
+    What the Silent Gauntlet is, behind the Big Wall.
+
+    - vanilla: nothing changes, and it has no checks. Holding the stairway
+      buttons together opens the way up, as in the game.
+    - locked_stages: the stairway buttons are gone and each stage's way up is
+      an item. Solving a stage's puzzle is a check and still opens the wall
+      inside the stage, but you only leave it with that stage's item. 7 checks,
+      7 items.
+
+    Whatever the goal. With Big Goodbye the seven items are needed to win. With
+    another goal the Gauntlet is extra: its checks sit behind the chapel, so with
+    the usual accessibility (full) the Black Monolith Key and the seven items
+    are always findable, but the goal itself asks for none of them.
+    """
+
+    display_name = "Gauntlet Mode"
+    option_vanilla = 0
+    option_locked_stages = 1
+    default = option_vanilla
+
+
+class GauntletPuzzlesRequired(DefaultOnToggle):
+    """
+    With Gauntlet Mode locked_stages: whether a stage's puzzle has to be solved
+    to leave the stage.
+
+    - On: solving the puzzle opens the wall inside the stage and is a check;
+      the stage's item opens the stairway. You leave a stage by doing both.
+    - Off: the stage's item opens the wall and the stairway at once. You may
+      do the puzzles in any order, or none: with all seven items you can walk
+      straight to the top. The puzzles are still checks.
+    """
+
+    display_name = "Gauntlet Puzzles Required"
+
+
+class GauntletStagesLocal(DefaultOnToggle):
+    """
+    With Gauntlet Mode locked_stages: keep the seven stage items in your own
+    world, so that a stage is never held up by another game's item.
+    """
+
+    display_name = "Gauntlet Stages Local"
+
+
 # Hidden until the mod gives a trap an effect: today a trap is a filler item
 # with a different name, and offering the option would promise otherwise.
 class TrapFillPercentage(Range):
@@ -290,6 +337,9 @@ class BigWalkOptions(PerGameCommonOptions):
     start_with_puzzle_needs: StartWithPuzzleNeeds
     start_with_random_puzzle_need: StartWithRandomPuzzleNeed
     hint_keys: HintKeys
+    gauntlet_mode: GauntletMode
+    gauntlet_puzzles_required: GauntletPuzzlesRequired
+    gauntlet_stages_local: GauntletStagesLocal
     trap_fill_percentage: TrapFillPercentage
     start_inventory_from_pool: StartInventoryPool
 
@@ -300,6 +350,7 @@ option_groups = [
     OptionGroup("Radio", [RadioChecks, ShuffleRadioMusic]),
     OptionGroup("Keys", [StartWithDrawbridgeOpen, HintKeys]),
     OptionGroup("Doors", [StartWithArchDoorsOpen]),
+    OptionGroup("Gauntlet", [GauntletMode, GauntletPuzzlesRequired, GauntletStagesLocal]),
     OptionGroup("Puzzles", [LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed]),
 ]
 

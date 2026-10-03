@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 from rule_builder.rules import Has, HasAll
 
 from . import data, locations, regions
-from .options import Goal
+from .options import GauntletMode, Goal
 
 if TYPE_CHECKING:
     from .world import BigWalkWorld
@@ -40,6 +40,7 @@ def set_all_rules(world: BigWalkWorld) -> None:
     set_key_cut_rules(world)
     set_gourd_deposit_rules(world)
     set_puzzle_rules(world)
+    set_gauntlet_rules(world)
     set_entrance_rules(world)
     set_completion_rule(world)
 
@@ -101,6 +102,28 @@ def set_puzzle_rules(world: BigWalkWorld) -> None:
             world.set_rule(world.get_location(puzzle.location_name), HasAll(*required))
 
 
+def set_gauntlet_rules(world: BigWalkWorld) -> None:
+    """
+    With `locked_stages`, stage k's puzzle is only reachable through the
+    stairways of the k-1 stages before it, each an item. With
+    `gauntlet_puzzles_required` it is also reachable only through the puzzles
+    of those stages, which `lock_puzzle_needs` makes items too
+    (`data.gauntlet_needs_through`); without it each item opens its stage whole,
+    and a puzzle needs only what it is built from (`data.gauntlet_needs_of`).
+    """
+    if world.options.gauntlet_mode != GauntletMode.option_locked_stages:
+        return
+
+    for stage in data.GAUNTLET_STAGES:
+        required = [before.item_name for before in data.GAUNTLET_STAGES[:stage.index]]
+        if world.options.lock_puzzle_needs:
+            needs = (data.gauntlet_needs_through(stage) if world.options.gauntlet_puzzles_required
+                     else data.gauntlet_needs_of(stage))
+            required += [need.item_name for need in needs]
+        if required:
+            world.set_rule(world.get_location(stage.location_name), HasAll(*required))
+
+
 def set_entrance_rules(world: BigWalkWorld) -> None:
     # Confirmed in-game: placing `bigKeyBoss` in `bigKeyPlinthEnding` is what
     # opens the way to the chapel, and everything past it — the field, the
@@ -156,4 +179,12 @@ def set_completion_rule(world: BigWalkWorld) -> None:
     # were never found written anywhere), so the logic cannot and does not
     # model them. `big_game` asks for nothing beyond the door for the
     # same kind of reason — see locations.create_victory_event.
+    # Only the goal that is the Gauntlet asks for its stages, and only when
+    # they are items: leaving it needs every stairway.
+    if world.options.goal == Goal.option_big_goodbye and world.options.gauntlet_mode == GauntletMode.option_locked_stages:
+        required = [stage.item_name for stage in data.GAUNTLET_STAGES]
+        if world.options.lock_puzzle_needs and world.options.gauntlet_puzzles_required:
+            required += [need.item_name for need in data.gauntlet_needs_through(data.GAUNTLET_STAGES[-1])]
+        world.set_rule(world.get_location(locations.VICTORY_EVENT_NAME), HasAll(*required))
+
     world.set_completion_rule(Has(locations.VICTORY_EVENT_NAME))

@@ -47,7 +47,7 @@ Agreed on 2026-10-02. An item that is not named here is parked until after 0.1.8
 
 | Version | The core | Rides along (why) | To settle first |
 |---|---|---|---|
-| **0.1.3** | The Silent Gauntlet as real checks and locations, with items that open the floors (S5 and the seven stages; their needs are already in `data.GAUNTLET_STAGE_TAGS`) | S4 lookout lights, S6 the other saved switches, U7 the game's skip aids (they sit near the Gauntlet): same family, *what does the game save*. U1 hints for keys from the start, L7 `require_arch_doors`: apworld only, no risk. U3 a new save gets its deposits back: felt on every seed. | How a stage is detected: the chambers are saved nowhere (`GauntletChamber0..6` never found written), so each needs a trigger of its own. The option from the document that decouples opening a door from clearing the stage. `PuzzleNeedHider` stops leaving the Gauntlet alone once its stages are in the logic. Testing: the debug keys (Keypad 4, End) fake the held buttons; only the synchronized buttons (stage 4) and the timed tomato (stage 3) need real timing. |
+| **0.1.3** | The Silent Gauntlet as real checks and locations, with items that open the floors (S5 and the seven stages; their needs are already in `data.GAUNTLET_STAGE_TAGS`). *Done 2026-10-03, tested solo: `gauntlet_mode`, `gauntlet_puzzles_required`, `gauntlet_stages_local`. A stage's check is the `GauntletChamberN` write, a stairway is `GourdTower_Gate All Hold`. Left: the co-op guest, a save reload, the Gauntlet's puzzle parts in `PuzzleNeedHider`.* | S4 lookout lights, S6 the other saved switches, U7 the game's skip aids (they sit near the Gauntlet): same family, *what does the game save*. U1 hints for keys from the start, L7 `require_arch_doors`: apworld only, no risk. U3 a new save gets its deposits back: felt on every seed. | How a stage is detected: settled, `GauntletChamber0..6` are written when a puzzle is solved (2026-10-03). The option from the document that decouples opening a door from clearing the stage: `gauntlet_puzzles_required`. `PuzzleNeedHider` stops leaving the Gauntlet alone once its stages are in the logic. Testing: the debug keys (Keypad 4, End) fake the held buttons; only the synchronized buttons (stage 4) and the timed tomato (stage 3) need real timing. |
 | **0.1.4** | Traps (T1 to T5, R9) | U8 joke filler (same pool as the traps), C1 a palette per seed and C2 colours for keys and buoys (T5's colour chaos is a colour trap) | The trap item exists (`Untied Shoelace`, hidden `trap_fill_percentage`) with no effect. An effect is local to each machine, like the hider. Whether to receive DeathLinks too (sending is on Ctrl+P). |
 | **0.1.5** | Objectives to spice up a run (G1 to G6, G5 first) | H1 to H3 hints and S8 a check per tower reached (one trigger, "tower reached"), U9 the names players use for the towers | G5 lists what a seed asks for, the way `start_with_arch_doors_open` lists doors. |
 | **0.1.6** | Locking the players' ways to communicate: R3 `lock_abilities` (body) and R2 `lock_pickups` (megaphone, walkie-talkie, radio) | R9's "No Comms" is the trap sibling | Input is Rewired and blocked locally, which every player can do. R2 refuses a pick-up on the host (`UserCode_CmdPickUp`). |
@@ -67,6 +67,7 @@ After 0.1.8, without a date: quality of life U2, U4, U5 (placed in the version t
 - [ ] U8 Joke filler items (the document's 13 misnamings of gourds), no effect
 - [ ] U9 Names players use: towers by their full name (Red Funnel Tower, …),
   the document's spellings
+- [ ] U10 Teleport buttons in the world, one per zone (idea from the player, 2026-10-03), the same kind of physical button as U4
 
 **Step 3 — Traps**
 - [ ] T1 Trap weights as options (`trap_percent` exists, hidden)
@@ -232,6 +233,17 @@ and from what a whole seed will ask of players.
   Doodad, Jelly Baby, Peanut, Peg and Head, Plumbus, Red Nub, Thing. No effect
   beyond their line in the item feed. Mixed with today's filler, the island's objects; their share could be
   an option. apworld: new ids and names; mod: a feed line, nothing spawned.
+- **U10 — Idea, not yet checked in game.** Physical buttons placed in the world, for
+  the players to teleport between the island's zones, and the place for U4's
+  resync button too. The mod already puts objects the game has none of into the
+  world by cloning vanilla ones (the cosmetic gourds, the gadget items, the
+  Archipelago templates of `GadgetItemSpawner`), and a button is a `PeckSwitch`
+  on a prefab like `BasicPushButton`, so a clone whose peck calls the game's
+  own player teleport (what the loopback summon, Ctrl+C, uses) looks possible.
+  To settle: that a cloned switch works in co-op (the object must exist on every
+  machine and the peck reach the host), which zones, where each one stands, and
+  whether a teleport may skip a locked region (it must not: the logic assumes
+  the player walked there). Modded players only, off by default.
 - **U9 — Decision.** The document's names against ours. Towers: it says Red
   Funnel, Green Cup, Blue Castle, Yellow Twist, Black Monolith, Green Dome
   Tower; our locations say "Red Tower Key Deposit" and so on. Key deposits:

@@ -69,6 +69,7 @@ namespace BigWalkArchipelago.Core
             internal string[] Prefixes;
             internal bool InPuzzlesOnly = true;
             internal string PathMustContain;
+            internal bool IgnoreExclusions;
         }
 
         private static readonly Rule[] Rules =
@@ -96,6 +97,18 @@ namespace BigWalkArchipelago.Core
             new Rule { Need = PuzzleNeeds.BigHead, Prefixes = new[] { "BlindfoldProp" } },
             new Rule { Need = PuzzleNeeds.GolfBall, Prefixes = new[] { "cannonballProp" } },
             new Rule { Need = PuzzleNeeds.TimedTomato, Prefixes = new[] { "Pomodoro" } },
+
+            // The Silent Gauntlet's stairway buttons, hold-together buttons of
+            // every stage, which `gauntlet_mode: locked_stages` replaces with
+            // an item each (GauntletStairways). The only thing in the Gauntlet
+            // this hider touches, hence the exemption from Excluded. The root
+            // of the set goes whole: its buttons, its combinators and its
+            // success switch.
+            new Rule
+            {
+                Need = GauntletStairways.ButtonsNeed, Prefixes = new[] { "NHoldFullSet" }, InPuzzlesOnly = false,
+                PathMustContain = "GourdTower_Stairs", IgnoreExclusions = true,
+            },
         };
 
         private readonly Dictionary<string, List<GameObject>> _objects = new Dictionary<string, List<GameObject>>();
@@ -363,7 +376,7 @@ namespace BigWalkArchipelago.Core
 
         private static bool Allowed(Rule rule, string path)
         {
-            if (Excluded.Any(e => path.Contains(e)))
+            if (!rule.IgnoreExclusions && Excluded.Any(e => path.Contains(e)))
                 return false;
             if (rule.InPuzzlesOnly && !path.StartsWith(PuzzleRoot, StringComparison.Ordinal))
                 return false;
@@ -414,7 +427,7 @@ namespace BigWalkArchipelago.Core
 
             foreach (var (need, total, showing) in perNeed)
                 Plugin.Log.LogInfo(
-                    $"[{nameof(PuzzleNeedHider)}]   {need}: {(PuzzleNeeds.IsLocked(need) ? "locked" : "open  ")} {showing}/{total} showing");
+                    $"[{nameof(PuzzleNeedHider)}]   {need}: {(IsLocked(need) ? "locked" : "open  ")} {showing}/{total} showing");
         }
 
         // Showing as the player sees it: a replicated object stays active and
@@ -424,11 +437,16 @@ namespace BigWalkArchipelago.Core
 
         internal static string Stamp() => DateTime.Now.ToString("HH:mm:ss");
 
+        // The stairway buttons are not one of PuzzleNeeds' needs: they are gone
+        // wherever the Gauntlet's stages are locked.
+        private static bool IsLocked(string need) =>
+            need == GauntletStairways.ButtonsNeed ? GauntletStairways.ButtonsHidden : PuzzleNeeds.IsLocked(need);
+
         private void Apply()
         {
             foreach (var pair in _objects)
             {
-                var locked = PuzzleNeeds.IsLocked(pair.Key);
+                var locked = IsLocked(pair.Key);
                 var changed = 0;
                 foreach (var go in pair.Value)
                 {

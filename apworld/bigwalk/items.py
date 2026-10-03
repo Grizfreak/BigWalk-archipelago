@@ -8,6 +8,7 @@ from BaseClasses import Item, ItemClassification
 from Options import OptionError
 
 from . import data
+from . import options as bigwalk_options
 
 if TYPE_CHECKING:
     from .world import BigWalkWorld
@@ -22,6 +23,7 @@ ITEM_NAME_TO_ID: dict[str, int] = {
     **{station.item_name: data.radio_item_id(station) for station in data.RADIO_STATIONS},
     **{door.item_name: data.arch_door_item_id(door) for door in data.ARCH_DOORS},
     **{need.item_name: data.puzzle_need_item_id(need) for need in data.PUZZLE_NEEDS},
+    **{stage.item_name: data.gauntlet_stage_id(stage) for stage in data.GAUNTLET_STAGES},
     **{name: data.BASE_ID + offset for name, offset in data.FILLER_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.TRAP_ITEMS},
 }
@@ -35,6 +37,8 @@ RADIO_ITEM_NAMES: tuple[str, ...] = tuple(station.item_name for station in data.
 
 PUZZLE_NEED_ITEM_NAMES: tuple[str, ...] = tuple(need.item_name for need in data.PUZZLE_NEEDS)
 
+GAUNTLET_ITEM_NAMES: tuple[str, ...] = tuple(stage.item_name for stage in data.GAUNTLET_STAGES)
+
 # Two groups per tower, and they are genuinely different things. A Feature
 # is the door — the chairlift, the train, the map room — and opens on
 # receipt. A Big Key is the physical key: it arrives and spawns like a
@@ -46,6 +50,7 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Radio Music": set(RADIO_ITEM_NAMES),
     "Arch Doors": {door.item_name for door in data.ARCH_DOORS},
     "Puzzle Needs": set(PUZZLE_NEED_ITEM_NAMES),
+    "Gauntlet Doors": set(GAUNTLET_ITEM_NAMES),
     "Filler": set(FILLER_ITEM_NAMES),
     "Traps": set(TRAP_ITEM_NAMES),
 }
@@ -75,6 +80,10 @@ def classification_for(name: str) -> ItemClassification:
     if name in ITEM_NAME_GROUPS["Arch Doors"]:
         # Shortcuts: they shorten the walk and gate nothing.
         return ItemClassification.useful
+    if name in ITEM_NAME_GROUPS["Gauntlet Doors"]:
+        # Only ever created with `gauntlet_mode: locked_stages`, where each one
+        # is the way up out of its stage and the goal asks for all seven.
+        return ItemClassification.progression
     if name in ITEM_NAME_GROUPS["Puzzle Needs"]:
         # Only ever created when lock_puzzle_needs is on, where each one is
         # required by every puzzle built from it.
@@ -127,6 +136,11 @@ def create_all_items(world: BigWalkWorld) -> None:
     # A locked arch door is an item, and like the radio music it displaces
     # filler rather than adding to the pool.
     pool += [world.create_item(door.item_name) for door in world.locked_arch_doors]
+
+    # With locked stages, the way up out of each one is an item. They displace
+    # filler, like the arch doors.
+    if world.options.gauntlet_mode == bigwalk_options.GauntletMode.option_locked_stages:
+        pool += [world.create_item(stage.item_name) for stage in data.GAUNTLET_STAGES]
 
     # The needs the player starts with are handed over up front, like the
     # drawbridge, and never enter the pool.

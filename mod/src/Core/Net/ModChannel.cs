@@ -64,7 +64,7 @@ namespace BigWalkArchipelago.Core.Net
 
         // Both ends must speak the same version; a mismatch is logged once
         // and ignored rather than half-read.
-        private const byte ProtocolVersion = 2;
+        private const byte ProtocolVersion = 3;
 
         private const byte KindHello = 1;
         private const byte KindSnapshot = 2;
@@ -318,6 +318,8 @@ namespace BigWalkArchipelago.Core.Net
                 foreach (var need in lockedNeeds)
                     NetworkWriterExtensions.WriteString(writer, need);
 
+                NetworkWriterExtensions.WriteBool(writer, GauntletStairways.Enabled);
+
                 connection.Send(writer.ToArraySegment(), 0);
             }
             catch (Exception ex)
@@ -400,6 +402,7 @@ namespace BigWalkArchipelago.Core.Net
             {
                 RadioStations.ForgetMirror();
                 PuzzleNeeds.ForgetMirror();
+                GauntletStairways.ForgetMirror();
             }
 
             _clientHandlerRegistered = false;
@@ -544,6 +547,8 @@ namespace BigWalkArchipelago.Core.Net
                 for (var i = 0; i < lockedCount; i++)
                     lockedNeeds.Add(NetworkReaderExtensions.ReadString(reader));
 
+                var gauntletLocked = NetworkReaderExtensions.ReadBool(reader);
+
                 var first = _receivedAt < 0f;
 
                 MirroredStatus = string.IsNullOrEmpty(status) ? null : status;
@@ -560,6 +565,7 @@ namespace BigWalkArchipelago.Core.Net
 
                 RadioStations.ApplyFromHost(radioItemsInPlay, granted);
                 PuzzleNeeds.ApplyFromHost(needsEnabled, lockedNeeds);
+                GauntletStairways.ApplyFromHost(gauntletLocked);
             }
             catch (Exception ex)
             {

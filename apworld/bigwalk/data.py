@@ -23,6 +23,13 @@ BASE_ID = 8_600_000
 
 RADIO_ID_OFFSET = 1_000
 DEPOSIT_ID_OFFSET = 2_000
+GAUNTLET_ID_OFFSET = 2_500
+"""
+The Silent Gauntlet's stages, location and item alike (separate namespaces, as
+for the radio): `BASE_ID + GAUNTLET_ID_OFFSET + SavableSystem.GauntletChamberN`,
+that is 2550..2556. Below the cuts' 6000, which the id tests keep as the
+highest location block, and clear of the deposits' 2001..2045.
+"""
 CUT_ID_OFFSET = 3_000
 KEY_ITEM_ID_OFFSET = 4_000
 ARCH_DOOR_ID_OFFSET = 5_000
@@ -272,11 +279,69 @@ GAUNTLET_STAGE_TAGS: tuple[frozenset[str], ...] = (
     frozenset({"coop", "buttons"}),
 )
 """
-The Silent Gauntlet's seven stages, in order. Recorded and unused: the stages
-have no checks of their own (rules.py, set_completion_rule), so no rule reads
-this yet. It is here for the day an option decouples a stage clearing from the
-door it opens.
+The Silent Gauntlet's seven stages, in order: what each stage's puzzle is built
+from. With `gauntlet_mode: locked_stages` a stage's check needs these (rules.py,
+set_gauntlet_rules), and so does every stage after it, which can only be
+reached by solving it.
 """
+
+
+class GauntletStage(NamedTuple):
+    index: int
+    """0..6: the game's `Level<index>` under `SilentGauntlet 2Player/Positioner`."""
+    system_name: str
+    """`SavableSystem` enum name, written 0 -> 1 when the stage's puzzle is solved."""
+    system_value: int
+    """`SavableSystem` enum value; both ids are BASE_ID + GAUNTLET_ID_OFFSET + this."""
+    chamber: str
+    """The stage's puzzle, in the words of the game's chamber names."""
+
+    @property
+    def number(self) -> int:
+        return self.index + 1
+
+    @property
+    def location_name(self) -> str:
+        return f"Gauntlet Stage {self.number}: {self.chamber}"
+
+    @property
+    def item_name(self) -> str:
+        """Opens the stairway out of this stage, the collective door `GourdTower_Gate All Hold`."""
+        return f"Gauntlet Stage {self.number} Door"
+
+
+# Measured in game on 2026-10-03 (the mod's Keypad 5 dump): solving a stage's
+# puzzle writes `ChallengeCompletedSystem`, whose savable system is
+# GauntletChamber<N> for `Level<N>`. The chamber names are the game's own.
+GAUNTLET_STAGES: tuple[GauntletStage, ...] = (
+    GauntletStage(0, "GauntletChamber0", 50, "Peg Board"),
+    GauntletStage(1, "GauntletChamber1", 51, "Pointers"),
+    GauntletStage(2, "GauntletChamber2", 52, "Kick To Kick"),
+    GauntletStage(3, "GauntletChamber3", 53, "Sim Press"),
+    GauntletStage(4, "GauntletChamber4", 54, "Volley Ball"),
+    GauntletStage(5, "GauntletChamber5", 55, "Invisible"),
+    GauntletStage(6, "GauntletChamber6", 56, "Sculptures"),
+)
+
+
+def gauntlet_stage_id(stage: GauntletStage) -> int:
+    return BASE_ID + GAUNTLET_ID_OFFSET + stage.system_value
+
+
+def gauntlet_needs_through(stage: GauntletStage) -> tuple[PuzzleNeed, ...]:
+    """
+    The items `lock_puzzle_needs` asks for before this stage's puzzle can be
+    solved when every puzzle below it must be solved on the way up: its own,
+    and those of every stage before it.
+    """
+    tags = frozenset().union(*GAUNTLET_STAGE_TAGS[:stage.index + 1])
+    return tuple(need for need in PUZZLE_NEEDS if need.key in tags)
+
+
+def gauntlet_needs_of(stage: GauntletStage) -> tuple[PuzzleNeed, ...]:
+    """The same for this stage's puzzle alone, when the stages below it can be skipped."""
+    tags = GAUNTLET_STAGE_TAGS[stage.index]
+    return tuple(need for need in PUZZLE_NEEDS if need.key in tags)
 
 
 def puzzle_needs(puzzle: Puzzle) -> tuple[PuzzleNeed, ...]:

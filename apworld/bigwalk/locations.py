@@ -8,7 +8,7 @@ from BaseClasses import Location
 
 from . import data, regions
 from .items import BigWalkItem
-from .options import Goal
+from .options import GauntletMode, Goal
 
 if TYPE_CHECKING:
     from .world import BigWalkWorld
@@ -26,6 +26,7 @@ LOCATION_NAME_TO_ID: dict[str, int] = {
        for tower in data.TOWERS for index in range(tower.segments)},
     **{data.deposit_location_name(amount): data.deposit_location_id(amount)
        for amount in range(1, data.MAX_MONUMENT_SLOTS + 1)},
+    **{stage.location_name: data.gauntlet_stage_id(stage) for stage in data.GAUNTLET_STAGES},
 }
 
 LOCATION_NAME_GROUPS: dict[str, set[str]] = {
@@ -36,6 +37,7 @@ LOCATION_NAME_GROUPS: dict[str, set[str]] = {
     "Radio Stations": {station.location_name for station in data.RADIO_STATIONS},
     "Gourd Deposits": {data.deposit_location_name(amount)
                        for amount in range(1, data.MAX_MONUMENT_SLOTS + 1)},
+    "Gauntlet": {stage.location_name for stage in data.GAUNTLET_STAGES},
 }
 
 VICTORY_EVENT_NAME = "Victory"
@@ -57,6 +59,7 @@ def gated_regions() -> dict[str, str]:
     mapping = {name: regions.CHAIRLIFT_ZONE for name in data.chairlift_locations()}
     mapping.update({name: regions.TUNNEL_ZONE for name in data.tunnel_locations()})
     mapping.update({name: regions.STARTING_ZONE for name in starting_zone_locations()})
+    mapping.update({stage.location_name: regions.ENDING_ZONE for stage in data.GAUNTLET_STAGES})
     return mapping
 
 
@@ -116,6 +119,9 @@ def create_all_locations(world: BigWalkWorld) -> None:
         place([station.location_name for station in data.RADIO_STATIONS])
 
     place([data.deposit_location_name(amount) for amount in world.deposit_amounts])
+
+    if world.options.gauntlet_mode == GauntletMode.option_locked_stages:
+        place([stage.location_name for stage in data.GAUNTLET_STAGES])
 
     create_victory_event(world)
 

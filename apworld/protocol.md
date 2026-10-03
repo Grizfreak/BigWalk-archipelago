@@ -705,7 +705,46 @@ see, and use, everything.
 - **Co-op:** the host's snapshot (`ModChannel`, protocol v2) carries whether the
   option is on and the list of needs still locked; a guest adopts it and hides
   its own copies.
-- **Left alone on purpose:** the Silent Gauntlet (the logic does not model its
-  needs, so hiding anything there could put the goal behind a missing item),
+- **Left alone on purpose:** the Silent Gauntlet (its needs are in the logic only with
+  `gauntlet_mode: locked_stages`, section 14, and the mod does not hide them yet),
   door handles (`BasicKnob`), and the train's own controls.
 
+
+## 14. The Silent Gauntlet (`gauntlet_mode`)
+
+`gauntlet_mode` is `"vanilla"` or `"locked_stages"` in slot_data. `vanilla`
+changes nothing and creates nothing. `locked_stages` makes the seven stages
+seven checks and seven items.
+
+Measured in game on 2026-10-03 (the mod's Keypad 5 dump). The Gauntlet is
+`SilentGauntlet 2Player/Positioner/Level0..6`, one stage each, and `Level7` is
+the finale. Each stage has two doors:
+
+- **The stage's own puzzle.** Solving it writes the system
+  `GauntletChamber<N>` (`SavableSystem` 50..56, N = the level) from 0 to 1 and
+  opens the wall inside the stage (`GourdTower_Gate Challenge Complete`).
+  *Check:* id `location_id_base + gauntlet_id_offset + 50 + N`, reported by the
+  same save-write patch as the radio stations.
+- **The stairway out of the stage**, `GourdTower_Stairs/GourdTower_Gate All Hold`.
+  It opens when the buttons of `NHoldFullSet/NHoldSet2|3|4` (one set per
+  player count) are held together: its `GourdTowerGateNetworking` state goes
+  0 to 1. Nothing saves it.
+  *Item:* same id as the check of its stage. In `locked_stages` the mod hides
+  the buttons and sets that state to 1 when the item arrives, again at every
+  load for each item already received.
+
+The wall inside the stage, `GourdTower_Gate Challenge Complete` (same
+`GourdTowerGateNetworking` state), is held shut like the stairway until the stage's
+item arrives, so that nothing looks open that is not: the puzzle's check is sent
+either way. `gauntlet_puzzles_required` (bool, true when absent) says whether the
+puzzle is still needed to open it. When true, the wall opens once the item is held
+and the puzzle solved, in whichever order. When false the item opens it at once (no
+check written), so the puzzles can be done in any order or skipped, and the logic
+asks a puzzle only for its own parts and the goal for the seven stairways alone.
+
+`gauntlet_stage_systems` lists the seven system names in the order of the items.
+The logic: stage k's check needs the k-1 stairway items before it (and, with
+`lock_puzzle_needs`, what the puzzles of stages 1..k are built from); the
+`big_goodbye` goal needs all seven. `gauntlet_stages_local` keeps the items in
+the player's own world and is not in slot_data. The mod does not yet hide the
+Gauntlet's puzzle parts (section 13 leaves it alone).

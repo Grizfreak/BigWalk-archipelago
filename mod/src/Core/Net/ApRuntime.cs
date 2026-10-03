@@ -723,6 +723,7 @@ namespace BigWalkArchipelago.Core.Net
                 KeyFeatures.ClearLedger();
                 KeyCustody.ClearLedger();
                 PuzzleNeeds.ClearLedger();
+                GauntletStairways.ClearLedger();
             }
 
             // After the ledger above, so a save just rebound to a new seed is
@@ -735,6 +736,9 @@ namespace BigWalkArchipelago.Core.Net
                 Connection.SlotData.LockPuzzleNeeds,
                 Connection.SlotData.PuzzleNeedKeys,
                 ApLocationIds.Base + Connection.SlotData.PuzzleNeedIdOffset);
+            // Also after the ledger, for the same reason.
+            GauntletStairways.Configure(
+                Connection.SlotData.GauntletMode == "locked_stages", Connection.SlotData.GauntletPuzzlesRequired);
             SessionJournal.Write(
                 "connected", $"{Connection.SlotName} | {Connection.SlotData.Describe()} | {_appliedItemCount} item(s) already applied");
 
@@ -1144,6 +1148,9 @@ namespace BigWalkArchipelago.Core.Net
 
             if (PuzzleNeeds.TryResolveItem(itemId, out var need))
                 return PuzzleNeeds.Grant(need);
+
+            if (ApLocationIds.TryResolveGauntletItem(itemId, out var stairway))
+                return GauntletStairways.Grant(stairway);
 
             // A filler gadget item (megaphone, walkie-talkie, backpack,
             // belt, flare gun) — same toPlayer split as the gourd above,

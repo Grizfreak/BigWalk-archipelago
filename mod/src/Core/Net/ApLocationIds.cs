@@ -18,6 +18,7 @@ namespace BigWalkArchipelago.Core.Net
         internal const long DefaultBase = 8_600_000;
         internal const long DefaultRadioOffset = 1_000;
         internal const long DefaultDepositOffset = 2_000;
+        internal const long DefaultGauntletOffset = 2_500;
         internal const long DefaultCutOffset = 3_000;
 
         // The KEY items, which are a different thing from the FEATURE items
@@ -32,6 +33,7 @@ namespace BigWalkArchipelago.Core.Net
         private static long _base = DefaultBase;
         private static long _radioOffset = DefaultRadioOffset;
         private static long _depositOffset = DefaultDepositOffset;
+        private static long _gauntletOffset = DefaultGauntletOffset;
         private static long _cutOffset = DefaultCutOffset;
         private static long _keyItemOffset = DefaultKeyItemOffset;
         private static long _archDoorOffset = DefaultArchDoorOffset;
@@ -69,6 +71,7 @@ namespace BigWalkArchipelago.Core.Net
             _base = slotData.LocationIdBase;
             _radioOffset = slotData.RadioIdOffset;
             _depositOffset = slotData.DepositIdOffset;
+            _gauntletOffset = slotData.GauntletIdOffset;
             _cutOffset = slotData.CutIdOffset;
             _keyItemOffset = slotData.KeyItemIdOffset;
             _archDoorOffset = slotData.ArchDoorIdOffset;
@@ -93,6 +96,15 @@ namespace BigWalkArchipelago.Core.Net
                 && RadioStations.IsRealStation(system))
             {
                 locationId = _base + _radioOffset + (long)system;
+                return true;
+            }
+
+            // A Gauntlet stage's puzzle, written as its own chamber system.
+            // The slot decides whether the stage is a location at all.
+            if (Enum.TryParse<SavableSystem>(locationName, out var chamber)
+                && GauntletStairways.IsChamber(chamber))
+            {
+                locationId = _base + _gauntletOffset + (long)chamber;
                 return true;
             }
 
@@ -178,6 +190,21 @@ namespace BigWalkArchipelago.Core.Net
 
             system = candidate;
             return true;
+        }
+
+        // A Gauntlet stairway item carries its stage's chamber system, like the
+        // stage's own check does (apworld/protocol.md §14). Returns the level,
+        // 0..6, which is its position in GauntletStairways.Chambers.
+        internal static bool TryResolveGauntletItem(long itemId, out int level)
+        {
+            level = -1;
+            var value = itemId - _base - _gauntletOffset;
+
+            if (value < 0 || value > int.MaxValue || !Enum.IsDefined(typeof(SavableSystem), (int)value))
+                return false;
+
+            level = Array.IndexOf(GauntletStairways.Chambers, (SavableSystem)(int)value);
+            return level >= 0;
         }
 
         // The physical key for a tower, as opposed to the door it fits.

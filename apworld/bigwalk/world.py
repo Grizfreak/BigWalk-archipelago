@@ -22,6 +22,8 @@ TRACKER_OPTIONS = {
     "radio_station_checks": "radio_checks",
     "radio_station_items": "shuffle_radio_music",
     "start_with_arch_doors_open": "start_with_arch_doors_open",
+    "gauntlet_mode": "gauntlet_mode",
+    "gauntlet_puzzles_required": "gauntlet_puzzles_required",
     "lock_puzzle_needs": "lock_puzzle_needs",
     "start_with_puzzle_needs": "start_with_puzzle_needs",
     "start_with_random_puzzle_need": "start_with_random_puzzle_need",
@@ -146,6 +148,17 @@ class BigWalkWorld(World):
         self.locked_arch_doors = tuple(door for door in data.ARCH_DOORS if door.item_name not in opened)
         self._ask_for_an_early_way_out()
         self._hint_the_keys()
+        self._keep_the_gauntlet_stages_local()
+
+    def _keep_the_gauntlet_stages_local(self) -> None:
+        """
+        Asks the generator to keep the seven stage items in this player's own
+        world when `gauntlet_stages_local` is on. Where they go changes no
+        location, so it stays out of slot_data and the tracker.
+        """
+        locked = self.options.gauntlet_mode == bigwalk_options.GauntletMode.option_locked_stages
+        if locked and self.options.gauntlet_stages_local:
+            self.options.local_items.value |= set(items.GAUNTLET_ITEM_NAMES)
 
     def _hint_the_keys(self) -> None:
         """
@@ -301,6 +314,16 @@ class BigWalkWorld(World):
             "start_with_arch_doors_open": sorted(self.options.start_with_arch_doors_open.value),
             "locked_arch_doors": [door.system_name for door in self.locked_arch_doors],
             "arch_door_id_offset": data.ARCH_DOOR_ID_OFFSET,
+
+            # The Silent Gauntlet. `locked_stages` is the only value the mod acts
+            # on: it removes the stairway buttons and opens a stage's collective
+            # door when its item arrives, and the stage's puzzle (the
+            # `GauntletChamberN` systems) is a check by plain id arithmetic.
+            # `gauntlet_stage_systems` is in the order of the stage items.
+            "gauntlet_mode": self.options.gauntlet_mode.current_key,
+            "gauntlet_puzzles_required": bool(self.options.gauntlet_puzzles_required),
+            "gauntlet_stage_systems": [stage.system_name for stage in data.GAUNTLET_STAGES],
+            "gauntlet_id_offset": data.GAUNTLET_ID_OFFSET,
 
             "lock_puzzle_needs": bool(self.options.lock_puzzle_needs),
             "start_with_puzzle_needs": sorted(self.options.start_with_puzzle_needs.value),

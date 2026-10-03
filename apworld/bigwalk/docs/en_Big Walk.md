@@ -62,6 +62,34 @@ early game: you then leave the starting area through the Drawbridge or the
 First Arch Door, one of which is always found early. Left open, most of the
 island is reachable from the start.
 
+### The Silent Gauntlet
+
+`gauntlet_mode` is `vanilla` by default: the Gauntlet is as the game has it, and
+has no checks. With `locked_stages` each of its seven stages is a check, and
+each way up is an item.
+
+In the game, a stage has two doors: its puzzle opens a wall inside the stage,
+and the stairway to the next stage opens when every player holds its buttons
+together. With `locked_stages` those buttons are gone. Solving a stage's puzzle
+is still its check, but the wall and the stairway both stay shut until that
+stage's item, **Gauntlet Stage 1 Door** to **Gauntlet Stage 7 Door**, has
+arrived: nothing opens that does not lead on. The `big_goodbye` goal needs all
+seven.
+
+- It applies to every goal. With **Big Goodbye** the seven items are needed to
+  win. With another goal the Gauntlet is extra: its checks are behind the
+  chapel, so with the usual accessibility the Black Monolith Key and the seven
+  items are always findable, but the goal does not ask for them.
+- `gauntlet_puzzles_required` (on by default): the puzzle is still needed to
+  open the wall; with the item, the wall opens as soon as the puzzle is solved,
+  or at once if it already was. Turn it off and the item opens the wall too: you
+  can do the puzzles in any order, or none, and walk straight to the top with the
+  seven items. The puzzles stay checks.
+- `gauntlet_stages_local` (on by default): the seven items stay in your own
+  world, so a stage is never held up by another game's item.
+
+Everyone needs the same build of the mod.
+
 ### Puzzle parts
 
 Off by default. With `lock_puzzle_needs` on, what a puzzle is built from stops
@@ -147,6 +175,8 @@ Items:
 - **First Arch Door**, **Left Arch Door** and **Right Arch Door**, each of
   which opens that door of the hub, for the doors `lock_arch_doors` keeps
   closed.
+- With `gauntlet_mode: locked_stages`, **Gauntlet Stage 1 Door** to **Gauntlet
+  Stage 7 Door** (optional), one per stairway of the Silent Gauntlet.
 - With `lock_puzzle_needs`, the 17 **puzzle parts** above (optional). Each is
   named after the part with "Unlock": **Buttons Unlock**, **Icon Panels
   Unlock**, and so on.

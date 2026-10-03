@@ -57,6 +57,15 @@ namespace BigWalkArchipelago.Core.Net
         internal long GourdItemId { get; private set; } = ApLocationIds.DefaultGourdItemId;
         internal long ArchDoorIdOffset { get; private set; } = ApLocationIds.DefaultArchDoorOffset;
 
+        // "vanilla" by default: an apworld too old to send it has no stairway
+        // items in its pool, so holding the Gauntlet's stairways shut for it
+        // would keep them shut for good. Only "locked_stages" is acted on.
+        internal string GauntletMode { get; private set; } = "vanilla";
+
+        // TRUE by default: the puzzle opens its wall as the game has it.
+        internal bool GauntletPuzzlesRequired { get; private set; } = true;
+        internal long GauntletIdOffset { get; private set; } = ApLocationIds.DefaultGauntletOffset;
+
         // FALSE and empty by default, like the others that take something
         // away: an apworld too old to send them has no need items in its
         // pool, so hiding the objects would hide them for good.
@@ -86,6 +95,8 @@ namespace BigWalkArchipelago.Core.Net
             data.LockedArchDoors = GetStringArray(raw, "locked_arch_doors");
             data.LockPuzzleNeeds = GetBool(raw, "lock_puzzle_needs", data.LockPuzzleNeeds);
             data.PuzzleNeedKeys = GetStringArray(raw, "puzzle_need_keys");
+            data.GauntletMode = GetString(raw, "gauntlet_mode", data.GauntletMode);
+            data.GauntletPuzzlesRequired = GetBool(raw, "gauntlet_puzzles_required", data.GauntletPuzzlesRequired);
 
             data.LocationIdBase = GetInt(raw, "location_id_base", (int)data.LocationIdBase);
             data.RadioIdOffset = GetInt(raw, "radio_id_offset", (int)data.RadioIdOffset);
@@ -95,6 +106,7 @@ namespace BigWalkArchipelago.Core.Net
             data.GourdItemId = GetInt(raw, "gourd_item_id", (int)data.GourdItemId);
             data.ArchDoorIdOffset = GetInt(raw, "arch_door_id_offset", (int)data.ArchDoorIdOffset);
             data.PuzzleNeedIdOffset = GetInt(raw, "puzzle_need_id_offset", (int)data.PuzzleNeedIdOffset);
+            data.GauntletIdOffset = GetInt(raw, "gauntlet_id_offset", (int)data.GauntletIdOffset);
 
             return data;
         }
@@ -110,7 +122,8 @@ namespace BigWalkArchipelago.Core.Net
                    + $", big key features {(BigKeyFeatures ? "on" : "off")}"
                    + $", big keys as items {(BigKeyItems ? "on" : "off")}"
                    + $", {LockedArchDoors.Length} arch door(s) locked"
-                   + $", puzzle needs {(LockPuzzleNeeds ? "locked" : "free")}";
+                   + $", puzzle needs {(LockPuzzleNeeds ? "locked" : "free")}"
+                   + $", gauntlet {GauntletMode}{(GauntletMode == "locked_stages" && !GauntletPuzzlesRequired ? " (puzzles optional)" : string.Empty)}";
         }
 
         private static string GetString(Dictionary<string, object> raw, string key, string fallback)

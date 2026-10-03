@@ -64,6 +64,7 @@ namespace BigWalkArchipelago
             AddComponent<Core.Net.ApRuntime>();
             AddComponent<Core.Net.ApStatusOverlay>();
             AddComponent<Core.ArchDoorUnlocker>();
+            AddComponent<Core.GauntletStairwayEnforcer>();
             AddComponent<Core.VariantGourdMapUnlocker>();
             AddComponent<Core.SecondEndingSphereUnlocker>();
             AddComponent<Core.CosmeticMonumentFillTracker>();
