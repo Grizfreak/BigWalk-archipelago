@@ -35,6 +35,10 @@ unwinnable, which is why every player of a session should run the same build.
   two doors are also asked for early in your own world, so they are easy to find,
   while the First Arch Door is open and `lock_puzzle_needs` is off; otherwise the
   first locations are too few for them and generation can fail.
+- **`joke_filler_percentage`** (20 by default): the community's thirteen wrong names for
+  a Gourd (Baby, Boid, Bouba, Boyo, Butternut Squash, Child, Doodad, Jelly Baby, Peanut,
+  Peg and Head, Plumbus, Red Nub, Thing) join the filler. They do nothing beyond a line
+  in the item feed.
 - **`hint_keys: from_start`**: the seven big keys are hinted from the first
   minute.
 - **A new save gets its deposits back.** The number of gourds placed in the
@@ -45,6 +49,9 @@ unwinnable, which is why every player of a session should run the same build.
 
 ### Fixed
 
+- A save connected to a different seed or slot than it knew no longer sends the checks
+  it reported to the previous one (U5). Its first connection still sends the ones made
+  while offline.
 - A big key no longer flies out of its stone when its monument fills before its
   item has arrived (the drawbridge's, then the others); it stays in place until
   the item comes. Found in play, twice.

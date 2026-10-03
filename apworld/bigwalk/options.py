@@ -342,6 +342,22 @@ class GauntletStagesLocal(DefaultOnToggle):
     display_name = "Gauntlet Stages Local"
 
 
+class JokeFillerPercentage(Range):
+    """
+    Share of the filler items that are jokes: the community's thirteen wrong names for a
+    Gourd (Baby, Boid, Bouba, Plumbus, Thing...). They do nothing beyond a line in the
+    item feed.
+
+    - 0: none.
+    - 100: every filler item that is not a prop of the island is one.
+    """
+
+    display_name = "Joke Filler Percentage"
+    range_start = 0
+    range_end = 100
+    default = 20
+
+
 # Hidden until the mod gives a trap an effect: today a trap is a filler item
 # with a different name, and offering the option would promise otherwise.
 class TrapFillPercentage(Range):
@@ -373,6 +389,7 @@ class BigWalkOptions(PerGameCommonOptions):
     start_with_puzzle_needs: StartWithPuzzleNeeds
     start_with_random_puzzle_need: StartWithRandomPuzzleNeed
     hint_keys: HintKeys
+    joke_filler_percentage: JokeFillerPercentage
     gauntlet_mode: GauntletMode
     gauntlet_puzzles_required: GauntletPuzzlesRequired
     lock_gauntlet_needs: LockGauntletNeeds
@@ -386,6 +403,7 @@ option_groups = [
     OptionGroup("Gourds", [GourdSlotChecks]),
     OptionGroup("Radio", [RadioChecks, ShuffleRadioMusic]),
     OptionGroup("Keys", [StartWithDrawbridgeOpen, HintKeys]),
+    OptionGroup("Filler", [JokeFillerPercentage]),
     OptionGroup("Doors", [StartWithArchDoorsOpen, RequireArchDoors]),
     OptionGroup("Gauntlet", [GauntletMode, GauntletPuzzlesRequired, LockGauntletNeeds, GauntletStagesLocal]),
     OptionGroup("Puzzles", [LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed]),

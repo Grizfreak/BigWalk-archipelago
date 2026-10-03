@@ -26,10 +26,12 @@ ITEM_NAME_TO_ID: dict[str, int] = {
     **{stage.item_name: data.gauntlet_stage_id(stage) for stage in data.GAUNTLET_STAGES},
     **{name: data.BASE_ID + offset for name, offset in data.FILLER_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.TRAP_ITEMS},
+    **{name: data.BASE_ID + offset for name, offset in data.JOKE_ITEMS},
 }
 
 FILLER_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.FILLER_ITEMS)
 TRAP_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.TRAP_ITEMS)
+JOKE_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.JOKE_ITEMS)
 
 GUARANTEED_GEAR: dict[str, int] = {"Backpack": 2, "Belt": 2, "Gourd Carton": 1}
 
@@ -52,6 +54,7 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Puzzle Needs": set(PUZZLE_NEED_ITEM_NAMES),
     "Gauntlet Doors": set(GAUNTLET_ITEM_NAMES),
     "Filler": set(FILLER_ITEM_NAMES),
+    "Joke Filler": set(JOKE_ITEM_NAMES),
     "Traps": set(TRAP_ITEM_NAMES),
 }
 
@@ -105,6 +108,8 @@ def create_item(world: BigWalkWorld, name: str) -> BigWalkItem:
 def get_random_filler_item_name(world: BigWalkWorld) -> str:
     if world.random.randint(1, 100) <= world.options.trap_fill_percentage:
         return world.random.choice(TRAP_ITEM_NAMES)
+    if world.random.randint(1, 100) <= world.options.joke_filler_percentage:
+        return world.random.choice(JOKE_ITEM_NAMES)
     # Gear comes from the guaranteed block in create_all_items, so a top-up
     # filler (create_filler is also called later by the generator) skips it.
     return world.random.choice([n for n in FILLER_ITEM_NAMES if n not in GUARANTEED_GEAR])

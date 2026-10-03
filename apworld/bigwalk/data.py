@@ -791,6 +791,27 @@ reason a big key's plinth is emptied on pickup: a filler item must not also
 be findable for free outside the multiworld.
 """
 
+JOKE_ITEMS: tuple[tuple[str, int], ...] = (
+    ("Baby", 9_201),
+    ("Boid", 9_202),
+    ("Bouba", 9_203),
+    ("Boyo", 9_204),
+    ("Butternut Squash", 9_205),
+    ("Child", 9_206),
+    ("Doodad", 9_207),
+    ("Jelly Baby", 9_208),
+    ("Peanut", 9_209),
+    ("Peg and Head", 9_210),
+    ("Plumbus", 9_211),
+    ("Red Nub", 9_212),
+    ("Thing", 9_213),
+)
+"""
+The community document's thirteen misnamings of a Gourd (player, 2026-09-26). Filler like
+the rest: the mod knows no id here, so one shows up as a line in the item feed and spawns
+nothing. Ids 9_201.., clear of the gadgets' 9_001..9_017 whose order the mod relies on.
+"""
+
 TRAP_ITEMS: tuple[tuple[str, int], ...] = (
     ("Untied Shoelace", 9_101),
 )
