@@ -29,7 +29,14 @@ namespace BigWalkArchipelago.Patches
             // and a transition to zero may well be the one that matters
             // (cf. ApGoalFlags) — the zero filter below would hide it.
             if (Enum.TryParse<SavableSystem>(key, out var goalSystem))
+            {
                 ApGoalFlags.Observe(goalSystem, value);
+
+                // Which saved switches change, and where: for the flags the
+                // mod does not know yet (lookout lights, the doors of S6).
+                if (ModConfig.DebugModeEnabled.Value)
+                    Debug.DebugSystemWrites.Observe(goalSystem, value);
+            }
 
             // value == 0 means "unpinned" (cf. Prop.SavePropHome in the
             // notes): this is never a check, potentially a removal.
