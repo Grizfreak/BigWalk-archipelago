@@ -286,7 +286,7 @@ and from what a whole seed will ask of players.
   machine and the peck reach the host), which zones, where each one stands, and
   whether a teleport may skip a locked region (it must not: the logic assumes
   the player walked there). Modded players only, off by default.
-- **U9 — Decision.** The document's names against ours. Towers: it says Red
+- **U9 — Partly done (0.1.3): the towers' keys, cuts and deposits take the document's tower names (Red Funnel Tower Key, ...). Key deposits are still named by tower, not by what they open, and the three puzzle spellings are untouched.** Original note: The document's names against ours. Towers: it says Red
   Funnel, Green Cup, Blue Castle, Yellow Twist, Black Monolith, Green Dome
   Tower; our locations say "Red Tower Key Deposit" and so on. Key deposits:
   it names them by what they open (Map Room Key Deposit, Chairlift Station,

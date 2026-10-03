@@ -174,12 +174,12 @@ Items:
 - The 7 features a big key used to open: **Drawbridge**, **Map Room**,
   **Chairlift**, **Train**, **Tunnels**, **Big Wall Door** and **Spawn Secret
   Door**. These are what actually open the island.
-- The 7 big keys themselves — **Drawbridge Key**, **Red Tower Key**,
-  **Green Tower Key**, **Blue Tower Key**, **Yellow Tower Key**, **Black
-  Tower Key** and **Green Dome Key**, each named after the tower it belongs
-  to, like its checks (**Red Tower Key Cut 1**, **Red Tower Key
-  Deposit**). A key opens nothing; it is worth six
-  checks, and it is the only way to reach them.
+- The 7 big keys themselves — **Drawbridge Key**, **Red Funnel Tower Key**,
+  **Green Cup Tower Key**, **Blue Castle Tower Key**, **Yellow Twist Tower Key**,
+  **Black Monolith Tower Key** and **Green Dome Tower Key**, each named after the
+  tower it belongs to, as the players call them, like its checks (**Red Funnel
+  Tower Key Cut 1**, **Red Funnel Tower Key Deposit**). A key opens nothing; it is
+  worth six checks, and it is the only way to reach them.
 - The 7 Radio Music items, each of which starts one station playing
   (optional). They are named after the music itself, which the game never
   names anywhere, and numbered by the station's light on the dial.

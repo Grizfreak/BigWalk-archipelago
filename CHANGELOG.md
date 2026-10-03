@@ -61,6 +61,12 @@ unwinnable, which is why every player of a session should run the same build.
 
 ### Changed
 
+- **The towers' keys and checks carry the names the players use** (ROADMAP U9): **Red
+  Funnel Tower Key**, **Green Cup Tower Key**, **Blue Castle Tower Key**, **Yellow Twist
+  Tower Key**, **Black Monolith Tower Key** and **Green Dome Tower Key**, with their
+  cuts and deposits (**Red Funnel Tower Key Cut 1**, **Red Funnel Tower Key Deposit**).
+  Ids did not move, so a seed made by 0.1.2 still plays, but a YAML or a plando that
+  names one of these locations or items needs the new name.
 - The channel between the host and its guests is now version 3: everyone
   needs 0.1.3.
 
@@ -105,6 +111,12 @@ unwinnable, which is why every player of a session should run the same build.
 
 ### Changed
 
+- **The towers' keys and checks carry the names the players use** (ROADMAP U9): **Red
+  Funnel Tower Key**, **Green Cup Tower Key**, **Blue Castle Tower Key**, **Yellow Twist
+  Tower Key**, **Black Monolith Tower Key** and **Green Dome Tower Key**, with their
+  cuts and deposits (**Red Funnel Tower Key Cut 1**, **Red Funnel Tower Key Deposit**).
+  Ids did not move, so a seed made by 0.1.2 still plays, but a YAML or a plando that
+  names one of these locations or items needs the new name.
 - The co-op channel between a host and its guests is protocol v2. **A guest on
   another build ignores its host.** Everyone in a session needs the same
   build.

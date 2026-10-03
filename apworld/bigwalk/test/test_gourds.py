@@ -194,8 +194,8 @@ class TestFeatureItems(BigWalkTestBase):
         # found, cut and placed at its tower. The drawbridge has no tower.
         self.assertEqual(
             [data.key_item_name(tower) for tower in data.TOWERS],
-            ["Drawbridge Key", "Red Tower Key", "Green Tower Key", "Blue Tower Key",
-             "Yellow Tower Key", "Black Tower Key", "Green Dome Key"],
+            ["Drawbridge Key", "Red Funnel Tower Key", "Green Cup Tower Key", "Blue Castle Tower Key",
+             "Yellow Twist Tower Key", "Black Monolith Tower Key", "Green Dome Tower Key"],
         )
         for tower in data.TOWERS:
             self.assertEqual(tower.location_name, f"{data.key_item_name(tower)} Deposit")

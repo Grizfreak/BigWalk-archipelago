@@ -455,9 +455,10 @@ class Tower(NamedTuple):
     """
     key_name: str
     """
-    What players call the tower this key belongs to — "Red Tower", "Green
-    Dome" — and so the prefix of the key item and of its checks: "Red Tower
-    Key", "Red Tower Key Cut 1", "Red Tower Key Deposit". The drawbridge has
+    What players call the tower this key belongs to — "Red Funnel Tower", "Green
+    Dome Tower" — and so the prefix of the key item and of its checks: "Red Funnel
+    Tower Key", "Red Funnel Tower Key Cut 1", "Red Funnel Tower Key Deposit". These
+    are the community document's names (renamed 2026-10-03, ROADMAP U9); ids did not move. The drawbridge has
     no tower and no colour, so its key keeps the drawbridge's name.
     """
     location_name: str
@@ -544,17 +545,17 @@ SPAWN_SECRET_DOOR_ITEM_NAME = "Spawn Secret Door"
 TOWERS: tuple[Tower, ...] = (
     Tower("bigKeyIntro", 300, DRAWBRIDGE_ITEM_NAME, "Drawbridge", "Drawbridge Key Deposit",
           "bigKeyPlinthIntro", "monoumentIntro", 4, 5),
-    Tower("bigKeyRedZone", 301, "Map Room", "Red Tower", "Red Tower Key Deposit",
+    Tower("bigKeyRedZone", 301, "Map Room", "Red Funnel Tower", "Red Funnel Tower Key Deposit",
           "bigKeyPlinthMapRoom", "monoument0", 5, 5),
-    Tower("bigKeyGreenZone", 302, "Chairlift", "Green Tower", "Green Tower Key Deposit",
+    Tower("bigKeyGreenZone", 302, "Chairlift", "Green Cup Tower", "Green Cup Tower Key Deposit",
           "bigKeyPlinthSkiLift", "monoument1", 5, 5),
-    Tower("bigKeyBlueZone", 303, "Train", "Blue Tower", "Blue Tower Key Deposit",
+    Tower("bigKeyBlueZone", 303, "Train", "Blue Castle Tower", "Blue Castle Tower Key Deposit",
           "bigKeyPlinthTrain", "monoument2", 5, 5),
-    Tower("bigKeyYellowZone", 304, "Tunnels", "Yellow Tower", "Yellow Tower Key Deposit",
+    Tower("bigKeyYellowZone", 304, "Tunnels", "Yellow Twist Tower", "Yellow Twist Tower Key Deposit",
           "bigKeyPlinthTunnels", "monoument3", 5, 5),
-    Tower("bigKeyBoss", 305, "Big Wall Door", "Black Tower", "Black Tower Key Deposit",
+    Tower("bigKeyBoss", 305, "Big Wall Door", "Black Monolith Tower", "Black Monolith Tower Key Deposit",
           "bigKeyPlinthEnding", "monoumentFinal", 6, 0),
-    Tower("bigKeyOverflow", 306, SPAWN_SECRET_DOOR_ITEM_NAME, "Green Dome", "Green Dome Key Deposit",
+    Tower("bigKeyOverflow", 306, SPAWN_SECRET_DOOR_ITEM_NAME, "Green Dome Tower", "Green Dome Tower Key Deposit",
           "bigKeyPlinthGoodbye2", "monoumentOverflow", 15, 0),
 )
 
@@ -842,8 +843,8 @@ def key_item_name(tower: Tower) -> str:
     """
     The physical key a player carries, cuts and places.
 
-    Named after its tower ("Red Tower Key"), like its own locations — `Red
-    Tower Key Cut 1` and `Red Tower Key Deposit` — so that nothing has to be
+    Named after its tower ("Red Funnel Tower Key"), like its own locations — `Red
+    Funnel Tower Key Cut 1` and `Red Funnel Tower Key Deposit` — so that nothing has to be
     memorised to know where a key belongs.
     """
     return f"{tower.key_name} Key"
