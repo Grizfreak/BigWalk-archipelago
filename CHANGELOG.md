@@ -27,6 +27,14 @@ unwinnable, which is why every player of a session should run the same build.
     stage's check, also need the parts its puzzle
     is built from, and the mod hides those parts in the seven stages until
     their item arrives. The finale and the entrance are left alone.
+- **`require_arch_doors`** (on by default): what lies past the Left and Right Arch
+  Doors is behind them in logic, so that nobody walks to a place and is sent its
+  shortcut afterwards. Left: the Yellow, Blue and Black towers, the chapel and the
+  Green Dome. Right: the Green Tower and what is past the chairlift. Told by the
+  player; a list too short asks for fewer doors, never more than a seed holds. The
+  two doors are also asked for early in your own world, so they are easy to find,
+  while the First Arch Door is open and `lock_puzzle_needs` is off; otherwise the
+  first locations are too few for them and generation can fail.
 - **`hint_keys: from_start`**: the seven big keys are hinted from the first
   minute.
 - **A new save gets its deposits back.** The number of gourds placed in the

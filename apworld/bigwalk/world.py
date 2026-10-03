@@ -22,6 +22,7 @@ TRACKER_OPTIONS = {
     "radio_station_checks": "radio_checks",
     "radio_station_items": "shuffle_radio_music",
     "start_with_arch_doors_open": "start_with_arch_doors_open",
+    "require_arch_doors": "require_arch_doors",
     "gauntlet_mode": "gauntlet_mode",
     "gauntlet_puzzles_required": "gauntlet_puzzles_required",
     "lock_gauntlet_needs": "lock_gauntlet_needs",
@@ -148,6 +149,7 @@ class BigWalkWorld(World):
         opened = self.options.start_with_arch_doors_open.value
         self.locked_arch_doors = tuple(door for door in data.ARCH_DOORS if door.item_name not in opened)
         self._ask_for_an_early_way_out()
+        self._ask_for_the_far_doors_early()
         self._hint_the_keys()
         self._keep_the_gauntlet_stages_local()
 
@@ -223,6 +225,30 @@ class BigWalkWorld(World):
 
         way_out = self.random.choice((data.DRAWBRIDGE_ITEM_NAME, data.FIRST_ARCH_DOOR.item_name))
         self.multiworld.local_early_items[self.player][way_out] = 1
+
+    def _ask_for_the_far_doors_early(self) -> None:
+        """
+        With `require_arch_doors`, a far door that starts closed is asked for as an
+        early item in this player's own world. The doors only matter if they come
+        first: one that turned up late would hold a whole region in logic for a
+        shortcut nobody could use yet, which is the walk the option is meant to spare.
+
+        Only while the First Arch Door is open and the puzzles' parts are not items.
+        With the door closed the starting zone holds a handful of locations that can
+        be reached with nothing, and the way out is already asked for there; with the
+        parts locked most puzzles cannot be reached with nothing either. In both cases
+        two more early items do not fit and generation fails, found by generating the
+        same seeds with and without the request: 8 of 8 without it, 6 of 8 with it.
+        The doors are in logic all the same, so they still come before what lies past
+        them; they are just not forced to the very start.
+        """
+        if (not self.options.require_arch_doors or data.FIRST_ARCH_DOOR in self.locked_arch_doors
+                or self.options.lock_puzzle_needs):
+            return
+
+        for door in (data.LEFT_ARCH_DOOR, data.RIGHT_ARCH_DOOR):
+            if door in self.locked_arch_doors:
+                self.multiworld.local_early_items[self.player][door.item_name] = 1
 
     def _take_options_from_tracker(self) -> None:
         """
@@ -314,6 +340,7 @@ class BigWalkWorld(World):
             # harmless direction — the logic never needs a door shut.
             "start_with_arch_doors_open": sorted(self.options.start_with_arch_doors_open.value),
             "locked_arch_doors": [door.system_name for door in self.locked_arch_doors],
+            "require_arch_doors": bool(self.options.require_arch_doors),
             "arch_door_id_offset": data.ARCH_DOOR_ID_OFFSET,
 
             # The Silent Gauntlet. `locked_stages` is the only value the mod acts

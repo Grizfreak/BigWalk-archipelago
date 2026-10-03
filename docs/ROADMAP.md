@@ -397,7 +397,23 @@ The mod suppresses each of these; an option turns the suppression off.
   would leave them to their buttons. To measure first: where each button is,
   and whether the start zone can still be left (the reason the mod opens the
   First one: regions.py, "the way out of the starting zone").
-- **L7 — Wanted (player, 2026-10-03), waiting for the player's answer.** Putting
+- **L7 — Done (0.1.3), on by default.** `require_arch_doors`, from the player's
+  account of the map: the Left door gates the Yellow, Blue and Black towers, the
+  chapel (`ending`) and the Green Dome; the Right door the Green Tower and the
+  chairlift zone (purple gourds). The Red Tower is not behind the Right door: it is
+  reachable early, only the tunnel route is hard. Puzzles and radio stations past a
+  door beyond those zones are still unmeasured. **Nothing is technically blocked**
+  (player, 2026-10-03): without a door some routes are only very long, so the rule is
+  a comfort and a wrong classification can never make a seed unbeatable. A page to
+  classify the 45 puzzles (tower and door each) was tried and the player did not like
+  the method; 42 answers are kept in its database (artifact
+  `8V5tv8RhXXEcJPEhy7d2Pj`, collection `puzzles`: Left for Breadcrumb Loop, Carousel,
+  Concert, Egg Hunt, Kick Up Pits, Microphone Array, Observation Room, Coordinates;
+  Right for Cabin Fever Long, Cannonball Commute, Centurion Seance, Charades Rooms,
+  Dancer and Selecter, Poet and Pontiff, Speed Obby; the rest free). To redo later, on a
+  MAP rather than a list: the puzzles, towers, lookouts and doors at their coordinates,
+  zones drawn on it, every point inheriting its zone. The same map would carry the
+  lights and objects of the lightsanity and objectsanity. Earlier plan: Putting
   the far doors in logic spares the walk back when a shortcut's item arrives late.
   Plan: `require_arch_doors`, off by default, starting with whole towers (their
   deposits, cuts and keys) and leaving puzzles and stations for a later measure; a

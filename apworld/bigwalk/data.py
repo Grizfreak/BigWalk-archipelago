@@ -890,6 +890,35 @@ RIGHT_ARCH_DOOR = ArchDoor("HubTunnel", 12, "Right Arch Door")
 ARCH_DOORS: tuple[ArchDoor, ...] = (FIRST_ARCH_DOOR, LEFT_ARCH_DOOR, RIGHT_ARCH_DOOR)
 
 
+# What lies past the two far doors, told by the player on 2026-10-03 (the map is
+# theirs, not measured). The Left door (towards Sports Creek) leads to the Yellow
+# and Blue towers and to the Black Tower and the chapel behind it, and so to the
+# Green Dome, which is reached from the Black Tower; the Right door (the tunnel) to
+# the Green Tower and to what is past the chairlift, the purple gourds. Not the Red
+# Tower: it can be reached very early without the door, only the way through the
+# tunnel is hard (player, 2026-10-03).
+# Either door can be walked round, which is the whole point of putting them in
+# logic (`require_arch_doors`): so that the generator does not ask for a place on
+# foot and then send the shortcut afterwards. A list that is too short only asks for
+# fewer doors than it could, never more than a seed has.
+TOWER_FAR_DOOR: dict[str, ArchDoor] = {
+    "bigKeyGreenZone": RIGHT_ARCH_DOOR,
+    "bigKeyBlueZone": LEFT_ARCH_DOOR,
+    "bigKeyYellowZone": LEFT_ARCH_DOOR,
+    "bigKeyBoss": LEFT_ARCH_DOOR,
+    "bigKeyOverflow": LEFT_ARCH_DOOR,
+}
+"""The far door each tower lies past, by the tower's `prop_name`. The drawbridge has none."""
+
+ZONE_FAR_DOOR: dict[str, ArchDoor] = {
+    "chairlift": RIGHT_ARCH_DOOR,
+    "tunnels": LEFT_ARCH_DOOR,
+    "ending": LEFT_ARCH_DOOR,
+    "green_dome": LEFT_ARCH_DOOR,
+}
+"""The far door each zone behind a big key lies past (`regions.py` names the entrances)."""
+
+
 def arch_door_item_id(door: ArchDoor) -> int:
     return BASE_ID + ARCH_DOOR_ID_OFFSET + door.system_value
 

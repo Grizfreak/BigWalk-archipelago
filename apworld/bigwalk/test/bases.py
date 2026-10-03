@@ -75,6 +75,18 @@ class BigWalkTestBase(WorldTestBase):
     game = "Big Walk"
     world: BigWalkWorld
 
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """
+        Runs every test class with `require_arch_doors` off unless it says otherwise.
+
+        The option is on by default, and most of these tests are about one thing at a
+        time: that a zone costs its key, that a cut costs its key. With the far doors
+        in logic they would each cost a door as well, which `test_far_doors.py` is
+        about, and nothing else here.
+        """
+        super().__init_subclass__(**kwargs)
+        cls.options = {"require_arch_doors": False, **getattr(cls, "options", {})}
+
     _collected_gourds = 0
 
     def collect_gourds(self, count: int) -> None:

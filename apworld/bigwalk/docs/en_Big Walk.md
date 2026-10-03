@@ -57,7 +57,12 @@ The hub's three arch doors follow `start_with_arch_doors_open`, the list of
 those open from the start; every other one is an item. By default only the
 First Arch Door, the tutorial's way back to the hub, is open, and the two far
 ones, left towards Sports Creek and right, are items: shortcuts that save long
-detours, never required. Remove the First Arch Door from the list for a real
+detours. With `require_arch_doors` (on by default) what lies past them is behind
+them in logic, so that you are not asked for a place on foot and sent the shortcut
+afterwards: past the left door the Yellow, Blue and Black towers, the chapel and the
+Green Dome, past the right one the Green Tower and what is beyond the chairlift. A
+door that starts open asks for nothing, and the island can still be walked round
+either way. Remove the First Arch Door from the list for a real
 early game: you then leave the starting area through the Drawbridge or the
 First Arch Door, one of which is always found early. Left open, most of the
 island is reachable from the start.

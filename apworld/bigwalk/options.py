@@ -168,6 +168,26 @@ class StartWithArchDoorsOpen(OptionSet):
     default = frozenset({data.FIRST_ARCH_DOOR.item_name})
 
 
+class RequireArchDoors(DefaultOnToggle):
+    """
+    Whether the towers and zones past the Left and Right Arch Doors need that door
+    in logic, when the door starts closed.
+
+    - Left Arch Door (towards Sports Creek): the Yellow, Blue and Black towers, the
+      chapel and the Green Dome.
+    - Right Arch Door (the tunnel): the Green Tower and what is past the chairlift,
+      the purple gourds.
+
+    Both can be walked round, so off, the generator may ask for a place and send the
+    shortcut afterwards, and you walk back. On, the door comes first, and with the
+    First Arch Door open and Lock Puzzle Needs off the two doors are also asked for
+    early, in your own world, so that they are easy to find. A door listed in Start
+    With Arch Doors Open asks for nothing.
+    """
+
+    display_name = "Require Arch Doors"
+
+
 # The Choice that `StartWithArchDoorsOpen` replaced, as released in 0.1.1.
 # Hidden and kept only so a YAML that sets it, or a 0.1.1 seed's slot_data in
 # Universal Tracker, still gets the doors it asked for: an unknown option is
@@ -347,6 +367,7 @@ class BigWalkOptions(PerGameCommonOptions):
     shuffle_radio_music: ShuffleRadioMusic
     start_with_drawbridge_open: StartWithDrawbridgeOpen
     start_with_arch_doors_open: StartWithArchDoorsOpen
+    require_arch_doors: RequireArchDoors
     lock_arch_doors: LockArchDoors
     lock_puzzle_needs: LockPuzzleNeeds
     start_with_puzzle_needs: StartWithPuzzleNeeds
@@ -365,7 +386,7 @@ option_groups = [
     OptionGroup("Gourds", [GourdSlotChecks]),
     OptionGroup("Radio", [RadioChecks, ShuffleRadioMusic]),
     OptionGroup("Keys", [StartWithDrawbridgeOpen, HintKeys]),
-    OptionGroup("Doors", [StartWithArchDoorsOpen]),
+    OptionGroup("Doors", [StartWithArchDoorsOpen, RequireArchDoors]),
     OptionGroup("Gauntlet", [GauntletMode, GauntletPuzzlesRequired, LockGauntletNeeds, GauntletStagesLocal]),
     OptionGroup("Puzzles", [LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed]),
 ]

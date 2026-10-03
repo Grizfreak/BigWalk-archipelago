@@ -45,12 +45,23 @@ def set_all_rules(world: BigWalkWorld) -> None:
     set_completion_rule(world)
 
 
+def past_far_door(world: BigWalkWorld, door: data.ArchDoor | None, rule):
+    """
+    `rule`, and the far door it lies past as well when `require_arch_doors` is on and
+    the door starts closed. A door that starts open, or none, adds nothing.
+    """
+    if door is None or not world.options.require_arch_doors or door not in world.locked_arch_doors:
+        return rule
+
+    return rule & Has(door.item_name)
+
+
 def set_key_deposit_rules(world: BigWalkWorld) -> None:
-    """Placing a key in its receptacle needs that key, and nothing else."""
+    """Placing a key in its receptacle needs that key, and the far door its tower lies past."""
     for tower in world.towers:
         world.set_rule(
             world.get_location(tower.location_name),
-            Has(data.key_item_name(tower)),
+            past_far_door(world, data.TOWER_FAR_DOOR.get(tower.prop_name), Has(data.key_item_name(tower))),
         )
 
 
@@ -64,7 +75,7 @@ def set_key_cut_rules(world: BigWalkWorld) -> None:
     on the same single requirement, and no gourd is involved anywhere.
     """
     for tower in world.towers:
-        requirement = Has(data.key_item_name(tower))
+        requirement = past_far_door(world, data.TOWER_FAR_DOOR.get(tower.prop_name), Has(data.key_item_name(tower)))
         for name in data.cut_locations(tower):
             world.set_rule(world.get_location(name), requirement)
 
@@ -135,7 +146,7 @@ def set_entrance_rules(world: BigWalkWorld) -> None:
     # Gauntlet and its final bell — is behind that one door.
     world.set_rule(
         world.get_entrance(regions.ENDING_ENTRANCE),
-        Has(data.BLACK_MONOLITH.item_name),
+        past_far_door(world, data.ZONE_FAR_DOOR["ending"], Has(data.BLACK_MONOLITH.item_name)),
     )
 
     # Found in play on 2026-09-21, and the reason this world had a
@@ -144,11 +155,11 @@ def set_entrance_rules(world: BigWalkWorld) -> None:
     # the Green Cup Key past the chairlift it opens.
     world.set_rule(
         world.get_entrance(regions.CHAIRLIFT_ENTRANCE),
-        Has(data.GREEN_CUP.item_name),
+        past_far_door(world, data.ZONE_FAR_DOOR["chairlift"], Has(data.GREEN_CUP.item_name)),
     )
     world.set_rule(
         world.get_entrance(regions.TUNNEL_ENTRANCE),
-        Has(data.YELLOW_TWIST.item_name),
+        past_far_door(world, data.ZONE_FAR_DOOR["tunnels"], Has(data.YELLOW_TWIST.item_name)),
     )
 
     # The way out of the starting zone, gated only while the first arch door
@@ -163,7 +174,7 @@ def set_entrance_rules(world: BigWalkWorld) -> None:
     # The Spawn Secret Door, and the second ending behind it.
     world.set_rule(
         world.get_entrance(regions.GREEN_DOME_ENTRANCE),
-        Has(data.GREEN_DOME.item_name),
+        past_far_door(world, data.ZONE_FAR_DOOR["green_dome"], Has(data.GREEN_DOME.item_name)),
     )
 
 

@@ -60,7 +60,7 @@ class BigWalkItem(Item):
     game = "Big Walk"
 
 
-def classification_for(name: str) -> ItemClassification:
+def classification_for(name: str, require_arch_doors: bool = False) -> ItemClassification:
     if name == data.GOURD_ITEM_NAME:
         # Gourds are the only currency that fills monuments, and monuments are
         # what release the big keys, so every single one is progression.
@@ -78,8 +78,9 @@ def classification_for(name: str) -> ItemClassification:
         # One of the two ways out of the starting zone when it is locked.
         return ItemClassification.progression
     if name in ITEM_NAME_GROUPS["Arch Doors"]:
-        # Shortcuts: they shorten the walk and gate nothing.
-        return ItemClassification.useful
+        # Shortcuts: they shorten the walk, and gate what lies past them only when
+        # `require_arch_doors` puts those places behind them in logic.
+        return ItemClassification.progression if require_arch_doors else ItemClassification.useful
     if name in ITEM_NAME_GROUPS["Gauntlet Doors"]:
         # Only ever created with `gauntlet_mode: locked_stages`, where each one
         # is the way up out of its stage and the goal asks for all seven.
@@ -97,7 +98,8 @@ def classification_for(name: str) -> ItemClassification:
 
 
 def create_item(world: BigWalkWorld, name: str) -> BigWalkItem:
-    return BigWalkItem(name, classification_for(name), ITEM_NAME_TO_ID[name], world.player)
+    return BigWalkItem(
+        name, classification_for(name, bool(world.options.require_arch_doors)), ITEM_NAME_TO_ID[name], world.player)
 
 
 def get_random_filler_item_name(world: BigWalkWorld) -> str:

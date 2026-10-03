@@ -756,3 +756,16 @@ and the host tells its guests (`ModChannel`). The `big_goodbye` goal asks for th
 parts whatever the mode, since the game's own stages have to be solved to finish it;
 only `locked_stages` also asks them of the stages' checks. The mod logs what each stage is made of, one line a
 stage, to be set against `GAUNTLET_STAGE_TAGS`.
+
+## 15. The far arch doors in logic (`require_arch_doors`)
+
+`require_arch_doors` (bool, true by default) is in slot_data and in the tracker's fields.
+It changes the logic and the classification of the two far doors, nothing the mod does:
+the mod already holds a closed door shut until its item arrives (section 4). With it on,
+and a door closed, the towers and zones past that door need its item as well as their own
+key: past the Left door the Yellow, Blue and Black towers (deposit and cuts), the tunnels,
+the chapel and the Green Dome; past the Right door the Green Tower and the chairlift zone.
+The tables are `data.TOWER_FAR_DOOR` and `data.ZONE_FAR_DOOR`. The doors are progression
+items with it, useful ones without. They are also asked for as early local items while
+the First Arch Door is open and `lock_puzzle_needs` is off (generation fails otherwise:
+measured 6 of 8 seeds with the request in the tight configuration, 8 of 8 without).
