@@ -26,6 +26,11 @@ unwinnable, which is why every player of a session should run the same build.
     is built from. The mod does not hide those parts in the Gauntlet yet.
 - **`hint_keys: from_start`**: the seven big keys are hinted from the first
   minute.
+- **A new save gets its deposits back.** The number of gourds placed in the
+  monuments is kept on the Archipelago server, per slot, and only ever goes up.
+  A new save on the same slot puts that many back as the monuments load, in
+  whichever slots come first, instead of leaving them to be carried over by
+  hand. If the server does not answer, nothing is restored and nothing breaks.
 
 ### Changed
 

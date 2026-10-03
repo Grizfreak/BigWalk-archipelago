@@ -47,6 +47,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> ForceNearbyCombinatorKey;
         internal static ConfigEntry<KeyboardShortcut> DumpGauntletKey;
         internal static ConfigEntry<float> DumpGauntletRadius;
+        internal static ConfigEntry<KeyboardShortcut> EnableSkipAidsKey;
         internal static ConfigEntry<KeyboardShortcut> ForceEndingFlagsKey;
         internal static ConfigEntry<KeyboardShortcut> ApplyBigKeyOverflowKey;
         internal static ConfigEntry<KeyboardShortcut> SpawnCosmeticPickupKey;
@@ -297,6 +298,12 @@ namespace BigWalkArchipelago
                 "DumpGauntletRadius",
                 80f,
                 "Radius in metres of DumpGauntletKey's dump.");
+
+            EnableSkipAidsKey = file.Bind(
+                "Debug",
+                "EnableSkipAidsKey",
+                new KeyboardShortcut(KeyCode.Keypad6),
+                "Switches on the game's own skip aids (the two-button poles in each Silent Gauntlet chamber, off in a normal game) so that what they do can be seen. Hold their buttons together (End does) and compare two DumpGauntletKey dumps (only has an effect if Debug.Enabled is active).");
 
             ForceNearbyCombinatorKey = file.Bind(
                 "Debug",

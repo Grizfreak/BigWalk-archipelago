@@ -7,6 +7,7 @@ using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Models;
+using Archipelago.MultiClient.Net.Packets;
 
 namespace BigWalkArchipelago.Core.Net
 {
@@ -57,6 +58,16 @@ namespace BigWalkArchipelago.Core.Net
         // has flipped to Connected/Failed — that flip is the handoff, so no
         // extra locking is needed around them.
         private HashSet<long> _slotLocations = new();
+
+        // How many monument slots this slot has filled, as the server last
+        // knew it (DataStorage, key below, per slot). Read once on the connect
+        // task, with a short wait: 0 when the key is absent, the read fails or
+        // times out, which is exactly the behaviour without this feature, a new
+        // save re-depositing by hand. Never read on the main thread.
+        internal int StoredDeposits { get; private set; }
+
+        private const string DepositsKey = "bigwalk_deposits";
+        private const int StorageWaitMilliseconds = 4000;
 
         // Asks the socket itself rather than trusting an event to have told
         // us. Proven necessary in-game (2026-09-15): killing the server
@@ -192,7 +203,10 @@ namespace BigWalkArchipelago.Core.Net
                     return;
                 }
 
+                var storedDeposits = ReadStoredDeposits(session);
+
                 _session = session;
+                StoredDeposits = storedDeposits;
                 SlotData = ApSlotData.From(success.SlotData);
                 SeedName = session.RoomState?.Seed ?? string.Empty;
                 _slotLocations = new HashSet<long>(session.Locations.AllLocations);
@@ -206,6 +220,57 @@ namespace BigWalkArchipelago.Core.Net
 
                 LastError = ex.Message;
                 _status = ConnectionStatus.Failed;
+            }
+        }
+
+        // The deposits this slot has made, from the server's own storage. Only
+        // ever goes up (see StoreDeposits), and a room is one seed, so a new
+        // seed starts at nothing. Called on the connect task, where waiting is
+        // allowed; any failure is a 0 and a log line, never an exception.
+        private static int ReadStoredDeposits(ArchipelagoSession session)
+        {
+            try
+            {
+                var element = session.DataStorage[Scope.Slot, DepositsKey];
+                element.Initialize(0);
+
+                var read = element.GetAsync();
+                if (!read.Wait(StorageWaitMilliseconds))
+                {
+                    Plugin.Log.LogWarning(
+                        $"[{nameof(ApConnection)}] The server did not answer the deposits read in {StorageWaitMilliseconds} ms; "
+                        + "no deposit will be restored this session.");
+                    return 0;
+                }
+
+                var token = read.Result;
+                var count = token != null && token.Type != Newtonsoft.Json.Linq.JTokenType.Null ? token.ToObject<int>() : 0;
+                Plugin.Log.LogInfo($"[{nameof(ApConnection)}] The server remembers {count} deposit(s) for this slot.");
+                return Math.Max(0, count);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(ApConnection)}] Could not read the deposits from the server ({ex.Message}); none will be restored.");
+                return 0;
+            }
+        }
+
+        // Fire and forget, and a MAXIMUM: the server keeps the larger of what it
+        // has and `count`, so a late or repeated write can never lower it. A
+        // write lost to a dead socket is covered by the next one.
+        internal void StoreDeposits(int count)
+        {
+            if (_status != ConnectionStatus.Connected || count <= 0)
+                return;
+
+            try
+            {
+                _session.DataStorage[Scope.Slot, DepositsKey] += Operation.Max(count);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(ApConnection)}] Could not store {count} deposit(s) on the server: {ex.Message}");
             }
         }
 

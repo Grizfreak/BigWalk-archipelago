@@ -134,6 +134,9 @@ namespace BigWalkArchipelago.Debug
                 ModConfig.HoldTrackedStateValue.Value,
                 30f);
 
+            if (ModConfig.EnableSkipAidsKey.Value.IsDown())
+                DebugSkipAids.EnableAll();
+
             if (ModConfig.DumpGauntletKey.Value.IsDown())
             {
                 Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Gauntlet dump key pressed; calling Dump...");

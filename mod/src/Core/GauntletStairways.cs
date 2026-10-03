@@ -50,21 +50,31 @@ namespace BigWalkArchipelago.Core
             SavableSystem.GauntletChamber6,
         };
 
-        // Instance ids of the gates found, and the level each one belongs to.
+        // The two gates of each stage, found in the scene by name and path.
+        // GateByLevel is the stairway, which the buttons opened in the game.
+        // WallByLevel is the wall inside the stage, which the puzzle opens: it
+        // is held shut like the stairway, because a wall that opened while the
+        // way on stayed closed would look like progress that is not. Its item
+        // opens it once the puzzle is solved, or at once when the puzzles are
+        // not required.
+        private static readonly TrackedPeckState[] GateByLevel = new TrackedPeckState[7];
+        private static readonly TrackedPeckState[] WallByLevel = new TrackedPeckState[7];
+
+        // Instance id of every gate or wall found, and the level it belongs to.
         private static readonly Dictionary<int, int> LevelByInstance = new();
 
         // Instance ids already looked at and found not to be a gate, so the
         // patch does not read the same state's name twice.
         private static readonly HashSet<int> NotAGate = new();
-        private static readonly TrackedPeckState[] GateByLevel = new TrackedPeckState[7];
 
-        // The wall inside each stage, which the stage's puzzle opens in the
-        // game. Held shut like the stairway: a wall that opened while the way
-        // on stayed closed would look like progress that is not. Its item opens
-        // it once the puzzle is solved, or at once when the puzzles are not
-        // required.
-        private static readonly TrackedPeckState[] WallByLevel = new TrackedPeckState[7];
+        // From slot_data (`gauntlet_puzzles_required`): whether the puzzle is
+        // still needed to open a stage's wall.
         private static bool _puzzlesRequired = true;
+
+        // Looking for the gates reads every saved state of the world, so a gate
+        // that cannot be found is looked for again only now and then.
+        private const float DiscoverIntervalSeconds = 10f;
+        private static float _nextDiscoverAt;
 
         // The pseudo-need PuzzleNeedHider files the stairway buttons under. It
         // is not one of PuzzleNeeds' own, so no item, ledger or overlay line
@@ -124,6 +134,7 @@ namespace BigWalkArchipelago.Core
             NotAGate.Clear();
             Array.Clear(GateByLevel, 0, GateByLevel.Length);
             Array.Clear(WallByLevel, 0, WallByLevel.Length);
+            _nextDiscoverAt = 0f;
         }
 
         // A save hosted with Archipelago switched off is vanilla.
@@ -238,9 +249,6 @@ namespace BigWalkArchipelago.Core
 
         private static void Open(int level)
         {
-            if (GateByLevel[level] == null || WallByLevel[level] == null)
-                Discover();
-
             OpenGate(GateByLevel[level], $"Stage {level + 1} stairway");
 
             // With the puzzles required, the wall waits for its puzzle: solved
@@ -268,8 +276,10 @@ namespace BigWalkArchipelago.Core
             foreach (var wall in WallByLevel)
                 missing |= wall == null;
 
-            if (!missing)
+            if (!missing || Time.unscaledTime < _nextDiscoverAt)
                 return;
+
+            _nextDiscoverAt = Time.unscaledTime + DiscoverIntervalSeconds;
 
             var loaded = UnityEngine.Object.FindObjectsByType<TrackedPeckState>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             if (loaded == null)

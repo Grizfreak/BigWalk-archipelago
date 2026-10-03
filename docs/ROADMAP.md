@@ -215,9 +215,43 @@ and from what a whole seed will ask of players.
 - **U2 — To do.** The map already shows the purple gourds
   (`VariantGourdMapUnlocker`); it could mark each puzzle whose check is not
   yet sent, from the host's check list. Modded players only.
-- **U3 — To do.** Monument fill state in Archipelago's `DataStorage`, so a new
-  save recovers its deposits as it recovers its items (today they are
-  re-deposited by hand: the new-save recovery plan).
+- **U3 — To do, scoped 2026-10-03 (design below, not coded).** Monument fill
+  state in Archipelago's `DataStorage`, so a new save recovers its deposits as it
+  recovers its items (today they are re-deposited by hand: the new-save recovery
+  plan).
+  - *What the code does today.* A deposit is `ap_home_<slot>` = 1 in the save, one
+    key per monument slot (`CosmeticMonumentFillTracker`); `GetFilledMonumentCount`
+    counts those keys and feeds the deposit checks, the goal and the loose-gourd
+    reconciliation (`gourds received - deposited - spawned`). When a monument's
+    `PropHome` streams in, `TryRestoreHome` spawns a cosmetic gourd into every
+    slot whose key is set. A new save has no keys, so nothing is restored, and
+    the reconciliation spawns all the gourds loose at the hub.
+  - *Design.* Any gourd fits any slot (Option A), so only the NUMBER of deposits
+    has to travel. (1) The host writes it to `DataStorage` under the slot, key
+    `bigwalk_deposits`, with a `Max` operation: it can only go up, and a room is a
+    seed, so a new seed starts empty (which also answers part of U5). (2) At
+    connection it reads it; the missing amount, `stored - GetFilledMonumentCount`,
+    becomes a **budget**. (3) `TryRestoreHome` spends it: an empty monument slot
+    that streams in gets its `ap_home_` key set and a gourd pinned, the budget goes
+    down by one. The slots chosen are whichever load first, which Option A allows.
+    (4) The reconciliation counts `filled + remaining budget` as deposited, or it
+    would spawn those gourds loose too, the duplication bug
+    `GetFilledMonumentCount` was written to avoid. Co-op needs nothing: only the
+    host holds the save and talks to the server.
+  - *Why not read the checked `Gourd Deposit N` locations instead.* They are
+    milestones (every 5, or none with `gourd_slot_checks: off`), so the count
+    would be approximate or absent.
+  - *Size.* About 150 lines: a small `DataStorage` wrapper in `ApConnection`, the
+    budget in the tracker, one line in the reconciliation. No apworld change, no
+    protocol change.
+  - *Risks and what to check in game.* (a) The stored number must never exceed
+    the gourds received: it comes from this slot's own deposits, so it cannot.
+    (b) A slot that streams in late: the budget survives until it is spent, and a
+    session ending first keeps the keys already written. (c) A save that deposits
+    while the budget is pending: the count only goes up, so `Max` stays right.
+    (d) MultiClient 6.7.1's `DataStorage` API on a room with no storage yet.
+    Test: deposit N gourds, start a NEW save on the same slot, reconnect, and walk
+    to the monuments; N slots must be full and no extra gourd loose.
 - **U4 — To do.** A real in-world button for the gourd resync, instead of the
   Ctrl+R that only the host knows about.
 - **U5 — To do.** `ap_reported_*` is not scoped to a seed, so a save

@@ -56,6 +56,21 @@ namespace BigWalkArchipelago.Core
 
         private const string SaveKeyPrefix = "ap_home_";
 
+        // Deposits the server remembers that this save does not hold yet (a new
+        // save on a slot that had already filled monuments). Option A makes
+        // every slot and every gourd interchangeable, so only the number has
+        // to come back: each empty monument slot that streams in spends one
+        // (TryRestoreHome), whichever it is. Counted as deposited by the
+        // loose-gourd reconciliation (RemainingBudget) until it is spent.
+        private static int _budget;
+
+        internal static int RemainingBudget => _budget;
+
+        internal static void SetBudget(int budget)
+        {
+            _budget = Math.Max(0, budget);
+        }
+
         // Queue fed by PropHomeEnablePatch, as instances stream in (initial
         // load AND later streaming alike) — drained continuously in
         // Update() once the world is ready for effects, not in a single
@@ -137,7 +152,18 @@ namespace BigWalkArchipelago.Core
 
             var key = SaveKeyPrefix + home.saveableHomeName;
             if (SaveManager.GetIntValue(key, 0, false) == 0)
-                return false;
+            {
+                // An empty slot: this is where a deposit the server remembers
+                // comes back, if one is owed. The key is written first, so the
+                // count the rest of the mod reads is right at once.
+                if (_budget <= 0)
+                    return false;
+
+                SaveManager.SetIntValue(key, 1);
+                _budget--;
+                Plugin.Log.LogInfo(
+                    $"[{nameof(CosmeticMonumentFillTracker)}] {key} filled from the server's record; {_budget} left.");
+            }
 
             return ReceivedItemSpawner.SpawnCosmeticPickupPinnedTo(home) != null;
         }
