@@ -44,6 +44,34 @@ namespace BigWalkArchipelago.Core
             return true;
         }
 
+        // Forgets every check this save has reported. Called when the save is
+        // bound to a seed or slot other than the one it knew (ApItemCursor.SyncTo):
+        // what it reported belongs to that other room, and replaying it to this one
+        // would hand out checks nobody earned here. Never on a save's FIRST binding,
+        // where the reported set holds the checks made while offline, which the
+        // first connection must still send.
+        internal static int ClearReported()
+        {
+            var data = SaveManager.instance != null ? SaveManager.instance.currentData : null;
+            if (data == null || data.entries == null)
+                return 0;
+
+            // Collected first: writing a key changes the list being walked.
+            var keys = new List<string>();
+            var entries = data.entries;
+            for (var i = 0; i < entries.Count; i++)
+            {
+                var entry = entries[i];
+                if (entry.value != 0 && entry.key != null && entry.key.StartsWith(KeyPrefix, StringComparison.Ordinal))
+                    keys.Add(entry.key);
+            }
+
+            foreach (var key in keys)
+                SaveManager.SetIntValue(key, 0);
+
+            return keys.Count;
+        }
+
         // Every location this save has already reported, by the game's own
         // identifier (the same string TryMarkReported was given).
         //

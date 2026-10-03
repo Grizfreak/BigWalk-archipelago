@@ -50,6 +50,11 @@ namespace BigWalkArchipelago.Core.Net
                 Plugin.Log.LogWarning(
                     $"[{nameof(ApItemCursor)}] This save was bound to seed '{knownSeed}' / slot '{knownSlot}', "
                     + $"now connecting as seed '{seedName}' / slot '{slotName}'. Replaying every received item from scratch.");
+
+                // The checks it reported were for that other room: not to be sent to this one.
+                var forgotten = CheckTracker.ClearReported();
+                Plugin.Log.LogInfo(
+                    $"[{nameof(ApItemCursor)}] {forgotten} check(s) reported to the previous seed forgotten, not resent.");
             }
 
             SaveManager.SetStringValue(SeedKey, seedName ?? string.Empty);
