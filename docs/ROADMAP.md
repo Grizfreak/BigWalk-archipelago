@@ -259,9 +259,17 @@ and from what a whole seed will ask of players.
   the seed name the room sends.
 - **U6 — To do.** A PopTracker pack: the island's map with every location on
   it, items and doors. Universal Tracker already works without a YAML.
-- **U7 — Research.** The game has skip aids of its own (`SkipAidToggler`,
-  `SaveData.skipAidsActive`): find what they skip, and whether an option
-  turning them on from the start is worth it.
+- **U7 — Answered (2026-10-03).** The game's skip aids are the host's accessibility
+  setting "Sauter les défis: Avec / Sans" (`SaveData.skipAidsActive`, sent to guests
+  in the welcome message). With it on, 51 places (almost every puzzle, and each of
+  the Gauntlet's seven chambers) show a "Passer ce défi ?" panel with two buttons
+  held together. Measured: holding them sets the puzzle's `GourdValetNetworkObject`
+  and sends its check, as solving it does. No Archipelago option is needed: the
+  player picks it in the menu. A pole is no longer hidden with the "buttons" (their
+  names match some puzzles' buttons): it waits for the needs of ITS OWN puzzle, found
+  from the parts in the same folder, and shows when the logic counts on that puzzle
+  (`PuzzleNeedHider.BuildSkipNeeds`). A puzzle split over several folders may show its
+  pole early, never late. Debug: Keypad 6 switches the aids on in a running game.
 - **U8 — To do.** Joke filler items (player, 2026-09-26), the document's
   "misnamings of Gourds": Baby, Boid, Bouba, Boyo, Butternut Squash, Child,
   Doodad, Jelly Baby, Peanut, Peg and Head, Plumbus, Red Nub, Thing. No effect

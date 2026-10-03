@@ -55,6 +55,7 @@ namespace BigWalkArchipelago.Core
             "EndingGate", "BlackTower", "SecondGoodbye", "GoodbyeGate", "OverflowMonument",
             "HubGate", "Lookouts", "MusicGarden", "PeakMarker", "SouthPeak", "FireworksPlatform",
             "IntroPavilion", "SpawnCourtyard",
+            // The game's own skip aids are not excluded: see SkipAidNeed.
             // A radio station of the world, with its own button: the station
             // is a check that the logic asks nothing for, and two of them
             // stand inside puzzle folders (DoofChamber, MusicalHoliday).
@@ -67,10 +68,15 @@ namespace BigWalkArchipelago.Core
         // puzzle's, remembered in _inGauntlet, and hidden only while
         // GauntletStairways.ButtonsHidden is true. What a stage's parts are NOT:
         // the finale (`Level7`, whose buttons end the game and which the logic
-        // asks no part for), the entrance, the skip aids, the stairway buttons
+        // asks no part for), the entrance, the stairway buttons
         // (they have their own rule) and the cliff walls.
         private const string GauntletRoot = "SilentGauntlet";
-        private static readonly string[] GauntletSpared = { "SkipAid", "Entrance", "NHoldFullSet", "CliffBlockingWalls" };
+
+        // The pseudo-need the skip-aid poles are filed under. Not one of
+        // PuzzleNeeds': whether a pole is hidden is decided per pole, by the needs
+        // of its own puzzle.
+        private const string SkipAidNeed = "skip_aid";
+        private static readonly string[] GauntletSpared = { "Entrance", "NHoldFullSet", "CliffBlockingWalls" };
 
         private static bool IsGauntletStagePart(string path)
         {
@@ -137,6 +143,20 @@ namespace BigWalkArchipelago.Core
             new Rule { Need = PuzzleNeeds.GolfBall, Prefixes = new[] { "cannonballProp" } },
             new Rule { Need = PuzzleNeeds.TimedTomato, Prefixes = new[] { "Pomodoro" } },
 
+            // The game's skip aids, the two-button poles that offer "skip this
+            // challenge" when the host turned that accessibility setting on. Not a
+            // part of any puzzle, though their buttons are named like the buttons of
+            // some, so they are not hidden with a need of their own: each waits for
+            // the needs of ITS puzzle (_skipNeeds) and shows when all of them are
+            // in, which is when the logic counts on the puzzle. Skipping sends the
+            // puzzle's check like solving it. When the setting is off the game keeps
+            // them inactive and this never touches them. Exempt from Excluded, whose
+            // other zones have no parts and so no needs to wait for.
+            new Rule
+            {
+                Need = SkipAidNeed, Prefixes = new[] { "SkipAid" }, InPuzzlesOnly = false, IgnoreExclusions = true,
+            },
+
             // The Silent Gauntlet's stairway buttons, hold-together buttons of
             // every stage, which `gauntlet_mode: locked_stages` replaces with
             // an item each (GauntletStairways). The only thing in the Gauntlet
@@ -157,6 +177,10 @@ namespace BigWalkArchipelago.Core
         // collected with the others but only hidden while the slot locks the
         // stages and counts on their parts (`lock_gauntlet_needs`), in either mode.
         private readonly HashSet<int> _inGauntlet = new HashSet<int>();
+
+        // For each skip-aid pole (by instance id), the needs of the puzzle it
+        // belongs to: those of the parts found in the same puzzle folder.
+        private readonly Dictionary<int, string[]> _skipNeeds = new Dictionary<int, string[]>();
 
         // Objects the game replicates (a NetworkIdentity on them or below).
         // They are never switched off, only made invisible and untouchable
@@ -214,6 +238,7 @@ namespace BigWalkArchipelago.Core
                 _appliedVersion = -1;
                 _objects.Clear();
                 _inGauntlet.Clear();
+                _skipNeeds.Clear();
                 _networked.Clear();
                 _soft.Clear();
 
@@ -273,6 +298,7 @@ namespace BigWalkArchipelago.Core
         {
             _objects.Clear();
             _inGauntlet.Clear();
+            _skipNeeds.Clear();
             var found = new Dictionary<string, Dictionary<int, GameObject>>();
             foreach (var need in Rules.Select(r => r.Need).Concat(PanelNeeds))
                 found[need] = new Dictionary<int, GameObject>();
@@ -317,6 +343,7 @@ namespace BigWalkArchipelago.Core
             }
 
             CollectPanels(found, _inGauntlet);
+            BuildSkipNeeds(found);
 
             _networked.Clear();
             foreach (var group in found.Values)
@@ -343,6 +370,58 @@ namespace BigWalkArchipelago.Core
 
             Plugin.Log.LogInfo(
                 $"[{nameof(PuzzleNeedHider)}] Collected in {(Time.realtimeSinceStartup - started):F2}s from {candidates.Count} candidate(s).");
+        }
+
+        // Which needs each skip-aid pole waits for. A pole stands in the folder of its
+        // puzzle, so the needs are those of the parts collected under that folder.
+        // The folder is the parent of the nearest `Positioner` above the pole, or the
+        // chamber for the Gauntlet, whose one `Positioner` holds all seven stages. A
+        // puzzle split into several folders (the breadcrumb loop's stations) may
+        // leave a pole with fewer needs than the puzzle has: it then shows a little
+        // early, never late.
+        private void BuildSkipNeeds(Dictionary<string, Dictionary<int, GameObject>> found)
+        {
+            if (!found.TryGetValue(SkipAidNeed, out var poles) || poles.Count == 0)
+                return;
+
+            var parts = new List<(string Need, string Path)>();
+            foreach (var group in found)
+            {
+                if (group.Key == SkipAidNeed || group.Key == GauntletStairways.ButtonsNeed)
+                    continue;
+
+                foreach (var go in group.Value.Values)
+                    parts.Add((group.Key, PathOf(go.transform) + "/"));
+            }
+
+            var withNeeds = 0;
+            foreach (var pole in poles.Values)
+            {
+                var folder = PuzzleFolderOf(pole.transform);
+                var needs = parts.Where(p => p.Path.StartsWith(folder, StringComparison.Ordinal))
+                    .Select(p => p.Need).Distinct().ToArray();
+                _skipNeeds[pole.GetInstanceID()] = needs;
+                if (needs.Length > 0)
+                    withNeeds++;
+            }
+
+            Plugin.Log.LogInfo(
+                $"[{nameof(PuzzleNeedHider)}] Skip aids: {poles.Count} found, {withNeeds} wait for the parts of their puzzle.");
+        }
+
+        private static string PuzzleFolderOf(Transform pole)
+        {
+            for (var t = pole.parent; t != null; t = t.parent)
+            {
+                // A Gauntlet chamber is the child of its `Level<N>`.
+                if (t.parent != null && t.parent.name.StartsWith("Level", StringComparison.Ordinal))
+                    return PathOf(t) + "/";
+
+                if (t.name.IndexOf("ositioner", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return PathOf(t.parent != null ? t.parent : t) + "/";
+            }
+
+            return PathOf(pole.parent != null ? pole.parent : pole) + "/";
         }
 
         // What each Gauntlet stage is made of according to the game, one line a
@@ -529,6 +608,26 @@ namespace BigWalkArchipelago.Core
         private static bool IsLocked(string need) =>
             need == GauntletStairways.ButtonsNeed ? GauntletStairways.ButtonsHidden : PuzzleNeeds.IsLocked(need);
 
+        // Whether one object is hidden. A part follows its need, except in the
+        // Gauntlet, where it only does while the slot locks the stages' parts. A
+        // skip-aid pole follows the needs of its own puzzle: hidden while any is
+        // still locked, and under the same Gauntlet condition. The stairway buttons
+        // are the Gauntlet's own and follow the stages being locked, whatever is
+        // said of the parts.
+        private bool IsObjectLocked(string key, bool needLocked, int id, bool gauntletPartsLocked)
+        {
+            if (key == GauntletStairways.ButtonsNeed)
+                return GauntletStairways.ButtonsHidden;
+
+            if (_inGauntlet.Contains(id) && !gauntletPartsLocked)
+                return false;
+
+            if (key != SkipAidNeed)
+                return needLocked;
+
+            return _skipNeeds.TryGetValue(id, out var needs) && needs.Any(PuzzleNeeds.IsLocked);
+        }
+
         private void Apply()
         {
             var gauntletPartsLocked = GauntletStairways.PartsHidden;
@@ -548,7 +647,7 @@ namespace BigWalkArchipelago.Core
                     // A Gauntlet stage's part follows its need only while the
                     // slot locks the stages; otherwise the Gauntlet is as the
                     // game has it.
-                    locked = needLocked && (gauntletPartsLocked || !_inGauntlet.Contains(id));
+                    locked = IsObjectLocked(pair.Key, needLocked, id, gauntletPartsLocked);
                     if (locked)
                     {
                         if (networked)

@@ -35,6 +35,15 @@ unwinnable, which is why every player of a session should run the same build.
   whichever slots come first, instead of leaving them to be carried over by
   hand. If the server does not answer, nothing is restored and nothing breaks.
 
+### Fixed
+
+- A big key no longer flies out of its stone when its monument fills before its
+  item has arrived (the drawbridge's, then the others); it stays in place until
+  the item comes. Found in play, twice.
+- With `lock_puzzle_needs`, the "skip this challenge" panels (the game's own
+  accessibility setting) are no longer hidden with the buttons: each shows once the
+  parts of its own puzzle have arrived.
+
 ### Changed
 
 - The channel between the host and its guests is now version 3: everyone
