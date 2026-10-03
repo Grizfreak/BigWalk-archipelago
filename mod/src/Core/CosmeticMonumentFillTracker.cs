@@ -56,19 +56,58 @@ namespace BigWalkArchipelago.Core
 
         private const string SaveKeyPrefix = "ap_home_";
 
-        // Deposits the server remembers that this save does not hold yet (a new
-        // save on a slot that had already filled monuments). Option A makes
-        // every slot and every gourd interchangeable, so only the number has
-        // to come back: each empty monument slot that streams in spends one
-        // (TryRestoreHome), whichever it is. Counted as deposited by the
-        // loose-gourd reconciliation (RemainingBudget) until it is spent.
-        private static int _budget;
-
-        internal static int RemainingBudget => _budget;
-
-        internal static void SetBudget(int budget)
+        // Every monument slot of the world, by the name its save key is built from:
+        // the tutorial's four, the four towers' five each, the Black Tower's six and
+        // the Green Dome's fifteen, 45 in all (apworld `data.TOWERS`). In the order
+        // deposits come back in: the tutorial's monument, which every player has
+        // been to, then the towers' in the game's own order, the Green Dome last.
+        private static readonly (string Prefix, int Slots)[] MonumentSlots =
         {
-            _budget = Math.Max(0, budget);
+            ("monoumentIntro", 4),
+            ("monoument0", 5), ("monoument1", 5), ("monoument2", 5), ("monoument3", 5),
+            ("monoumentFinal", 6),
+            ("monoumentOverflow", 15),
+        };
+
+        // A new save on a slot that had already filled monuments: the server's
+        // record says how many, and Option A makes every slot and every gourd
+        // interchangeable, so only the number has to come back. The slots are
+        // marked filled in the save right away, in the order above, and the existing
+        // restore (TryRestoreHome) puts a gourd in each as its monument loads. Not
+        // left to whichever monument loads first: the tutorial's monument is not
+        // among the first, and the deposits ended up in the Green Dome's.
+        //
+        // Returns how many slots were marked, which is how many gourds the
+        // server's replay must not drop on the ground as well.
+        internal static int PutDepositsBack(int count)
+        {
+            var marked = 0;
+            foreach (var (prefix, slots) in MonumentSlots)
+            {
+                for (var slot = 0; slot < slots && marked < count; slot++)
+                {
+                    var key = $"{SaveKeyPrefix}{prefix}Slot{slot}";
+                    if (SaveManager.GetIntValue(key, 0, false) != 0)
+                        continue;
+
+                    SaveManager.SetIntValue(key, 1);
+                    marked++;
+                }
+            }
+
+            // The monuments already loaded have been through the restore check
+            // before these keys existed: look at them again.
+            var loaded = UnityEngine.Object.FindObjectsByType<PropHome>(FindObjectsSortMode.None);
+            if (loaded != null)
+            {
+                foreach (var home in loaded)
+                {
+                    if (ReceivedItemSpawner.IsMonumentHome(home))
+                        PendingRestoreCheck.Enqueue(home);
+                }
+            }
+
+            return marked;
         }
 
         // Queue fed by PropHomeEnablePatch, as instances stream in (initial
@@ -152,18 +191,7 @@ namespace BigWalkArchipelago.Core
 
             var key = SaveKeyPrefix + home.saveableHomeName;
             if (SaveManager.GetIntValue(key, 0, false) == 0)
-            {
-                // An empty slot: this is where a deposit the server remembers
-                // comes back, if one is owed. The key is written first, so the
-                // count the rest of the mod reads is right at once.
-                if (_budget <= 0)
-                    return false;
-
-                SaveManager.SetIntValue(key, 1);
-                _budget--;
-                Plugin.Log.LogInfo(
-                    $"[{nameof(CosmeticMonumentFillTracker)}] {key} filled from the server's record; {_budget} left.");
-            }
+                return false;
 
             return ReceivedItemSpawner.SpawnCosmeticPickupPinnedTo(home) != null;
         }

@@ -126,6 +126,12 @@ namespace BigWalkArchipelago.Core.Net
         // count that has not risen is not sent again on every poll tick.
         private static int _depositsOnServer;
 
+        // Gourds the server's replay is about to hand out that belong in the
+        // monuments instead: one is not dropped at the hub for each deposit still
+        // to be put back, or the player would hold them twice, once loose and once
+        // in a slot. Only the startup burst skips them (`_looseGourdsRestored`).
+        private static int _skipGourdSpawns;
+
         // Deposits counted on the last poll tick, kept because
         // CosmeticMonumentFillTracker.GetFilledMonumentCount scans every
         // entry in the save and three callers now want the number — the
@@ -563,6 +569,8 @@ namespace BigWalkArchipelago.Core.Net
             // mod uses. Items simply stay queued until then.
             if (WorldManager.isReadyForEffects)
             {
+                // Before the replay is applied, since it decides what the replay drops.
+                SetDepositBudgetOnce();
                 DrainIncomingItems();
 
                 // Every frame, because it paces itself: it drops one gourd
@@ -583,7 +591,7 @@ namespace BigWalkArchipelago.Core.Net
                 // Once per tick, for the three things that want it.
                 _depositCount = CosmeticMonumentFillTracker.GetFilledMonumentCount();
 
-                SetDepositBudgetOnce();
+                StoreDepositsIfRaised();
                 ReportDeposits();
 
                 // Both return immediately once nothing is pending, which is
@@ -762,7 +770,8 @@ namespace BigWalkArchipelago.Core.Net
             _depositCount = 0;
             _depositBudgetSet = false;
             _depositsOnServer = 0;
-            CosmeticMonumentFillTracker.SetBudget(0);
+            _skipGourdSpawns = 0;
+
             // Deliberately does NOT reset the loose-gourd state. That
             // describes the world — what is currently lying on the ground —
             // and a reconnection does not touch the world. Resetting it here
@@ -917,10 +926,7 @@ namespace BigWalkArchipelago.Core.Net
                 ApItemCursor.SetGourdsReceived(_gourdsSeenThisSession);
             }
 
-            // The deposits still to come back from the server's record count as
-            // deposited, or their gourds would be dropped loose as well.
-            var deposited = CosmeticMonumentFillTracker.GetFilledMonumentCount()
-                            + CosmeticMonumentFillTracker.RemainingBudget;
+            var deposited = CosmeticMonumentFillTracker.GetFilledMonumentCount();
             var owed = ApItemCursor.GourdsReceived - deposited - _gourdsSpawnedThisSession;
 
             if (!_reconciliationLogged)
@@ -1132,6 +1138,14 @@ namespace BigWalkArchipelago.Core.Net
         {
             var itemId = item.ItemId;
 
+            if (itemId == ApLocationIds.GourdItemId && !_looseGourdsRestored && _skipGourdSpawns > 0)
+            {
+                // This gourd is one of the deposits the server remembers: it goes
+                // back into a monument slot, not onto the ground.
+                _skipGourdSpawns--;
+                return true;
+            }
+
             if (itemId == ApLocationIds.GourdItemId)
                 // Into the hands only once the session has settled. The
                 // startup burst — everything the server replays on connect,
@@ -1204,19 +1218,25 @@ namespace BigWalkArchipelago.Core.Net
         // the server, which only ever raises it.
         private static void SetDepositBudgetOnce()
         {
-            if (Connection.Status != ApConnection.ConnectionStatus.Connected)
+            if (_depositBudgetSet || Connection.Status != ApConnection.ConnectionStatus.Connected)
                 return;
 
-            if (!_depositBudgetSet)
-            {
-                _depositBudgetSet = true;
-                var owed = Connection.StoredDeposits - _depositCount;
-                _depositsOnServer = Connection.StoredDeposits;
-                CosmeticMonumentFillTracker.SetBudget(owed);
-                Plugin.Log.LogInfo(
-                    $"[{nameof(ApRuntime)}] Deposits: the server remembers {Connection.StoredDeposits}, this save holds "
-                    + $"{_depositCount} -> {Math.Max(0, owed)} to put back as the monuments load.");
-            }
+            _depositBudgetSet = true;
+            var filled = CosmeticMonumentFillTracker.GetFilledMonumentCount();
+            var owed = Math.Max(0, Connection.StoredDeposits - filled);
+            _depositsOnServer = Connection.StoredDeposits;
+            _skipGourdSpawns = owed > 0 ? CosmeticMonumentFillTracker.PutDepositsBack(owed) : 0;
+            Plugin.Log.LogInfo(
+                $"[{nameof(ApRuntime)}] Deposits: the server remembers {Connection.StoredDeposits}, this save holds "
+                + $"{filled} -> {_skipGourdSpawns} slot(s) marked filled, their gourds come back as the monuments load.");
+        }
+
+        // The server keeps the largest count it was given, so only a count that
+        // has risen is worth sending.
+        private static void StoreDepositsIfRaised()
+        {
+            if (Connection.Status != ApConnection.ConnectionStatus.Connected)
+                return;
 
             if (_depositCount > _depositsOnServer)
             {
