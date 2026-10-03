@@ -105,7 +105,7 @@ namespace BigWalkArchipelago.Core
             internal string Need;
             internal string[] Prefixes;
             internal bool InPuzzlesOnly = true;
-            internal string PathMustContain;
+            internal string[] PathMustContainOneOf;
             internal bool IgnoreExclusions;
         }
 
@@ -130,7 +130,9 @@ namespace BigWalkArchipelago.Core
             new Rule { Need = PuzzleNeeds.Counter, Prefixes = new[] { "counter" } },
             new Rule { Need = PuzzleNeeds.CoordinatesComputer, Prefixes = new[] { "CoordinateTrackerProp" } },
             new Rule { Need = PuzzleNeeds.Eggs, Prefixes = new[] { "PegTileRoundProp" } },
-            new Rule { Need = PuzzleNeeds.InkViewer, Prefixes = new[] { "FixedTelescope" }, PathMustContain = "InvisibleInk" },
+            new Rule { Need = PuzzleNeeds.InkViewer, Prefixes = new[] { "FixedTelescope" },
+                // The open-world puzzle, and the Gauntlet's own sixth stage.
+                PathMustContainOneOf = new[] { "InvisibleInk", "GauntletChamberInvisi" } },
             new Rule { Need = PuzzleNeeds.BigHead, Prefixes = new[] { "BlindfoldProp" } },
             new Rule { Need = PuzzleNeeds.GolfBall, Prefixes = new[] { "cannonballProp" } },
             new Rule { Need = PuzzleNeeds.TimedTomato, Prefixes = new[] { "Pomodoro" } },
@@ -144,7 +146,7 @@ namespace BigWalkArchipelago.Core
             new Rule
             {
                 Need = GauntletStairways.ButtonsNeed, Prefixes = new[] { "NHoldFullSet" }, InPuzzlesOnly = false,
-                PathMustContain = "GourdTower_Stairs", IgnoreExclusions = true,
+                PathMustContainOneOf = new[] { "GourdTower_Stairs" }, IgnoreExclusions = true,
             },
         };
 
@@ -465,7 +467,7 @@ namespace BigWalkArchipelago.Core
                 return false;
             if (rule.InPuzzlesOnly && !path.StartsWith(PuzzleRoot, StringComparison.Ordinal))
                 return false;
-            return rule.PathMustContain == null || path.Contains(rule.PathMustContain);
+            return rule.PathMustContainOneOf == null || rule.PathMustContainOneOf.Any(path.Contains);
         }
 
         // A "(sending)" radio or intercom is paired with a "(listening)" one
