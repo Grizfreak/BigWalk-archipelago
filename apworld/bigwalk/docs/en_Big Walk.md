@@ -85,6 +85,12 @@ seven.
   or at once if it already was. Turn it off and the item opens the wall too: you
   can do the puzzles in any order, or none, and walk straight to the top with the
   seven items. The puzzles stay checks.
+- `lock_gauntlet_needs` (on by default, in `vanilla` too): with `lock_puzzle_needs`
+  on as well, the parts inside the Gauntlet's stages (their buttons, panels and so
+  on) are items as everywhere else, and the Big Goodbye goal asks for them, since
+  finishing the Gauntlet means solving its stages. With `locked_stages` the stages'
+  checks ask for them too. Turn it off to leave the Gauntlet's parts on the map and
+  ask for none.
 - `gauntlet_stages_local` (on by default): the seven items stay in your own
   world, so a stage is never held up by another game's item.
 

@@ -82,6 +82,8 @@ namespace BigWalkArchipelago.Core
         internal const string ButtonsNeed = "gauntlet_stairs";
 
         private static bool _mirrored;
+        private static bool _partsLocked;
+        private static bool _partsMirrored;
 
         // False until slot_data has said so: nothing is held on the strength
         // of a list that has not arrived, and a guest never holds anything.
@@ -91,9 +93,17 @@ namespace BigWalkArchipelago.Core
         // host from slot_data, on a guest because its host said so.
         internal static bool ButtonsHidden => Enabled || _mirrored;
 
-        // Guest: the host's snapshot says whether the stages are locked.
-        internal static void ApplyFromHost(bool lockedStages)
+        // The parts of the stages' puzzles are hidden until their item arrives
+        // (PuzzleNeedHider) wherever the slot counts on them, in either Gauntlet
+        // mode (`lock_gauntlet_needs`).
+        internal static bool PartsHidden => _partsLocked || _partsMirrored;
+
+        // Guest: the host's snapshot says whether the stages, and their parts,
+        // are locked.
+        internal static void ApplyFromHost(bool lockedStages, bool partsLocked)
         {
+            _partsMirrored = partsLocked;
+
             if (!lockedStages && !_mirrored)
                 return;
 
@@ -104,6 +114,7 @@ namespace BigWalkArchipelago.Core
         internal static void ForgetMirror()
         {
             _mirrored = false;
+            _partsMirrored = false;
         }
 
         internal static bool IsChamber(SavableSystem system)
@@ -111,10 +122,11 @@ namespace BigWalkArchipelago.Core
             return Array.IndexOf(Chambers, system) >= 0;
         }
 
-        internal static void Configure(bool lockedStages, bool puzzlesRequired)
+        internal static void Configure(bool lockedStages, bool puzzlesRequired, bool partsLocked)
         {
             Enabled = lockedStages;
             _puzzlesRequired = puzzlesRequired;
+            _partsLocked = partsLocked;
             Plugin.Log.LogInfo(
                 $"[{nameof(GauntletStairways)}] "
                 + (Enabled
@@ -141,6 +153,7 @@ namespace BigWalkArchipelago.Core
         internal static void Forget()
         {
             Enabled = false;
+            _partsLocked = false;
             ForgetGates();
         }
 

@@ -61,6 +61,43 @@ namespace BigWalkArchipelago.Core
             "BroadcastStation",
         };
 
+        // The Silent Gauntlet is left alone, except for the parts of its seven
+        // stages when `lock_gauntlet_needs` says the logic counts on them
+        // (apworld `GAUNTLET_STAGE_TAGS`). Those are collected like any
+        // puzzle's, remembered in _inGauntlet, and hidden only while
+        // GauntletStairways.ButtonsHidden is true. What a stage's parts are NOT:
+        // the finale (`Level7`, whose buttons end the game and which the logic
+        // asks no part for), the entrance, the skip aids, the stairway buttons
+        // (they have their own rule) and the cliff walls.
+        private const string GauntletRoot = "SilentGauntlet";
+        private static readonly string[] GauntletSpared = { "SkipAid", "Entrance", "NHoldFullSet", "CliffBlockingWalls" };
+
+        private static bool IsGauntletStagePart(string path)
+        {
+            if (!path.Contains(GauntletRoot) || path.Contains("/Level7") || GauntletSpared.Any(s => path.Contains(s)))
+                return false;
+
+            return Enumerable.Range(0, 7).Any(level => path.Contains($"/Level{level}/"));
+        }
+
+        // Whether a path is out of this hider's reach. "Gauntlet" is the one
+        // entry that gives way, to the stages' own parts.
+        private static bool IsExcluded(string path)
+        {
+            foreach (var excluded in Excluded)
+            {
+                if (!path.Contains(excluded))
+                    continue;
+
+                if (excluded == "Gauntlet" && IsGauntletStagePart(path))
+                    continue;
+
+                return true;
+            }
+
+            return false;
+        }
+
         // One rule per need: the name a prefab root starts with, and where it
         // may sit. The highest ancestor whose name matches is hidden.
         private sealed class Rule
@@ -113,6 +150,11 @@ namespace BigWalkArchipelago.Core
 
         private readonly Dictionary<string, List<GameObject>> _objects = new Dictionary<string, List<GameObject>>();
         private readonly HashSet<int> _hiddenByUs = new HashSet<int>();
+
+        // Instance ids of the objects that belong to a Gauntlet stage. They are
+        // collected with the others but only hidden while the slot locks the
+        // stages and counts on their parts (`lock_gauntlet_needs`), in either mode.
+        private readonly HashSet<int> _inGauntlet = new HashSet<int>();
 
         // Objects the game replicates (a NetworkIdentity on them or below).
         // They are never switched off, only made invisible and untouchable
@@ -169,6 +211,7 @@ namespace BigWalkArchipelago.Core
                 _collected = false;
                 _appliedVersion = -1;
                 _objects.Clear();
+                _inGauntlet.Clear();
                 _networked.Clear();
                 _soft.Clear();
 
@@ -227,6 +270,7 @@ namespace BigWalkArchipelago.Core
         private void Collect()
         {
             _objects.Clear();
+            _inGauntlet.Clear();
             var found = new Dictionary<string, Dictionary<int, GameObject>>();
             foreach (var need in Rules.Select(r => r.Need).Concat(PanelNeeds))
                 found[need] = new Dictionary<int, GameObject>();
@@ -262,12 +306,15 @@ namespace BigWalkArchipelago.Core
                         continue;
 
                     found[rule.Need][top.gameObject.GetInstanceID()] = top.gameObject;
+                    if (path.Contains(GauntletRoot))
+                        _inGauntlet.Add(top.gameObject.GetInstanceID());
+
                     foreach (var extra in ListeningPartner(top))
                         found[rule.Need][extra.gameObject.GetInstanceID()] = extra.gameObject;
                 }
             }
 
-            CollectPanels(found);
+            CollectPanels(found, _inGauntlet);
 
             _networked.Clear();
             foreach (var group in found.Values)
@@ -290,8 +337,42 @@ namespace BigWalkArchipelago.Core
                     $"[{nameof(PuzzleNeedHider)}] {need}: {objects.Count} object(s), {replicated} replicated - {string.Join(", ", kinds)}");
             }
 
+            LogGauntletParts(found);
+
             Plugin.Log.LogInfo(
                 $"[{nameof(PuzzleNeedHider)}] Collected in {(Time.realtimeSinceStartup - started):F2}s from {candidates.Count} candidate(s).");
+        }
+
+        // What each Gauntlet stage is made of according to the game, one line a
+        // stage, so that it can be set against the apworld's GAUNTLET_STAGE_TAGS:
+        // the logic and what is hidden must name the same parts, or a stage
+        // would need an item its checks never asked for.
+        private void LogGauntletParts(Dictionary<string, Dictionary<int, GameObject>> found)
+        {
+            var perStage = new SortedDictionary<int, SortedDictionary<string, int>>();
+            foreach (var group in found)
+            {
+                foreach (var go in group.Value.Values)
+                {
+                    if (go == null || !_inGauntlet.Contains(go.GetInstanceID()))
+                        continue;
+
+                    var path = PathOf(go.transform);
+                    var at = path.IndexOf("/Level", StringComparison.Ordinal);
+                    if (at < 0 || at + 7 > path.Length || !int.TryParse(path.Substring(at + 6, 1), out var level))
+                        continue;
+
+                    if (!perStage.TryGetValue(level, out var needs))
+                        perStage[level] = needs = new SortedDictionary<string, int>(StringComparer.Ordinal);
+
+                    needs[group.Key] = needs.TryGetValue(group.Key, out var count) ? count + 1 : 1;
+                }
+            }
+
+            foreach (var stage in perStage)
+                Plugin.Log.LogInfo(
+                    $"[{nameof(PuzzleNeedHider)}] Gauntlet stage {stage.Key + 1} (Level{stage.Key}) parts: "
+                    + string.Join(", ", stage.Value.Select(n => $"{n.Key} x{n.Value}")));
         }
 
         private static readonly string[] PanelNeeds =
@@ -306,7 +387,7 @@ namespace BigWalkArchipelago.Core
         // drawings, PegTileB points), except the speaker tiles, which are
         // set A like the icons and are told apart by the rack they sit in.
         // The eggs (PegTileRound) and the blank tiles belong to no panel need.
-        private static void CollectPanels(Dictionary<string, Dictionary<int, GameObject>> found)
+        private static void CollectPanels(Dictionary<string, Dictionary<int, GameObject>> found, HashSet<int> gauntletIds)
         {
             var renderers = FindObjectsByType<PegTileRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             if (renderers == null)
@@ -318,12 +399,16 @@ namespace BigWalkArchipelago.Core
                     continue;
 
                 var path = PathOf(renderer.transform);
-                if (!path.StartsWith(PuzzleRoot, StringComparison.Ordinal) || Excluded.Any(e => path.Contains(e)))
+                if (!path.StartsWith(PuzzleRoot, StringComparison.Ordinal) || IsExcluded(path))
                     continue;
 
                 var need = PanelNeed(renderer.propGroup.ToString(), path);
-                if (need != null)
-                    found[need][renderer.gameObject.GetInstanceID()] = renderer.gameObject;
+                if (need == null)
+                    continue;
+
+                found[need][renderer.gameObject.GetInstanceID()] = renderer.gameObject;
+                if (path.Contains(GauntletRoot))
+                    gauntletIds.Add(renderer.gameObject.GetInstanceID());
             }
         }
 
@@ -376,7 +461,7 @@ namespace BigWalkArchipelago.Core
 
         private static bool Allowed(Rule rule, string path)
         {
-            if (!rule.IgnoreExclusions && Excluded.Any(e => path.Contains(e)))
+            if (!rule.IgnoreExclusions && IsExcluded(path))
                 return false;
             if (rule.InPuzzlesOnly && !path.StartsWith(PuzzleRoot, StringComparison.Ordinal))
                 return false;
@@ -444,9 +529,11 @@ namespace BigWalkArchipelago.Core
 
         private void Apply()
         {
+            var gauntletPartsLocked = GauntletStairways.PartsHidden;
             foreach (var pair in _objects)
             {
-                var locked = IsLocked(pair.Key);
+                var needLocked = IsLocked(pair.Key);
+                var locked = needLocked;
                 var changed = 0;
                 foreach (var go in pair.Value)
                 {
@@ -455,6 +542,11 @@ namespace BigWalkArchipelago.Core
 
                     var id = go.GetInstanceID();
                     var networked = _networked.Contains(id);
+
+                    // A Gauntlet stage's part follows its need only while the
+                    // slot locks the stages; otherwise the Gauntlet is as the
+                    // game has it.
+                    locked = needLocked && (gauntletPartsLocked || !_inGauntlet.Contains(id));
                     if (locked)
                     {
                         if (networked)
@@ -482,7 +574,7 @@ namespace BigWalkArchipelago.Core
 
                 if (changed > 0)
                     Plugin.Log.LogInfo(
-                        $"[{nameof(PuzzleNeedHider)}] {Stamp()} {pair.Key}: {(locked ? "hid" : "showed")} {changed} of {pair.Value.Count}.");
+                        $"[{nameof(PuzzleNeedHider)}] {Stamp()} {pair.Key}: {(needLocked ? "hid" : "showed")} {changed} of {pair.Value.Count}.");
             }
         }
 

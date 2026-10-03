@@ -218,3 +218,73 @@ class TestAnotherGoalStillGetsTheStages(BigWalkTestBase):
     def test_the_goal_does_not_ask_for_them(self) -> None:
         self.collect_gourds(self.world.deposit_goal)
         self.assertTrue(self.can_reach_location(locations.VICTORY_EVENT_NAME))
+
+
+class TestGauntletPartsKeptOnTheMap(BigWalkTestBase):
+    """`lock_gauntlet_needs` off: a stage asks for no part, though puzzle needs are locked elsewhere."""
+
+    options = {"gauntlet_mode": "locked_stages", "lock_puzzle_needs": True, "lock_gauntlet_needs": False}
+    run_default_tests = False
+
+    def test_the_slot_says_so(self) -> None:
+        self.assertIs(self.world.fill_slot_data()["lock_gauntlet_needs"], False)
+
+    def test_a_stage_needs_only_the_stairways_below_it(self) -> None:
+        last = data.GAUNTLET_STAGES[-1]
+        self.collect_by_name(data.BLACK_MONOLITH.item_name)
+        self.collect_by_name(sorted(stage.item_name for stage in data.GAUNTLET_STAGES[:-1]))
+        self.assertTrue(self.can_reach_location(last.location_name))
+
+    def test_the_goal_asks_for_the_stairways_only(self) -> None:
+        self.collect_by_name(data.BLACK_MONOLITH.item_name)
+        self.collect_by_name(sorted(STAGE_ITEMS))
+        self.assertTrue(self.can_reach_location(locations.VICTORY_EVENT_NAME))
+
+
+class TestGauntletPartsAreItemsByDefault(BigWalkTestBase):
+    """With locked stages and puzzle needs, the Big Goodbye goal forces the parts by default."""
+
+    options = {"gauntlet_mode": "locked_stages", "lock_puzzle_needs": True}
+    run_default_tests = False
+
+    def test_the_slot_says_so(self) -> None:
+        self.assertIs(self.world.fill_slot_data()["lock_gauntlet_needs"], True)
+
+    def test_the_goal_is_shut_without_the_parts(self) -> None:
+        self.collect_by_name(data.BLACK_MONOLITH.item_name)
+        self.collect_by_name(sorted(STAGE_ITEMS))
+        wanted = sorted(need.item_name for need in data.gauntlet_needs_through(data.GAUNTLET_STAGES[-1]))
+        self.assertTrue(wanted)
+        self.collect_all_but(wanted)
+        self.assertFalse(self.can_reach_location(locations.VICTORY_EVENT_NAME))
+
+
+class TestVanillaWithPuzzleNeeds(BigWalkTestBase):
+    """In `vanilla` the Big Goodbye goal still asks for the Gauntlet's parts, the game's own stages being solved."""
+
+    options = {"lock_puzzle_needs": True}
+    run_default_tests = False
+
+    def test_no_stage_location_or_item(self) -> None:
+        self.assertFalse(player_locations(self) & STAGE_LOCATIONS)
+        self.assertFalse(set(pool_names(self)) & STAGE_ITEMS)
+
+    def test_the_goal_is_shut_without_the_parts(self) -> None:
+        self.collect_by_name(data.BLACK_MONOLITH.item_name)
+        wanted = sorted(need.item_name for need in data.gauntlet_needs_through(data.GAUNTLET_STAGES[-1]))
+        self.assertTrue(wanted)
+        self.collect_all_but(wanted)
+        self.assertFalse(self.can_reach_location(locations.VICTORY_EVENT_NAME))
+        self.collect_by_name(wanted)
+        self.assertTrue(self.can_reach_location(locations.VICTORY_EVENT_NAME))
+
+
+class TestVanillaWithoutGauntletParts(BigWalkTestBase):
+    """`lock_gauntlet_needs` off in `vanilla`: the goal asks nothing of the Gauntlet's parts."""
+
+    options = {"lock_puzzle_needs": True, "lock_gauntlet_needs": False}
+    run_default_tests = False
+
+    def test_the_goal_asks_only_for_the_chapel(self) -> None:
+        self.collect_by_name(data.BLACK_MONOLITH.item_name)
+        self.assertTrue(self.can_reach_location(locations.VICTORY_EVENT_NAME))

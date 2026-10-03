@@ -64,6 +64,10 @@ namespace BigWalkArchipelago.Core.Net
 
         // TRUE by default: the puzzle opens its wall as the game has it.
         internal bool GauntletPuzzlesRequired { get; private set; } = true;
+
+        // FALSE by default, like every field that hides something: an apworld
+        // that does not send it does not count on the Gauntlet's parts.
+        internal bool LockGauntletNeeds { get; private set; }
         internal long GauntletIdOffset { get; private set; } = ApLocationIds.DefaultGauntletOffset;
 
         // FALSE and empty by default, like the others that take something
@@ -97,6 +101,7 @@ namespace BigWalkArchipelago.Core.Net
             data.PuzzleNeedKeys = GetStringArray(raw, "puzzle_need_keys");
             data.GauntletMode = GetString(raw, "gauntlet_mode", data.GauntletMode);
             data.GauntletPuzzlesRequired = GetBool(raw, "gauntlet_puzzles_required", data.GauntletPuzzlesRequired);
+            data.LockGauntletNeeds = GetBool(raw, "lock_gauntlet_needs", data.LockGauntletNeeds);
 
             data.LocationIdBase = GetInt(raw, "location_id_base", (int)data.LocationIdBase);
             data.RadioIdOffset = GetInt(raw, "radio_id_offset", (int)data.RadioIdOffset);

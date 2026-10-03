@@ -705,9 +705,10 @@ see, and use, everything.
 - **Co-op:** the host's snapshot (`ModChannel`, protocol v2) carries whether the
   option is on and the list of needs still locked; a guest adopts it and hides
   its own copies.
-- **Left alone on purpose:** the Silent Gauntlet (its needs are in the logic only with
-  `gauntlet_mode: locked_stages`, section 14, and the mod does not hide them yet),
-  door handles (`BasicKnob`), and the train's own controls.
+- **Left alone on purpose:** the Silent Gauntlet, except for its seven stages' own
+  parts when `gauntlet_mode` is `locked_stages` (section 14: the logic counts on them
+  then, and only then), the finale, the entrance and the skip aids stay as the game
+  has them, door handles (`BasicKnob`), and the train's own controls.
 
 
 ## 14. The Silent Gauntlet (`gauntlet_mode`)
@@ -746,5 +747,12 @@ asks a puzzle only for its own parts and the goal for the seven stairways alone.
 The logic: stage k's check needs the k-1 stairway items before it (and, with
 `lock_puzzle_needs`, what the puzzles of stages 1..k are built from); the
 `big_goodbye` goal needs all seven. `gauntlet_stages_local` keeps the items in
-the player's own world and is not in slot_data. The mod does not yet hide the
-Gauntlet's puzzle parts (section 13 leaves it alone).
+the player's own world and is not in slot_data. `lock_gauntlet_needs` (bool, false
+when absent, on by default in the YAML) says whether the logic counts on the parts
+of the seven stages' puzzles: with it, and `lock_puzzle_needs`, the mod hides them
+until their item arrives, in either `gauntlet_mode` (`PuzzleNeedHider`: the finale
+`Level7`, the entrance, the skip aids and the stairway buttons are not among them),
+and the host tells its guests (`ModChannel`). The `big_goodbye` goal asks for those
+parts whatever the mode, since the game's own stages have to be solved to finish it;
+only `locked_stages` also asks them of the stages' checks. The mod logs what each stage is made of, one line a
+stage, to be set against `GAUNTLET_STAGE_TAGS`.

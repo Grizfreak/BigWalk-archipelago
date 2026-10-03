@@ -22,8 +22,11 @@ unwinnable, which is why every player of a session should run the same build.
     any order, or skipped; they stay checks.
   - `gauntlet_stages_local` (on by default): keeps the seven items in your own
     world.
-  - With `lock_puzzle_needs`, a stage's check also needs the parts its puzzle
-    is built from. The mod does not hide those parts in the Gauntlet yet.
+  - `lock_gauntlet_needs` (on by default, in `vanilla` too): with
+    `lock_puzzle_needs`, the `big_goodbye` goal, and with `locked_stages` each
+    stage's check, also need the parts its puzzle
+    is built from, and the mod hides those parts in the seven stages until
+    their item arrives. The finale and the entrance are left alone.
 - **`hint_keys: from_start`**: the seven big keys are hinted from the first
   minute.
 - **A new save gets its deposits back.** The number of gourds placed in the

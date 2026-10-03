@@ -24,6 +24,7 @@ TRACKER_OPTIONS = {
     "start_with_arch_doors_open": "start_with_arch_doors_open",
     "gauntlet_mode": "gauntlet_mode",
     "gauntlet_puzzles_required": "gauntlet_puzzles_required",
+    "lock_gauntlet_needs": "lock_gauntlet_needs",
     "lock_puzzle_needs": "lock_puzzle_needs",
     "start_with_puzzle_needs": "start_with_puzzle_needs",
     "start_with_random_puzzle_need": "start_with_random_puzzle_need",
@@ -322,6 +323,7 @@ class BigWalkWorld(World):
             # `gauntlet_stage_systems` is in the order of the stage items.
             "gauntlet_mode": self.options.gauntlet_mode.current_key,
             "gauntlet_puzzles_required": bool(self.options.gauntlet_puzzles_required),
+            "lock_gauntlet_needs": bool(self.options.lock_gauntlet_needs),
             "gauntlet_stage_systems": [stage.system_name for stage in data.GAUNTLET_STAGES],
             "gauntlet_id_offset": data.GAUNTLET_ID_OFFSET,
 

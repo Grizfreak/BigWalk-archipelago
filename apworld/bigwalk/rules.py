@@ -102,6 +102,11 @@ def set_puzzle_rules(world: BigWalkWorld) -> None:
             world.set_rule(world.get_location(puzzle.location_name), HasAll(*required))
 
 
+def gauntlet_parts_are_items(world: BigWalkWorld) -> bool:
+    """Whether the Gauntlet's stages ask for the parts their puzzles are built from."""
+    return bool(world.options.lock_puzzle_needs and world.options.lock_gauntlet_needs)
+
+
 def set_gauntlet_rules(world: BigWalkWorld) -> None:
     """
     With `locked_stages`, stage k's puzzle is only reachable through the
@@ -116,7 +121,7 @@ def set_gauntlet_rules(world: BigWalkWorld) -> None:
 
     for stage in data.GAUNTLET_STAGES:
         required = [before.item_name for before in data.GAUNTLET_STAGES[:stage.index]]
-        if world.options.lock_puzzle_needs:
+        if gauntlet_parts_are_items(world):
             needs = (data.gauntlet_needs_through(stage) if world.options.gauntlet_puzzles_required
                      else data.gauntlet_needs_of(stage))
             required += [need.item_name for need in needs]
@@ -179,12 +184,17 @@ def set_completion_rule(world: BigWalkWorld) -> None:
     # were never found written anywhere), so the logic cannot and does not
     # model them. `big_game` asks for nothing beyond the door for the
     # same kind of reason — see locations.create_victory_event.
-    # Only the goal that is the Gauntlet asks for its stages, and only when
-    # they are items: leaving it needs every stairway.
-    if world.options.goal == Goal.option_big_goodbye and world.options.gauntlet_mode == GauntletMode.option_locked_stages:
-        required = [stage.item_name for stage in data.GAUNTLET_STAGES]
-        if world.options.lock_puzzle_needs and world.options.gauntlet_puzzles_required:
+    # Only the goal that is the Gauntlet asks for anything of it. Leaving it takes
+    # every stairway when they are items, and every part its puzzles are built
+    # from when those are items: in `vanilla` the stages are solved in the game's
+    # own way, so all of them are, and with locked stages only when the puzzles
+    # are required.
+    if world.options.goal == Goal.option_big_goodbye:
+        locked = world.options.gauntlet_mode == GauntletMode.option_locked_stages
+        required = [stage.item_name for stage in data.GAUNTLET_STAGES] if locked else []
+        if gauntlet_parts_are_items(world) and (not locked or world.options.gauntlet_puzzles_required):
             required += [need.item_name for need in data.gauntlet_needs_through(data.GAUNTLET_STAGES[-1])]
-        world.set_rule(world.get_location(locations.VICTORY_EVENT_NAME), HasAll(*required))
+        if required:
+            world.set_rule(world.get_location(locations.VICTORY_EVENT_NAME), HasAll(*required))
 
     world.set_completion_rule(Has(locations.VICTORY_EVENT_NAME))

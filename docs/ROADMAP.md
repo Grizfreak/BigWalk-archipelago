@@ -47,7 +47,7 @@ Agreed on 2026-10-02. An item that is not named here is parked until after 0.1.8
 
 | Version | The core | Rides along (why) | To settle first |
 |---|---|---|---|
-| **0.1.3** | The Silent Gauntlet as real checks and locations, with items that open the floors (S5 and the seven stages; their needs are already in `data.GAUNTLET_STAGE_TAGS`). *Done 2026-10-03, tested solo: `gauntlet_mode`, `gauntlet_puzzles_required`, `gauntlet_stages_local`. A stage's check is the `GauntletChamberN` write, a stairway is `GourdTower_Gate All Hold`. Left: the co-op guest, a save reload, the Gauntlet's puzzle parts in `PuzzleNeedHider`.* | S6 the other saved switches, U7 the game's skip aids (they sit near the Gauntlet): same family, *what does the game save*. U1 hints for keys from the start, L7 `require_arch_doors`: apworld only, no risk. U3 a new save gets its deposits back: felt on every seed. | How a stage is detected: settled, `GauntletChamber0..6` are written when a puzzle is solved (2026-10-03). The option from the document that decouples opening a door from clearing the stage: `gauntlet_puzzles_required`. `PuzzleNeedHider` stops leaving the Gauntlet alone once its stages are in the logic. Testing: the debug keys (Keypad 4, End) fake the held buttons; only the synchronized buttons (stage 4) and the timed tomato (stage 3) need real timing. |
+| **0.1.3** | The Silent Gauntlet as real checks and locations, with items that open the floors (S5 and the seven stages; their needs are already in `data.GAUNTLET_STAGE_TAGS`). *Done 2026-10-03, tested solo: `gauntlet_mode`, `gauntlet_puzzles_required`, `gauntlet_stages_local`. A stage's check is the `GauntletChamberN` write, a stairway is `GourdTower_Gate All Hold`. Co-op, reload and `vanilla` tested; the Gauntlet's puzzle parts are hidden by `PuzzleNeedHider` under `locked_stages` and still to check in game against `GAUNTLET_STAGE_TAGS` (the stage lines of the log).* | U7 the game's skip aids (debug key Keypad 6 to see what they do, still to check). U1 hints for keys from the start, L7 `require_arch_doors`: apworld only, no risk. U3 a new save gets its deposits back: felt on every seed. | How a stage is detected: settled, `GauntletChamber0..6` are written when a puzzle is solved (2026-10-03). The option from the document that decouples opening a door from clearing the stage: `gauntlet_puzzles_required`. `PuzzleNeedHider` stops leaving the Gauntlet alone once its stages are in the logic. Testing: the debug keys (Keypad 4, End) fake the held buttons; only the synchronized buttons (stage 4) and the timed tomato (stage 3) need real timing. |
 | **0.1.4** | Traps (T1 to T5, R9) | U8 joke filler (same pool as the traps), C1 a palette per seed and C2 colours for keys and buoys (T5's colour chaos is a colour trap) | The trap item exists (`Untied Shoelace`, hidden `trap_fill_percentage`) with no effect. An effect is local to each machine, like the hider. Whether to receive DeathLinks too (sending is on Ctrl+P). |
 | **0.1.5** | Objectives to spice up a run (G1 to G6, G5 first) | H1 to H3 hints and S8 a check per tower reached (one trigger, "tower reached"), U9 the names players use for the towers | G5 lists what a seed asks for, the way `start_with_arch_doors_open` lists doors. |
 | **0.1.6** | Locking the players' ways to communicate: R3 `lock_abilities` (body) and R2 `lock_pickups` (megaphone, walkie-talkie, radio) | R9's "No Comms" is the trap sibling | Input is Rewired and blocked locally, which every player can do. R2 refuses a pick-up on the host (`UserCode_CmdPickUp`). |
@@ -389,7 +389,13 @@ The mod suppresses each of these; an option turns the suppression off.
   would leave them to their buttons. To measure first: where each button is,
   and whether the start zone can still be left (the reason the mod opens the
   First one: regions.py, "the way out of the starting zone").
-- **L7 — Decision, then measure.** `require_arch_doors`: today only the First
+- **L7 — Wanted (player, 2026-10-03), waiting for the player's answer.** Putting
+  the far doors in logic spares the walk back when a shortcut's item arrives late.
+  Plan: `require_arch_doors`, off by default, starting with whole towers (their
+  deposits, cuts and keys) and leaving puzzles and stations for a later measure; a
+  short list never makes a seed harder than needed. *Asked of the player, to be
+  reminded of: which towers lie past the Left door (towards Sports Creek) and
+  past the Right door (the tunnel).* Earlier note: `require_arch_doors`: today only the First
   Arch Door gates logic, Left and Right are shortcuts, so a seed may send a
   player the long way round. `true` puts the places past each far door behind
   that door in logic — which needs those places listed: which puzzles, keys
@@ -435,7 +441,11 @@ The mod suppresses each of these; an option turns the suppression off.
   already detected for the goals; when they are not the goal they could be
   checks. Same for the 46th `RewardGourd` of the secret ending. On a seed that
   goals on one of them, it stays the goal event, not a check.
-- **S6 — Research.** `BlackTowerInteriorDoor` (26), `PoetAndPriestDoors` (60),
+- **S6 — Moved out of 0.1.3 (2026-10-03), with the doors and towers.** Probably
+  doors that open once, so items for R1b and the arch doors rather than checks (the
+  player does not want an opening as a location). To settle by playing the three
+  places with the `[SystemWrites]` log, which named the lookout lights in a minute.
+  `BlackTowerInteriorDoor` (26), `PoetAndPriestDoors` (60),
   `PoetAndPontiffDoors` (61): saved switches, the last two next to known
   puzzles (`gourdPoetAndPreist`, `gourdPoetAndPontiff`). Find what each one is
   before deciding whether it is a check.

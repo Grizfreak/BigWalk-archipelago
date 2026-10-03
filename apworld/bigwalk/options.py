@@ -298,6 +298,21 @@ class GauntletPuzzlesRequired(DefaultOnToggle):
     display_name = "Gauntlet Puzzles Required"
 
 
+class LockGauntletNeeds(DefaultOnToggle):
+    """
+    With Lock Puzzle Needs: whether the parts of the seven stages' puzzles in the
+    Silent Gauntlet are items too, in either Gauntlet Mode.
+
+    - On: the buttons, panels and so on inside the Gauntlet's stages are not on
+      the map until their item arrives, and the Big Goodbye goal, which means
+      finishing the Gauntlet, asks for them. With Gauntlet Mode locked_stages the
+      stages' checks ask for them too. The finale and the entrance are left alone.
+    - Off: the Gauntlet's parts stay on the map and nothing is asked for them.
+    """
+
+    display_name = "Lock Gauntlet Needs"
+
+
 class GauntletStagesLocal(DefaultOnToggle):
     """
     With Gauntlet Mode locked_stages: keep the seven stage items in your own
@@ -339,6 +354,7 @@ class BigWalkOptions(PerGameCommonOptions):
     hint_keys: HintKeys
     gauntlet_mode: GauntletMode
     gauntlet_puzzles_required: GauntletPuzzlesRequired
+    lock_gauntlet_needs: LockGauntletNeeds
     gauntlet_stages_local: GauntletStagesLocal
     trap_fill_percentage: TrapFillPercentage
     start_inventory_from_pool: StartInventoryPool
@@ -350,7 +366,7 @@ option_groups = [
     OptionGroup("Radio", [RadioChecks, ShuffleRadioMusic]),
     OptionGroup("Keys", [StartWithDrawbridgeOpen, HintKeys]),
     OptionGroup("Doors", [StartWithArchDoorsOpen]),
-    OptionGroup("Gauntlet", [GauntletMode, GauntletPuzzlesRequired, GauntletStagesLocal]),
+    OptionGroup("Gauntlet", [GauntletMode, GauntletPuzzlesRequired, LockGauntletNeeds, GauntletStagesLocal]),
     OptionGroup("Puzzles", [LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed]),
 ]
 

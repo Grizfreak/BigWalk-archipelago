@@ -749,7 +749,9 @@ namespace BigWalkArchipelago.Core.Net
                 ApLocationIds.Base + Connection.SlotData.PuzzleNeedIdOffset);
             // Also after the ledger, for the same reason.
             GauntletStairways.Configure(
-                Connection.SlotData.GauntletMode == "locked_stages", Connection.SlotData.GauntletPuzzlesRequired);
+                Connection.SlotData.GauntletMode == "locked_stages",
+                Connection.SlotData.GauntletPuzzlesRequired,
+                Connection.SlotData.LockGauntletNeeds);
             SessionJournal.Write(
                 "connected", $"{Connection.SlotName} | {Connection.SlotData.Describe()} | {_appliedItemCount} item(s) already applied");
 

@@ -319,6 +319,7 @@ namespace BigWalkArchipelago.Core.Net
                     NetworkWriterExtensions.WriteString(writer, need);
 
                 NetworkWriterExtensions.WriteBool(writer, GauntletStairways.Enabled);
+                NetworkWriterExtensions.WriteBool(writer, GauntletStairways.PartsHidden);
 
                 connection.Send(writer.ToArraySegment(), 0);
             }
@@ -548,6 +549,7 @@ namespace BigWalkArchipelago.Core.Net
                     lockedNeeds.Add(NetworkReaderExtensions.ReadString(reader));
 
                 var gauntletLocked = NetworkReaderExtensions.ReadBool(reader);
+                var gauntletPartsLocked = NetworkReaderExtensions.ReadBool(reader);
 
                 var first = _receivedAt < 0f;
 
@@ -565,7 +567,7 @@ namespace BigWalkArchipelago.Core.Net
 
                 RadioStations.ApplyFromHost(radioItemsInPlay, granted);
                 PuzzleNeeds.ApplyFromHost(needsEnabled, lockedNeeds);
-                GauntletStairways.ApplyFromHost(gauntletLocked);
+                GauntletStairways.ApplyFromHost(gauntletLocked, gauntletPartsLocked);
             }
             catch (Exception ex)
             {
