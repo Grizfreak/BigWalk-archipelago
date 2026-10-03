@@ -342,6 +342,30 @@ class GauntletStagesLocal(DefaultOnToggle):
     display_name = "Gauntlet Stages Local"
 
 
+class TeleportButtons(Choice):
+    """
+    Buttons in the world that teleport you, for players who run the mod: one in the hub for each
+    of the Red Funnel, Green Cup, Blue Castle and Yellow Twist towers and the Silent Gauntlet,
+    and one back to the hub inside each of them. The Green Dome is next to the spawn and has none.
+
+    - off: no buttons.
+    - free: every button is there from the start.
+    - with_towers: a tower's button in the hub appears once the tower's door has been opened by
+      its button at the foot of the tower; the Gauntlet's once its Big Wall Door has arrived.
+    - items: each hub button needs its own item, a Teleporter, found in the multiworld (5 items).
+
+    The way back to the hub is always there. A teleport can skip a locked door, which the logic
+    does not count on, so this changes no logic: it is a comfort, and it is up to you.
+    """
+
+    display_name = "Teleport Buttons"
+    option_off = 0
+    option_free = 1
+    option_with_towers = 2
+    option_items = 3
+    default = option_off
+
+
 class JokeFillerPercentage(Range):
     """
     Share of the filler items that are jokes: the community's thirteen wrong names for a
@@ -390,6 +414,7 @@ class BigWalkOptions(PerGameCommonOptions):
     start_with_random_puzzle_need: StartWithRandomPuzzleNeed
     hint_keys: HintKeys
     joke_filler_percentage: JokeFillerPercentage
+    teleport_buttons: TeleportButtons
     gauntlet_mode: GauntletMode
     gauntlet_puzzles_required: GauntletPuzzlesRequired
     lock_gauntlet_needs: LockGauntletNeeds
@@ -404,6 +429,7 @@ option_groups = [
     OptionGroup("Radio", [RadioChecks, ShuffleRadioMusic]),
     OptionGroup("Keys", [StartWithDrawbridgeOpen, HintKeys]),
     OptionGroup("Filler", [JokeFillerPercentage]),
+    OptionGroup("Teleport", [TeleportButtons]),
     OptionGroup("Doors", [StartWithArchDoorsOpen, RequireArchDoors]),
     OptionGroup("Gauntlet", [GauntletMode, GauntletPuzzlesRequired, LockGauntletNeeds, GauntletStagesLocal]),
     OptionGroup("Puzzles", [LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed]),

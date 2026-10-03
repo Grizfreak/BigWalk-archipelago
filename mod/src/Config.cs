@@ -48,6 +48,9 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> DumpGauntletKey;
         internal static ConfigEntry<float> DumpGauntletRadius;
         internal static ConfigEntry<KeyboardShortcut> EnableSkipAidsKey;
+        internal static ConfigEntry<KeyboardShortcut> SpawnTestButtonKey;
+        internal static ConfigEntry<KeyboardShortcut> MarkSpotKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpIndicatorsKey;
         internal static ConfigEntry<KeyboardShortcut> ForceEndingFlagsKey;
         internal static ConfigEntry<KeyboardShortcut> ApplyBigKeyOverflowKey;
         internal static ConfigEntry<KeyboardShortcut> SpawnCosmeticPickupKey;
@@ -304,6 +307,24 @@ namespace BigWalkArchipelago
                 "EnableSkipAidsKey",
                 new KeyboardShortcut(KeyCode.Keypad6),
                 "Switches on the game's own skip aids (the two-button poles in each Silent Gauntlet chamber, off in a normal game) so that what they do can be seen. Hold their buttons together (End does) and compare two DumpGauntletKey dumps (only has an effect if Debug.Enabled is active).");
+
+            SpawnTestButtonKey = file.Bind(
+                "Debug",
+                "SpawnTestButtonKey",
+                new KeyboardShortcut(KeyCode.Keypad7),
+                "Copies the nearest push button of the game two metres in front of you and logs what happens when it is pressed (an experiment for the in-world buttons of ROADMAP U4/U10; only has an effect if Debug.Enabled is active).");
+
+            MarkSpotKey = file.Bind(
+                "Debug",
+                "MarkSpotKey",
+                new KeyboardShortcut(KeyCode.Keypad8),
+                "Writes the surface the crosshair is on (a point and the way it faces) to BepInEx/world-button-spots.txt, to place the in-world buttons of ROADMAP U10 (only has an effect if Debug.Enabled is active).");
+
+            DumpIndicatorsKey = file.Bind(
+                "Debug",
+                "DumpIndicatorsKey",
+                new KeyboardShortcut(KeyCode.Keypad9),
+                "Writes every renderer of the Black Tower's panel of tower icons (EndingGateIndicator) to BepInEx/indicator-dump.txt, to copy the icons onto the teleport buttons of ROADMAP U10 (only has an effect if Debug.Enabled is active).");
 
             ForceNearbyCombinatorKey = file.Bind(
                 "Debug",

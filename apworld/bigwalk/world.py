@@ -354,6 +354,12 @@ class BigWalkWorld(World):
             "gauntlet_stage_systems": [stage.system_name for stage in data.GAUNTLET_STAGES],
             "gauntlet_id_offset": data.GAUNTLET_ID_OFFSET,
 
+            # The in-world teleport buttons (mod only): the mode, and the items of `items` mode,
+            # by the keys the mod knows the destinations by, in the order of their item ids.
+            "teleport_buttons": self.options.teleport_buttons.current_key,
+            "teleport_destinations": [key for key, _ in data.TELEPORT_DESTINATIONS],
+            "teleport_id_offset": data.TELEPORT_ID_OFFSET,
+
             "lock_puzzle_needs": bool(self.options.lock_puzzle_needs),
             "start_with_puzzle_needs": sorted(self.options.start_with_puzzle_needs.value),
             "start_with_random_puzzle_need": bool(self.options.start_with_random_puzzle_need),

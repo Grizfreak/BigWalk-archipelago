@@ -74,6 +74,7 @@ namespace BigWalkArchipelago
             AddComponent<Core.StaleHeldPropReleaser>();
             AddComponent<Core.PuzzleGourdRetirer>();
             AddComponent<Core.PuzzleNeedHider>();
+            AddComponent<Core.WorldButtons>();
             AddComponent<Core.KeyColourPainter>();
             AddComponent<Core.Net.ModChannel>();
             AddComponent<Core.ModVersionLabel>();

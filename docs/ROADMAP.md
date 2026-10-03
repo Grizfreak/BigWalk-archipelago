@@ -252,8 +252,13 @@ and from what a whole seed will ask of players.
     (d) MultiClient 6.7.1's `DataStorage` API on a room with no storage yet.
     Test: deposit N gourds, start a NEW save on the same slot, reconnect, and walk
     to the monuments; N slots must be full and no extra gourd loose.
-- **U4 — To do.** A real in-world button for the gourd resync, instead of the
-  Ctrl+R that only the host knows about.
+- **U4 — To do, refined 2026-10-03.** A real in-world button for the gourd resync,
+  instead of the Ctrl+R that only the host knows about. First, a change to Ctrl+R
+  itself (player's wish): the gourds come back at the tower NEAREST to where it is
+  pressed, not always at the hub; later the key goes away for a reset button.
+  Both ride on `Core/WorldButtons`, the mod's own buttons (U10), which do not use the
+  game's press system: a copy of one of its buttons keeps the original's network
+  reference (`ShellReference.ticket`) and every press reaches the original.
 - **U5 — To do.** `ap_reported_*` is not scoped to a seed, so a save
   reconnected to another seed resends checks earned elsewhere. Scope it by
   the seed name the room sends.
@@ -275,7 +280,15 @@ and from what a whole seed will ask of players.
   Doodad, Jelly Baby, Peanut, Peg and Head, Plumbus, Red Nub, Thing. No effect
   beyond their line in the item feed. Mixed with today's filler, the island's objects; their share could be
   an option. apworld: new ids and names; mod: a feed line, nothing spawned.
-- **U10 — Idea, not yet checked in game.** Physical buttons placed in the world, for
+- **U10 — Prototype under test (2026-10-03).** The player's spec: in each tower (Red,
+  Green, Blue, Yellow, the Green Dome) and in the Gauntlet a button back to the hub,
+  and in the hub one button per destination. A copied game button does not work (it
+  shares the original's `ShellReference`); `Core/WorldButtons` builds its own (two
+  primitives, a game material, the game's "use" input while aimed at, the mod's
+  existing `PlayerGrease.Teleport`), nothing networked, every machine builds the same
+  table. Open: whether a destination unlocks on a first visit on foot (recommended, so a
+  teleport never skips a lock the logic assumes) or is free; the twelve positions.
+  Original idea: Physical buttons placed in the world, for
   the players to teleport between the island's zones, and the place for U4's
   resync button too. The mod already puts objects the game has none of into the
   world by cloning vanilla ones (the cosmetic gourds, the gadget items, the

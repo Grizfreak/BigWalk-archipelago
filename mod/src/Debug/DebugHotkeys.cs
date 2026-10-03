@@ -134,6 +134,15 @@ namespace BigWalkArchipelago.Debug
                 ModConfig.HoldTrackedStateValue.Value,
                 30f);
 
+            if (ModConfig.DumpIndicatorsKey.Value.IsDown())
+                DebugButtonPrototype.DumpIndicators();
+
+            if (ModConfig.MarkSpotKey.Value.IsDown())
+                DebugButtonPrototype.MarkAimedSpot();
+
+            if (ModConfig.SpawnTestButtonKey.Value.IsDown())
+                DebugButtonPrototype.SpawnInFrontOfPlayer();
+
             if (ModConfig.EnableSkipAidsKey.Value.IsDown())
                 DebugSkipAids.EnableAll();
 

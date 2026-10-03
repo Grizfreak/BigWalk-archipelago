@@ -635,7 +635,8 @@ namespace BigWalkArchipelago.Core
             {
                 var needLocked = IsLocked(pair.Key);
                 var locked = needLocked;
-                var changed = 0;
+                var hid = 0;
+                var showed = 0;
                 foreach (var go in pair.Value)
                 {
                     if (go == null)
@@ -653,13 +654,13 @@ namespace BigWalkArchipelago.Core
                         if (networked)
                         {
                             if (SoftHide(go, id))
-                                changed++;
+                                hid++;
                         }
                         else if (go.activeSelf)
                         {
                             _hiddenByUs.Add(id);
                             go.SetActive(false);
-                            changed++;
+                            hid++;
                         }
                     }
                     else if (_hiddenByUs.Remove(id))
@@ -669,13 +670,18 @@ namespace BigWalkArchipelago.Core
                         else
                             go.SetActive(true);
 
-                        changed++;
+                        showed++;
                     }
                 }
 
-                if (changed > 0)
+                // What was actually done, not what the need says: a skip-aid pole is hidden or
+                // shown by its own puzzle's needs, so the group has no lock state of its own.
+                if (hid > 0)
                     Plugin.Log.LogInfo(
-                        $"[{nameof(PuzzleNeedHider)}] {Stamp()} {pair.Key}: {(needLocked ? "hid" : "showed")} {changed} of {pair.Value.Count}.");
+                        $"[{nameof(PuzzleNeedHider)}] {Stamp()} {pair.Key}: hid {hid} of {pair.Value.Count}.");
+                if (showed > 0)
+                    Plugin.Log.LogInfo(
+                        $"[{nameof(PuzzleNeedHider)}] {Stamp()} {pair.Key}: showed {showed} of {pair.Value.Count}.");
             }
         }
 

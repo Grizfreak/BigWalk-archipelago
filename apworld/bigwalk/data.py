@@ -792,6 +792,31 @@ reason a big key's plinth is emptied on pickup: a filler item must not also
 be findable for free outside the multiworld.
 """
 
+TELEPORT_ID_OFFSET = 2_700
+"""Item-only, like the filler: the teleporters of `teleport_buttons: items`, `BASE_ID + 2_700 + position`."""
+
+TELEPORT_DESTINATIONS: tuple[tuple[str, str], ...] = (
+    ("red", "Red Funnel Tower"),
+    ("green", "Green Cup Tower"),
+    ("blue", "Blue Castle Tower"),
+    ("yellow", "Yellow Twist Tower"),
+    ("gauntlet", "Silent Gauntlet"),
+)
+"""
+Where the in-world teleport buttons of the hub lead, by the key the mod knows each by and the
+player-facing name. The Green Dome is not here: it is next to the spawn (player, 2026-10-03).
+Every destination has a button back to the hub, always there.
+"""
+
+
+def teleport_item_name(destination: str) -> str:
+    return f"{destination} Teleporter"
+
+
+def teleport_item_id(position: int) -> int:
+    return BASE_ID + TELEPORT_ID_OFFSET + position
+
+
 JOKE_ITEMS: tuple[tuple[str, int], ...] = (
     ("Baby", 9_201),
     ("Boid", 9_202),

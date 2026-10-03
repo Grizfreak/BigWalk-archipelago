@@ -27,11 +27,13 @@ ITEM_NAME_TO_ID: dict[str, int] = {
     **{name: data.BASE_ID + offset for name, offset in data.FILLER_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.TRAP_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.JOKE_ITEMS},
+    **{data.teleport_item_name(name): data.teleport_item_id(i) for i, (_, name) in enumerate(data.TELEPORT_DESTINATIONS)},
 }
 
 FILLER_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.FILLER_ITEMS)
 TRAP_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.TRAP_ITEMS)
 JOKE_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.JOKE_ITEMS)
+TELEPORT_ITEM_NAMES: tuple[str, ...] = tuple(data.teleport_item_name(name) for _, name in data.TELEPORT_DESTINATIONS)
 
 GUARANTEED_GEAR: dict[str, int] = {"Backpack": 2, "Belt": 2, "Gourd Carton": 1}
 
@@ -55,6 +57,7 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Gauntlet Doors": set(GAUNTLET_ITEM_NAMES),
     "Filler": set(FILLER_ITEM_NAMES),
     "Joke Filler": set(JOKE_ITEM_NAMES),
+    "Teleporters": set(TELEPORT_ITEM_NAMES),
     "Traps": set(TRAP_ITEM_NAMES),
 }
 
@@ -84,6 +87,9 @@ def classification_for(name: str, require_arch_doors: bool = False) -> ItemClass
         # Shortcuts: they shorten the walk, and gate what lies past them only when
         # `require_arch_doors` puts those places behind them in logic.
         return ItemClassification.progression if require_arch_doors else ItemClassification.useful
+    if name in ITEM_NAME_GROUPS["Teleporters"]:
+        # A comfort the logic does not count on: a teleport can only shorten a walk.
+        return ItemClassification.useful
     if name in ITEM_NAME_GROUPS["Gauntlet Doors"]:
         # Only ever created with `gauntlet_mode: locked_stages`, where each one
         # is the way up out of its stage and the goal asks for all seven.
@@ -143,6 +149,10 @@ def create_all_items(world: BigWalkWorld) -> None:
     # A locked arch door is an item, and like the radio music it displaces
     # filler rather than adding to the pool.
     pool += [world.create_item(door.item_name) for door in world.locked_arch_doors]
+
+    # With `teleport_buttons: items`, each hub button is an item, displacing filler.
+    if world.options.teleport_buttons == bigwalk_options.TeleportButtons.option_items:
+        pool += [world.create_item(name) for name in TELEPORT_ITEM_NAMES]
 
     # With locked stages, the way up out of each one is an item. They displace
     # filler, like the arch doors.
