@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using BigWalkArchipelago.Core;
 
 namespace BigWalkArchipelago.Core.Net
@@ -196,10 +196,19 @@ namespace BigWalkArchipelago.Core.Net
         // A Gauntlet stairway item carries its stage's chamber system, like the
         // stage's own check does (apworld/protocol.md §14). Returns the level,
         // 0..6, which is its position in GauntletStairways.Chambers.
+        // Each Progressive Gauntlet Door (apworld data.PROGRESSIVE_GAUNTLET_VALUE) opens the lowest
+        // stage still shut.
+        private const long ProgressiveGauntletValue = 60;
+
         internal static bool TryResolveGauntletItem(long itemId, out int level)
         {
             level = -1;
             var value = itemId - _base - _gauntletOffset;
+            if (value == ProgressiveGauntletValue)
+            {
+                level = GauntletStairways.LowestShut();
+                return level >= 0;
+            }
 
             if (value < 0 || value > int.MaxValue || !Enum.IsDefined(typeof(SavableSystem), (int)value))
                 return false;

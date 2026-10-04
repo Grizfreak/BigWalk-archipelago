@@ -12,10 +12,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from rule_builder.rules import Has, HasAll
+from rule_builder.rules import Has, HasAll, Rule
 
 from . import data, locations, regions
-from .options import GauntletMode, Goal
+from .options import GauntletMode, GauntletStageItems, Goal
 
 if TYPE_CHECKING:
     from .world import BigWalkWorld
@@ -118,6 +118,15 @@ def gauntlet_parts_are_items(world: BigWalkWorld) -> bool:
     return bool(world.options.lock_puzzle_needs and world.options.lock_gauntlet_needs)
 
 
+def stairways_up_to(world: BigWalkWorld, count: int) -> list[Rule]:
+    """The stairways of the first `count` stages: that many progressive doors, or those named."""
+    if count <= 0:
+        return []
+    if world.options.gauntlet_stage_items == GauntletStageItems.option_progressive:
+        return [Has(data.PROGRESSIVE_GAUNTLET_ITEM_NAME, count=count)]
+    return [HasAll(*[stage.item_name for stage in data.GAUNTLET_STAGES[:count]])]
+
+
 def set_gauntlet_rules(world: BigWalkWorld) -> None:
     """
     With `locked_stages`, stage k's puzzle is only reachable through the
@@ -131,13 +140,17 @@ def set_gauntlet_rules(world: BigWalkWorld) -> None:
         return
 
     for stage in data.GAUNTLET_STAGES:
-        required = [before.item_name for before in data.GAUNTLET_STAGES[:stage.index]]
+        rules = stairways_up_to(world, stage.index)
         if gauntlet_parts_are_items(world):
             needs = (data.gauntlet_needs_through(stage) if world.options.gauntlet_puzzles_required
                      else data.gauntlet_needs_of(stage))
-            required += [need.item_name for need in needs]
-        if required:
-            world.set_rule(world.get_location(stage.location_name), HasAll(*required))
+            if needs:
+                rules.append(HasAll(*[need.item_name for need in needs]))
+        if rules:
+            rule = rules[0]
+            for more in rules[1:]:
+                rule = rule & more
+            world.set_rule(world.get_location(stage.location_name), rule)
 
 
 def set_entrance_rules(world: BigWalkWorld) -> None:
@@ -202,10 +215,15 @@ def set_completion_rule(world: BigWalkWorld) -> None:
     # are required.
     if world.options.goal == Goal.option_big_goodbye:
         locked = world.options.gauntlet_mode == GauntletMode.option_locked_stages
-        required = [stage.item_name for stage in data.GAUNTLET_STAGES] if locked else []
+        rules = stairways_up_to(world, len(data.GAUNTLET_STAGES)) if locked else []
         if gauntlet_parts_are_items(world) and (not locked or world.options.gauntlet_puzzles_required):
-            required += [need.item_name for need in data.gauntlet_needs_through(data.GAUNTLET_STAGES[-1])]
-        if required:
-            world.set_rule(world.get_location(locations.VICTORY_EVENT_NAME), HasAll(*required))
+            needs = data.gauntlet_needs_through(data.GAUNTLET_STAGES[-1])
+            if needs:
+                rules.append(HasAll(*[need.item_name for need in needs]))
+        if rules:
+            rule = rules[0]
+            for more in rules[1:]:
+                rule = rule & more
+            world.set_rule(world.get_location(locations.VICTORY_EVENT_NAME), rule)
 
     world.set_completion_rule(Has(locations.VICTORY_EVENT_NAME))

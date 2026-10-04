@@ -312,6 +312,20 @@ class LockGauntletNeeds(DefaultOnToggle):
     display_name = "Lock Gauntlet Needs"
 
 
+class GauntletStageItems(Choice):
+    """
+    With Gauntlet Mode locked_stages, what the seven stage items are.
+
+    - progressive: seven Progressive Gauntlet Doors; each one opens the next stage up.
+    - individual: one item per stage, Gauntlet Stage 1 Door to Stage 7 Door, found in any order.
+    """
+
+    display_name = "Gauntlet Stage Items"
+    option_progressive = 0
+    option_individual = 1
+    default = option_progressive
+
+
 class GauntletStagesLocal(DefaultOnToggle):
     """
     With Gauntlet Mode locked_stages: keep the seven stage items in your own
@@ -581,6 +595,7 @@ class BigWalkOptions(PerGameCommonOptions):
     gauntlet_puzzles_required: GauntletPuzzlesRequired
     lock_gauntlet_needs: LockGauntletNeeds
     gauntlet_stages_local: GauntletStagesLocal
+    gauntlet_stage_items: GauntletStageItems
     trap_fill_percentage: TrapFillPercentage
     start_inventory_from_pool: StartInventoryPool
 
@@ -590,7 +605,7 @@ option_groups = [
     OptionGroup("Sanity", [GourdSanity, RadioSanity, ShuffleRadioMusic]),
     OptionGroup("Logic", [
         StartWithDrawbridgeOpen, OpenBlackTower, StartWithArchDoorsOpen, RequireArchDoors,
-        GauntletMode, GauntletPuzzlesRequired, LockGauntletNeeds, GauntletStagesLocal,
+        GauntletMode, GauntletStageItems, GauntletPuzzlesRequired, LockGauntletNeeds, GauntletStagesLocal,
         LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed,
     ]),
     OptionGroup("QoL", [HintKeys, TeleportButtons, TeleportBackToHub, TowerResyncStations, GuestsCanResync]),

@@ -37,7 +37,7 @@ class TestVanilla(BigWalkTestBase):
 
 
 class TestLockedStages(BigWalkTestBase):
-    options = {"gauntlet_mode": "locked_stages"}
+    options = {"gauntlet_mode": "locked_stages", "gauntlet_stage_items": "individual"}
     run_default_tests = False
 
     def test_seven_checks_in_the_ending_zone(self) -> None:
@@ -87,7 +87,7 @@ class TestLockedStages(BigWalkTestBase):
 
 
 class TestTheStagesStayLocal(BigWalkTestBase):
-    options = {"gauntlet_mode": "locked_stages"}
+    options = {"gauntlet_mode": "locked_stages", "gauntlet_stage_items": "individual"}
     run_default_tests = False
 
     def test_they_are_local_by_default(self) -> None:
@@ -95,7 +95,7 @@ class TestTheStagesStayLocal(BigWalkTestBase):
 
 
 class TestTheStagesMayTravel(BigWalkTestBase):
-    options = {"gauntlet_mode": "locked_stages", "gauntlet_stages_local": False}
+    options = {"gauntlet_mode": "locked_stages", "gauntlet_stage_items": "individual", "gauntlet_stages_local": False}
     run_default_tests = False
 
     def test_they_are_not_forced_home(self) -> None:
@@ -105,7 +105,7 @@ class TestTheStagesMayTravel(BigWalkTestBase):
 class TestWithPuzzleNeeds(BigWalkTestBase):
     """A stage also asks for what its puzzle, and the ones below it, are built from."""
 
-    options = {"gauntlet_mode": "locked_stages", "lock_puzzle_needs": True}
+    options = {"gauntlet_mode": "locked_stages", "gauntlet_stage_items": "individual", "lock_puzzle_needs": True}
     run_default_tests = False
 
     def test_the_first_stage_needs_its_own_parts(self) -> None:
@@ -127,7 +127,7 @@ class TestWithPuzzleNeeds(BigWalkTestBase):
 class TestTheGoalIsSomethingElse(BigWalkTestBase):
     """Only the Gauntlet goal asks for the stairways."""
 
-    options = {"gauntlet_mode": "locked_stages", "goal": "big_wall"}
+    options = {"gauntlet_mode": "locked_stages", "gauntlet_stage_items": "individual", "goal": "big_wall"}
     run_default_tests = False
 
     def test_the_bell_asks_for_no_stairway(self) -> None:
@@ -136,7 +136,7 @@ class TestTheGoalIsSomethingElse(BigWalkTestBase):
 
 
 class TestTheTrackerSeesTheMode(BigWalkTestBase):
-    options = {"gauntlet_mode": "locked_stages"}
+    options = {"gauntlet_mode": "locked_stages", "gauntlet_stage_items": "individual"}
     run_default_tests = False
 
     def test_it_lands_on_this_exact_world(self) -> None:
@@ -149,7 +149,7 @@ class TestTheTrackerSeesTheMode(BigWalkTestBase):
 class TestPuzzlesSkippable(BigWalkTestBase):
     """Without `gauntlet_puzzles_required` an item opens its stage whole, so a puzzle needs only itself."""
 
-    options = {"gauntlet_mode": "locked_stages", "gauntlet_puzzles_required": False, "lock_puzzle_needs": True}
+    options = {"gauntlet_mode": "locked_stages", "gauntlet_stage_items": "individual", "gauntlet_puzzles_required": False, "lock_puzzle_needs": True}
     run_default_tests = False
 
     def test_the_slot_says_so(self) -> None:
@@ -189,7 +189,7 @@ class TestPuzzlesSkippable(BigWalkTestBase):
 
 
 class TestPuzzlesRequiredByDefault(BigWalkTestBase):
-    options = {"gauntlet_mode": "locked_stages"}
+    options = {"gauntlet_mode": "locked_stages", "gauntlet_stage_items": "individual"}
     run_default_tests = False
 
     def test_the_slot_says_so(self) -> None:
@@ -202,7 +202,7 @@ class TestAnotherGoalStillGetsTheStages(BigWalkTestBase):
     checks and items, behind the chapel, and the goal asks for none of them.
     """
 
-    options = {"gauntlet_mode": "locked_stages", "goal": "big_collection"}
+    options = {"gauntlet_mode": "locked_stages", "gauntlet_stage_items": "individual", "goal": "big_collection"}
     run_default_tests = False
 
     def test_the_stages_are_there_behind_the_chapel(self) -> None:
@@ -223,7 +223,7 @@ class TestAnotherGoalStillGetsTheStages(BigWalkTestBase):
 class TestGauntletPartsKeptOnTheMap(BigWalkTestBase):
     """`lock_gauntlet_needs` off: a stage asks for no part, though puzzle needs are locked elsewhere."""
 
-    options = {"gauntlet_mode": "locked_stages", "lock_puzzle_needs": True, "lock_gauntlet_needs": False}
+    options = {"gauntlet_mode": "locked_stages", "gauntlet_stage_items": "individual", "lock_puzzle_needs": True, "lock_gauntlet_needs": False}
     run_default_tests = False
 
     def test_the_slot_says_so(self) -> None:
@@ -244,7 +244,7 @@ class TestGauntletPartsKeptOnTheMap(BigWalkTestBase):
 class TestGauntletPartsAreItemsByDefault(BigWalkTestBase):
     """With locked stages and puzzle needs, the Big Goodbye goal forces the parts by default."""
 
-    options = {"gauntlet_mode": "locked_stages", "lock_puzzle_needs": True}
+    options = {"gauntlet_mode": "locked_stages", "gauntlet_stage_items": "individual", "lock_puzzle_needs": True}
     run_default_tests = False
 
     def test_the_slot_says_so(self) -> None:

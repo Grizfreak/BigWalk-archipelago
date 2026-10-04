@@ -185,7 +185,7 @@ class BigWalkWorld(World):
         """
         locked = self.options.gauntlet_mode == bigwalk_options.GauntletMode.option_locked_stages
         if locked and self.options.gauntlet_stages_local:
-            self.options.local_items.value |= set(items.GAUNTLET_ITEM_NAMES)
+            self.options.local_items.value |= set(items.GAUNTLET_ITEM_NAMES) | {data.PROGRESSIVE_GAUNTLET_ITEM_NAME}
 
     def _hint_the_keys(self) -> None:
         """
@@ -373,6 +373,7 @@ class BigWalkWorld(World):
             # `GauntletChamberN` systems) is a check by plain id arithmetic.
             # `gauntlet_stage_systems` is in the order of the stage items.
             "gauntlet_mode": self.options.gauntlet_mode.current_key,
+            "gauntlet_stage_items": self.options.gauntlet_stage_items.current_key,
             "gauntlet_puzzles_required": bool(self.options.gauntlet_puzzles_required),
             "lock_gauntlet_needs": bool(self.options.lock_gauntlet_needs),
             "gauntlet_stage_systems": [stage.system_name for stage in data.GAUNTLET_STAGES],

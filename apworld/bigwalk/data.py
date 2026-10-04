@@ -324,6 +324,16 @@ GAUNTLET_STAGES: tuple[GauntletStage, ...] = (
 )
 
 
+PROGRESSIVE_GAUNTLET_ITEM_NAME = "Progressive Gauntlet Door"
+PROGRESSIVE_GAUNTLET_VALUE = 60
+"""Past the seven `GauntletChamberN` values (50..56): `BASE_ID + GAUNTLET_ID_OFFSET + 60`. Each copy
+received opens the lowest stage still shut (`gauntlet_stage_items: progressive`)."""
+
+
+def progressive_gauntlet_id() -> int:
+    return BASE_ID + GAUNTLET_ID_OFFSET + PROGRESSIVE_GAUNTLET_VALUE
+
+
 def gauntlet_stage_id(stage: GauntletStage) -> int:
     return BASE_ID + GAUNTLET_ID_OFFSET + stage.system_value
 

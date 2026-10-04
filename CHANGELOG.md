@@ -38,6 +38,8 @@ Numbered 0.3.0 rather than 0.1.3: a release this size moves the minor number; th
     to open the wall inside the stage, which then also waits for the stage's
     item. Off, the item opens the wall at once, so the puzzles can be done in
     any order, or skipped; they stay checks.
+  - `gauntlet_stage_items` (`progressive` by default): seven **Progressive Gauntlet Doors**, each
+    opening the next stage up; `individual` keeps one item per stage, found in any order.
   - `gauntlet_stages_local` (on by default): keeps the seven items in your own
     world.
   - `lock_gauntlet_needs` (on by default, in `vanilla` too): with

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
@@ -198,6 +198,19 @@ namespace BigWalkArchipelago.Core
             }
 
             return !IsGranted(level);
+        }
+
+        // The lowest stage whose stairway item has not arrived, for a progressive door; -1 when all
+        // seven have.
+        internal static int LowestShut()
+        {
+            for (var level = 0; level < Chambers.Length; level++)
+            {
+                if (!IsGranted(level))
+                    return level;
+            }
+
+            return -1;
         }
 
         internal static bool Grant(int level)

@@ -24,6 +24,7 @@ ITEM_NAME_TO_ID: dict[str, int] = {
     **{door.item_name: data.arch_door_item_id(door) for door in data.ARCH_DOORS},
     **{need.item_name: data.puzzle_need_item_id(need) for need in data.PUZZLE_NEEDS},
     **{stage.item_name: data.gauntlet_stage_id(stage) for stage in data.GAUNTLET_STAGES},
+    data.PROGRESSIVE_GAUNTLET_ITEM_NAME: data.progressive_gauntlet_id(),
     **{name: data.BASE_ID + offset for name, offset in data.FILLER_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.TRAP_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.JOKE_ITEMS},
@@ -54,7 +55,7 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Radio Music": set(RADIO_ITEM_NAMES),
     "Arch Doors": {door.item_name for door in data.ARCH_DOORS},
     "Puzzle Needs": set(PUZZLE_NEED_ITEM_NAMES),
-    "Gauntlet Doors": set(GAUNTLET_ITEM_NAMES),
+    "Gauntlet Doors": set(GAUNTLET_ITEM_NAMES) | {data.PROGRESSIVE_GAUNTLET_ITEM_NAME},
     "Filler": set(FILLER_ITEM_NAMES),
     "Joke Filler": set(JOKE_ITEM_NAMES),
     "Teleporters": set(TELEPORT_ITEM_NAMES),
@@ -157,7 +158,10 @@ def create_all_items(world: BigWalkWorld) -> None:
     # With locked stages, the way up out of each one is an item. They displace
     # filler, like the arch doors.
     if world.options.gauntlet_mode == bigwalk_options.GauntletMode.option_locked_stages:
-        pool += [world.create_item(stage.item_name) for stage in data.GAUNTLET_STAGES]
+        if world.options.gauntlet_stage_items == bigwalk_options.GauntletStageItems.option_progressive:
+            pool += [world.create_item(data.PROGRESSIVE_GAUNTLET_ITEM_NAME) for _ in data.GAUNTLET_STAGES]
+        else:
+            pool += [world.create_item(stage.item_name) for stage in data.GAUNTLET_STAGES]
 
     # The needs the player starts with are handed over up front, like the
     # drawbridge, and never enter the pool.
