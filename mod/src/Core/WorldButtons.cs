@@ -815,10 +815,12 @@ namespace BigWalkArchipelago.Core
             UnityEngine.Object.DontDestroyOnLoad(holder);
             var template = UnityEngine.Object.Instantiate(found, holder.transform);
             template.name = "AP template";
+            ReceivedItemSpawner.OwnMaterials(template);
             Templates[kind] = template;
             Plugin.Log.LogInfo(
                 $"[{nameof(WorldButtons)}] Template kept: '{found.name}' at {found.transform.position}.");
-            Describe(found);
+            if (ModConfig.DebugModeEnabled.Value)
+                Describe(found);
             return template;
         }
 

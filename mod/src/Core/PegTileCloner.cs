@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Il2CppInterop.Runtime.Attributes;
 using Mirror;
@@ -169,6 +169,7 @@ namespace BigWalkArchipelago.Core
 
             copy.name = $"PegTileProp {(speaker ? "Speaker " : string.Empty)}{kind} (AP template)";
             copy.SetActive(false);
+            ReceivedItemSpawner.OwnMaterials(copy);
             UnityEngine.Object.DontDestroyOnLoad(copy);
             ReceivedItemSpawner.ApplyPropertyBlocks(copy, blocks);
             var identity = copy.GetComponent<NetworkIdentity>();
@@ -306,6 +307,10 @@ namespace BigWalkArchipelago.Core
         // or broken material) shows here as no material or an error shader (G2, 2026-10-05).
         private static void LogLook(GameObject clone, PropGroup kind, bool speaker)
         {
+            // Diagnostic: one line per tile, dozens per press, only with the debug tools on.
+            if (!ModConfig.DebugModeEnabled.Value)
+                return;
+
             var parts = new List<string>();
             foreach (var renderer in clone.GetComponentsInChildren<Renderer>(true))
             {

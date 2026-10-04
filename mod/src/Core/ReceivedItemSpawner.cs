@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Mirror;
@@ -907,6 +907,34 @@ namespace BigWalkArchipelago.Core
         // `ApplyCosmeticColor`/`RefreshCosmeticColor` is a hand-rolled
         // version of exactly this). Cheap and safe to call unconditionally:
         // a Prop without one simply yields no components to iterate.
+        // Gives a kept template materials of its own. The game's PropertyBlockHelper swaps a
+        // renderer's material for an instance it owns and later destroys or replaces; a copy of the
+        // object keeps pointing at that instance, and once it is gone every refresh of the copy
+        // threw ("Value cannot be null. Parameter name: source", Player.log, 2026-10-05), and its
+        // glyph could come out blank or magenta. Copies made now are never touched by the game.
+        internal static void OwnMaterials(GameObject target)
+        {
+            foreach (var renderer in target.GetComponentsInChildren<Renderer>(true))
+            {
+                if (renderer == null)
+                    continue;
+
+                var materials = renderer.sharedMaterials;
+                var changed = false;
+                for (var i = 0; i < materials.Length; i++)
+                {
+                    if (materials[i] == null)
+                        continue;
+
+                    materials[i] = new Material(materials[i]);
+                    changed = true;
+                }
+
+                if (changed)
+                    renderer.sharedMaterials = materials;
+            }
+        }
+
         internal static void RefreshPropertyBlockHelpers(GameObject target)
         {
             var helpers = target.GetComponentsInChildren<PropertyBlockHelper>(true);
