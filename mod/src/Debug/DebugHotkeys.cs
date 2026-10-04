@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using BigWalkArchipelago.Core;
 using HouseCulling;
@@ -145,6 +145,9 @@ namespace BigWalkArchipelago.Debug
 
             if (ModConfig.EnableSkipAidsKey.Value.IsDown())
                 DebugSkipAids.EnableAll();
+
+            if (ModConfig.DumpPegTilesKey.Value.IsDown())
+                DebugPegTileDump.Dump();
 
             if (ModConfig.LogStatesKey.Value.IsDown())
                 DebugStateLog.Toggle();

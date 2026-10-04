@@ -48,6 +48,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> DumpGauntletKey;
         internal static ConfigEntry<KeyboardShortcut> DumpTimersKey;
         internal static ConfigEntry<KeyboardShortcut> LogStatesKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpPegTilesKey;
         internal static ConfigEntry<float> DumpGauntletRadius;
         internal static ConfigEntry<KeyboardShortcut> EnableSkipAidsKey;
         internal static ConfigEntry<KeyboardShortcut> SpawnTestButtonKey;
@@ -284,6 +285,12 @@ namespace BigWalkArchipelago
                 "DumpGauntletKey",
                 new KeyboardShortcut(KeyCode.Keypad5),
                 "Writes the wiring of everything within DumpGauntletRadius of the player (states and their current value, what listens to each, switches, collective-press switches, combinators) to BepInEx/gauntlet-dump-<n>.tsv. Press it before and after a step in the Silent Gauntlet and compare the two files (only has an effect if Debug.Enabled is active).");
+
+            DumpPegTilesKey = file.Bind(
+                "Debug",
+                "DumpPegTilesKey",
+                new KeyboardShortcut(KeyCode.Keypad1),
+                "Writes every peg tile validator (Tile Thief's: the tiles it expects, its sets, its slots) and every peg tile of the world to BepInEx/peg-tile-dump-<n>.txt (only has an effect if Debug.Enabled is active).");
 
             LogStatesKey = file.Bind(
                 "Debug",
