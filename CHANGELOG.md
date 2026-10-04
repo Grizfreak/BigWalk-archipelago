@@ -14,6 +14,10 @@ Numbered 0.3.0 rather than 0.1.3: a release this size moves the minor number; th
 
 - **Options sorted into five groups**: Goal, Sanity, Logic, QoL, Puzzle QoL.
 - **`lock_puzzle_needs` is on by default**: the parts puzzles are built from are items to find.
+- Puzzle needs checked against what the mod really hides in each puzzle's place: the validators'
+  buttons for Fielding, both Obbies, Blindfold Catwalk, Optical Telegraph and Indoor Semaphore, the
+  Timed Tomato for the Obby, icon panels for Indoor Semaphore, pose panels for the Charades Rooms.
+  A seed made before this may put one of them in logic a little early.
 - **Renamed**: `gourd_slot_checks` is now `gourd_sanity`, `radio_checks` is now `radio_sanity`.
   A YAML with the old names falls back to the defaults: rename them.
 - **The towers' keys and checks carry the names the players use** (ROADMAP U9): **Red
