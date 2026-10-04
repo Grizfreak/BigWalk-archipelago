@@ -80,6 +80,9 @@ On a fresh save, go to the Black Tower.
 **B5. Guest.** Start the guest after B2.
 - The guest sees the same hub buttons as the host, and its own presses teleport it.
 
+**B7. `teleport_back_to_hub: false`** (a slot with it off): the hub's buttons are there, no
+destination has a button back.
+
 ## C. Teleports, `items` (`BWItems`)
 
 **C1. Nothing at first.** No hub button on a fresh save.
@@ -118,6 +121,12 @@ the gadgets stay where they are. Press it again: green, gadgets in. It is kept a
 - Its signs follow the host's toggles and the running state.
 
 **D7. No Ctrl+R.** Ctrl+R does nothing.
+
+**D8. `guests_can_resync`** (`BWItems` has it on): the guest's presses on a button and a switch work
+as the host's do.
+
+**D9. `tower_resync_stations: false`** (`BWItems` has it off): only the hub's station is there; the
+guest does not see the towers' either.
 
 ## E. Things from before
 
@@ -165,6 +174,7 @@ where they did (not inside new walls), skip aids and hidden puzzle parts look ri
 | B4 | PASS | chapel buttons: EndingGate = 2, hub button appears |
 | B5 | PASS | guest sees the same hub buttons and teleports |
 | B6 | PASS | door open on a fresh save |
+| B7 | PASS | hub buttons, no way back |
 | C1 | PASS | nothing on a fresh save |
 | C2 | PASS | item alone shows nothing; with the red lookout the red button appears |
 | C3 | PASS | red button still there after reloading |
@@ -175,6 +185,8 @@ where they did (not inside new walls), skip aids and hidden puzzle parts look ri
 | D5 | PASS | tower station: heap in front of its button |
 | D6 | PASS | guest refused on the host, told, switch put back |
 | D7 | PASS | Ctrl+R does nothing |
+| D8 | PASS | guest presses work; its sign lagged, fixed (snapshot sent at once) |
+| D9 | PASS | only the hub's station |
 | E1 | | |
 | E2 | | |
 | F0 | PASS | the game starts 3 and 4 player sessions with fewer players connected (player); only layouts change |

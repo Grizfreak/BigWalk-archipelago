@@ -296,6 +296,14 @@ namespace BigWalkArchipelago.Core.Net
             }
         }
 
+        // Sends the snapshot now rather than at the next tick, for a change a guest should see at
+        // once (a resync station's sign).
+        internal static void SendSnapshotNow()
+        {
+            if (NetworkServer.active)
+                SendSnapshotToAnnounced();
+        }
+
         private static void SendSnapshotToAnnounced()
         {
             foreach (var connection in NetworkServer.connections.Values)

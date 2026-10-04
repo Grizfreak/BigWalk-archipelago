@@ -93,8 +93,23 @@ namespace BigWalkArchipelago.Core
         // The face of a sign; its depth is the station's.
         private static readonly Vector3 SignSize = new Vector3(1.3f, 0.5f, 0f);
 
-        // On a guest: what the host last said (bits 0..5: gadgets per station; bit 6: running).
+        // On a guest: what the host last said (bits 0..5: gadgets per station; bit 6: running;
+        // bit 7: the towers' stations are there).
         private static int _mirrored = -1;
+
+        // From the slot (host): the towers' stations, and whether guests may use the stations.
+        private static bool _towers;
+        private static bool _guests;
+
+        internal static void Configure(bool towers, bool guests)
+        {
+            _towers = towers;
+            _guests = guests;
+            Plugin.Log.LogInfo(
+                $"[{nameof(ResyncStations)}] Stations in the towers {(towers ? "on" : "off")}, guests {(guests ? "may" : "may not")} use them.");
+        }
+
+        private static bool TowersOn => IsGuest ? _mirrored >= 0 && (_mirrored & (1 << 7)) != 0 : _towers;
 
         // For the snapshot.
         internal static byte HostState()
@@ -109,10 +124,35 @@ namespace BigWalkArchipelago.Core
             if (ApRuntime.ResyncRunning)
                 state |= 1 << 6;
 
+            if (_towers)
+                state |= 1 << 7;
+
             return (byte)state;
         }
 
-        internal static void ApplyFromHost(byte state) => _mirrored = state;
+        // On a guest: the signs follow at once, not at the next sync.
+        internal static void ApplyFromHost(byte state)
+        {
+            if (_mirrored == state)
+                return;
+
+            _mirrored = state;
+            for (var i = 0; i < Stations.Length; i++)
+                Write(Stations[i], i);
+        }
+
+        // On the host: what was last sent, to send a change at once.
+        private static int _sent = -1;
+
+        private static void SendIfChanged()
+        {
+            int state = HostState();
+            if (state == _sent)
+                return;
+
+            _sent = state;
+            ModChannel.SendSnapshotNow();
+        }
 
         internal static void ForgetMirror() => _mirrored = -1;
 
@@ -131,10 +171,13 @@ namespace BigWalkArchipelago.Core
         // Every couple of seconds (TeleportButtonRunner).
         internal static void Sync(bool wanted)
         {
+            if (NetworkServer.active)
+                SendIfChanged();
+
             for (var i = 0; i < Stations.Length; i++)
             {
                 var station = Stations[i];
-                if (!wanted)
+                if (!wanted || (i > 0 && !TowersOn))
                 {
                     Take(station);
                     continue;
@@ -286,7 +329,7 @@ namespace BigWalkArchipelago.Core
             if (!NetworkServer.active)
                 return true;
 
-            if (presser == null || presser.isLocalPlayer)
+            if (presser == null || presser.isLocalPlayer || _guests)
                 return false;
 
             ModChannel.SendNotice(presser.connectionToClient, why, warning: true);
@@ -302,7 +345,8 @@ namespace BigWalkArchipelago.Core
             if (ApRuntime.ResyncAll(where, GadgetsOn(index)))
                 Plugin.Log.LogInfo($"[{nameof(ResyncStations)}] Resync in {Stations[index].Name}, gadgets {(GadgetsOn(index) ? "in" : "out")}.");
 
-            Write(Stations[index], index);
+            WriteAll();
+            SendIfChanged();
         }
 
         private static void Toggle(int index, PlayerCharacter presser)
@@ -320,6 +364,14 @@ namespace BigWalkArchipelago.Core
             Plugin.Log.LogInfo($"[{nameof(ResyncStations)}] Gadgets {(on ? "in" : "out")} for the resync in {Stations[index].Name}.");
             Build(Stations[index], index);
             Write(Stations[index], index);
+            SendIfChanged();
+        }
+
+        // Every sign says "a resync is running" while one is, wherever it was started.
+        private static void WriteAll()
+        {
+            for (var i = 0; i < Stations.Length; i++)
+                Write(Stations[i], i);
         }
     }
 }

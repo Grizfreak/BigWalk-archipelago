@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -75,11 +75,16 @@ namespace BigWalkArchipelago.Core.Net
         internal string TeleportButtons { get; private set; } = "off";
         internal string[] TeleportDestinations { get; private set; } = new string[0];
         internal int TeleportIdOffset { get; private set; } = ApLocationIds.DefaultTeleportOffset;
+        internal bool TeleportBackToHub { get; private set; } = true;
 
         // The waits of the two Cabin Fever puzzles: the mode, the seconds it resolves to (0 for the
         // game's own), and whether the hidden help button is there.
         // The Black Tower's door at its foot open from the start (false on a seed older than 0.1.3).
         internal bool OpenBlackTower { get; private set; }
+
+        // The resync stations: those of the towers, and whether guests may use them.
+        internal bool TowerResyncStations { get; private set; }
+        internal bool GuestsCanResync { get; private set; }
 
         internal string CabinFeverMode { get; private set; } = "vanilla";
         internal int CabinFeverSeconds { get; private set; }
@@ -133,7 +138,10 @@ namespace BigWalkArchipelago.Core.Net
             data.TeleportButtons = GetString(raw, "teleport_buttons", data.TeleportButtons);
             data.TeleportDestinations = GetStringArray(raw, "teleport_destinations");
             data.TeleportIdOffset = GetInt(raw, "teleport_id_offset", data.TeleportIdOffset);
+            data.TeleportBackToHub = GetBool(raw, "teleport_back_to_hub", true);
             data.OpenBlackTower = GetBool(raw, "open_black_tower", false);
+            data.TowerResyncStations = GetBool(raw, "tower_resync_stations", false);
+            data.GuestsCanResync = GetBool(raw, "guests_can_resync", false);
             data.CabinFeverMode = GetString(raw, "cabin_fever_mode", data.CabinFeverMode);
             data.CabinFeverSeconds = GetInt(raw, "cabin_fever_seconds", 0);
             data.CabinFeverHelp = GetBool(raw, "cabin_fever_help", false);

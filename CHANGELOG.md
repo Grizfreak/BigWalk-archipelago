@@ -48,7 +48,7 @@ unwinnable, which is why every player of a session should run the same build.
   `with_towers`: a tower's button once its door has been opened by the button at its foot (the
   Black Tower's once the two buttons at its top have been held together, the Gauntlet's once the chapel has been opened). `items`: the same, and each also
   needs its own **Teleporter** item, six of them, useful and never required. A teleport can skip a lock the
-  logic does not count on, so none of this is logic. Guests can press them too (mod protocol 4).
+  logic does not count on, so none of this is logic. Guests can press them too. `teleport_back_to_hub` (on by default) can leave the ways back out.
 - **`open_black_tower`** (on by default): the Black Tower's door at its foot is open from the
   start, instead of waiting for the monuments of the hub and the four towers to be full.
 - **Cabin Fever waits** (`cabin_fever_time`, `cabin_fever_long_time`: `vanilla` by default,
@@ -58,7 +58,8 @@ unwinnable, which is why every player of a session should run the same build.
 - **Resync stations replace Ctrl+R**: in the hub and in each of the five towers, a button that
   takes back every gourd, key and gadget of yours that is lying around and puts them in front of
   itself, a toggle beside it to leave the gadgets out, and a sign saying what the button does.
-  Host only, and one resync at a time on the whole map.
+  Host only unless `guests_can_resync` (off by default), and one resync at a time on the whole
+  map. `tower_resync_stations` (off by default) adds the five towers' to the hub's.
 - **A new save gets its deposits back.** The number of gourds placed in the
   monuments is kept on the Archipelago server, per slot, and only ever goes up.
   A new save on the same slot puts that many back as the monuments load, in

@@ -342,6 +342,33 @@ class GauntletStagesLocal(DefaultOnToggle):
     display_name = "Gauntlet Stages Local"
 
 
+class TeleportBackToHub(DefaultOnToggle):
+    """
+    With `teleport_buttons`, a button back to the hub in each destination. Off, the hub's buttons
+    lead out and the way back is on foot. Mod only.
+    """
+
+    display_name = "Teleport Back to Hub"
+
+
+class TowerResyncStations(Toggle):
+    """
+    A resync station in each of the five towers, as well as the hub's: a button that brings back
+    your gourds, keys and gadgets lying around and puts them in front of itself. Mod only.
+    """
+
+    display_name = "Tower Resync Stations"
+
+
+class GuestsCanResync(Toggle):
+    """
+    The guests may use the resync stations too, buttons and switches. Off, only the host can.
+    Mod only.
+    """
+
+    display_name = "Guests Can Resync"
+
+
 class OpenBlackTower(DefaultOnToggle):
     """
     The Black Tower's door at its foot is open from the start, instead of opening once the
@@ -537,7 +564,10 @@ class BigWalkOptions(PerGameCommonOptions):
     hint_keys: HintKeys
     joke_filler_percentage: JokeFillerPercentage
     open_black_tower: OpenBlackTower
+    tower_resync_stations: TowerResyncStations
+    guests_can_resync: GuestsCanResync
     teleport_buttons: TeleportButtons
+    teleport_back_to_hub: TeleportBackToHub
     cabin_fever_time: CabinFeverTime
     cabin_fever_seconds_min: CabinFeverSecondsMin
     cabin_fever_seconds_max: CabinFeverSecondsMax
@@ -562,8 +592,9 @@ option_groups = [
     OptionGroup("Radio", [RadioChecks, ShuffleRadioMusic]),
     OptionGroup("Keys", [StartWithDrawbridgeOpen, HintKeys]),
     OptionGroup("Filler", [JokeFillerPercentage]),
-    OptionGroup("Teleport", [TeleportButtons]),
+    OptionGroup("Teleport", [TeleportButtons, TeleportBackToHub]),
     OptionGroup("Black Tower", [OpenBlackTower]),
+    OptionGroup("Resync", [TowerResyncStations, GuestsCanResync]),
     OptionGroup("Cabin Fever", [CabinFeverTime, CabinFeverSecondsMin, CabinFeverSecondsMax, CabinFeverSeconds, CabinFeverHelp]),
     OptionGroup("Cabin Fever Long", [CabinFeverLongTime, CabinFeverLongSecondsMin, CabinFeverLongSecondsMax, CabinFeverLongSeconds, CabinFeverLongHelp]),
     OptionGroup("Doors", [StartWithArchDoorsOpen, RequireArchDoors]),

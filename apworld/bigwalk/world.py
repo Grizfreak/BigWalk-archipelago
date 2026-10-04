@@ -383,9 +383,14 @@ class BigWalkWorld(World):
             "teleport_buttons": self.options.teleport_buttons.current_key,
             "teleport_destinations": [key for key, _ in data.TELEPORT_DESTINATIONS],
             "teleport_id_offset": data.TELEPORT_ID_OFFSET,
+            "teleport_back_to_hub": bool(self.options.teleport_back_to_hub),
 
             # The Black Tower's door at its foot, open from the start (mod only).
             "open_black_tower": bool(self.options.open_black_tower),
+
+            # The resync stations (mod only): those of the towers, and whether guests may use them.
+            "tower_resync_stations": bool(self.options.tower_resync_stations),
+            "guests_can_resync": bool(self.options.guests_can_resync),
 
             # The waits of the two Cabin Fever puzzles (mod only), flat: mode, seconds, help.
             **{

@@ -36,6 +36,7 @@ class TestFree(BigWalkTestBase):
 
     def test_the_mode_travels_and_no_item_is_added(self) -> None:
         self.assertEqual(self.world.fill_slot_data()["teleport_buttons"], "free")
+        self.assertTrue(self.world.fill_slot_data()["teleport_back_to_hub"])
         self.assertFalse(set(pool(self)) & TELEPORTERS)
 
 
@@ -69,3 +70,11 @@ class TestItems(BigWalkTestBase):
         slot_data = self.world.fill_slot_data()
         self.assertEqual(slot_data["teleport_destinations"], ["red", "green", "blue", "yellow", "black", "gauntlet"])
         self.assertEqual(slot_data["teleport_id_offset"], data.TELEPORT_ID_OFFSET)
+
+
+class TestNoWayBack(BigWalkTestBase):
+    options = {"teleport_buttons": "free", "teleport_back_to_hub": False}
+    run_default_tests = False
+
+    def test_the_way_back_can_be_left_out(self) -> None:
+        self.assertFalse(self.world.fill_slot_data()["teleport_back_to_hub"])

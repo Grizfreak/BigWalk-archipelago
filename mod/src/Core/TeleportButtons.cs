@@ -100,8 +100,12 @@ namespace BigWalkArchipelago.Core
         private static int _mirroredMask;
         private static bool _mirrored;
 
-        internal static void Configure(string mode, int idOffset, string[] keys)
+        // Whether each destination has its button back to the hub (`teleport_back_to_hub`).
+        private static bool _backToHub = true;
+
+        internal static void Configure(string mode, int idOffset, string[] keys, bool backToHub)
         {
+            _backToHub = backToHub;
             _mode = string.IsNullOrEmpty(mode) ? "off" : mode;
             _idOffset = idOffset;
             _keys = keys ?? Array.Empty<string>();
@@ -161,7 +165,8 @@ namespace BigWalkArchipelago.Core
             if (_mode == "off")
                 return mask;
 
-            mask |= ReturnBit;
+            if (_backToHub)
+                mask |= ReturnBit;
             for (var i = 0; i < Destinations.Length; i++)
             {
                 if (IsOpen(Destinations[i].Key))

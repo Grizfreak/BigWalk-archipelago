@@ -815,6 +815,7 @@ namespace BigWalkArchipelago.Core.Net
                 Connection.SlotData.GauntletPuzzlesRequired,
                 Connection.SlotData.LockGauntletNeeds);
             BlackTowerDoor.Configure(Connection.SlotData.OpenBlackTower);
+            ResyncStations.Configure(Connection.SlotData.TowerResyncStations, Connection.SlotData.GuestsCanResync);
             CabinFeverWaits.Configure(
                 Connection.SlotData.CabinFeverMode, Connection.SlotData.CabinFeverSeconds, Connection.SlotData.CabinFeverHelp,
                 Connection.SlotData.CabinFeverLongMode, Connection.SlotData.CabinFeverLongSeconds,
@@ -822,7 +823,8 @@ namespace BigWalkArchipelago.Core.Net
             TeleportButtons.Configure(
                 Connection.SlotData.TeleportButtons,
                 Connection.SlotData.TeleportIdOffset,
-                Connection.SlotData.TeleportDestinations);
+                Connection.SlotData.TeleportDestinations,
+                Connection.SlotData.TeleportBackToHub);
             SessionJournal.Write(
                 "connected", $"{Connection.SlotName} | {Connection.SlotData.Describe()} | {_appliedItemCount} item(s) already applied");
 
