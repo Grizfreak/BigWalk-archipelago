@@ -188,6 +188,9 @@ PUZZLE_NEEDS: tuple[PuzzleNeed, ...] = (
     PuzzleNeed("coordinates_computer", "Coordinates Computer Unlock"),
     PuzzleNeed("eggs", "Eggs Unlock"),
 )
+
+EARLY_NEEDS: tuple[PuzzleNeed, ...] = PUZZLE_NEEDS[0:3]
+"""Buttons, Synchronized Buttons, Icon Panels: the needs most puzzles share, asked for early."""
 """
 What a puzzle can need that this world turns into an item (`lock_puzzle_needs`).
 The order is load-bearing: an item's id is its position here.

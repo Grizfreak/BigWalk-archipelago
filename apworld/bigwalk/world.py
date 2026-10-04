@@ -169,6 +169,7 @@ class BigWalkWorld(World):
         self.deposit_goal = self.options.gourds_required.value
 
         self._pick_a_random_puzzle_need()
+        self._ask_for_buttons_early()
         self._read_the_old_arch_door_option()
         opened = self.options.start_with_arch_doors_open.value
         self.locked_arch_doors = tuple(door for door in data.ARCH_DOORS if door.item_name not in opened)
@@ -218,6 +219,19 @@ class BigWalkWorld(World):
         if candidates:
             picked = self.random.choice(candidates)
             self.options.start_with_puzzle_needs.value = set(self.options.start_with_puzzle_needs.value) | {picked.key}
+
+    def _ask_for_buttons_early(self) -> None:
+        """
+        With the puzzles' parts as items, ask for the three most puzzles share (Buttons,
+        Synchronized Buttons, Icon Panels) early, in any world (in a solo seed the player's own),
+        those the player does not start with. The default start opens a dozen locations and each
+        part one to six more: 1 seed in 23 failed to generate (2026-10-05).
+        """
+        if not self.options.lock_puzzle_needs:
+            return
+        for need in data.EARLY_NEEDS:
+            if need.key not in self.options.start_with_puzzle_needs.value:
+                self.multiworld.early_items[self.player][need.item_name] = 1
 
     def _read_the_old_arch_door_option(self) -> None:
         """

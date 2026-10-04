@@ -18,6 +18,8 @@ Numbered 0.3.0 rather than 0.1.3: a release this size moves the minor number; th
   buttons for Fielding, both Obbies, Blindfold Catwalk, Optical Telegraph and Indoor Semaphore, the
   Timed Tomato for the Obby, icon panels for Indoor Semaphore, pose panels for the Charades Rooms.
   A seed made before this may put one of them in logic a little early.
+- With `lock_puzzle_needs`, Buttons, Synchronized Buttons and Icon Panels are asked for early
+  (in any world), so that a solo seed with the defaults always generates (1 in 23 failed).
 - **Renamed**: `gourd_slot_checks` is now `gourd_sanity`, `radio_checks` is now `radio_sanity`.
   A YAML with the old names falls back to the defaults: rename them.
 - **The towers' keys and checks carry the names the players use** (ROADMAP U9): **Red
