@@ -1,6 +1,6 @@
-# 0.1.3 test session
+# 0.3.0 test session
 
-What has to pass before 0.1.3 ships. Each test says what to set up, what to do, and what to
+What has to pass before 0.3.0 ships. Each test says what to set up, what to do, and what to
 see on screen and in `BepInEx/LogOutput.log` (the host's; the loopback guest writes
 `LogOutput.1.log`). Mark each one **PASS**, **FAIL** (with what was seen) or **SKIP**.
 

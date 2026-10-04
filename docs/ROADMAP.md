@@ -43,18 +43,18 @@ option, or is dropped.
 
 ## Versions planned (player, 2026-10-02)
 
-Agreed on 2026-10-02. An item that is not named here is parked until after 0.1.8.
+Agreed on 2026-10-02. An item that is not named here is parked until after 0.8.
 
 | Version | The core | Rides along (why) | To settle first |
 |---|---|---|---|
-| **0.1.3** | The Silent Gauntlet as real checks and locations, with items that open the floors (S5 and the seven stages; their needs are already in `data.GAUNTLET_STAGE_TAGS`). *Done 2026-10-03, tested solo: `gauntlet_mode`, `gauntlet_puzzles_required`, `gauntlet_stages_local`. A stage's check is the `GauntletChamberN` write, a stairway is `GourdTower_Gate All Hold`. Co-op, reload and `vanilla` tested; the Gauntlet's puzzle parts are hidden by `PuzzleNeedHider` under `locked_stages` and still to check in game against `GAUNTLET_STAGE_TAGS` (the stage lines of the log).* | U7 the game's skip aids (debug key Keypad 6 to see what they do, still to check). U1 hints for keys from the start, L7 `require_arch_doors`: apworld only, no risk. U3 a new save gets its deposits back: felt on every seed. | How a stage is detected: settled, `GauntletChamber0..6` are written when a puzzle is solved (2026-10-03). The option from the document that decouples opening a door from clearing the stage: `gauntlet_puzzles_required`. `PuzzleNeedHider` stops leaving the Gauntlet alone once its stages are in the logic. Testing: the debug keys (Keypad 4, End) fake the held buttons; only the synchronized buttons (stage 4) and the timed tomato (stage 3) need real timing. |
-| **0.1.4** | Traps (T1 to T5, R9), and DeathLink (`death_link`: sent when a puzzle is failed, the fail states found per puzzle with the state log; received: everyone drops what they hold by default, or a roulette of random traps as an option; a tolerance before sending) | U8 joke filler (same pool as the traps, hidden until then), C1 a palette per seed and C2 colours for keys and buoys (T5's colour chaos is a colour trap). In the game's own options menu (player, 2026-10-05): U13 the size of the overlay's text (top left), U14 renaming the gourds in the game, shown on the guests' screens too | The trap item exists (`Untied Shoelace`, hidden `trap_fill_percentage`) with no effect. An effect is local to each machine, like the hider. Whether to receive DeathLinks too (sending is on Ctrl+P). |
-| **0.1.5** | Objectives to spice up a run (G1 to G6, G5 first) | H1 to H3 hints and S8 a check per tower reached (one trigger, "tower reached"), U9 the names players use for the towers | G5 lists what a seed asks for, the way `start_with_arch_doors_open` lists doors. |
-| **0.1.6** | Locking the players' ways to communicate: R3 `lock_abilities` (body) and R2 `lock_pickups` (megaphone, walkie-talkie, radio) | R9's "No Comms" is the trap sibling | Input is Rewired and blocked locally, which every player can do. R2 refuses a pick-up on the host (`UserCode_CmdPickUp`). |
-| **0.1.7** | More locations: S1 backpacks, S2 flares, S7 the first pick-up of each kind, S11 the objects the filler lacks | They reuse R2's host-side pick-up hook | S1, S2 and S7 overlap: settle the three together. |
-| **0.1.8** | The vanilla behaviours back as options: L1 to L6, L8 | | Defaults stay "vanilla + AP" (the rule above). |
+| **0.3** | The Silent Gauntlet as real checks and locations, with items that open the floors (S5 and the seven stages; their needs are already in `data.GAUNTLET_STAGE_TAGS`). *Done 2026-10-03, tested solo: `gauntlet_mode`, `gauntlet_puzzles_required`, `gauntlet_stages_local`. A stage's check is the `GauntletChamberN` write, a stairway is `GourdTower_Gate All Hold`. Co-op, reload and `vanilla` tested; the Gauntlet's puzzle parts are hidden by `PuzzleNeedHider` under `locked_stages` and still to check in game against `GAUNTLET_STAGE_TAGS` (the stage lines of the log).* | U7 the game's skip aids (debug key Keypad 6 to see what they do, still to check). U1 hints for keys from the start, L7 `require_arch_doors`: apworld only, no risk. U3 a new save gets its deposits back: felt on every seed. | How a stage is detected: settled, `GauntletChamber0..6` are written when a puzzle is solved (2026-10-03). The option from the document that decouples opening a door from clearing the stage: `gauntlet_puzzles_required`. `PuzzleNeedHider` stops leaving the Gauntlet alone once its stages are in the logic. Testing: the debug keys (Keypad 4, End) fake the held buttons; only the synchronized buttons (stage 4) and the timed tomato (stage 3) need real timing. |
+| **0.4** | Traps (T1 to T5, R9), and DeathLink (`death_link`: sent when a puzzle is failed, the fail states found per puzzle with the state log; received: everyone drops what they hold by default, or a roulette of random traps as an option; a tolerance before sending) | U8 joke filler (same pool as the traps, hidden until then), C1 a palette per seed and C2 colours for keys and buoys (T5's colour chaos is a colour trap). In the game's own options menu (player, 2026-10-05): U13 the size of the overlay's text (top left), U14 renaming the gourds in the game, shown on the guests' screens too | The trap item exists (`Untied Shoelace`, hidden `trap_fill_percentage`) with no effect. An effect is local to each machine, like the hider. Whether to receive DeathLinks too (sending is on Ctrl+P). |
+| **0.5** | Objectives to spice up a run (G1 to G6, G5 first) | H1 to H3 hints and S8 a check per tower reached (one trigger, "tower reached"), U9 the names players use for the towers | G5 lists what a seed asks for, the way `start_with_arch_doors_open` lists doors. |
+| **0.6** | Locking the players' ways to communicate: R3 `lock_abilities` (body) and R2 `lock_pickups` (megaphone, walkie-talkie, radio) | R9's "No Comms" is the trap sibling | Input is Rewired and blocked locally, which every player can do. R2 refuses a pick-up on the host (`UserCode_CmdPickUp`). |
+| **0.7** | More locations: S1 backpacks, S2 flares, S7 the first pick-up of each kind, S11 the objects the filler lacks | They reuse R2's host-side pick-up hook | S1, S2 and S7 overlap: settle the three together. |
+| **0.8** | The vanilla behaviours back as options: L1 to L6, L8 | | Defaults stay "vanilla + AP" (the rule above). |
 
-After 0.1.8, without a date: quality of life U2, U4, U5 (placed in the version that needs them), research R1b `lock_towers`, R4 one-player mode, R5, R6, R7, R8, S9, S10, and U6 PopTracker (an external pack, any time). Before 1.0: Q1 a seed played from the first check to the goal (the multiworld run in progress, if it gets there), Q2 every option described (kept up to date with each version), Q3 the defaults, Q4 test 24 (when a save has one). Tooling D1 (keyboard for the host, gamepad for the guest) only when it gets in the way.
+After 0.8, without a date: quality of life U2, U4, U5 (placed in the version that needs them), research R1b `lock_towers`, R4 one-player mode, R5, R6, R7, R8, S9, S10, and U6 PopTracker (an external pack, any time). Before 1.0: Q1 a seed played from the first check to the goal (the multiworld run in progress, if it gets there), Q2 every option described (kept up to date with each version), Q3 the defaults, Q4 test 24 (when a save has one). Tooling D1 (keyboard for the host, gamepad for the guest) only when it gets in the way.
 
 **Step 2 — Quality of life** *(new: small, and felt on every seed)*
 - [x] U1 Hints for keys from the start (`hint_keys: from_start`) — apworld only
@@ -68,12 +68,12 @@ After 0.1.8, without a date: quality of life U2, U4, U5 (placed in the version t
 - [x] U9 Names players use: towers by their full name (Red Funnel Tower, …),
   the document's spellings
 - [x] U10 Teleport buttons in the world (`teleport_buttons`: off / free / with_towers / items); six in the hub, a way back in each destination; solo and loopback guest tested 2026-10-04. To check: the `with_towers` and `items` modes in play, and whether the Black Tower and the Gauntlet should open with the Big Wall Door together
-- [x] U11 Resync stations in the hub and each tower (button, gadgets switch, sign), `tower_resync_stations`, `guests_can_resync`; done in 0.1.3. Later: more exclusion settings (keys), a picture instead of the sign's words (U12)
+- [x] U11 Resync stations in the hub and each tower (button, gadgets switch, sign), `tower_resync_stations`, `guests_can_resync`; done in 0.3. Later: more exclusion settings (keys), a picture instead of the sign's words (U12)
 - [ ] U12 Less text on screen (player, 2026-10-05): a small sign (a picture, not words) above the Resync and gather buttons; the overlay keeps "Archipelago: Connected" and, for now, the lines of received items (player: text stays for now); the resync hint goes; the goal line goes with the objectives update
-- [ ] U13 The size of the overlay's text (top left), set in the game's options menu (0.1.4)
-- [ ] U14 Renaming the gourds in the game, from the game's options menu: the host chooses, the name reaches the guests' screens; a guest cannot choose one (player, 2026-10-05) (0.1.4)
-- [ ] T6 DeathLink: send on a failed puzzle (fail states to find per puzzle), a tolerance before sending. Received: by default every player drops what they hold; an option turns it into a roulette that fires a random trap instead (idea from another apworld, player 2026-10-05) (0.1.4)
-- [x] Q5 Three and four players (tested 2026-10-05, docs/TESTS-0.1.3.md F): the game loads other versions of many landmarks for 3 and 4 (PlayerCountSwapper); the Gauntlet recon, the hidden puzzle parts, skip aids, Cabin Fever help buttons and the apworld's puzzle needs were all made on the 2-player version (docs/TESTS-0.1.3.md, F). Player, 2026-10-05: more players only change the layout of buttons and add walls, and give fewer tools, so the 2-player classification should hold; to check in one pass
+- [ ] U13 The size of the overlay's text (top left), set in the game's options menu (0.4)
+- [ ] U14 Renaming the gourds in the game, from the game's options menu: the host chooses, the name reaches the guests' screens; a guest cannot choose one (player, 2026-10-05) (0.4)
+- [ ] T6 DeathLink: send on a failed puzzle (fail states to find per puzzle), a tolerance before sending. Received: by default every player drops what they hold; an option turns it into a roulette that fires a random trap instead (idea from another apworld, player 2026-10-05) (0.4)
+- [x] Q5 Three and four players (tested 2026-10-05, docs/TESTS-0.3.0.md F): the game loads other versions of many landmarks for 3 and 4 (PlayerCountSwapper); the Gauntlet recon, the hidden puzzle parts, skip aids, Cabin Fever help buttons and the apworld's puzzle needs were all made on the 2-player version (docs/TESTS-0.3.0.md, F). Player, 2026-10-05: more players only change the layout of buttons and add walls, and give fewer tools, so the 2-player classification should hold; to check in one pass
 
 **Step 3 — Traps**
 - [ ] T1 Trap weights as options (`trap_percent` exists, hidden)
@@ -145,7 +145,7 @@ After 0.1.8, without a date: quality of life U2, U4, U5 (placed in the version t
 - [ ] R3 Lock abilities: jump, crouch, gestures (`lock_abilities`)
 - [ ] R4 One-player mode; player limit as items
 - [ ] R5 `big_climb`, `big_club`
-- [ ] R6 Golf, Cabin Fever timers, black sphere puzzles (Cabin Fever done in 0.1.3: `cabin_fever_*`, help buttons; golf and the black spheres remain)
+- [ ] R6 Golf, Cabin Fever timers, black sphere puzzles (Cabin Fever done in 0.3: `cabin_fever_*`, help buttons; golf and the black spheres remain)
 - [ ] R7 Whiteboards: hints, and the rewrite trap
 - [ ] R8 Custom tiles
 - [ ] R9 The other traps (No Comms, Cutscene, The Mask, Whiteboard Rewrite)
@@ -216,7 +216,7 @@ still true:
 Not in the document; gathered from the leads set aside in `NEXT-SESSION.md`
 and from what a whole seed will ask of players.
 
-- **U1 — Done (0.1.3), apworld only.** `hint_keys: from_start`: the seven key
+- **U1 — Done (0.3), apworld only.** `hint_keys: from_start`: the seven key
   locations go into `start_location_hints`. The other two values are H2.
 - **U2 — To do.** The map already shows the purple gourds
   (`VariantGourdMapUnlocker`); it could mark each puzzle whose check is not
@@ -305,7 +305,7 @@ and from what a whole seed will ask of players.
   machine and the peck reach the host), which zones, where each one stands, and
   whether a teleport may skip a locked region (it must not: the logic assumes
   the player walked there). Modded players only, off by default.
-- **U9 — Partly done (0.1.3): the towers' keys, cuts and deposits take the document's tower names (Red Funnel Tower Key, ...). Key deposits are still named by tower, not by what they open, and the three puzzle spellings are untouched.** Original note: The document's names against ours. Towers: it says Red
+- **U9 — Partly done (0.3): the towers' keys, cuts and deposits take the document's tower names (Red Funnel Tower Key, ...). Key deposits are still named by tower, not by what they open, and the three puzzle spellings are untouched.** Original note: The document's names against ours. Towers: it says Red
   Funnel, Green Cup, Blue Castle, Yellow Twist, Black Monolith, Green Dome
   Tower; our locations say "Red Tower Key Deposit" and so on. Key deposits:
   it names them by what they open (Map Room Key Deposit, Chairlift Station,
@@ -416,7 +416,7 @@ The mod suppresses each of these; an option turns the suppression off.
   would leave them to their buttons. To measure first: where each button is,
   and whether the start zone can still be left (the reason the mod opens the
   First one: regions.py, "the way out of the starting zone").
-- **L7 — Done (0.1.3), on by default.** `require_arch_doors`, from the player's
+- **L7 — Done (0.3), on by default.** `require_arch_doors`, from the player's
   account of the map: the Left door gates the Yellow, Blue and Black towers, the
   chapel (`ending`) and the Green Dome; the Right door the Green Tower and the
   chairlift zone (purple gourds). The Red Tower is not behind the Right door: it is
@@ -484,7 +484,7 @@ The mod suppresses each of these; an option turns the suppression off.
   already detected for the goals; when they are not the goal they could be
   checks. Same for the 46th `RewardGourd` of the secret ending. On a seed that
   goals on one of them, it stays the goal event, not a check.
-- **S6 — Moved out of 0.1.3 (2026-10-03), with the doors and towers.** Probably
+- **S6 — Moved out of 0.3 (2026-10-03), with the doors and towers.** Probably
   doors that open once, so items for R1b and the arch doors rather than checks (the
   player does not want an opening as a location). To settle by playing the three
   places with the `[SystemWrites]` log, which named the lookout lights in a minute.

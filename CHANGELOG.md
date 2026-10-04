@@ -6,7 +6,9 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
-## 0.1.3 (in progress)
+## 0.3.0 (2026-10-05)
+
+Numbered 0.3.0 rather than 0.1.3: a release this size moves the minor number; the next ones are 0.4, 0.5...
 
 ### Changed
 
@@ -14,6 +16,15 @@ unwinnable, which is why every player of a session should run the same build.
 - **`lock_puzzle_needs` is on by default**: the parts puzzles are built from are items to find.
 - **Renamed**: `gourd_slot_checks` is now `gourd_sanity`, `radio_checks` is now `radio_sanity`.
   A YAML with the old names falls back to the defaults: rename them.
+- **The towers' keys and checks carry the names the players use** (ROADMAP U9): **Red
+  Funnel Tower Key**, **Green Cup Tower Key**, **Blue Castle Tower Key**, **Yellow Twist
+  Tower Key**, **Black Monolith Tower Key** and **Green Dome Tower Key**, with their
+  cuts and deposits (**Red Funnel Tower Key Cut 1**, **Red Funnel Tower Key Deposit**).
+  Ids did not move, so a seed made by 0.1.2 still plays, but a YAML or a plando that
+  names one of these locations or items needs the new name.
+- The channel between the host and its guests is now version 7: everyone
+  needs 0.3.0.
+- Ctrl+R is gone: the resync stations do it.
 
 ### New
 
@@ -80,17 +91,6 @@ unwinnable, which is why every player of a session should run the same build.
 - With `lock_puzzle_needs`, the "skip this challenge" panels (the game's own
   accessibility setting) are no longer hidden with the buttons: each shows once the
   parts of its own puzzle have arrived.
-
-### Changed
-
-- **The towers' keys and checks carry the names the players use** (ROADMAP U9): **Red
-  Funnel Tower Key**, **Green Cup Tower Key**, **Blue Castle Tower Key**, **Yellow Twist
-  Tower Key**, **Black Monolith Tower Key** and **Green Dome Tower Key**, with their
-  cuts and deposits (**Red Funnel Tower Key Cut 1**, **Red Funnel Tower Key Deposit**).
-  Ids did not move, so a seed made by 0.1.2 still plays, but a YAML or a plando that
-  names one of these locations or items needs the new name.
-- The channel between the host and its guests is now version 3: everyone
-  needs 0.1.3.
 
 ### Dropped
 
