@@ -483,6 +483,24 @@ class CabinFeverLongHelp(Toggle):
     display_name = "Cabin Fever Long Help Button"
 
 
+class TileThief(Choice):
+    """
+    A button beside the Tile Thief puzzle that makes peg tiles in front of it.
+
+    - vanilla: no button.
+    - easy: the tiles the puzzle expects.
+    - chaos: one tile of every kind the puzzle draws from; the answer is still yours to find.
+
+    With Lock Puzzle Needs, it waits for the panels Tile Thief is built from.
+    """
+
+    display_name = "Tile Thief"
+    option_vanilla = 0
+    option_easy = 1
+    option_chaos = 2
+    default = option_vanilla
+
+
 class JokeFillerPercentage(Range):
     """
     Share of the filler items that are jokes: the community's thirteen wrong names for a
@@ -548,6 +566,7 @@ class BigWalkOptions(PerGameCommonOptions):
     cabin_fever_long_seconds_max: CabinFeverLongSecondsMax
     cabin_fever_long_seconds: CabinFeverLongSeconds
     cabin_fever_long_help: CabinFeverLongHelp
+    tile_thief: TileThief
     gauntlet_mode: GauntletMode
     gauntlet_puzzles_required: GauntletPuzzlesRequired
     lock_gauntlet_needs: LockGauntletNeeds
@@ -568,7 +587,7 @@ option_groups = [
     OptionGroup("Puzzle QoL", [
         CabinFeverTime, CabinFeverSecondsMin, CabinFeverSecondsMax, CabinFeverSeconds, CabinFeverHelp,
         CabinFeverLongTime, CabinFeverLongSecondsMin, CabinFeverLongSecondsMax, CabinFeverLongSeconds,
-        CabinFeverLongHelp,
+        CabinFeverLongHelp, TileThief,
     ]),
 ]
 

@@ -159,6 +159,18 @@ that the extra walls do not block a stage the mod holds or opens, and that stair
 generous with tools, so hiding should only ever be stricter with more players): teleport buttons, gather buttons and the Resync button stand
 where they did (not inside new walls), skip aids and hidden puzzle parts look right.
 
+## G. Tile Thief (`tile_thief`)
+
+**G1. easy** (`BWBack`): the button beside Tile Thief (magic button mark) makes the four tiles the
+puzzle expects in front of it; put them in their slots, the puzzle validates. A second press
+replaces them. The guest sees the same tiles and can carry them.
+
+**G2. chaos** (`BWChaos`): the button makes 27 tiles, one of each kind of the slots' sets; the
+puzzle can be solved with them.
+
+**G3. Locked** (any slot with `lock_puzzle_needs` and a panel missing): the button only says the
+tiles have not all arrived.
+
 ## Results
 
 | Test | Result | Notes |
@@ -194,3 +206,6 @@ where they did (not inside new walls), skip aids and hidden puzzle parts look ri
 | F2 | PASS | 4 players: the house has no count in its name, fixed; push-button effect errors fixed |
 | F3 | PASS | 3 and 4 players |
 | F4 | PASS | 3 and 4 players |
+| G1 | | |
+| G2 | | |
+| G3 | | |

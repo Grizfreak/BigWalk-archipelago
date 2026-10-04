@@ -387,6 +387,7 @@ class BigWalkWorld(World):
 
             # The Black Tower's door at its foot, open from the start (mod only).
             "open_black_tower": bool(self.options.open_black_tower),
+            "tile_thief": self.options.tile_thief.current_key,
 
             # The resync stations (mod only): those of the towers, and whether guests may use them.
             "tower_resync_stations": bool(self.options.tower_resync_stations),

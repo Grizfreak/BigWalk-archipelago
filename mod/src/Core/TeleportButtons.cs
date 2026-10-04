@@ -325,6 +325,7 @@ namespace BigWalkArchipelago.Core
             {
                 TeleportButtons.Sync();
                 CabinFeverWaits.Tick();
+                TileThiefHelper.Sync();
                 BlackTowerDoor.Enforce();
             }
             catch (Exception ex)

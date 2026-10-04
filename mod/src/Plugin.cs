@@ -1,4 +1,4 @@
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using BigWalkArchipelago.Core;
@@ -76,6 +76,7 @@ namespace BigWalkArchipelago
             AddComponent<Core.PuzzleNeedHider>();
             AddComponent<Core.WorldButtons>();
             AddComponent<Core.TeleportButtonRunner>();
+            AddComponent<Core.PegTileSpawnHandler>();
             AddComponent<Core.KeyColourPainter>();
             AddComponent<Core.Net.ModChannel>();
             AddComponent<Core.ModVersionLabel>();

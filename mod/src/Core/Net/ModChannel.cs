@@ -64,7 +64,7 @@ namespace BigWalkArchipelago.Core.Net
 
         // Both ends must speak the same version; a mismatch is logged once
         // and ignored rather than half-read.
-        private const byte ProtocolVersion = 7;
+        private const byte ProtocolVersion = 8;
 
         private const byte KindHello = 1;
         private const byte KindSnapshot = 2;
@@ -359,7 +359,8 @@ namespace BigWalkArchipelago.Core.Net
                 writer.WriteByte((byte)TeleportButtons.HostMask());
                 NetworkWriterExtensions.WriteUShort(writer, (ushort)CabinFeverWaits.Seconds(0));
                 NetworkWriterExtensions.WriteUShort(writer, (ushort)CabinFeverWaits.Seconds(1));
-                writer.WriteByte((byte)((CabinFeverWaits.Help(0) ? 1 : 0) | (CabinFeverWaits.Help(1) ? 2 : 0)));
+                writer.WriteByte((byte)((CabinFeverWaits.Help(0) ? 1 : 0) | (CabinFeverWaits.Help(1) ? 2 : 0)
+                                        | (TileThiefHelper.HostMode << 2)));
                 writer.WriteByte(ResyncStations.HostState());
 
                 connection.Send(writer.ToArraySegment(), 0);
@@ -491,6 +492,7 @@ namespace BigWalkArchipelago.Core.Net
                 GauntletStairways.ForgetMirror();
                 TeleportButtons.ForgetMirror();
                 CabinFeverWaits.ForgetMirror();
+                TileThiefHelper.ForgetMirror();
                 ResyncStations.ForgetMirror();
             }
 
@@ -681,6 +683,7 @@ namespace BigWalkArchipelago.Core.Net
                 GauntletStairways.ApplyFromHost(gauntletLocked, gauntletPartsLocked);
                 TeleportButtons.ApplyFromHost(teleportMask);
                 CabinFeverWaits.ApplyFromHost(cabinFever, cabinFeverLong, (cabinFeverHelp & 1) != 0, (cabinFeverHelp & 2) != 0);
+                TileThiefHelper.ApplyFromHost((cabinFeverHelp >> 2) & 3);
                 ResyncStations.ApplyFromHost(resyncStations);
             }
             catch (Exception ex)
