@@ -68,9 +68,9 @@ After 0.1.8, without a date: quality of life U2, U4, U5 (placed in the version t
 - [x] U9 Names players use: towers by their full name (Red Funnel Tower, …),
   the document's spellings
 - [x] U10 Teleport buttons in the world (`teleport_buttons`: off / free / with_towers / items); six in the hub, a way back in each destination; solo and loopback guest tested 2026-10-04. To check: the `with_towers` and `items` modes in play, and whether the Black Tower and the Gauntlet should open with the Big Wall Door together
-- [ ] U11 Gather buttons in each tower: a press restocks gourds, keys and gadgets in front of the button (player, 2026-10-04); built, under solo test. To do later: an apworld option for them, exclusion settings (which kinds of item to leave out), a guest able to press them (co-op test planned 2026-10-05), a Resync button per tower so the restock follows the nearest tower
+- [x] U11 Resync stations in the hub and each tower (button, gadgets switch, sign), `tower_resync_stations`, `guests_can_resync`; done in 0.1.3. Later: more exclusion settings (keys), a picture instead of the sign's words (U12)
 - [ ] U12 Less text on screen (player, 2026-10-05): a small sign (a picture, not words) above the Resync and gather buttons; the overlay keeps "Archipelago: Connected" and, for now, the lines of received items (player: text stays for now); the resync hint goes; the goal line goes with the objectives update
-- [ ] Q5 Three and four players: the game loads other versions of many landmarks for 3 and 4 (PlayerCountSwapper); the Gauntlet recon, the hidden puzzle parts, skip aids, Cabin Fever help buttons and the apworld's puzzle needs were all made on the 2-player version (docs/TESTS-0.1.3.md, F). Player, 2026-10-05: more players only change the layout of buttons and add walls, and give fewer tools, so the 2-player classification should hold; to check in one pass
+- [x] Q5 Three and four players (tested 2026-10-05, docs/TESTS-0.1.3.md F): the game loads other versions of many landmarks for 3 and 4 (PlayerCountSwapper); the Gauntlet recon, the hidden puzzle parts, skip aids, Cabin Fever help buttons and the apworld's puzzle needs were all made on the 2-player version (docs/TESTS-0.1.3.md, F). Player, 2026-10-05: more players only change the layout of buttons and add walls, and give fewer tools, so the 2-player classification should hold; to check in one pass
 
 **Step 3 — Traps**
 - [ ] T1 Trap weights as options (`trap_percent` exists, hidden)
@@ -111,7 +111,7 @@ After 0.1.8, without a date: quality of life U2, U4, U5 (placed in the version t
 - [ ] L5 Key cuts as an option (`cut_key_sanity`)
 - [ ] L6 Arch doors opened by their buttons, as in the vanilla game
   (`linear_arch_doors`)
-- [ ] L7 Places past the Left and Right Arch Doors need their door in logic
+- [x] L7 Places past the Left and Right Arch Doors need their door in logic
   (`require_arch_doors`)
 - [ ] L8 Puzzles give their own gourd (`linear_puzzles`)
 
@@ -142,7 +142,7 @@ After 0.1.8, without a date: quality of life U2, U4, U5 (placed in the version t
 - [ ] R3 Lock abilities: jump, crouch, gestures (`lock_abilities`)
 - [ ] R4 One-player mode; player limit as items
 - [ ] R5 `big_climb`, `big_club`
-- [ ] R6 Golf, Cabin Fever timers, black sphere puzzles
+- [ ] R6 Golf, Cabin Fever timers, black sphere puzzles (Cabin Fever done in 0.1.3: `cabin_fever_*`, help buttons; golf and the black spheres remain)
 - [ ] R7 Whiteboards: hints, and the rewrite trap
 - [ ] R8 Custom tiles
 - [ ] R9 The other traps (No Comms, Cutscene, The Mask, Whiteboard Rewrite)

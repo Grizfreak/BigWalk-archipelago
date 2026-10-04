@@ -530,9 +530,22 @@ namespace BigWalkArchipelago.Core
                 clone.transform.SetParent(root.transform, false);
                 clone.transform.localPosition = Vector3.zero;
                 clone.transform.localRotation = Quaternion.identity;
+                // A push button's own plate is hidden (ReplacePlate), and the effect that changes its
+                // material while it is held down then failed on every press ("had error in effect"
+                // in Player.log) and lit up whatever shared that material. Taken off before the copy
+                // wakes up, so its state never counts it among its effects.
+                if (button.Template == PushButton)
+                {
+                    foreach (var effect in clone.GetComponentsInChildren<PeckEffectMaterialProperty>(true))
+                        UnityEngine.Object.DestroyImmediate(effect);
+                }
+
                 clone.SetActive(true);
                 if (button.Template == PushButton)
+                {
                     ReplacePlate(clone, PlateColour(button.Tint ?? button.Icon));
+
+                }
 
                 Plugin.Log.LogInfo(
                     $"[{nameof(WorldButtons)}] '{template.name}' copied as a native button, tickets {firstTicket}..{ticket - 1}.");

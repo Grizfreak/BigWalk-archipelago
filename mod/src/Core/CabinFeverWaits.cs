@@ -40,12 +40,12 @@ namespace BigWalkArchipelago.Core
         {
             new Puzzle
             {
-                Key = "cabin_fever", HousePath = "CabinFever ", Vanilla = 300f, HelpSlot = 18,
+                Key = "cabin_fever", HousePath = "CabinFever", Vanilla = 300f, HelpSlot = 18,
                 HelpPoint = new Vector3(300.71f, 24.06f, -110.36f), HelpNormal = new Vector3(-0.73f, 0f, -0.68f).normalized,
             },
             new Puzzle
             {
-                Key = "cabin_fever_long", HousePath = "CabinFeverLong ", Vanilla = 1800f, HelpSlot = 19,
+                Key = "cabin_fever_long", HousePath = "CabinFeverLong", Vanilla = 1800f, HelpSlot = 19,
                 HelpPoint = new Vector3(525.14f, 77.96f, -864.88f), HelpNormal = new Vector3(-0.07f, 0f, -1.00f).normalized,
             },
         };
@@ -167,8 +167,14 @@ namespace BigWalkArchipelago.Core
             if (at < 0)
                 return false;
 
+            // "CabinFever 2Player/" for two and three players, "CabinFever/" for four (timer dumps of
+            // 2026-10-05): the house's name, then either its count or nothing.
             var rest = path.Substring(at + 1 + house.Length);
-            return rest.Length > 1 && char.IsDigit(rest[0]) && rest.Substring(1).StartsWith("Player/", StringComparison.Ordinal);
+            if (rest.StartsWith("/", StringComparison.Ordinal))
+                return true;
+
+            return rest.Length > 2 && rest[0] == ' ' && char.IsDigit(rest[1])
+                   && rest.Substring(2).StartsWith("Player/", StringComparison.Ordinal);
         }
 
         private static void SyncHelpButton(Puzzle puzzle)

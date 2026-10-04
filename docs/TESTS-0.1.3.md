@@ -190,7 +190,7 @@ where they did (not inside new walls), skip aids and hidden puzzle parts look ri
 | E1 | PASS | seven stages: parts hidden until their item, stairways with item and puzzle; culled dispenser fixed |
 | E2 | | |
 | F0 | PASS | the game starts 3 and 4 player sessions with fewer players connected (player); only layouts change |
-| F1 | | |
-| F2 | | |
-| F3 | | |
-| F4 | | |
+| F1 | PASS | 3 and 4 players: LandmarksPlayerCount3/4 loaded |
+| F2 | PASS | 4 players: the house has no count in its name, fixed; push-button effect errors fixed |
+| F3 | PASS | 3 and 4 players |
+| F4 | PASS | 3 and 4 players |
