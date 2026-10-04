@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Mirror;
@@ -706,16 +706,30 @@ namespace BigWalkArchipelago.Core
             }
 
             _hiddenByUs.Add(id);
-            foreach (var renderer in state.Renderers)
+
+            // A part switched on again by the game while hidden is one it means to show: what
+            // was off at the first hide was often only culled, the place being far away, and
+            // was put back off when its item came (a timed tomato's dispenser, 2026-10-05).
+            for (var i = 0; i < state.Renderers.Length; i++)
             {
+                var renderer = state.Renderers[i];
                 if (renderer != null && renderer.enabled)
+                {
+                    if (!first)
+                        state.RendererWas[i] = true;
                     renderer.enabled = false;
+                }
             }
 
-            foreach (var collider in state.Colliders)
+            for (var i = 0; i < state.Colliders.Length; i++)
             {
+                var collider = state.Colliders[i];
                 if (collider != null && collider.enabled)
+                {
+                    if (!first)
+                        state.ColliderWas[i] = true;
                     collider.enabled = false;
+                }
             }
 
             // Without a collider a loose tile would fall out of the world.

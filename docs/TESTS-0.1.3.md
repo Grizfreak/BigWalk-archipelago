@@ -187,7 +187,7 @@ where they did (not inside new walls), skip aids and hidden puzzle parts look ri
 | D7 | PASS | Ctrl+R does nothing |
 | D8 | PASS | guest presses work; its sign lagged, fixed (snapshot sent at once) |
 | D9 | PASS | only the hub's station |
-| E1 | | |
+| E1 | PASS | seven stages: parts hidden until their item, stairways with item and puzzle; culled dispenser fixed |
 | E2 | | |
 | F0 | PASS | the game starts 3 and 4 player sessions with fewer players connected (player); only layouts change |
 | F1 | | |
