@@ -28,7 +28,7 @@ Numbered 0.3.0 rather than 0.1.3: a release this size moves the minor number; th
   cuts and deposits (**Red Funnel Tower Key Cut 1**, **Red Funnel Tower Key Deposit**).
   Ids did not move, so a seed made by 0.1.2 still plays, but a YAML or a plando that
   names one of these locations or items needs the new name.
-- The channel between the host and its guests is now version 7: everyone
+- The channel between the host and its guests is now version 8: everyone
   needs 0.3.0.
 - Ctrl+R is gone: the resync stations do it.
 
@@ -95,6 +95,8 @@ Numbered 0.3.0 rather than 0.1.3: a release this size moves the minor number; th
 
 ### Fixed
 
+- Universal Tracker rebuilds a seed with its `gauntlet_stage_items` and `teleport_buttons`, and a
+  seed made before progressive Gauntlet doors with one door per stage (it was never in go mode).
 - A save connected to a different seed or slot than it knew no longer sends the checks
   it reported to the previous one (U5). Its first connection still sends the ones made
   while offline.

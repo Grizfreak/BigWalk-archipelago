@@ -206,13 +206,13 @@ the same.
 | D8 | PASS | guest presses work; its sign lagged, fixed (snapshot sent at once) |
 | D9 | PASS | only the hub's station |
 | E1 | PASS | seven stages: parts hidden until their item, stairways with item and puzzle; culled dispenser fixed |
-| E2 | | |
+| E2 | PASS | duo run on archipelago.gg to the end of the Gauntlet; debug keys moved off Ctrl + movement, tracker go mode explained (out of logic, not a bug) |
 | F0 | PASS | the game starts 3 and 4 player sessions with fewer players connected (player); only layouts change |
 | F1 | PASS | 3 and 4 players: LandmarksPlayerCount3/4 loaded |
 | F2 | PASS | 4 players: the house has no count in its name, fixed; push-button effect errors fixed |
 | F3 | PASS | 3 and 4 players |
 | F4 | PASS | 3 and 4 players |
-| G1 | | |
-| G2 | | |
-| G3 | | |
-| G4 | | |
+| G1 | PASS | 3 image tiles and a speaker, the puzzle validates |
+| G2 | PASS | 36 tiles, speakers for the heard slot; glyphs redrawn after making them |
+| G3 | PASS | the button only says the tiles have not all arrived |
+| G4 | PASS | tiles swap places within each puzzle, once per save; kept across a reload |

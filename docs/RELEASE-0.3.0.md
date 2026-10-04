@@ -28,18 +28,22 @@ Update both files: the mod zip for every player, the apworld for whoever generat
 - The options are sorted into five groups: Goal, Sanity, Logic, QoL, Puzzle QoL.
 
 ### Added
-- **The Silent Gauntlet** (`gauntlet_mode: locked_stages`): each of the seven stages is a check, and its way up is an item (Gauntlet Stage 1 to 7 Door). `gauntlet_puzzles_required`, `gauntlet_stages_local` and `lock_gauntlet_needs` shape it; the puzzle parts inside the stages are hidden like the rest of the island's.
+- **The Silent Gauntlet** (`gauntlet_mode: locked_stages`): each of the seven stages is a check, and its way up is an item: seven Progressive Gauntlet Doors by default, or one door per stage with `gauntlet_stage_items: individual`. `gauntlet_puzzles_required`, `gauntlet_stages_local` and `lock_gauntlet_needs` shape it; the puzzle parts inside the stages are hidden like the rest of the island's.
 - **Teleport buttons** (`teleport_buttons`: off, free, with_towers, items): buttons in the hub to the Red, Green, Blue, Yellow and Black towers and the Silent Gauntlet. `with_towers` opens one when you have opened the place on foot; `items` also needs its Teleporter. `teleport_back_to_hub` adds a way back in each place.
 - **Resync stations replace Ctrl+R**: a button in the hub (and in each tower with `tower_resync_stations`) brings back your gourds, keys and gadgets lying around, with a light switch to leave the gadgets out and a sign saying what it does. Host only unless `guests_can_resync`; one resync at a time.
 - **Cabin Fever waits**: `cabin_fever_time` and `cabin_fever_long_time` (vanilla, reduced, random_between, fixed), and a hidden help button in each house that takes ten seconds off.
+- **Tile Thief** (`tile_thief`): a button beside the puzzle that makes new tiles in front of it, the expected ones (`easy`) or every kind it draws from (`chaos`).
+- **`shuffle_peg_tiles`**: the tiles of each puzzle swap places, differently for each seed.
 - **`open_black_tower`** (on by default): the Black Tower's door is open from the start.
-- **`require_arch_doors`** (on by default): what lies past the Left and Right Arch Doors needs that door in logic.
+- **`require_arch_doors`** (on by default): what lies past the Left and Right Arch Doors needs that door in logic. The doors can still be walked round, but until one arrives what is past it stays out of logic, in the tracker too. The end of the game never needs them.
 - **`hint_keys: from_start`**: the seven big keys are hinted from the first minute.
 - **A new save gets its deposits back**: the server remembers how many gourds you placed.
 
 ### Fixed
 - A save connected to another seed or slot no longer sends the previous one's checks.
 - A big key no longer flies out of its stone when its monument fills before its item arrives.
+- A big key already in its plinth stays there when its item arrives (the drawbridge went back up).
+- Universal Tracker rebuilds the seed with every option that shapes it.
 - The "skip this challenge" panels show once their puzzle's parts have arrived.
 - A guest now sees what a player who picked something up before it joined is holding.
 
@@ -69,11 +73,13 @@ The Silent Gauntlet is in, there are buttons in the world now, and your YAML nee
 -   **Teleport buttons** in the hub to every tower and the Gauntlet (`teleport_buttons`), unlocked for free, by opening the place, or by item.
 -   **Resync stations instead of Ctrl+R**: a button in the hub (and the towers if you want) that brings your stuff back, with a switch for the gadgets.
 -   **Cabin Fever**: shorten, randomise or fix the waits, plus a hidden help button in each house.
+-   **Tile Thief**: a button that makes the tiles for you (`tile_thief: easy`), or all of them (`chaos`).
+-   **`shuffle_peg_tiles`**: the tiles of each puzzle are laid out differently in each seed.
 -   `open_black_tower`, `require_arch_doors`, `hint_keys: from_start`, and a new save gets its deposits back.
 
 ## Fixed
 -   A guest sees what you were already holding when it joined.
--   A big key no longer flies out of its stone early.
+-   A big key no longer flies out of its stone early, and one already in its plinth stays there.
 -   A save moved to another seed doesn't send the old seed's checks.
 
 ## Updating
