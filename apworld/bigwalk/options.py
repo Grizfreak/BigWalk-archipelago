@@ -169,8 +169,13 @@ class RequireArchDoors(DefaultOnToggle):
     What lies past a closed Left or Right Arch Door needs that door in logic, so you are never
     sent the shortcut after the walk.
 
-    - Left: the Yellow, Blue and Black towers, the chapel, the Green Dome.
+    - Left: the Yellow, Blue and Black towers, the Green Dome. Never the chapel: the end of the
+      game needs only the Big Wall Door.
     - Right: the Green Tower, past the chairlift, the purple gourds.
+
+    The doors are shortcuts, not walls: the island can be walked round them. But until a door
+    arrives, what lies past it is out of logic: its checks are never expected of you, and a
+    tracker shows them, and the goal, as out of reach even once you have walked there.
     """
 
     display_name = "Require Arch Doors"

@@ -55,8 +55,8 @@ Numbered 0.3.0 rather than 0.1.3: a release this size moves the minor number; th
     their item arrives. The finale and the entrance are left alone.
 - **`require_arch_doors`** (on by default): what lies past the Left and Right Arch
   Doors is behind them in logic, so that nobody walks to a place and is sent its
-  shortcut afterwards. Left: the Yellow, Blue and Black towers, the chapel and the
-  Green Dome. Right: the Green Tower and what is past the chairlift. Told by the
+  shortcut afterwards. Left: the Yellow, Blue and Black towers and the Green
+  Dome; never the chapel, so the end of the game needs only the Big Wall Door. Right: the Green Tower and what is past the chairlift. Told by the
   player; a list too short asks for fewer doors, never more than a seed holds. The
   two doors are also asked for early in your own world, so they are easy to find,
   while the First Arch Door is open and `lock_puzzle_needs` is off; otherwise the

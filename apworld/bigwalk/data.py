@@ -976,10 +976,12 @@ TOWER_FAR_DOOR: dict[str, ArchDoor] = {
 }
 """The far door each tower lies past, by the tower's `prop_name`. The drawbridge has none."""
 
-ZONE_FAR_DOOR: dict[str, ArchDoor] = {
+ZONE_FAR_DOOR: dict[str, ArchDoor | None] = {
     "chairlift": RIGHT_ARCH_DOOR,
     "tunnels": LEFT_ARCH_DOOR,
-    "ending": LEFT_ARCH_DOOR,
+    # Not the chapel: the end of the game is never held behind the Left door (player,
+    # 2026-10-05, E2 walked round it to the chapel and the tracker never saw go mode).
+    "ending": None,
     "green_dome": LEFT_ARCH_DOOR,
 }
 """The far door each zone behind a big key lies past (`regions.py` names the entrances)."""

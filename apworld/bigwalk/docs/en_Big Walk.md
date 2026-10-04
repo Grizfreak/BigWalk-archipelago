@@ -59,10 +59,16 @@ First Arch Door, the tutorial's way back to the hub, is open, and the two far
 ones, left towards Sports Creek and right, are items: shortcuts that save long
 detours. With `require_arch_doors` (on by default) what lies past them is behind
 them in logic, so that you are not asked for a place on foot and sent the shortcut
-afterwards: past the left door the Yellow, Blue and Black towers, the chapel and the
-Green Dome, past the right one the Green Tower and what is beyond the chairlift. A
-door that starts open asks for nothing, and the island can still be walked round
-either way. Remove the First Arch Door from the list for a real
+afterwards: past the left door the Yellow, Blue and Black towers and the Green
+Dome (never the chapel: the end of the game needs only the Big Wall Door), past the
+right one the Green Tower and what is beyond the chairlift. A door that starts open
+asks for nothing.
+
+The doors are shortcuts, not walls: the island can still be walked round them.
+But they do hold the logic. Until a door arrives, what lies past it is out of
+logic, even once you have walked there: the generator never expects those checks of
+you, and Universal Tracker shows them as out of reach. Turn `require_arch_doors` off
+for logic that ignores the doors. Remove the First Arch Door from the list for a real
 early game: you then leave the starting area through the Drawbridge or the
 First Arch Door, one of which is always found early. Left open, most of the
 island is reachable from the start.

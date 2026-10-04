@@ -70,9 +70,13 @@ class TestFarDoorsInLogic(BigWalkTestBase):
         self.collect_by_name(RIGHT.item_name)
         self.assertTrue(entrance.can_reach(self.multiworld.state))
 
-    def test_the_tunnels_and_the_chapel_need_the_left_door(self) -> None:
+    def test_the_chapel_needs_only_its_key(self) -> None:
+        entrance = self.multiworld.get_entrance(regions.ENDING_ENTRANCE, self.player)
+        self.collect_by_name(data.BLACK_MONOLITH.item_name)
+        self.assertTrue(entrance.can_reach(self.multiworld.state))
+
+    def test_the_tunnels_and_the_green_dome_need_the_left_door(self) -> None:
         for entrance_name, key in ((regions.TUNNEL_ENTRANCE, data.YELLOW_TWIST.item_name),
-                                   (regions.ENDING_ENTRANCE, data.BLACK_MONOLITH.item_name),
                                    (regions.GREEN_DOME_ENTRANCE, data.GREEN_DOME.item_name)):
             with self.subTest(entrance=entrance_name):
                 self.multiworld.state = self.multiworld.state.__class__(self.multiworld)
