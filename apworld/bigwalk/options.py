@@ -351,7 +351,8 @@ class TeleportButtons(Choice):
     - off: no buttons.
     - free: every button is there from the start.
     - with_towers: a tower's button in the hub appears once the tower's door has been opened by
-      its button at the foot of the tower; the Gauntlet's once its Big Wall Door has arrived.
+      its button at the foot of the tower; the Black Tower's once the five monuments of the hub and
+      the four towers are filled; the Gauntlet's once the chapel's two buttons have been held together.
     - items: each hub button needs its own item, a Teleporter, found in the multiworld (6 items).
 
     The way back to the hub is always there. A teleport can skip a locked door, which the logic
@@ -364,6 +365,116 @@ class TeleportButtons(Choice):
     option_with_towers = 2
     option_items = 3
     default = option_off
+
+
+class CabinFeverTime(Choice):
+    """
+    The wait of the Cabin Fever puzzle (5 minutes in the game). Mod only; it changes no logic.
+
+    - vanilla: the game's own wait.
+    - reduced: down to `cabin_fever_seconds_min`, never longer than the game's.
+    - random_between: a time between `cabin_fever_seconds_min` and `cabin_fever_seconds_max`, drawn once
+      when the world is made, so it is the same for every player.
+    - fixed: exactly `cabin_fever_seconds` seconds, even longer than the game's.
+    """
+
+    display_name = "Cabin Fever Wait"
+    option_vanilla = 0
+    option_reduced = 1
+    option_random_between = 2
+    option_fixed = 3
+    default = option_vanilla
+
+
+class CabinFeverSecondsMin(Range):
+    """The shortest wait of the Cabin Fever puzzle, in seconds: what `reduced` brings it down to, and the low end of `random_between`."""
+
+    display_name = "Cabin Fever Shortest Wait"
+    range_start = 0
+    range_end = 3600
+    default = 60
+
+
+class CabinFeverSecondsMax(Range):
+    """The longest wait of the Cabin Fever puzzle, in seconds: the high end of `random_between`."""
+
+    display_name = "Cabin Fever Longest Wait"
+    range_start = 0
+    range_end = 3600
+    default = 300
+
+
+class CabinFeverSeconds(Range):
+    """The wait of the Cabin Fever puzzle, in seconds, when it is `fixed`."""
+
+    display_name = "Cabin Fever Fixed Wait"
+    range_start = 0
+    range_end = 3600
+    default = 120
+
+
+class CabinFeverHelp(Toggle):
+    """
+    A hidden button in the Cabin Fever room that takes ten seconds off the wait each time it is
+    pressed. Mod only.
+    """
+
+    display_name = "Cabin Fever Help Button"
+
+
+class CabinFeverLongTime(Choice):
+    """
+    The wait of the Cabin Fever Long puzzle (30 minutes in the game). Mod only; it changes no logic.
+
+    - vanilla: the game's own wait.
+    - reduced: down to `cabin_fever_long_seconds_min`, never longer than the game's.
+    - random_between: a time between `cabin_fever_long_seconds_min` and `cabin_fever_long_seconds_max`, drawn once
+      when the world is made, so it is the same for every player.
+    - fixed: exactly `cabin_fever_long_seconds` seconds, even longer than the game's.
+    """
+
+    display_name = "Cabin Fever Long Wait"
+    option_vanilla = 0
+    option_reduced = 1
+    option_random_between = 2
+    option_fixed = 3
+    default = option_vanilla
+
+
+class CabinFeverLongSecondsMin(Range):
+    """The shortest wait of the Cabin Fever Long puzzle, in seconds: what `reduced` brings it down to, and the low end of `random_between`."""
+
+    display_name = "Cabin Fever Long Shortest Wait"
+    range_start = 0
+    range_end = 3600
+    default = 300
+
+
+class CabinFeverLongSecondsMax(Range):
+    """The longest wait of the Cabin Fever Long puzzle, in seconds: the high end of `random_between`."""
+
+    display_name = "Cabin Fever Long Longest Wait"
+    range_start = 0
+    range_end = 3600
+    default = 1800
+
+
+class CabinFeverLongSeconds(Range):
+    """The wait of the Cabin Fever Long puzzle, in seconds, when it is `fixed`."""
+
+    display_name = "Cabin Fever Long Fixed Wait"
+    range_start = 0
+    range_end = 3600
+    default = 600
+
+
+class CabinFeverLongHelp(Toggle):
+    """
+    A hidden button in the Cabin Fever Long room that takes ten seconds off the wait each time it is
+    pressed. Mod only.
+    """
+
+    display_name = "Cabin Fever Long Help Button"
 
 
 class JokeFillerPercentage(Range):
@@ -415,6 +526,16 @@ class BigWalkOptions(PerGameCommonOptions):
     hint_keys: HintKeys
     joke_filler_percentage: JokeFillerPercentage
     teleport_buttons: TeleportButtons
+    cabin_fever_time: CabinFeverTime
+    cabin_fever_seconds_min: CabinFeverSecondsMin
+    cabin_fever_seconds_max: CabinFeverSecondsMax
+    cabin_fever_seconds: CabinFeverSeconds
+    cabin_fever_help: CabinFeverHelp
+    cabin_fever_long_time: CabinFeverLongTime
+    cabin_fever_long_seconds_min: CabinFeverLongSecondsMin
+    cabin_fever_long_seconds_max: CabinFeverLongSecondsMax
+    cabin_fever_long_seconds: CabinFeverLongSeconds
+    cabin_fever_long_help: CabinFeverLongHelp
     gauntlet_mode: GauntletMode
     gauntlet_puzzles_required: GauntletPuzzlesRequired
     lock_gauntlet_needs: LockGauntletNeeds
@@ -430,6 +551,8 @@ option_groups = [
     OptionGroup("Keys", [StartWithDrawbridgeOpen, HintKeys]),
     OptionGroup("Filler", [JokeFillerPercentage]),
     OptionGroup("Teleport", [TeleportButtons]),
+    OptionGroup("Cabin Fever", [CabinFeverTime, CabinFeverSecondsMin, CabinFeverSecondsMax, CabinFeverSeconds, CabinFeverHelp]),
+    OptionGroup("Cabin Fever Long", [CabinFeverLongTime, CabinFeverLongSecondsMin, CabinFeverLongSecondsMax, CabinFeverLongSeconds, CabinFeverLongHelp]),
     OptionGroup("Doors", [StartWithArchDoorsOpen, RequireArchDoors]),
     OptionGroup("Gauntlet", [GauntletMode, GauntletPuzzlesRequired, LockGauntletNeeds, GauntletStagesLocal]),
     OptionGroup("Puzzles", [LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed]),

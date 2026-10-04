@@ -24,6 +24,9 @@ namespace BigWalkArchipelago.Patches
     {
         private static void Postfix(string key, int value)
         {
+            if (Debug.DebugStateLog.On)
+                Debug.DebugStateLog.ObserveWrite(key, value);
+
             // The two goal flags are looked at FIRST, and for every value
             // including zero: the chapel door's state is the signal there,
             // and a transition to zero may well be the one that matters

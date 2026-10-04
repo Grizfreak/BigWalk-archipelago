@@ -778,7 +778,7 @@ The in-world teleport buttons are a mod-side comfort; the apworld only carries t
 `slot_data`: `teleport_buttons` (`"off"`, `"free"`, `"with_towers"` or `"items"`),
 `teleport_destinations` (the keys `red`, `green`, `blue`, `yellow`, `black`, `gauntlet`, in the
 order of the item ids) and `teleport_id_offset` (2700). The item `BASE_ID + 2700 + n` is the
-Teleporter of destination `n`: `red Teleporter`, and so on. Useful, never progression; nothing in
+Teleporter of destination `n`: `Red Funnel Tower Teleporter`, and so on (the player-facing name + " Teleporter"). Useful, never progression; nothing in
 logic depends on any of it, since a teleport can skip a lock and cannot be counted on.
 
 What exists in the world is decided by the host and sent to guests in the mod's snapshot as one

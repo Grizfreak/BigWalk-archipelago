@@ -1,0 +1,11 @@
+# Default options (the real goal, all gourds) on a fresh slot, to see what the game writes
+# when the five monuments are complete and the Black Tower's two doors are opened by hand.
+#
+# IMPORTANT: host a NEW save named exactly `BWBlack`, and do not press F11.
+name: BWBlack
+game: Big Walk
+requires:
+  game:
+    Big Walk: 0.1.2
+Big Walk:
+  teleport_buttons: free

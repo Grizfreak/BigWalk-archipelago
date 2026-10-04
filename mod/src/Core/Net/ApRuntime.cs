@@ -779,6 +779,10 @@ namespace BigWalkArchipelago.Core.Net
                 Connection.SlotData.GauntletMode == "locked_stages",
                 Connection.SlotData.GauntletPuzzlesRequired,
                 Connection.SlotData.LockGauntletNeeds);
+            CabinFeverWaits.Configure(
+                Connection.SlotData.CabinFeverMode, Connection.SlotData.CabinFeverSeconds, Connection.SlotData.CabinFeverHelp,
+                Connection.SlotData.CabinFeverLongMode, Connection.SlotData.CabinFeverLongSeconds,
+                Connection.SlotData.CabinFeverLongHelp);
             TeleportButtons.Configure(
                 Connection.SlotData.TeleportButtons,
                 Connection.SlotData.TeleportIdOffset,

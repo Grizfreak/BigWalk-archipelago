@@ -76,6 +76,15 @@ namespace BigWalkArchipelago.Core.Net
         internal string[] TeleportDestinations { get; private set; } = new string[0];
         internal int TeleportIdOffset { get; private set; } = ApLocationIds.DefaultTeleportOffset;
 
+        // The waits of the two Cabin Fever puzzles: the mode, the seconds it resolves to (0 for the
+        // game's own), and whether the hidden help button is there.
+        internal string CabinFeverMode { get; private set; } = "vanilla";
+        internal int CabinFeverSeconds { get; private set; }
+        internal bool CabinFeverHelp { get; private set; }
+        internal string CabinFeverLongMode { get; private set; } = "vanilla";
+        internal int CabinFeverLongSeconds { get; private set; }
+        internal bool CabinFeverLongHelp { get; private set; }
+
         // FALSE and empty by default, like the others that take something
         // away: an apworld too old to send them has no need items in its
         // pool, so hiding the objects would hide them for good.
@@ -121,6 +130,12 @@ namespace BigWalkArchipelago.Core.Net
             data.TeleportButtons = GetString(raw, "teleport_buttons", data.TeleportButtons);
             data.TeleportDestinations = GetStringArray(raw, "teleport_destinations");
             data.TeleportIdOffset = GetInt(raw, "teleport_id_offset", data.TeleportIdOffset);
+            data.CabinFeverMode = GetString(raw, "cabin_fever_mode", data.CabinFeverMode);
+            data.CabinFeverSeconds = GetInt(raw, "cabin_fever_seconds", 0);
+            data.CabinFeverHelp = GetBool(raw, "cabin_fever_help", false);
+            data.CabinFeverLongMode = GetString(raw, "cabin_fever_long_mode", data.CabinFeverLongMode);
+            data.CabinFeverLongSeconds = GetInt(raw, "cabin_fever_long_seconds", 0);
+            data.CabinFeverLongHelp = GetBool(raw, "cabin_fever_long_help", false);
 
             return data;
         }
@@ -138,7 +153,9 @@ namespace BigWalkArchipelago.Core.Net
                    + $", {LockedArchDoors.Length} arch door(s) locked"
                    + $", puzzle needs {(LockPuzzleNeeds ? "locked" : "free")}"
                    + $", gauntlet {GauntletMode}{(GauntletMode == "locked_stages" && !GauntletPuzzlesRequired ? " (puzzles optional)" : string.Empty)}"
-                   + $", teleport buttons {TeleportButtons}";
+                   + $", teleport buttons {TeleportButtons}"
+                   + $", cabin fever {CabinFeverMode} {CabinFeverSeconds}s{(CabinFeverHelp ? " +help" : string.Empty)}"
+                   + $", cabin fever long {CabinFeverLongMode} {CabinFeverLongSeconds}s{(CabinFeverLongHelp ? " +help" : string.Empty)}";
         }
 
         private static string GetString(Dictionary<string, object> raw, string key, string fallback)

@@ -13,8 +13,9 @@ namespace BigWalkArchipelago.Core
     //   off          no buttons.
     //   free         every button, from the start.
     //   with_towers  a tower's hub button once its door has been opened by the button at its foot
-    //                (the game's LookoutLight flag); the Black Tower's and the Gauntlet's once the
-    //                Big Wall Door (the Black Tower key's feature) is granted.
+    //                (the game's LookoutLight flag); the Black Tower's once the hub's and the four
+    //                towers' monuments are filled; the Gauntlet's once the chapel has been opened
+    //                (its two buttons held together).
     //   items        each hub button needs its own Teleporter item.
     //
     // The way back to the hub is there whenever the option is not off. A teleport can skip a
@@ -182,6 +183,27 @@ namespace BigWalkArchipelago.Core
             _mirroredMask = 0;
         }
 
+        // The five monuments whose completion opens the Black Tower (player, 2026-10-05): the
+        // hub's tutorial one and the four towers', each slot noted by the fill tracker.
+        private static readonly (string Prefix, int Slots)[] BlackTowerMonuments =
+        {
+            ("monoumentIntro", 4), ("monoument0", 5), ("monoument1", 5), ("monoument2", 5), ("monoument3", 5),
+        };
+
+        private static bool FiveMonumentsFilled()
+        {
+            foreach (var (prefix, slots) in BlackTowerMonuments)
+            {
+                for (var slot = 0; slot < slots; slot++)
+                {
+                    if (SaveManager.GetIntValue($"ap_home_{prefix}Slot{slot}", 0, false) == 0)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
         private static bool IsOpen(string key)
         {
             switch (_mode)
@@ -201,8 +223,18 @@ namespace BigWalkArchipelago.Core
                             return SaveManager.GetIntValue("LookoutLightBlue", 0, false) != 0;
                         case "yellow":
                             return SaveManager.GetIntValue("LookoutLightYellow", 0, false) != 0;
+                        case "black":
+                            // The five monuments open the tower; its inner door (written when the two
+                            // buttons at the top are held together, measured 2026-10-05) says it was
+                            // reached some other way.
+                            return FiveMonumentsFilled()
+                                   || SaveManager.GetIntValue("BlackTowerInteriorDoor", 0, false) != 0;
                         default:
-                            return KeyFeatures.IsGranted(SaveablePropName.bigKeyBoss);
+                            // The Silent Gauntlet lies behind the chapel. The game writes EndingGate = 2
+                            // when its two buttons have been held together (measured 2026-10-05), and the
+                            // mod keeps its own latch of that (ApGoalFlags).
+                            return SaveManager.GetIntValue("EndingGate", 0, false) >= 2
+                                   || SaveManager.GetIntValue("ap_flag_EndingGate", 0, false) != 0;
                     }
                 default:
                     return false;
@@ -247,7 +279,7 @@ namespace BigWalkArchipelago.Core
                 var where = spot.Point + spot.Normal * GatherAhead;
                 WorldButtons.Add(slot, "Gather items in the " + Destinations[i].Label, spot.Point - spot.Normal * 0.25f,
                     Quaternion.LookRotation(spot.Normal, Vector3.up), presser => ApRuntime.ResyncAll(where),
-                    icon: null, tint: Destinations[i].Key);
+                    icon: null, tint: Destinations[i].Key, hostSide: true);
             }
         }
 
@@ -263,7 +295,8 @@ namespace BigWalkArchipelago.Core
                 return;
 
             WorldButtons.Add(ResyncSlot, "Resync", ResyncSpot.Point - ResyncSpot.Normal * 0.25f,
-                Quaternion.LookRotation(ResyncSpot.Normal, Vector3.up), presser => ApRuntime.ResyncAll());
+                Quaternion.LookRotation(ResyncSpot.Normal, Vector3.up), presser => ApRuntime.ResyncAll(),
+                hostSide: true);
         }
 
         // Puts into the world the buttons the mask says are there and takes out the others.
@@ -361,6 +394,7 @@ namespace BigWalkArchipelago.Core
             try
             {
                 TeleportButtons.Sync();
+                CabinFeverWaits.Tick();
             }
             catch (Exception ex)
             {

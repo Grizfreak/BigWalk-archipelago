@@ -131,6 +131,29 @@ class BigWalkWorld(World):
         """
         return slot_data
 
+    def _cabin_fever_waits(self) -> dict[str, dict[str, object]]:
+        """
+        What the mod does to the waits of the two Cabin Fever puzzles, by puzzle: the mode, the
+        seconds it resolves to (the `random` one drawn here, once, so every player has the same),
+        and whether the hidden help button is there. `seconds` is 0 for `vanilla`.
+        """
+        waits: dict[str, dict[str, object]] = {}
+        for key, prefix in (("cabin_fever", "cabin_fever"), ("cabin_fever_long", "cabin_fever_long")):
+            options = self.options
+            mode = getattr(options, f"{prefix}_time").current_key
+            low = getattr(options, f"{prefix}_seconds_min").value
+            high = getattr(options, f"{prefix}_seconds_max").value
+            if mode == "reduced":
+                seconds = low
+            elif mode == "random_between":
+                seconds = self.random.randint(min(low, high), max(low, high))
+            elif mode == "fixed":
+                seconds = getattr(options, f"{prefix}_seconds").value
+            else:
+                seconds = 0
+            waits[key] = {"mode": mode, "seconds": seconds, "help": bool(getattr(options, f"{prefix}_help"))}
+        return waits
+
     def generate_early(self) -> None:
         self._take_options_from_tracker()
 
@@ -142,6 +165,7 @@ class BigWalkWorld(World):
         self.gourd_count = data.MAX_MONUMENT_SLOTS
 
         self.deposit_amounts = self._pick_deposit_amounts(self.gourd_count)
+        self.cabin_fever = self._cabin_fever_waits()
         self.deposit_goal = self.options.gourds_required.value
 
         self._pick_a_random_puzzle_need()
@@ -359,6 +383,13 @@ class BigWalkWorld(World):
             "teleport_buttons": self.options.teleport_buttons.current_key,
             "teleport_destinations": [key for key, _ in data.TELEPORT_DESTINATIONS],
             "teleport_id_offset": data.TELEPORT_ID_OFFSET,
+
+            # The waits of the two Cabin Fever puzzles (mod only), flat: mode, seconds, help.
+            **{
+                f"{puzzle}_{field}": value
+                for puzzle, wait in self.cabin_fever.items()
+                for field, value in wait.items()
+            },
 
             "lock_puzzle_needs": bool(self.options.lock_puzzle_needs),
             "start_with_puzzle_needs": sorted(self.options.start_with_puzzle_needs.value),

@@ -11,6 +11,9 @@ namespace BigWalkArchipelago.Patches
     {
         private static void Postfix(TrackedPeckState __instance, PeckContext __0)
         {
+            if (Debug.DebugStateLog.On)
+                Debug.DebugStateLog.ObserveState(__instance, __0.state);
+
             if (!WorldButtons.HasNative || __instance == null)
                 return;
 

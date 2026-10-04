@@ -146,6 +146,12 @@ namespace BigWalkArchipelago.Debug
             if (ModConfig.EnableSkipAidsKey.Value.IsDown())
                 DebugSkipAids.EnableAll();
 
+            if (ModConfig.LogStatesKey.Value.IsDown())
+                DebugStateLog.Toggle();
+
+            if (ModConfig.DumpTimersKey.Value.IsDown())
+                DebugTimerDump.Dump();
+
             if (ModConfig.DumpGauntletKey.Value.IsDown())
             {
                 Plugin.Log.LogInfo($"[{nameof(DebugHotkeys)}] Gauntlet dump key pressed; calling Dump...");

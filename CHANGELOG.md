@@ -46,7 +46,7 @@ unwinnable, which is why every player of a session should run the same build.
   Black towers and the Silent Gauntlet, and one back to the hub inside each of them. The
   Green Dome has none, being next to the spawn. `free`: all there from the start.
   `with_towers`: a tower's button once its door has been opened by the button at its foot (the
-  Black Tower's and the Gauntlet's with the Big Wall Door). `items`: each needs its own
+  Black Tower's once the five monuments of the hub and the four towers are filled, the Gauntlet's once the chapel has been opened). `items`: each needs its own
   **Teleporter** item, six of them, useful and never required. A teleport can skip a lock the
   logic does not count on, so none of this is logic. Guests can press them too (mod protocol 4).
 - **A Resync button in the hub** does what Ctrl+R does (still bound), and **a gather button in each

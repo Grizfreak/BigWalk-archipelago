@@ -44,6 +44,10 @@ namespace BigWalkArchipelago.Core
 
             // The tower whose colour the plate takes, when it is not the one of the icon.
             internal string Tint;
+
+            // True for a button whose effect belongs to the host's world (the resync, the gather
+            // buttons, the Cabin Fever help): a guest's press runs on the host, not on the guest.
+            internal bool HostSide;
             internal string Label;
             internal Vector3 Position;
             internal Action<PlayerCharacter> OnPress;
@@ -120,12 +124,12 @@ namespace BigWalkArchipelago.Core
         // Puts a button in the world. The look is made at once, from whichever game material
         // can be found; a world reload destroys it, and the caller adds it again.
         internal static Button Add(int slot, string label, Vector3 position, Quaternion rotation,
-            Action<PlayerCharacter> onPress, string icon = null, string tint = null)
+            Action<PlayerCharacter> onPress, string icon = null, string tint = null, bool hostSide = false)
         {
             if (Slots.ContainsKey(slot))
                 Remove(slot);
 
-            var button = new Button { Slot = slot, Label = label, Position = position, OnPress = onPress, Icon = icon, Tint = tint };
+            var button = new Button { Slot = slot, Label = label, Position = position, OnPress = onPress, Icon = icon, Tint = tint, HostSide = hostSide };
             button.Root = Build(position, rotation, slot, button);
             Slots[slot] = button;
             Measure(button);
@@ -578,8 +582,14 @@ namespace BigWalkArchipelago.Core
             Plugin.Log.LogInfo(
                 $"[{nameof(WorldButtons)}] '{button.Label}' pressed (state {context.state}) by "
                 + $"'{(who != null ? who.name : "<nobody>")}', local={(who != null && who.isLocalPlayer)}.");
-            // A guest's press reaches the host's copy of the button; the guest's own machine is
-            // told to run it, since what it does is to move or serve that player.
+            // A guest's press reaches the host's copy of the button. What acts on the host's world
+            // runs here; what moves the player (a teleport) is sent to the guest's own machine.
+            if (who != null && !who.isLocalPlayer && Mirror.NetworkServer.active && button.HostSide)
+            {
+                RunPress(button, who.GetComponent<PlayerCharacter>());
+                return;
+            }
+
             if (who != null && !who.isLocalPlayer && Mirror.NetworkServer.active)
             {
                 Net.ModChannel.SendPress(who.connectionToClient, button.Slot);
@@ -599,11 +609,11 @@ namespace BigWalkArchipelago.Core
                 RunPress(button);
         }
 
-        private static void RunPress(Button button)
+        private static void RunPress(Button button, PlayerCharacter presser = null)
         {
             try
             {
-                button.OnPress?.Invoke(Debug.DebugPlayerLookup.FindLocalPlayer());
+                button.OnPress?.Invoke(presser != null ? presser : Debug.DebugPlayerLookup.FindLocalPlayer());
             }
             catch (Exception ex)
             {

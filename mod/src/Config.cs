@@ -46,6 +46,8 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<float> FlightSpeedMultiplier;
         internal static ConfigEntry<KeyboardShortcut> ForceNearbyCombinatorKey;
         internal static ConfigEntry<KeyboardShortcut> DumpGauntletKey;
+        internal static ConfigEntry<KeyboardShortcut> DumpTimersKey;
+        internal static ConfigEntry<KeyboardShortcut> LogStatesKey;
         internal static ConfigEntry<float> DumpGauntletRadius;
         internal static ConfigEntry<KeyboardShortcut> EnableSkipAidsKey;
         internal static ConfigEntry<KeyboardShortcut> SpawnTestButtonKey;
@@ -295,6 +297,18 @@ namespace BigWalkArchipelago
                 "DumpGauntletKey",
                 new KeyboardShortcut(KeyCode.Keypad5),
                 "Writes the wiring of everything within DumpGauntletRadius of the player (states and their current value, what listens to each, switches, collective-press switches, combinators) to BepInEx/gauntlet-dump-<n>.tsv. Press it before and after a step in the Silent Gauntlet and compare the two files (only has an effect if Debug.Enabled is active).");
+
+            LogStatesKey = file.Bind(
+                "Debug",
+                "LogStatesKey",
+                new KeyboardShortcut(KeyCode.Keypad2),
+                "Switches on and off a log of every value the game saves and every state set within 25 m of the player (with its place in the scene), to find what a button or door writes (only has an effect if Debug.Enabled is active).");
+
+            DumpTimersKey = file.Bind(
+                "Debug",
+                "DumpTimersKey",
+                new KeyboardShortcut(KeyCode.Keypad3),
+                "Writes every timer of the game (PeckEffectTimer and its networked sibling: where it is, how long it runs, what starts it) to BepInEx/timer-dump.txt, to find the waits of the Cabin Fever puzzles (only has an effect if Debug.Enabled is active).");
 
             DumpGauntletRadius = file.Bind(
                 "Debug",
