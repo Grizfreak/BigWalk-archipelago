@@ -85,6 +85,9 @@ namespace BigWalkArchipelago.Core.Net
         // Tile Thief's helping button: vanilla (none), easy or chaos.
         internal string TileThief { get; private set; } = "vanilla";
 
+        // The island's peg tiles swapped among their own stands, per seed.
+        internal bool ShufflePegTiles { get; private set; }
+
         // The resync stations: those of the towers, and whether guests may use them.
         internal bool TowerResyncStations { get; private set; }
         internal bool GuestsCanResync { get; private set; }
@@ -144,6 +147,7 @@ namespace BigWalkArchipelago.Core.Net
             data.TeleportBackToHub = GetBool(raw, "teleport_back_to_hub", true);
             data.OpenBlackTower = GetBool(raw, "open_black_tower", false);
             data.TileThief = GetString(raw, "tile_thief", data.TileThief);
+            data.ShufflePegTiles = GetBool(raw, "shuffle_peg_tiles", false);
             data.TowerResyncStations = GetBool(raw, "tower_resync_stations", false);
             data.GuestsCanResync = GetBool(raw, "guests_can_resync", false);
             data.CabinFeverMode = GetString(raw, "cabin_fever_mode", data.CabinFeverMode);

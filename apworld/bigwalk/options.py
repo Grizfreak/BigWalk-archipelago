@@ -501,6 +501,15 @@ class TileThief(Choice):
     default = option_vanilla
 
 
+class ShufflePegTiles(Toggle):
+    """
+    The island's peg tiles swap places on their stands, within each place, differently for each
+    seed. A tile never leaves its place, so nothing becomes harder to reach.
+    """
+
+    display_name = "Shuffle Peg Tiles"
+
+
 class JokeFillerPercentage(Range):
     """
     Share of the filler items that are jokes: the community's thirteen wrong names for a
@@ -567,6 +576,7 @@ class BigWalkOptions(PerGameCommonOptions):
     cabin_fever_long_seconds: CabinFeverLongSeconds
     cabin_fever_long_help: CabinFeverLongHelp
     tile_thief: TileThief
+    shuffle_peg_tiles: ShufflePegTiles
     gauntlet_mode: GauntletMode
     gauntlet_puzzles_required: GauntletPuzzlesRequired
     lock_gauntlet_needs: LockGauntletNeeds
@@ -587,7 +597,7 @@ option_groups = [
     OptionGroup("Puzzle QoL", [
         CabinFeverTime, CabinFeverSecondsMin, CabinFeverSecondsMax, CabinFeverSeconds, CabinFeverHelp,
         CabinFeverLongTime, CabinFeverLongSecondsMin, CabinFeverLongSecondsMax, CabinFeverLongSeconds,
-        CabinFeverLongHelp, TileThief,
+        CabinFeverLongHelp, TileThief, ShufflePegTiles,
     ]),
 ]
 

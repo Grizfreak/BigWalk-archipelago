@@ -111,3 +111,11 @@ class TestTileThiefByDefault(BigWalkTestBase):
 
     def test_vanilla(self) -> None:
         self.assertEqual(self.world.fill_slot_data()["tile_thief"], "vanilla")
+
+
+class TestShufflePegTiles(BigWalkTestBase):
+    options = {"shuffle_peg_tiles": True}
+    run_default_tests = False
+
+    def test_it_travels(self) -> None:
+        self.assertTrue(self.world.fill_slot_data()["shuffle_peg_tiles"])

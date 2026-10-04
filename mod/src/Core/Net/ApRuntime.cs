@@ -562,6 +562,7 @@ namespace BigWalkArchipelago.Core.Net
             if (!worldReady && _worldWasReady)
             {
                 ApGoalFlags.OnWorldUnloaded();
+                PegTileShuffler.ForgetWorld();
 
                 // The feed reports on the world that produced it. Carrying
                 // "Check: Cabin Fever" back to the main menu would be
@@ -816,6 +817,7 @@ namespace BigWalkArchipelago.Core.Net
                 Connection.SlotData.LockGauntletNeeds);
             BlackTowerDoor.Configure(Connection.SlotData.OpenBlackTower);
             TileThiefHelper.Configure(Connection.SlotData.TileThief);
+            PegTileShuffler.Configure(Connection.SlotData.ShufflePegTiles, Connection.SeedName);
             ResyncStations.Configure(Connection.SlotData.TowerResyncStations, Connection.SlotData.GuestsCanResync);
             CabinFeverWaits.Configure(
                 Connection.SlotData.CabinFeverMode, Connection.SlotData.CabinFeverSeconds, Connection.SlotData.CabinFeverHelp,

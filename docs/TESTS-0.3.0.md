@@ -171,6 +171,10 @@ puzzle can be solved with them.
 **G3. Locked** (any slot with `lock_puzzle_needs` and a panel missing): the button only says the
 tiles have not all arrived.
 
+**G4. `shuffle_peg_tiles`** (`BWChaos`): tiles on a stand you know sit in other places than usual;
+log: `[PegTileShuffler] N tile(s) moved among their stands`. Reload: the same layout. The guest sees
+the same.
+
 ## Results
 
 | Test | Result | Notes |
@@ -209,3 +213,4 @@ tiles have not all arrived.
 | G1 | | |
 | G2 | | |
 | G3 | | |
+| G4 | | |

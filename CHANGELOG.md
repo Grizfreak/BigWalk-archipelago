@@ -66,6 +66,8 @@ Numbered 0.3.0 rather than 0.1.3: a release this size moves the minor number; th
 - **`tile_thief`** (`vanilla` by default): a button beside Tile Thief that makes new peg tiles in
   front of it, for every player: `easy` the ones the puzzle expects, `chaos` one of every kind it
   draws from. With `lock_puzzle_needs` it waits for the puzzle's panels.
+- **`shuffle_peg_tiles`** (off by default): the island's peg tiles swap places on their stands,
+  within each place, differently for each seed.
 - **`open_black_tower`** (on by default): the Black Tower's door at its foot is open from the
   start, instead of waiting for the monuments of the hub and the four towers to be full.
 - **Cabin Fever waits** (`cabin_fever_time`, `cabin_fever_long_time`: `vanilla` by default,
