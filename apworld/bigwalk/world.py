@@ -26,6 +26,8 @@ TRACKER_OPTIONS = {
     "gauntlet_mode": "gauntlet_mode",
     "gauntlet_puzzles_required": "gauntlet_puzzles_required",
     "lock_gauntlet_needs": "lock_gauntlet_needs",
+    "gauntlet_stage_items": "gauntlet_stage_items",
+    "teleport_buttons": "teleport_buttons",
     "lock_puzzle_needs": "lock_puzzle_needs",
     "start_with_puzzle_needs": "start_with_puzzle_needs",
     "start_with_random_puzzle_need": "start_with_random_puzzle_need",
@@ -311,6 +313,13 @@ class BigWalkWorld(World):
         # player's YAML must not override the seed's doors.
         if "lock_arch_doors" not in slot_data:
             self.options.lock_arch_doors = bigwalk_options.LockArchDoors(bigwalk_options.LockArchDoors.option_unset)
+
+        # A seed from before `gauntlet_stage_items` (0.3.0) has one item per stage: the
+        # progressive default would ask the tracker for doors that seed never had, and the
+        # Gauntlet's end would never be in logic (E2, 2026-10-05).
+        if "gauntlet_stage_items" not in slot_data:
+            self.options.gauntlet_stage_items = bigwalk_options.GauntletStageItems(
+                bigwalk_options.GauntletStageItems.option_individual)
 
     def _pick_deposit_amounts(self, total_slots: int) -> tuple[int, ...]:
         choice = self.options.gourd_sanity

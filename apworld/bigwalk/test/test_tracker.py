@@ -26,6 +26,9 @@ UNLIKE_THE_DEFAULTS = {
     "shuffle_radio_music": False,
     "start_with_arch_doors_open": [],
     "lock_puzzle_needs": True,
+    "gauntlet_mode": "locked_stages",
+    "gauntlet_stage_items": "individual",
+    "teleport_buttons": "items",
 }
 
 
@@ -123,3 +126,19 @@ class TestTheHooksAreShapedTheWayUTChecksThem(BigWalkTestBase):
     def test_ut_is_not_disabled_and_needs_no_yaml(self) -> None:
         self.assertTrue(BigWalkWorld.ut_can_gen_without_yaml)
         self.assertFalse(getattr(BigWalkWorld, "disable_ut", False))
+
+
+class TestASeedFromBeforeProgressiveDoors(BigWalkTestBase):
+    """
+    A seed generated before `gauntlet_stage_items` existed has one door per stage and no
+    such field: the tracker must not rebuild it with progressive doors (E2, 2026-10-05:
+    the end of the game reached, and the tracker never in go mode).
+    """
+
+    options = {"goal": "big_goodbye", "gauntlet_mode": "locked_stages", "gauntlet_stage_items": "individual"}
+
+    def test_it_is_rebuilt_with_one_door_per_stage(self) -> None:
+        slot_data = dict(self.world.fill_slot_data())
+        del slot_data["gauntlet_stage_items"]
+        tracked = build_like_universal_tracker({}, slot_data)
+        self.assertEqual(world_shape(tracked), world_shape(self.multiworld))

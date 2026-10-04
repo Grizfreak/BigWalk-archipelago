@@ -68,6 +68,7 @@ def world_shape(multiworld: MultiWorld) -> dict[str, Any]:
         "deposit_goal": world.deposit_goal,
         "towers": [tower.prop_name for tower in world.towers],
         "locked_arch_doors": [door.item_name for door in world.locked_arch_doors],
+        "progression": sorted(item.name for item in multiworld.itempool if item.player == 1 and item.advancement),
     }
 
 
