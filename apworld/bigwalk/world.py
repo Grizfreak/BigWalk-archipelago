@@ -384,6 +384,9 @@ class BigWalkWorld(World):
             "teleport_destinations": [key for key, _ in data.TELEPORT_DESTINATIONS],
             "teleport_id_offset": data.TELEPORT_ID_OFFSET,
 
+            # The Black Tower's door at its foot, open from the start (mod only).
+            "open_black_tower": bool(self.options.open_black_tower),
+
             # The waits of the two Cabin Fever puzzles (mod only), flat: mode, seconds, help.
             **{
                 f"{puzzle}_{field}": value

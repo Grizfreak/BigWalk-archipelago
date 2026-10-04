@@ -64,11 +64,15 @@ Cabin Fever Long house, both players, start the wait.
 - Within about 2 s the **red** button appears at the hub. Repeat for green, blue, yellow.
 - Pressing it sends you in front of the tower's way back; that one sends you back to the hub.
 
-**B3. The Black Tower.** Fill the five monuments (hub, red, green, blue, yellow: 24 gourds,
-ask for them).
-- The **black** button appears once the last slot is filled.
-- (Second way in, no need to test separately: holding the two buttons at the top of the Black
-  Tower writes `BlackTowerInteriorDoor = 1`, which also opens it.)
+**B3. The Black Tower.** Climb it and hold the two buttons at the top together (End on one, press
+the other).
+- Log: `BlackTowerInteriorDoor = 1`. The **black** button appears at the hub, and not before.
+- Its door at the foot is open from the start (B6), so no monument needs filling.
+
+**B6. The Black Tower's door, open from the start** (any slot, `open_black_tower` is on by default).
+On a fresh save, go to the Black Tower.
+- Log: `[BlackTowerDoor] Door found under 'BlackTower PlayerCount2'.` then `door opened.`
+- The door at its foot is open; it stays open after a monument slot is filled or emptied.
 
 **B4. The Silent Gauntlet.** Hold the chapel's two buttons together (End on one, press the other).
 - Log: `EndingGate = 2`. The **Gauntlet** button appears.
@@ -121,29 +125,31 @@ real players.
 **F1. What is loaded.** Keypad 3 anywhere: the timer dump should show `LandmarksPlayerCount3` (or
 4) paths. Note the Cabin Fever houses' names.
 
-**F2. Cabin Fever** (`BWCabin`): A1 and A2 again. The timer must be found (`timer found`) and the
-help button must stand on a wall, inside the house.
+**F2. Cabin Fever** (`BWCabin`): A1 and A2 again. The timer must be found (`timer found`). Only the
+layout of the buttons changes with the player count (player), so the help button stays put.
 
-**F3. The Gauntlet** (`gauntlet-test.yaml`): walk the stages; walls, stairways and hidden parts
-behave as with two players.
+**F3. The Gauntlet** (`gauntlet-test.yaml`): walk the stages. More players add walls (player): check
+that the extra walls do not block a stage the mod holds or opens, and that stairways behave.
 
-**F4. Everything else at a glance**: teleport buttons, gather buttons and the Resync button stand
+**F4. Everything else at a glance** (the player expects the two-player version to be the most
+generous with tools, so hiding should only ever be stricter with more players): teleport buttons, gather buttons and the Resync button stand
 where they did (not inside new walls), skip aids and hidden puzzle parts look right.
 
 ## Results
 
 | Test | Result | Notes |
 |---|---|---|
-| A1 | | |
-| A2 | | |
-| A3 | | |
-| A4 | | |
-| A5 | | |
-| B1 | | |
-| B2 | | |
+| A1 | PASS | 30 s wait, 2026-10-05 |
+| A2 | PASS | host: -10 s on a running wait, nothing without one |
+| A3 | PASS | guest presses run on the host: 10 s off each |
+| A4 | PASS | 90 s wait, help button -10 s |
+| A5 | PASS | BWTowers: 300 s and 1800 s, no help button |
+| B1 | PASS (log) | no hub button placed on a fresh save; resync, gather and ways back there |
+| B2 | PASS | red: lookout light opens the hub button; there and back |
 | B3 | | |
 | B4 | | |
 | B5 | | |
+| B6 | | |
 | C1 | | |
 | C2 | | |
 | C3 | | |

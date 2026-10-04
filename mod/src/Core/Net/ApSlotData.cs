@@ -78,6 +78,9 @@ namespace BigWalkArchipelago.Core.Net
 
         // The waits of the two Cabin Fever puzzles: the mode, the seconds it resolves to (0 for the
         // game's own), and whether the hidden help button is there.
+        // The Black Tower's door at its foot open from the start (false on a seed older than 0.1.3).
+        internal bool OpenBlackTower { get; private set; }
+
         internal string CabinFeverMode { get; private set; } = "vanilla";
         internal int CabinFeverSeconds { get; private set; }
         internal bool CabinFeverHelp { get; private set; }
@@ -130,6 +133,7 @@ namespace BigWalkArchipelago.Core.Net
             data.TeleportButtons = GetString(raw, "teleport_buttons", data.TeleportButtons);
             data.TeleportDestinations = GetStringArray(raw, "teleport_destinations");
             data.TeleportIdOffset = GetInt(raw, "teleport_id_offset", data.TeleportIdOffset);
+            data.OpenBlackTower = GetBool(raw, "open_black_tower", false);
             data.CabinFeverMode = GetString(raw, "cabin_fever_mode", data.CabinFeverMode);
             data.CabinFeverSeconds = GetInt(raw, "cabin_fever_seconds", 0);
             data.CabinFeverHelp = GetBool(raw, "cabin_fever_help", false);
@@ -154,6 +158,7 @@ namespace BigWalkArchipelago.Core.Net
                    + $", puzzle needs {(LockPuzzleNeeds ? "locked" : "free")}"
                    + $", gauntlet {GauntletMode}{(GauntletMode == "locked_stages" && !GauntletPuzzlesRequired ? " (puzzles optional)" : string.Empty)}"
                    + $", teleport buttons {TeleportButtons}"
+                   + $", black tower {(OpenBlackTower ? "open" : "vanilla")}"
                    + $", cabin fever {CabinFeverMode} {CabinFeverSeconds}s{(CabinFeverHelp ? " +help" : string.Empty)}"
                    + $", cabin fever long {CabinFeverLongMode} {CabinFeverLongSeconds}s{(CabinFeverLongHelp ? " +help" : string.Empty)}";
         }

@@ -46,9 +46,15 @@ unwinnable, which is why every player of a session should run the same build.
   Black towers and the Silent Gauntlet, and one back to the hub inside each of them. The
   Green Dome has none, being next to the spawn. `free`: all there from the start.
   `with_towers`: a tower's button once its door has been opened by the button at its foot (the
-  Black Tower's once the five monuments of the hub and the four towers are filled, the Gauntlet's once the chapel has been opened). `items`: each needs its own
+  Black Tower's once the two buttons at its top have been held together, the Gauntlet's once the chapel has been opened). `items`: each needs its own
   **Teleporter** item, six of them, useful and never required. A teleport can skip a lock the
   logic does not count on, so none of this is logic. Guests can press them too (mod protocol 4).
+- **`open_black_tower`** (on by default): the Black Tower's door at its foot is open from the
+  start, instead of waiting for the monuments of the hub and the four towers to be full.
+- **Cabin Fever waits** (`cabin_fever_time`, `cabin_fever_long_time`: `vanilla` by default,
+  `reduced`, `random_between`, `fixed`, with `_seconds_min`, `_seconds_max` and `_seconds`), each
+  with a hidden help button (`cabin_fever_help`, `cabin_fever_long_help`) that takes ten seconds
+  off a running wait.
 - **A Resync button in the hub** does what Ctrl+R does (still bound), and **a gather button in each
   tower** does the same but puts the gourds, keys and gadgets in front of itself, to be picked up
   on the spot. Host only for now; an apworld option for the gather buttons comes later.

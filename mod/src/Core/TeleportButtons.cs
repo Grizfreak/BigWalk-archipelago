@@ -13,8 +13,8 @@ namespace BigWalkArchipelago.Core
     //   off          no buttons.
     //   free         every button, from the start.
     //   with_towers  a tower's hub button once its door has been opened by the button at its foot
-    //                (the game's LookoutLight flag); the Black Tower's once the hub's and the four
-    //                towers' monuments are filled; the Gauntlet's once the chapel has been opened
+    //                (the game's LookoutLight flag); the Black Tower's once the two buttons at its
+    //                top have been held together; the Gauntlet's once the chapel has been opened
     //                (its two buttons held together).
     //   items        each hub button needs its own Teleporter item.
     //
@@ -183,27 +183,6 @@ namespace BigWalkArchipelago.Core
             _mirroredMask = 0;
         }
 
-        // The five monuments whose completion opens the Black Tower (player, 2026-10-05): the
-        // hub's tutorial one and the four towers', each slot noted by the fill tracker.
-        private static readonly (string Prefix, int Slots)[] BlackTowerMonuments =
-        {
-            ("monoumentIntro", 4), ("monoument0", 5), ("monoument1", 5), ("monoument2", 5), ("monoument3", 5),
-        };
-
-        private static bool FiveMonumentsFilled()
-        {
-            foreach (var (prefix, slots) in BlackTowerMonuments)
-            {
-                for (var slot = 0; slot < slots; slot++)
-                {
-                    if (SaveManager.GetIntValue($"ap_home_{prefix}Slot{slot}", 0, false) == 0)
-                        return false;
-                }
-            }
-
-            return true;
-        }
-
         private static bool IsOpen(string key)
         {
             switch (_mode)
@@ -224,11 +203,10 @@ namespace BigWalkArchipelago.Core
                         case "yellow":
                             return SaveManager.GetIntValue("LookoutLightYellow", 0, false) != 0;
                         case "black":
-                            // The five monuments open the tower; its inner door (written when the two
-                            // buttons at the top are held together, measured 2026-10-05) says it was
-                            // reached some other way.
-                            return FiveMonumentsFilled()
-                                   || SaveManager.GetIntValue("BlackTowerInteriorDoor", 0, false) != 0;
+                            // Like the other towers, the tower's own button: the two at the top held
+                            // together write BlackTowerInteriorDoor (measured 2026-10-05). The door at
+                            // its foot only opens with the five monuments, so being up there says it.
+                            return SaveManager.GetIntValue("BlackTowerInteriorDoor", 0, false) != 0;
                         default:
                             // The Silent Gauntlet lies behind the chapel. The game writes EndingGate = 2
                             // when its two buttons have been held together (measured 2026-10-05), and the
@@ -395,6 +373,7 @@ namespace BigWalkArchipelago.Core
             {
                 TeleportButtons.Sync();
                 CabinFeverWaits.Tick();
+                BlackTowerDoor.Enforce();
             }
             catch (Exception ex)
             {

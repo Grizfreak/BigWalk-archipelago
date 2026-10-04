@@ -342,6 +342,16 @@ class GauntletStagesLocal(DefaultOnToggle):
     display_name = "Gauntlet Stages Local"
 
 
+class OpenBlackTower(DefaultOnToggle):
+    """
+    The Black Tower's door at its foot is open from the start, instead of opening once the
+    monuments of the hub and the four towers are full. Mod only. It changes no logic: the
+    deposits are counted together, wherever they are made.
+    """
+
+    display_name = "Open Black Tower"
+
+
 class TeleportButtons(Choice):
     """
     Buttons in the world that teleport you, for players who run the mod: one in the hub for each
@@ -351,8 +361,8 @@ class TeleportButtons(Choice):
     - off: no buttons.
     - free: every button is there from the start.
     - with_towers: a tower's button in the hub appears once the tower's door has been opened by
-      its button at the foot of the tower; the Black Tower's once the five monuments of the hub and
-      the four towers are filled; the Gauntlet's once the chapel's two buttons have been held together.
+      its button at the foot of the tower; the Black Tower's once the two buttons at its top have been
+      held together; the Gauntlet's once the chapel's two buttons have been held together.
     - items: each hub button needs its own item, a Teleporter, found in the multiworld (6 items).
 
     The way back to the hub is always there. A teleport can skip a locked door, which the logic
@@ -525,6 +535,7 @@ class BigWalkOptions(PerGameCommonOptions):
     start_with_random_puzzle_need: StartWithRandomPuzzleNeed
     hint_keys: HintKeys
     joke_filler_percentage: JokeFillerPercentage
+    open_black_tower: OpenBlackTower
     teleport_buttons: TeleportButtons
     cabin_fever_time: CabinFeverTime
     cabin_fever_seconds_min: CabinFeverSecondsMin
@@ -551,6 +562,7 @@ option_groups = [
     OptionGroup("Keys", [StartWithDrawbridgeOpen, HintKeys]),
     OptionGroup("Filler", [JokeFillerPercentage]),
     OptionGroup("Teleport", [TeleportButtons]),
+    OptionGroup("Black Tower", [OpenBlackTower]),
     OptionGroup("Cabin Fever", [CabinFeverTime, CabinFeverSecondsMin, CabinFeverSecondsMax, CabinFeverSeconds, CabinFeverHelp]),
     OptionGroup("Cabin Fever Long", [CabinFeverLongTime, CabinFeverLongSecondsMin, CabinFeverLongSecondsMax, CabinFeverLongSeconds, CabinFeverLongHelp]),
     OptionGroup("Doors", [StartWithArchDoorsOpen, RequireArchDoors]),

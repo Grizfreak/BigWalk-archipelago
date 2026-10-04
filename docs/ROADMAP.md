@@ -69,7 +69,8 @@ After 0.1.8, without a date: quality of life U2, U4, U5 (placed in the version t
   the document's spellings
 - [x] U10 Teleport buttons in the world (`teleport_buttons`: off / free / with_towers / items); six in the hub, a way back in each destination; solo and loopback guest tested 2026-10-04. To check: the `with_towers` and `items` modes in play, and whether the Black Tower and the Gauntlet should open with the Big Wall Door together
 - [ ] U11 Gather buttons in each tower: a press restocks gourds, keys and gadgets in front of the button (player, 2026-10-04); built, under solo test. To do later: an apworld option for them, exclusion settings (which kinds of item to leave out), a guest able to press them (co-op test planned 2026-10-05), a Resync button per tower so the restock follows the nearest tower
-- [ ] Q5 Three and four players: the game loads other versions of many landmarks for 3 and 4 (PlayerCountSwapper); the Gauntlet recon, the hidden puzzle parts, skip aids, Cabin Fever help buttons and the apworld's puzzle needs were all made on the 2-player version (docs/TESTS-0.1.3.md, F)
+- [ ] U12 Less text on screen (player, 2026-10-05): a small sign (a picture, not words) above the Resync and gather buttons; the overlay keeps "Archipelago: Connected" and, for now, the lines of received items (player: text stays for now); the resync hint goes; the goal line goes with the objectives update
+- [ ] Q5 Three and four players: the game loads other versions of many landmarks for 3 and 4 (PlayerCountSwapper); the Gauntlet recon, the hidden puzzle parts, skip aids, Cabin Fever help buttons and the apworld's puzzle needs were all made on the 2-player version (docs/TESTS-0.1.3.md, F). Player, 2026-10-05: more players only change the layout of buttons and add walls, and give fewer tools, so the 2-player classification should hold; to check in one pass
 
 **Step 3 — Traps**
 - [ ] T1 Trap weights as options (`trap_percent` exists, hidden)

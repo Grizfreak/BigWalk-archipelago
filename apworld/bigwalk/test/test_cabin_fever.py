@@ -62,3 +62,18 @@ class TestFixedAndHelp(BigWalkTestBase):
         slot_data = self.world.fill_slot_data()
         self.assertEqual(wait(slot_data, "cabin_fever"), {"mode": "fixed", "seconds": 3000, "help": True})
         self.assertEqual(wait(slot_data, "cabin_fever_long"), {"mode": "vanilla", "seconds": 0, "help": True})
+
+
+class TestOpenBlackTower(BigWalkTestBase):
+    run_default_tests = False
+
+    def test_open_by_default(self) -> None:
+        self.assertTrue(self.world.fill_slot_data()["open_black_tower"])
+
+
+class TestBlackTowerAsInTheGame(BigWalkTestBase):
+    options = {"open_black_tower": False}
+    run_default_tests = False
+
+    def test_off_travels(self) -> None:
+        self.assertFalse(self.world.fill_slot_data()["open_black_tower"])
