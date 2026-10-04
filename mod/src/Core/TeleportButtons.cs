@@ -16,7 +16,7 @@ namespace BigWalkArchipelago.Core
     //                (the game's LookoutLight flag); the Black Tower's once the two buttons at its
     //                top have been held together; the Gauntlet's once the chapel has been opened
     //                (its two buttons held together).
-    //   items        each hub button needs its own Teleporter item.
+    //   items        as with_towers, and each hub button also needs its own Teleporter item.
     //
     // The way back to the hub is there whenever the option is not off. A teleport can skip a
     // locked door, which the logic does not count on, so none of this is ever logic.
@@ -189,33 +189,39 @@ namespace BigWalkArchipelago.Core
             {
                 case "free":
                     return true;
-                case "items":
-                    return SaveManager.GetIntValue(LedgerPrefix + key, 0, false) != 0;
                 case "with_towers":
-                    switch (key)
-                    {
-                        case "red":
-                            return SaveManager.GetIntValue("LookoutLightRed", 0, false) != 0;
-                        case "green":
-                            return SaveManager.GetIntValue("LookoutLightGreen", 0, false) != 0;
-                        case "blue":
-                            return SaveManager.GetIntValue("LookoutLightBlue", 0, false) != 0;
-                        case "yellow":
-                            return SaveManager.GetIntValue("LookoutLightYellow", 0, false) != 0;
-                        case "black":
-                            // Like the other towers, the tower's own button: the two at the top held
-                            // together write BlackTowerInteriorDoor (measured 2026-10-05). The door at
-                            // its foot only opens with the five monuments, so being up there says it.
-                            return SaveManager.GetIntValue("BlackTowerInteriorDoor", 0, false) != 0;
-                        default:
-                            // The Silent Gauntlet lies behind the chapel. The game writes EndingGate = 2
-                            // when its two buttons have been held together (measured 2026-10-05), and the
-                            // mod keeps its own latch of that (ApGoalFlags).
-                            return SaveManager.GetIntValue("EndingGate", 0, false) >= 2
-                                   || SaveManager.GetIntValue("ap_flag_EndingGate", 0, false) != 0;
-                    }
+                    return Reached(key);
+                case "items":
+                    // The place reached on foot AND its Teleporter received (player, 2026-10-05).
+                    return Reached(key) && SaveManager.GetIntValue(LedgerPrefix + key, 0, false) != 0;
                 default:
                     return false;
+            }
+        }
+
+        // Whether a destination has been reached on foot, by the game's own record of it.
+        private static bool Reached(string key)
+        {
+            switch (key)
+            {
+                case "red":
+                    return SaveManager.GetIntValue("LookoutLightRed", 0, false) != 0;
+                case "green":
+                    return SaveManager.GetIntValue("LookoutLightGreen", 0, false) != 0;
+                case "blue":
+                    return SaveManager.GetIntValue("LookoutLightBlue", 0, false) != 0;
+                case "yellow":
+                    return SaveManager.GetIntValue("LookoutLightYellow", 0, false) != 0;
+                case "black":
+                    // Like the other towers, the tower's own button: the two at the top held
+                    // together write BlackTowerInteriorDoor (measured 2026-10-05).
+                    return SaveManager.GetIntValue("BlackTowerInteriorDoor", 0, false) != 0;
+                default:
+                    // The Silent Gauntlet lies behind the chapel. The game writes EndingGate = 2
+                    // when its two buttons have been held together (measured 2026-10-05), and the
+                    // mod keeps its own latch of that (ApGoalFlags).
+                    return SaveManager.GetIntValue("EndingGate", 0, false) >= 2
+                           || SaveManager.GetIntValue("ap_flag_EndingGate", 0, false) != 0;
             }
         }
 

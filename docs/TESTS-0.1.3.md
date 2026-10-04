@@ -84,9 +84,11 @@ On a fresh save, go to the Black Tower.
 
 **C1. Nothing at first.** No hub button on a fresh save.
 
-**C2. One item, one button.** Ask Claude for `Red Funnel Tower Teleporter`.
+**C2. The item and the tower, both.** Ask Claude for `Red Funnel Tower Teleporter`.
 - Feed: `Received: Red Funnel Tower Teleporter`; log: `[TeleportButtons] Teleporter to Red Funnel
-  Tower granted.` The red button appears; the other five do not.
+  Tower granted.` **No** button yet: the tower has not been reached.
+- Open the Red tower's door with its lookout button: now the red button appears, and only it.
+- (The other way round, a tower opened without its item, shows no button either.)
 
 **C3. Kept.** Quit to the menu and load the save again.
 - The red button is still there (the save keeps the ledger `ap_tp_red`).
@@ -146,19 +148,19 @@ where they did (not inside new walls), skip aids and hidden puzzle parts look ri
 | A5 | PASS | BWTowers: 300 s and 1800 s, no help button |
 | B1 | PASS (log) | no hub button placed on a fresh save; resync, gather and ways back there |
 | B2 | PASS | red: lookout light opens the hub button; there and back |
-| B3 | | |
-| B4 | | |
-| B5 | | |
-| B6 | | |
-| C1 | | |
-| C2 | | |
-| C3 | | |
+| B3 | PASS | top buttons write BlackTowerInteriorDoor, hub button appears |
+| B4 | PASS | chapel buttons: EndingGate = 2, hub button appears |
+| B5 | PASS | guest sees the same hub buttons and teleports |
+| B6 | PASS | door open on a fresh save |
+| C1 | PASS | nothing on a fresh save |
+| C2 | PASS | item alone shows nothing; with the red lookout the red button appears |
+| C3 | PASS | red button still there after reloading |
 | D1 | | |
 | D2 | | |
 | D3 | | |
 | E1 | | |
 | E2 | | |
-| F0 | | |
+| F0 | PASS | the game starts 3 and 4 player sessions with fewer players connected (player); only layouts change |
 | F1 | | |
 | F2 | | |
 | F3 | | |

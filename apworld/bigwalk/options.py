@@ -363,7 +363,8 @@ class TeleportButtons(Choice):
     - with_towers: a tower's button in the hub appears once the tower's door has been opened by
       its button at the foot of the tower; the Black Tower's once the two buttons at its top have been
       held together; the Gauntlet's once the chapel's two buttons have been held together.
-    - items: each hub button needs its own item, a Teleporter, found in the multiworld (6 items).
+    - items: as with_towers, and each hub button also needs its own item, a Teleporter, found in
+      the multiworld (6 items).
 
     The way back to the hub is always there. A teleport can skip a locked door, which the logic
     does not count on, so this changes no logic: it is a comfort, and it is up to you.
