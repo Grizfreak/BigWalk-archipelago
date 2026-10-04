@@ -98,6 +98,8 @@ Numbered 0.3.0 rather than 0.1.3: a release this size moves the minor number; th
 - A save connected to a different seed or slot than it knew no longer sends the checks
   it reported to the previous one (U5). Its first connection still sends the ones made
   while offline.
+- A big key already put in its plinth stays there when its item arrives later (it was taken
+  out to be handed over, and the drawbridge went back up at the end of a run).
 - A big key no longer flies out of its stone when its monument fills before its
   item has arrived (the drawbridge's, then the others); it stays in place until
   the item comes. Found in play, twice.

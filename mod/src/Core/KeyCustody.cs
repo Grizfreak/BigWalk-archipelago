@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
@@ -405,6 +405,17 @@ namespace BigWalkArchipelago.Core
             var prop = FindKey(propName);
             if (prop == null)
                 return false;
+
+            // Already in its plinth: the players put it there, and its check is sent. Delivered, and
+            // left where it is. Taking it out to hand it over emptied the slot, and the drawbridge
+            // went back up at the end of a run (a player's report, 2026-10-05). The resync has
+            // always kept this rule; the delivery had not.
+            var placed = prop.currentHome;
+            if (placed != null && GourdRegistry.IsBigKeyPlinth(placed.saveableHomeName))
+            {
+                Plugin.Log.LogInfo($"[{nameof(KeyCustody)}] {propName} is already in its plinth; left there.");
+                return true;
+            }
 
             // A key arriving during play goes into somebody's hands, like a
             // gourd or a gadget (player request, 2026-10-02: the Drawbridge

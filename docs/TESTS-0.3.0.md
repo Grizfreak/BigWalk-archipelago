@@ -134,6 +134,8 @@ guest does not see the towers' either.
 that every part of each stage's puzzle is hidden until its item arrives (the ink viewer rule was
 fixed but not seen in play).
 
+**E2 also watches the drawbridge** (`start_with_drawbridge_open: true` in `e2-session.yaml`, roadmap B1): it must stay down all game, through reloads and the ending.
+
 **E2. A long duo run** with a real generation (`solo-full.yaml` style, two players): play an
 hour, note anything odd. This is the last gate before shipping.
 
