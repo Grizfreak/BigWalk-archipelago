@@ -439,25 +439,25 @@ namespace BigWalkArchipelago
             DaylightKey = file.Bind(
                 "Debug",
                 "DaylightKey",
-                new KeyboardShortcut(KeyCode.D, KeyCode.LeftControl),
+                new KeyboardShortcut(KeyCode.KeypadMultiply, KeyCode.LeftControl),
                 "Fixes the time of day at noon (and stops the clock); press again to let it run (only has an effect if Debug.Enabled is active).");
 
             LockButtonsKey = file.Bind(
                 "Debug",
                 "LockButtonsKey",
-                new KeyboardShortcut(KeyCode.Q, KeyCode.LeftControl),
+                new KeyboardShortcut(KeyCode.KeypadMinus, KeyCode.LeftControl),
                 "Locks every puzzle need (their objects on the map are hidden), or unlocks them all; for trying lock_puzzle_needs without a server (only has an effect if Debug.Enabled is active).");
 
             LockNextNeedKey = file.Bind(
                 "Debug",
                 "LockNextNeedKey",
-                new KeyboardShortcut(KeyCode.W, KeyCode.LeftControl),
+                new KeyboardShortcut(KeyCode.KeypadPlus, KeyCode.LeftControl),
                 "Locks or unlocks the next puzzle need in the list, one per press, to try them one by one (only has an effect if Debug.Enabled is active).");
 
             NeedStatusKey = file.Bind(
                 "Debug",
                 "NeedStatusKey",
-                new KeyboardShortcut(KeyCode.Z, KeyCode.LeftControl),
+                new KeyboardShortcut(KeyCode.KeypadDivide, KeyCode.LeftControl),
                 "Logs, with the time, what this machine believes about the puzzle needs: its role, which are locked and how many objects of each are showing. Press it whenever something looks wrong, so the log says when (only has an effect if Debug.Enabled is active).");
 
             SendDeathLinkKey = file.Bind(
