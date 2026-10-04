@@ -55,9 +55,10 @@ unwinnable, which is why every player of a session should run the same build.
   `reduced`, `random_between`, `fixed`, with `_seconds_min`, `_seconds_max` and `_seconds`), each
   with a hidden help button (`cabin_fever_help`, `cabin_fever_long_help`) that takes ten seconds
   off a running wait.
-- **A Resync button in the hub** does what Ctrl+R does (still bound), and **a gather button in each
-  tower** does the same but puts the gourds, keys and gadgets in front of itself, to be picked up
-  on the spot. Host only for now; an apworld option for the gather buttons comes later.
+- **Resync stations replace Ctrl+R**: in the hub and in each of the five towers, a button that
+  takes back every gourd, key and gadget of yours that is lying around and puts them in front of
+  itself, a toggle beside it to leave the gadgets out, and a sign saying what the button does.
+  Host only, and one resync at a time on the whole map.
 - **A new save gets its deposits back.** The number of gourds placed in the
   monuments is kept on the Archipelago server, per slot, and only ever goes up.
   A new save on the same slot puts that many back as the monuments load, in

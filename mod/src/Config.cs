@@ -1,4 +1,4 @@
-using BepInEx.Configuration;
+﻿using BepInEx.Configuration;
 using BepInEx.Unity.IL2CPP.Configuration;
 using UnityEngine;
 
@@ -129,12 +129,6 @@ namespace BigWalkArchipelago
                 true,
                 "Puts a gourd or gadget received during play straight into a player's hands. It goes to a player whose hands are free, the one given the fewest items this session first, ties at random; if nobody's hands are free, to one of everyone the same way, who drops what they were holding first. The count is not saved. With this off, items only drop in front of that player. Never applies to the batch rebuilt at the start of a session. Note that a gourd received inside a sealed puzzle room stays there until the next world load, hands or not — the game does not let you carry it out.");
 
-            ResyncGourdsKey = file.Bind(
-                "Archipelago",
-                "ResyncGourdsKey",
-                new KeyboardShortcut(KeyCode.R, KeyCode.LeftControl),
-                "Puts everything Archipelago has given you back within reach. Every gourd of yours that is not in a monument, every filler item, and every big key not already in its plinth is swept up — out of your hands too — and the right number is put back from what the server says you have received. For when one has ended up somewhere you cannot reach it: stranded in a sealed puzzle room, say. Monument deposits and placed keys are never touched, so nothing that counts for Archipelago can be lost by pressing this. Host only. The Resync button in the hub does the same; clear this binding to have only the button.");
-
             ShowConnectionStatus = file.Bind(
                 "Archipelago",
                 "ShowConnectionStatus",
@@ -158,13 +152,6 @@ namespace BigWalkArchipelago
                 "NoticeSeconds",
                 8f,
                 "How long, in seconds, a line in the feed above stays on screen.");
-
-            ShowResyncHint = file.Bind(
-                "Archipelago",
-                "ShowResyncHint",
-                true,
-                "Shows the resync shortcut under the status line while connected, so the way out of a stranded gourd or key is on screen rather than in a setup guide. Reads whatever ResyncGourdsKey is actually bound to, so rebinding it changes the hint.");
-
 
             HoldTrackedStateKey = file.Bind(
                 "Debug",

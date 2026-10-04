@@ -39,3 +39,6 @@ mod/gh-pj/*
 # Config locale de l'agent Claude Code — spécifique à la machine/l'éditeur,
 # n'a rien à faire dans le repo.
 .claude/
+
+# Fichiers de joueurs pour les rooms de test : locaux, propres à chaque machine.
+tools/players/*.yaml

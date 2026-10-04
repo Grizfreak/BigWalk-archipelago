@@ -48,6 +48,11 @@ namespace BigWalkArchipelago.Core
             // True for a button whose effect belongs to the host's world (the resync, the gather
             // buttons, the Cabin Fever help): a guest's press runs on the host, not on the guest.
             internal bool HostSide;
+
+            // The game prop it is a copy of: a push button, or a light switch (which stays where it
+            // is put, on or off, and is pressed again to go back).
+            internal string Template = PushButton;
+            internal int LastState;
             internal string Label;
             internal Vector3 Position;
             internal Action<PlayerCharacter> OnPress;
@@ -119,17 +124,19 @@ namespace BigWalkArchipelago.Core
             _focused = null;
         }
         private static Material _material;
+        private static Material _plateMaterial;
         private static Button _focused;
 
         // Puts a button in the world. The look is made at once, from whichever game material
         // can be found; a world reload destroys it, and the caller adds it again.
         internal static Button Add(int slot, string label, Vector3 position, Quaternion rotation,
-            Action<PlayerCharacter> onPress, string icon = null, string tint = null, bool hostSide = false)
+            Action<PlayerCharacter> onPress, string icon = null, string tint = null, bool hostSide = false,
+            string template = PushButton)
         {
             if (Slots.ContainsKey(slot))
                 Remove(slot);
 
-            var button = new Button { Slot = slot, Label = label, Position = position, OnPress = onPress, Icon = icon, Tint = tint, HostSide = hostSide };
+            var button = new Button { Slot = slot, Label = label, Position = position, OnPress = onPress, Icon = icon, Tint = tint, HostSide = hostSide, Template = template };
             button.Root = Build(position, rotation, slot, button);
             Slots[slot] = button;
             Measure(button);
@@ -329,6 +336,33 @@ namespace BigWalkArchipelago.Core
         }
 
         // The game's own teleport, on this machine's own player.
+        // A teleport from a button waits this long: the button's click plays where it stands, and
+        // a player sent away at once never heard it (2026-10-05).
+        private const float TeleportDelay = 0.4f;
+
+        private static PlayerCharacter _pendingPlayer;
+        private static Vector3 _pendingDestination;
+        private static Quaternion _pendingRotation;
+        private static float _pendingAt = -1f;
+
+        internal static void TeleportSoon(PlayerCharacter player, Vector3 destination, Quaternion rotation)
+        {
+            _pendingPlayer = player;
+            _pendingDestination = destination;
+            _pendingRotation = rotation;
+            _pendingAt = Time.unscaledTime + TeleportDelay;
+        }
+
+        private static void RunPendingTeleport()
+        {
+            if (_pendingAt < 0f || Time.unscaledTime < _pendingAt)
+                return;
+
+            _pendingAt = -1f;
+            TeleportTo(_pendingPlayer, _pendingDestination, _pendingRotation);
+            _pendingPlayer = null;
+        }
+
         internal static void TeleportTo(PlayerCharacter player, Vector3 destination, Quaternion rotation)
         {
             if (player == null || player.grease == null)
@@ -352,6 +386,7 @@ namespace BigWalkArchipelago.Core
 
         private void Update()
         {
+            RunPendingTeleport();
             _focused = null;
             if (Buttons.Count == 0 || !WorldManager.isReadyForEffects)
                 return;
@@ -432,7 +467,7 @@ namespace BigWalkArchipelago.Core
         // original's references, then given a ticket of its own, then switched on.
         private static bool TryBuildNative(GameObject root, int index, Button button)
         {
-            var template = GetTemplate();
+            var template = GetTemplate(button.Template);
             if (template == null)
                 return false;
 
@@ -445,24 +480,59 @@ namespace BigWalkArchipelago.Core
 
                 var ticket = FreeTicketBlock(index);
                 var firstTicket = ticket;
+                // A switch is found by its reference: a push button is pressed by the hand touching
+                // it, but a switch used from afar (the light switch) is sent to the host as its
+                // `shellReference` (PlayerActions.ActionUseWorldSwitch, decompiled 2026-10-05),
+                // which the host resolves by ticket when it has one. Left empty, the press went to
+                // some other switch: each copy refers to itself by its own ticket.
                 foreach (var peckSwitch in clone.GetComponentsInChildren<PeckSwitch>(true))
                 {
                     peckSwitch.useTicket = true;
-                    peckSwitch.ticket = (ushort)ticket++;
-                    peckSwitch.shellReference = default;
+                    peckSwitch.ticket = (ushort)ticket;
+                    peckSwitch.shellReference = new SeaShell.ShellReference((ushort)ticket);
+                    ticket++;
                 }
 
+                // A light switch's state is saved under the original's identity (SaveIdentity): the
+                // copy would answer to the original's save and network entry, so presses on it went
+                // to the switch in the hub. The copy gets none, and no lamp of its own either.
+                foreach (var identity in clone.GetComponentsInChildren<SaveIdentity>(true))
+                    UnityEngine.Object.DestroyImmediate(identity);
+
+                foreach (var lamp in clone.GetComponentsInChildren<Light>(true))
+                    UnityEngine.Object.DestroyImmediate(lamp.gameObject);
+
+                TrackedPeckState own = null;
                 foreach (var state in clone.GetComponentsInChildren<TrackedPeckState>(true))
                 {
-                    state.shellReference = new SeaShell.ShellReference((ushort)ticket++);
+                    state.saveIdentity = null;
+                    state.savableSystem = SavableSystem.NotSavable;
+                    // Its own ticket as well as a reference to it: OnEnable registers the state
+                    // under `ticket`, which the copy had from the original, so the registration
+                    // failed ("Duplicate ticket" in Player.log) and a press could not find it.
+                    state.ticket = (ushort)ticket;
+                    state.shellReference = new SeaShell.ShellReference((ushort)ticket);
+                    ticket++;
                     NativeStates[state.GetInstanceID()] = button;
+                    own ??= state;
+                }
+
+                // A switch that drives a state outside the prop copied (the light switch drives
+                // the one beside it, not its own) would still drive the original: it is pointed at
+                // the copy's own state instead.
+                foreach (var peckSwitch in clone.GetComponentsInChildren<PeckSwitch>(true))
+                {
+                    var target = peckSwitch.trackedStateSystem;
+                    if (own != null && (target == null || !target.transform.IsChildOf(clone.transform)))
+                        peckSwitch.trackedStateSystem = own;
                 }
 
                 clone.transform.SetParent(root.transform, false);
                 clone.transform.localPosition = Vector3.zero;
                 clone.transform.localRotation = Quaternion.identity;
                 clone.SetActive(true);
-                ReplacePlate(clone, PlateColour(button.Tint ?? button.Icon));
+                if (button.Template == PushButton)
+                    ReplacePlate(clone, PlateColour(button.Tint ?? button.Icon));
 
                 Plugin.Log.LogInfo(
                     $"[{nameof(WorldButtons)}] '{template.name}' copied as a native button, tickets {firstTicket}..{ticket - 1}.");
@@ -530,8 +600,12 @@ namespace BigWalkArchipelago.Core
             slab.transform.localScale = Vector3.Scale(filter.sharedMesh.bounds.size, plate.transform.lossyScale);
             // The game's own plate material, not whichever vertex-colour material the scene lists
             // first, which changes from run to run and was sometimes one that glows.
-            if (plate.sharedMaterial != null)
-                _material = plate.sharedMaterial;
+            // A copy of it: the game animates the button's material while it is held down, and
+            // every slab sharing it (the signs too) lit up with it (2026-10-05).
+            if (plate.sharedMaterial != null && _plateMaterial == null)
+                _plateMaterial = new Material(plate.sharedMaterial);
+            if (_plateMaterial != null)
+                _material = _plateMaterial;
 
             Paint(slab, colour);
             plate.enabled = false;
@@ -575,7 +649,13 @@ namespace BigWalkArchipelago.Core
         // Another machine's player runs it on their own machine, where the same press arrives.
         internal static void OnState(TrackedPeckState state, PeckContext context)
         {
-            if (!NativeStates.TryGetValue(state.GetInstanceID(), out var button) || context.state < 1)
+            if (!NativeStates.TryGetValue(state.GetInstanceID(), out var button))
+                return;
+
+            // A push button acts when it goes down; a light switch on every flip, either way.
+            var flipped = context.state != button.LastState;
+            button.LastState = context.state;
+            if (button.Template == LightSwitch ? !flipped : context.state < 1)
                 return;
 
             var who = context.playerIdentity;
@@ -676,17 +756,37 @@ namespace BigWalkArchipelago.Core
         private static readonly Vector3 TemplateNear = new Vector3(-219.29f, 33.12f, -521.17f);
         private const float TemplateReach = 40f;
 
-        private static GameObject _template;
+        internal const string PushButton = "BasicPushButton";
+        internal const string LightSwitch = "BasicLightSwitch";
 
-        // The push button every native copy is made from, the same one everywhere: a switched-off
-        // copy kept for the whole session, so it survives the world that held the original.
-        // It is only kept when the original is the hub's; otherwise it is used once.
-        private static GameObject GetTemplate()
+        private static readonly Dictionary<string, GameObject> Templates = new Dictionary<string, GameObject>();
+
+        // The state of a light switch made here, to set it from the mod (its own sets are not
+        // presses: they carry no player).
+        internal static TrackedPeckState StateOf(int slot)
         {
-            if (_template != null)
-                return _template;
+            if (!Slots.TryGetValue(slot, out var button) || button.Root == null)
+                return null;
 
-            var found = FindPushButton(TemplateNear);
+            foreach (var state in button.Root.GetComponentsInChildren<TrackedPeckState>(true))
+            {
+                if (state != null && NativeStates.ContainsKey(state.GetInstanceID()))
+                    return state;
+            }
+
+            return null;
+        }
+
+        // The prop every native copy of a kind is made from, the same one everywhere: a
+        // switched-off copy kept for the whole session, so it survives the world that held the
+        // original (the hub's: a push button by the inventory zone, a light switch in its teaching
+        // area). It is only kept when the original is the hub's; otherwise it is used once.
+        private static GameObject GetTemplate(string kind)
+        {
+            if (Templates.TryGetValue(kind, out var kept) && kept != null)
+                return kept;
+
+            var found = FindPushButton(TemplateNear, kind);
             if (found == null)
                 return null;
 
@@ -700,15 +800,55 @@ namespace BigWalkArchipelago.Core
             var holder = new GameObject("AP template holder");
             holder.SetActive(false);
             UnityEngine.Object.DontDestroyOnLoad(holder);
-            _template = UnityEngine.Object.Instantiate(found, holder.transform);
-            _template.name = "AP template";
+            var template = UnityEngine.Object.Instantiate(found, holder.transform);
+            template.name = "AP template";
+            Templates[kind] = template;
             Plugin.Log.LogInfo(
                 $"[{nameof(WorldButtons)}] Template kept: '{found.name}' at {found.transform.position}.");
-            return _template;
+            Describe(found);
+            return template;
         }
 
-        // The nearest loaded push button, by the name of its root, that is switched on.
-        private static GameObject FindPushButton(Vector3 near)
+        // What a prop is made of, for the log: every object under it with its components, where
+        // each switch points and how, and the object above it. To learn a prop before copying it.
+        private static void Describe(GameObject prop)
+        {
+            try
+            {
+                var parent = prop.transform.parent;
+                Plugin.Log.LogInfo($"[{nameof(WorldButtons)}] '{prop.name}' under '{(parent != null ? parent.name : "-")}':");
+                if (parent != null)
+                {
+                    foreach (var component in parent.GetComponents<Component>())
+                        Plugin.Log.LogInfo($"[{nameof(WorldButtons)}]   parent has {component.GetIl2CppType().Name}");
+                }
+
+                foreach (var t in prop.GetComponentsInChildren<Transform>(true))
+                {
+                    var names = new List<string>();
+                    foreach (var component in t.GetComponents<Component>())
+                        names.Add(component.GetIl2CppType().Name);
+                    Plugin.Log.LogInfo($"[{nameof(WorldButtons)}]   {t.name}: {string.Join(", ", names)}");
+
+                    var peckSwitch = t.GetComponent<PeckSwitch>();
+                    if (peckSwitch != null)
+                    {
+                        var target = peckSwitch.trackedStateSystem;
+                        Plugin.Log.LogInfo(
+                            $"[{nameof(WorldButtons)}]     switch -> '{(target != null ? target.name + " under " + (target.transform.parent != null ? target.transform.parent.name : "-") : "<none>")}', "
+                            + $"mode {peckSwitch.stateMode}, specific {peckSwitch.specificState}, wrap {peckSwitch.wrapTotal}, up {(peckSwitch.upSwitch != null ? peckSwitch.upSwitch.name : "-")}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(WorldButtons)}] Could not describe '{prop.name}': {ex.Message}");
+            }
+        }
+
+        // The nearest loaded prop of a kind (a push button by default), by the name of its root,
+        // that is switched on.
+        private static GameObject FindPushButton(Vector3 near, string kind = PushButton)
         {
             GameObject best = null;
             var bestDistance = float.MaxValue;
@@ -721,7 +861,7 @@ namespace BigWalkArchipelago.Core
                 var ours = false;
                 for (var t = peckSwitch.transform; t != null; t = t.parent)
                 {
-                    if (t.name.StartsWith("BasicPushButton", StringComparison.Ordinal))
+                    if (t.name.StartsWith(kind, StringComparison.Ordinal))
                         root = t.gameObject;
 
                     // One of this mod's own buttons: its parts are named like the game's, but
@@ -764,6 +904,33 @@ namespace BigWalkArchipelago.Core
             Paint(post, new Color(0.16f, 0.28f, 0.24f));
             Paint(cap, new Color(0.23f, 0.81f, 0.39f));
             return root;
+        }
+
+        // Paints a button's plate again, in the colour of another tower, without making the button
+        // again: a button made anew flashes and loses the press it is in the middle of.
+        internal static void Recolour(int slot, string tint)
+        {
+            if (!Slots.TryGetValue(slot, out var button) || button.Root == null)
+                return;
+
+            button.Tint = tint;
+            foreach (var renderer in button.Root.GetComponentsInChildren<Renderer>(true))
+            {
+                if (renderer != null && renderer.gameObject.name == "AP button plate")
+                    Paint(renderer.gameObject, PlateColour(tint));
+            }
+        }
+
+        // A plain slab in a colour, in the game's own material, with nothing to collide with: the
+        // signs of the resync stations (Core/ResyncStations).
+        internal static GameObject MakeSlab(string name, Vector3 position, Quaternion rotation, Vector3 size, Color colour)
+        {
+            var slab = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            slab.name = name;
+            slab.transform.SetPositionAndRotation(position, rotation);
+            slab.transform.localScale = size;
+            Paint(slab, colour);
+            return slab;
         }
 
         private static void Paint(GameObject part, Color colour)

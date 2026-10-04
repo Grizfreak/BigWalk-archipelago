@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Text;
 using UnityEngine;
 
@@ -42,19 +42,12 @@ namespace BigWalkArchipelago.Core.Net
         private static readonly Color InfoColor = new(0.72f, 0.9f, 0.72f);
         private static readonly Color ProgressColor = new(0.95f, 0.88f, 0.6f);
         private static readonly Color FeedColor = new(0.86f, 0.86f, 0.86f);
-        private static readonly Color HintColor = new(0.7f, 0.7f, 0.7f);
         private static readonly Color ShadowColor = new(0f, 0f, 0f, 0.75f);
 
         // Built on first use, not in a field initializer: anything touching
         // GUI.skin outside of OnGUI is invalid in Unity.
         private GUIStyle _style;
         private int _styleFontSize;
-
-        // The hint text depends only on a config value that the player can
-        // change at any time, and CalcSize on every line every frame is not
-        // free — so it is rebuilt when the binding changes and not otherwise.
-        private static string _hintText;
-        private static string _hintSource;
 
         private void OnGUI()
         {
@@ -124,8 +117,10 @@ namespace BigWalkArchipelago.Core.Net
                 foreach (var line in ModChannel.MirroredLines)
                     y = DrawLine(line.Text, line.Warning ? WarningColor : FeedColor, secondary, y);
 
-                // No resync hint on a guest: Ctrl+R is the host's key, and
-                // the host is the only one it does anything for.
+                // And what this guest was told for itself (a press refused by the host).
+                foreach (var notice in ApNotices.Lines)
+                    y = DrawLine(notice.Display, notice.Warning ? WarningColor : FeedColor, secondary, y);
+
                 return;
             }
 
@@ -135,13 +130,6 @@ namespace BigWalkArchipelago.Core.Net
                 var notice = lines[i];
                 y = DrawLine(notice.Display, notice.Warning ? WarningColor : FeedColor, secondary, y);
             }
-
-            // Not while disconnected or switched off: the resync only runs on
-            // a live connection, so advertising the key there would offer
-            // something that answers "refused" when pressed.
-            if (ModConfig.ShowResyncHint.Value && !ApRuntime.StatusIsWarning
-                && ModConfig.ArchipelagoEnabled.Value)
-                DrawLine(ResyncHint(), HintColor, secondary, y);
         }
 
         // "Archipelago: connected" on a guest's screen would read as the
@@ -178,42 +166,5 @@ namespace BigWalkArchipelago.Core.Net
             return y + size.y;
         }
 
-        // Reads the binding rather than hardcoding "Ctrl+R", so rebinding
-        // ResyncGourdsKey changes what the screen says. BepInEx's own
-        // ToString gives "R + LeftControl", which is accurate and reads
-        // badly; this spells it the way a key is written on a keyboard.
-        private static string ResyncHint()
-        {
-            var shortcut = ModConfig.ResyncGourdsKey.Value;
-            if (shortcut.MainKey == KeyCode.None)
-                return "Resync button in the hub: bring back stranded gourds and keys";
-
-            var source = shortcut.ToString();
-            if (_hintText != null && _hintSource == source)
-                return _hintText;
-
-            var text = new StringBuilder();
-            foreach (var modifier in shortcut.Modifiers)
-            {
-                text.Append(ShortModifier(modifier.ToString()));
-                text.Append('+');
-            }
-
-            text.Append(shortcut.MainKey);
-
-            _hintSource = source;
-            _hintText = $"{text}: bring back stranded gourds and keys";
-            return _hintText;
-        }
-
-        private static string ShortModifier(string name)
-        {
-            if (name.StartsWith("Left", StringComparison.Ordinal))
-                name = name.Substring(4);
-            else if (name.StartsWith("Right", StringComparison.Ordinal))
-                name = name.Substring(5);
-
-            return name == "Control" ? "Ctrl" : name;
-        }
     }
 }

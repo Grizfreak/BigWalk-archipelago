@@ -93,18 +93,31 @@ On a fresh save, go to the Black Tower.
 **C3. Kept.** Quit to the menu and load the save again.
 - The red button is still there (the save keeps the ledger `ap_tp_red`).
 
-## D. Resync and gather, with the guest (`BWCabin` or any slot)
+## D. Resync stations, with the guest (any slot)
 
-**D1. Host, Resync.** Drop a few gourds far away, press the Resync button at the hub.
-- Feed: `Resync: N gourd(s) cleared, restocking the hub`; the gourds come back at the hub.
+A station is a button, a toggle on its right and a sign above (in the hub, the sign covers the
+board of the inventory zone). There is one in the hub and one in each of the five towers.
 
-**D2. Guest, Resync.** The guest presses the Resync button.
-- Same result as D1: the host's log has the resync lines (it runs on the host now, no more
-  "Only the host can resync").
+**D1. The sign.** It reads `Press this button to recover your gourds, gadgets and keys in here.`
+and, smaller, `The button beside it: gadgets in.` Readable, the right way round, not inside the wall.
 
-**D3. Gather in a tower.** Carry gourds out of a tower, then press that tower's gather button
-(coloured plate, no icon, next to the way back), once as host and once as guest.
-- The gourds, keys and gadgets land in a heap in front of the button.
+**D2. Host, resync.** Drop a few gourds and a gadget far away, press the hub's button.
+- Feed: `Resync: N gourd(s) cleared, restocking`; log: `[ResyncStations] Resync in the hub, gadgets in.`
+- Everything lands at the hub's inventory spawn (where the game puts a new player's items). The sign says `A resync is running.` meanwhile.
+
+**D3. The toggle.** Press the toggle: its plate turns dark, the sign says `gourds and keys`. Resync:
+the gadgets stay where they are. Press it again: green, gadgets in. It is kept after reloading.
+
+**D4. One at a time.** Press a station's button, then at once another's (or the same one again).
+- Feed: `A resync is already running`; nothing happens until the first one is finished.
+
+**D5. A tower's station.** In a tower, D2 again: the items land in front of that tower's button.
+
+**D6. Guest.** The guest presses a button and a toggle.
+- Its feed: `Only the host can resync` / `Only the host can change this`; nothing happens.
+- Its signs follow the host's toggles and the running state.
+
+**D7. No Ctrl+R.** Ctrl+R does nothing.
 
 ## E. Things from before
 
@@ -155,9 +168,13 @@ where they did (not inside new walls), skip aids and hidden puzzle parts look ri
 | C1 | PASS | nothing on a fresh save |
 | C2 | PASS | item alone shows nothing; with the red lookout the red button appears |
 | C3 | PASS | red button still there after reloading |
-| D1 | | |
-| D2 | | |
-| D3 | | |
+| D1 | PASS | readable, after fitting each tower's wall |
+| D2 | PASS | heap in front of the button; the hub's now goes to its inventory spawn |
+| D3 | PASS | switch leaves the gadgets out, kept |
+| D4 | PASS | second press refused while the first runs |
+| D5 | PASS | tower station: heap in front of its button |
+| D6 | PASS | guest refused on the host, told, switch put back |
+| D7 | PASS | Ctrl+R does nothing |
 | E1 | | |
 | E2 | | |
 | F0 | PASS | the game starts 3 and 4 player sessions with fewer players connected (player); only layouts change |

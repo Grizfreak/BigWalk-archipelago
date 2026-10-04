@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Il2CppInterop.Runtime.Attributes;
@@ -64,7 +64,7 @@ namespace BigWalkArchipelago.Core.Net
 
         // Both ends must speak the same version; a mismatch is logged once
         // and ignored rather than half-read.
-        private const byte ProtocolVersion = 5;
+        private const byte ProtocolVersion = 7;
 
         private const byte KindHello = 1;
         private const byte KindSnapshot = 2;
@@ -79,6 +79,9 @@ namespace BigWalkArchipelago.Core.Net
         // reaches the host's copy of the button (the game is host-authoritative), but what the
         // button does, a teleport, has to happen on the machine of the player it moves.
         private const byte KindPress = 4;
+
+        // The host tells a guest something for its feed (a press of its refused on the host).
+        private const byte KindNotice = 5;
 
         private const float SnapshotIntervalSeconds = 1f;
 
@@ -349,6 +352,7 @@ namespace BigWalkArchipelago.Core.Net
                 NetworkWriterExtensions.WriteUShort(writer, (ushort)CabinFeverWaits.Seconds(0));
                 NetworkWriterExtensions.WriteUShort(writer, (ushort)CabinFeverWaits.Seconds(1));
                 writer.WriteByte((byte)((CabinFeverWaits.Help(0) ? 1 : 0) | (CabinFeverWaits.Help(1) ? 2 : 0)));
+                writer.WriteByte(ResyncStations.HostState());
 
                 connection.Send(writer.ToArraySegment(), 0);
             }
@@ -378,6 +382,28 @@ namespace BigWalkArchipelago.Core.Net
             {
                 Plugin.Log.LogWarning(
                     $"[{nameof(ModChannel)}] Could not send a button press to guest #{connection.connectionId}: {ex.Message}");
+            }
+        }
+
+        internal static void SendNotice(NetworkConnection connection, string text, bool warning)
+        {
+            if (connection == null || !Announced.Contains(connection.connectionId))
+                return;
+
+            try
+            {
+                var writer = new NetworkWriter();
+                NetworkWriterExtensions.WriteUShort(writer, MessageId);
+                writer.WriteByte(KindNotice);
+                writer.WriteByte(ProtocolVersion);
+                NetworkWriterExtensions.WriteString(writer, text);
+                NetworkWriterExtensions.WriteBool(writer, warning);
+                connection.Send(writer.ToArraySegment(), 0);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(ModChannel)}] Could not send a notice to guest #{connection.connectionId}: {ex.Message}");
             }
         }
 
@@ -457,6 +483,7 @@ namespace BigWalkArchipelago.Core.Net
                 GauntletStairways.ForgetMirror();
                 TeleportButtons.ForgetMirror();
                 CabinFeverWaits.ForgetMirror();
+                ResyncStations.ForgetMirror();
             }
 
             _clientHandlerRegistered = false;
@@ -564,6 +591,17 @@ namespace BigWalkArchipelago.Core.Net
                     return;
                 }
 
+                if (kind == KindNotice)
+                {
+                    if (reader.ReadByte() == ProtocolVersion)
+                    {
+                        var text = NetworkReaderExtensions.ReadString(reader);
+                        ApNotices.Post(text, warning: NetworkReaderExtensions.ReadBool(reader));
+                    }
+
+                    return;
+                }
+
                 if (kind != KindSnapshot)
                     return;
 
@@ -614,6 +652,7 @@ namespace BigWalkArchipelago.Core.Net
                 var cabinFever = NetworkReaderExtensions.ReadUShort(reader);
                 var cabinFeverLong = NetworkReaderExtensions.ReadUShort(reader);
                 var cabinFeverHelp = reader.ReadByte();
+                var resyncStations = reader.ReadByte();
 
                 var first = _receivedAt < 0f;
 
@@ -634,6 +673,7 @@ namespace BigWalkArchipelago.Core.Net
                 GauntletStairways.ApplyFromHost(gauntletLocked, gauntletPartsLocked);
                 TeleportButtons.ApplyFromHost(teleportMask);
                 CabinFeverWaits.ApplyFromHost(cabinFever, cabinFeverLong, (cabinFeverHelp & 1) != 0, (cabinFeverHelp & 2) != 0);
+                ResyncStations.ApplyFromHost(resyncStations);
             }
             catch (Exception ex)
             {

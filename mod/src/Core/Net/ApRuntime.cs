@@ -234,23 +234,63 @@ namespace BigWalkArchipelago.Core.Net
         // Ctrl+R also brings back a stranded key, at the player's request:
         // same promise as for a gourd, since a key already in its plinth is
         // a check already sent and is left exactly where it is.
-        // Everything the resync does, from the key (when one is bound) or from the button in the
-        // hub (Core/TeleportButtons). Only the host can: its world is the one the items live in.
-        internal static void ResyncAll(Vector3? gatherAt = null)
+        // Everything the resync does, from one of the resync stations (Core/ResyncStations): the
+        // items come back in front of the button pressed, gadgets only when its toggle says so.
+        // Only the host can: its world is the one the items live in. One at a time on the whole
+        // map, so two restocks never pull the same items two ways.
+        internal static bool ResyncAll(Vector3? gatherAt = null, bool gadgets = true)
         {
             if (!NetworkServer.active)
             {
                 Plugin.Log.LogInfo($"[{nameof(ApRuntime)}] Resync ignored: only the host can do this.");
                 ApNotices.Post("Only the host can resync", warning: true);
-                return;
+                return false;
+            }
+
+            if (ResyncRunning)
+            {
+                ApNotices.Post("A resync is already running", warning: true);
+                return false;
             }
 
             if (gatherAt != null)
                 ReceivedItemSpawner.GatherAt(gatherAt.Value);
 
-            ResyncGourds();
+            if (!ResyncGourds())
+                return false;
+
             ResyncKeys();
-            ResyncGadgets();
+            if (gadgets)
+                ResyncGadgets();
+
+            _resyncSince = Time.unscaledTime;
+            _resyncGadgets = gadgets;
+            return true;
+        }
+
+        // When the last resync started, and whether it took the gadgets; -1 when none is running.
+        private static float _resyncSince = -1f;
+        private static bool _resyncGadgets;
+        private const float ResyncShortest = 3f;
+        private const float ResyncLongest = 60f;
+
+        // True from a resync until everything it took has been put back (or a minute has passed,
+        // so a restock that cannot finish never locks the stations for good).
+        internal static bool ResyncRunning
+        {
+            get
+            {
+                if (_resyncSince < 0f)
+                    return false;
+
+                var age = Time.unscaledTime - _resyncSince;
+                var restocking = !_looseGourdsRestored || (_resyncGadgets && !_looseGadgetsRestored);
+                if (age < ResyncShortest || (restocking && age < ResyncLongest))
+                    return true;
+
+                _resyncSince = -1f;
+                return false;
+            }
         }
 
         internal static void ResyncKeys()
@@ -263,12 +303,12 @@ namespace BigWalkArchipelago.Core.Net
             ApNotices.Post($"Resync: {moved} key(s) sent back to the spawn point");
         }
 
-        internal static void ResyncGourds()
+        internal static bool ResyncGourds()
         {
             if (!NetworkServer.active)
             {
                 Plugin.Log.LogInfo($"[{nameof(ApRuntime)}] Gourd resync ignored: only the host can do this.");
-                return;
+                return false;
             }
 
             // Refused while disconnected, and this is not caution for its
@@ -280,7 +320,7 @@ namespace BigWalkArchipelago.Core.Net
                 Plugin.Log.LogWarning(
                     $"[{nameof(ApRuntime)}] Gourd resync refused: not connected to Archipelago, so the gourds could not be put back. Try again once reconnected.");
                 ApNotices.Post("Resync refused: not connected to Archipelago", warning: true);
-                return;
+                return false;
             }
 
             var removed = ReceivedItemSpawner.DestroyLooseCosmeticGourds(out var keptGourds);
@@ -299,7 +339,8 @@ namespace BigWalkArchipelago.Core.Net
             Plugin.Log.LogInfo(
                 $"[{nameof(ApRuntime)}] Gourd resync: {removed} loose gourd(s) cleared and {keptGourds} left where "
                 + "they were stowed, restocking the hub from the ledger.");
-            ApNotices.Post($"Resync: {removed} gourd(s) cleared, restocking the hub");
+            ApNotices.Post($"Resync: {removed} gourd(s) cleared, restocking");
+            return true;
         }
 
         // The same sweep for the filler gadgets, at the player's request
@@ -469,12 +510,6 @@ namespace BigWalkArchipelago.Core.Net
             // and the 1s poll below was measured too coarse to hold it
             // against a player standing right there (cf. KeyCustody.cs).
             KeyCustody.EnforceCustodyTick();
-
-            // Read before the early returns below so the key always gets
-            // an answer in the log, even when the mod is in a state where
-            // it will decline to act.
-            if (ModConfig.ResyncGourdsKey.Value.IsDown())
-                ResyncAll();
 
             // A gourd spawned last tick and meant for the player's hands is
             // handed over now, a frame after its spawn went out on the wire

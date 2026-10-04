@@ -107,8 +107,9 @@ reported instead of prevented: the screen reads the slot the save last
 connected under, which `Core/Net/ApItemCursor` has always recorded beside the
 seed, and says so.
 
-`ResyncGourdsKey` (**Ctrl+R** by default, connected host only) puts back
-within reach everything Archipelago has given you and that is lying around:
+The **resync stations** (`Core/ResyncStations`: a button, a gadgets toggle and a
+sign, in the hub and in each of the five towers; connected host only, one at a time
+on the whole map; Ctrl+R is gone) put back, in front of the button pressed, everything Archipelago has given you and that is lying around:
 gourds outside a monument, big keys not yet in their plinth
 (`Core/KeyCustody.ResyncToSpawn`) and filler props
 (`Core/GadgetItemSpawner.DestroyLooseCosmeticGadgets`, plus the per-session

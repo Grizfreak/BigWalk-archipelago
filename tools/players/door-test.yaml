@@ -1,8 +1,0 @@
-name: DoorWalk
-game: Big Walk
-Big Walk:
-  goal: big_collection
-  gourds_required: 5
-  start_with_arch_doors_open: []
-  start_inventory:
-    Left Arch Door: 1

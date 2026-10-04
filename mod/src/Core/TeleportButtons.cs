@@ -33,8 +33,8 @@ namespace BigWalkArchipelago.Core
         // way back, in every destination.
         private const int ReturnBit = 1 << 6;
 
-        // The resync and gather buttons: there when the host runs Archipelago, which a guest
-        // does not, so its own config cannot say.
+        // The resync stations (Core/ResyncStations): there when the host runs Archipelago, which a
+        // guest does not, so its own config cannot say.
         private const int ToolsBit = 1 << 7;
 
         private sealed class Destination
@@ -225,72 +225,13 @@ namespace BigWalkArchipelago.Core
             }
         }
 
-        // The resync button, which is not a teleport but stands among them: the hub's, beside the
-        // map room, in the slot after the last return button. Always there while Archipelago is on.
-        // Sunk well into the wall: a plain button on its own looks bolted on.
-        private const int ResyncSlot = 12;
-        private static readonly Spot ResyncSpot = new Spot(-211.81f, 33.09f, -526.06f, 0.66f, 0.75f);
-
-        // The gather buttons, one in each tower beside its way back (marks of 2026-10-04): a press
-        // does the resync, but the items land in front of the button, to be picked up on the
-        // spot. Slots 13..17, in the order of the first five destinations.
-        private const int GatherSlotBase = 13;
-        private const float GatherAhead = 1.2f;
-        private static readonly Spot[] GatherSpots =
-        {
-            new Spot(-89.84f, 97.64f, -604.06f, 0.20f, -0.93f),
-            new Spot(449.78f, 113.32f, -451.33f, 0.72f, 0.67f),
-            new Spot(140.39f, 112.84f, -198.54f, -0.32f, -0.95f),
-            new Spot(-231.31f, 132.27f, -242.06f, 0.45f, 0.76f),
-            new Spot(-28.48f, 118.34f, -282.17f, -0.64f, -0.77f),
-        };
-
-        private static void SyncGather(bool wanted)
-        {
-            for (var i = 0; i < GatherSpots.Length; i++)
-            {
-                var slot = GatherSlotBase + i;
-                if (!wanted)
-                {
-                    WorldButtons.Remove(slot);
-                    continue;
-                }
-
-                if (WorldButtons.Has(slot))
-                    continue;
-
-                var spot = GatherSpots[i];
-                var where = spot.Point + spot.Normal * GatherAhead;
-                WorldButtons.Add(slot, "Gather items in the " + Destinations[i].Label, spot.Point - spot.Normal * 0.25f,
-                    Quaternion.LookRotation(spot.Normal, Vector3.up), presser => ApRuntime.ResyncAll(where),
-                    icon: null, tint: Destinations[i].Key, hostSide: true);
-            }
-        }
-
-        private static void SyncResync(bool wanted)
-        {
-            if (!wanted)
-            {
-                WorldButtons.Remove(ResyncSlot);
-                return;
-            }
-
-            if (WorldButtons.Has(ResyncSlot))
-                return;
-
-            WorldButtons.Add(ResyncSlot, "Resync", ResyncSpot.Point - ResyncSpot.Normal * 0.25f,
-                Quaternion.LookRotation(ResyncSpot.Normal, Vector3.up), presser => ApRuntime.ResyncAll(),
-                hostSide: true);
-        }
-
         // Puts into the world the buttons the mask says are there and takes out the others.
         // Cheap enough to run every couple of seconds, which is how a button whose world
         // loaded late (or was destroyed by a reload) comes back.
         internal static void Sync()
         {
             var mask = Mask();
-            SyncResync((mask & ToolsBit) != 0);
-            SyncGather((mask & ToolsBit) != 0);
+            ResyncStations.Sync((mask & ToolsBit) != 0);
             for (var i = 0; i < Destinations.Length; i++)
             {
                 SyncSlot(i, (mask & (1 << i)) != 0, Destinations[i].HubSpot, Destinations[i].Label,
@@ -322,7 +263,7 @@ namespace BigWalkArchipelago.Core
                     if (landing == null)
                         Plugin.Log.LogInfo($"[{nameof(TeleportButtons)}] '{label}': no landing marked yet.");
                     else
-                        WorldButtons.TeleportTo(presser, landing.Value, Quaternion.identity);
+                        WorldButtons.TeleportSoon(presser, landing.Value, Quaternion.identity);
                 }, icon, tint);
         }
 
