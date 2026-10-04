@@ -8,6 +8,13 @@ unwinnable, which is why every player of a session should run the same build.
 
 ## 0.1.3 (in progress)
 
+### Changed
+
+- **Options sorted into five groups**: Goal, Sanity, Logic, QoL, Puzzle QoL.
+- **`lock_puzzle_needs` is on by default**: the parts puzzles are built from are items to find.
+- **Renamed**: `gourd_slot_checks` is now `gourd_sanity`, `radio_checks` is now `radio_sanity`.
+  A YAML with the old names falls back to the defaults: rename them.
+
 ### New
 
 - **The Silent Gauntlet** (`gauntlet_mode`, `vanilla` by default). With
@@ -35,10 +42,6 @@ unwinnable, which is why every player of a session should run the same build.
   two doors are also asked for early in your own world, so they are easy to find,
   while the First Arch Door is open and `lock_puzzle_needs` is off; otherwise the
   first locations are too few for them and generation can fail.
-- **`joke_filler_percentage`** (20 by default): the community's thirteen wrong names for
-  a Gourd (Baby, Boid, Bouba, Boyo, Butternut Squash, Child, Doodad, Jelly Baby, Peanut,
-  Peg and Head, Plumbus, Red Nub, Thing) join the filler. They do nothing beyond a line
-  in the item feed.
 - **`hint_keys: from_start`**: the seven big keys are hinted from the first
   minute.
 - **Teleport buttons** (`teleport_buttons`, `off` by default). Buttons in the world, set into
@@ -48,7 +51,7 @@ unwinnable, which is why every player of a session should run the same build.
   `with_towers`: a tower's button once its door has been opened by the button at its foot (the
   Black Tower's once the two buttons at its top have been held together, the Gauntlet's once the chapel has been opened). `items`: the same, and each also
   needs its own **Teleporter** item, six of them, useful and never required. A teleport can skip a lock the
-  logic does not count on, so none of this is logic. Guests can press them too. `teleport_back_to_hub` (on by default) can leave the ways back out.
+  logic does not count on, so none of this is logic. Guests can press them too. `teleport_back_to_hub` (off by default) adds a way back in each destination.
 - **`open_black_tower`** (on by default): the Black Tower's door at its foot is open from the
   start, instead of waiting for the monuments of the hub and the four towers to be full.
 - **Cabin Fever waits** (`cabin_fever_time`, `cabin_fever_long_time`: `vanilla` by default,

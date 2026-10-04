@@ -49,10 +49,10 @@ the tracking player happens to have.
 
 The option-valued fields below keep their original names and values although
 the YAML options were renamed after players' words on 2026-09-25 (`goal:
-big_wall` / `big_goodbye` / `big_game` / `big_collection`, `gourds_required`, `gourd_slot_checks: off /
-every_5 / every_gourd`, `radio_checks`, `shuffle_radio_music`). The mod reads
+big_wall` / `big_goodbye` / `big_game` / `big_collection`, `gourds_required`, `gourd_sanity: off /
+every_5 / every_gourd`, `radio_sanity`, `shuffle_radio_music`). The mod reads
 the wire names only; `options.GOAL_ON_THE_WIRE` and
-`GOURD_SLOT_CHECKS_ON_THE_WIRE` freeze them, and the old values stay aliases of
+`GOURD_SANITY_ON_THE_WIRE` freeze them, and the old values stay aliases of
 the options so Universal Tracker reads them back.
 
 | Field | Type | Meaning |

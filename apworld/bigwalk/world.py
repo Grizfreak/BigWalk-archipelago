@@ -18,8 +18,8 @@ WORLD_VERSION = "0.1.2"
 TRACKER_OPTIONS = {
     "goal": "goal",
     "deposit_goal_amount": "gourds_required",
-    "deposit_locations": "gourd_slot_checks",
-    "radio_station_checks": "radio_checks",
+    "deposit_locations": "gourd_sanity",
+    "radio_station_checks": "radio_sanity",
     "radio_station_items": "shuffle_radio_music",
     "start_with_arch_doors_open": "start_with_arch_doors_open",
     "require_arch_doors": "require_arch_doors",
@@ -92,7 +92,7 @@ class BigWalkWorld(World):
     # is picked, so the graph it builds is the seed's graph exactly — as long
     # as it generates with the seed's OPTIONS, which is what these two hooks
     # are for. Left to the tracking player's own YAML, one wrong option moves
-    # the goalposts in silence: `gourd_slot_checks: every_gourd` on its own invents
+    # the goalposts in silence: `gourd_sanity: every_gourd` on its own invents
     # thirty-six locations.
 
     ut_can_gen_without_yaml = True
@@ -159,7 +159,7 @@ class BigWalkWorld(World):
 
         # The Green Dome used to be optional (`green_dome_deposits`, removed
         # 2026-09-25 before the first release): its fifteen slots only ever
-        # bought deposit checks, which gourd_slot_checks already scales, and
+        # bought deposit checks, which gourd_sanity already scales, and
         # leaving it out took the Spawn Secret Door zone with it for nothing.
         self.towers = data.TOWERS
         self.gourd_count = data.MAX_MONUMENT_SLOTS
@@ -299,10 +299,10 @@ class BigWalkWorld(World):
             self.options.lock_arch_doors = bigwalk_options.LockArchDoors(bigwalk_options.LockArchDoors.option_unset)
 
     def _pick_deposit_amounts(self, total_slots: int) -> tuple[int, ...]:
-        choice = self.options.gourd_slot_checks
-        if choice == bigwalk_options.GourdSlotChecks.option_off:
+        choice = self.options.gourd_sanity
+        if choice == bigwalk_options.GourdSanity.option_off:
             return ()
-        if choice == bigwalk_options.GourdSlotChecks.option_every_gourd:
+        if choice == bigwalk_options.GourdSanity.option_every_gourd:
             return tuple(range(1, total_slots + 1))
 
         # Milestones: every fifth deposit, plus the very last one so that
@@ -348,9 +348,9 @@ class BigWalkWorld(World):
             # value never needs a matching mod release.
             "goal": bigwalk_options.GOAL_ON_THE_WIRE[self.options.goal.current_key],
             "deposit_goal_amount": self.deposit_goal,
-            "deposit_locations": bigwalk_options.GOURD_SLOT_CHECKS_ON_THE_WIRE[
-                self.options.gourd_slot_checks.current_key],
-            "radio_station_checks": bool(self.options.radio_checks),
+            "deposit_locations": bigwalk_options.GOURD_SANITY_ON_THE_WIRE[
+                self.options.gourd_sanity.current_key],
+            "radio_station_checks": bool(self.options.radio_sanity),
 
             # The mod suppresses the game's own radio unlock only while this
             # is true. An older mod that does not read the field keeps the

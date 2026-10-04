@@ -115,7 +115,7 @@ def create_all_locations(world: BigWalkWorld) -> None:
     # read them again. This is the line that would change.
     place([name for tower in world.towers for name in data.cut_locations(tower)])
 
-    if world.options.radio_checks:
+    if world.options.radio_sanity:
         place([station.location_name for station in data.RADIO_STATIONS])
 
     place([data.deposit_location_name(amount) for amount in world.deposit_amounts])

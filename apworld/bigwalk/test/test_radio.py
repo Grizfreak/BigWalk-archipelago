@@ -62,7 +62,7 @@ class TestRadioItemsWithoutChecks(BigWalkTestBase):
     radio. Seven fewer locations and seven more items still has to balance.
     """
 
-    options = {"radio_checks": False, "shuffle_radio_music": True}
+    options = {"radio_sanity": False, "shuffle_radio_music": True}
     run_default_tests = False
 
     def test_pool_still_fits_the_locations(self) -> None:

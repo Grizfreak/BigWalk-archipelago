@@ -173,7 +173,7 @@ def create_all_items(world: BigWalkWorld) -> None:
     if filler_needed < 0:
         raise OptionError(
             f"Big Walk: {world.player_name}'s options need {len(pool)} items for only {unfilled} "
-            "locations. lock_puzzle_needs adds up to 17 items; raise gourd_slot_checks, turn radio_checks "
+            "locations. lock_puzzle_needs adds up to 17 items; raise gourd_sanity, turn radio_sanity "
             "on, list more start_with_puzzle_needs, or turn lock_puzzle_needs off to make room.")
     # Backpacks and belts are the only gear a player can wear, and a carton is
     # the one bulk container for gourds, so a seed that rolls none of them (one

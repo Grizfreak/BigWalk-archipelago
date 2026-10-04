@@ -61,7 +61,7 @@ class TestPuzzleNeedsDisabled(BigWalkTestBase):
 class TestPuzzleNeedsEnabled(BigWalkTestBase):
     # Sync buttons alone open Easy Simultaneous Press, one of the tutorial's,
     # which is the foothold generation insists on.
-    options = {"lock_puzzle_needs": True, "gourd_slot_checks": "every_gourd",
+    options = {"lock_puzzle_needs": True, "gourd_sanity": "every_gourd",
                "start_with_random_puzzle_need": False, "start_with_puzzle_needs": ["sync_buttons"]}
     run_default_tests = False
 
@@ -113,7 +113,7 @@ class TestPuzzleNeedsEnabled(BigWalkTestBase):
 
 
 class TestStartWithRandomPuzzleNeed(BigWalkTestBase):
-    options = {"lock_puzzle_needs": True, "gourd_slot_checks": "every_gourd"}
+    options = {"lock_puzzle_needs": True, "gourd_sanity": "every_gourd"}
     run_default_tests = False
 
     def test_one_need_is_handed_over_and_opens_a_tutorial_puzzle(self) -> None:
@@ -148,7 +148,7 @@ class TestStartWithRandomPuzzleNeedOff(BigWalkTestBase):
 class TestStartWithRandomPuzzleNeedSkipped(BigWalkTestBase):
     """A start list that already opens a tutorial puzzle gets nothing more."""
 
-    options = {"lock_puzzle_needs": True, "gourd_slot_checks": "every_gourd",
+    options = {"lock_puzzle_needs": True, "gourd_sanity": "every_gourd",
                "start_with_puzzle_needs": ["sync_buttons"]}
     run_default_tests = False
 
@@ -157,7 +157,7 @@ class TestStartWithRandomPuzzleNeedSkipped(BigWalkTestBase):
 
 
 class TestPuzzleNeedsStartWith(BigWalkTestBase):
-    options = {"lock_puzzle_needs": True, "gourd_slot_checks": "every_gourd",
+    options = {"lock_puzzle_needs": True, "gourd_sanity": "every_gourd",
                "start_with_puzzle_needs": ["buttons", "lights"]}
     run_default_tests = False
 

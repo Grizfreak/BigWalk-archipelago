@@ -74,17 +74,16 @@ class GourdsRequired(Range):
     default = 30
 
 
-class GourdSlotChecks(Choice):
+class GourdSanity(Choice):
     """
-    Checks for placing gourds in the towers' slots, counted across all
-    towers together.
+    Checks for placing gourds in the towers' slots, counted across all towers together.
 
-    - off: no checks for placing gourds.
+    - off: none.
     - every_5: a check every 5 gourds.
     - every_gourd: a check for every gourd.
     """
 
-    display_name = "Gourd Slot Checks"
+    display_name = "Gourd Sanity"
     option_off = 0
     option_every_5 = 1
     option_every_gourd = 2
@@ -99,7 +98,7 @@ class GourdSlotChecks(Choice):
     default = 1
 
 
-GOURD_SLOT_CHECKS_ON_THE_WIRE = {
+GOURD_SANITY_ON_THE_WIRE = {
     "off": "none",
     "every_5": "milestones",
     "every_gourd": "all",
@@ -107,10 +106,12 @@ GOURD_SLOT_CHECKS_ON_THE_WIRE = {
 """The pre-rename strings slot_data keeps sending; see GOAL_ON_THE_WIRE."""
 
 
-class RadioChecks(DefaultOnToggle):
-    """If on, switching on each of the seven radio stations is a check."""
+class RadioSanity(DefaultOnToggle):
+    """
+    Switching on each of the seven radio stations is a check.
+    """
 
-    display_name = "Radio Checks"
+    display_name = "Radio Sanity"
 
 
 # Stations are named after the music they actually play, not the game's
@@ -152,15 +153,10 @@ class StartWithDrawbridgeOpen(Toggle):
 # door alone, and naming every combination took eight values.
 class StartWithArchDoorsOpen(OptionSet):
     """
-    Which of the hub's three arch doors are open from the start. Every door
-    not listed starts closed and opens when its own item is found.
+    The hub's arch doors open from the start; the others are items to find.
 
-    - First Arch Door: remove it for a real early game. While it is closed
-      you leave the starting area through it or the Drawbridge, one of which
-      is always found early. Open, most of the island is reachable from the
-      start.
-    - Left Arch Door (towards Sports Creek) and Right Arch Door: shortcuts.
-      Without them the whole island is still reachable, the long way round.
+    - First Arch Door: closed, it makes a real early game.
+    - Left and Right Arch Doors: shortcuts; the island stays reachable without them.
     """
 
     display_name = "Start With Arch Doors Open"
@@ -170,19 +166,11 @@ class StartWithArchDoorsOpen(OptionSet):
 
 class RequireArchDoors(DefaultOnToggle):
     """
-    Whether the towers and zones past the Left and Right Arch Doors need that door
-    in logic, when the door starts closed.
+    What lies past a closed Left or Right Arch Door needs that door in logic, so you are never
+    sent the shortcut after the walk.
 
-    - Left Arch Door (towards Sports Creek): the Yellow, Blue and Black towers, the
-      chapel and the Green Dome.
-    - Right Arch Door (the tunnel): the Green Tower and what is past the chairlift,
-      the purple gourds.
-
-    Both can be walked round, so off, the generator may ask for a place and send the
-    shortcut afterwards, and you walk back. On, the door comes first, and with the
-    First Arch Door open and Lock Puzzle Needs off the two doors are also asked for
-    early, in your own world, so that they are easy to find. A door listed in Start
-    With Arch Doors Open asks for nothing.
+    - Left: the Yellow, Blue and Black towers, the chapel, the Green Dome.
+    - Right: the Green Tower, past the chairlift, the purple gourds.
     """
 
     display_name = "Require Arch Doors"
@@ -216,19 +204,10 @@ LOCKED_ARCH_DOORS = {
 """The doors each value of the old `lock_arch_doors` held closed until their item arrived."""
 
 
-class LockPuzzleNeeds(Toggle):
+class LockPuzzleNeeds(DefaultOnToggle):
     """
-    Whether what a puzzle is built from becomes an item you must find first:
-    its buttons, its panels, its speakers, its timer and so on. A puzzle is
-    only ever required once you hold every one of them. Nothing in the game
-    stops you solving a puzzle early; this changes what
-    the generator may ask of you.
-
-    Which of them are items is up to Start With Puzzle Needs: the ones you
-    list are in your inventory from the start.
-
-    - The tutorial's puzzles need things too.
-    - Needing a second player, throwing and picking things up are not items.
+    What puzzles are built from (buttons, panels, speakers, timers...) are items to find first.
+    The parts missing are hidden in the world; Start With Puzzle Needs lists those you already have.
     """
 
     display_name = "Lock Puzzle Needs"
@@ -342,10 +321,9 @@ class GauntletStagesLocal(DefaultOnToggle):
     display_name = "Gauntlet Stages Local"
 
 
-class TeleportBackToHub(DefaultOnToggle):
+class TeleportBackToHub(Toggle):
     """
-    With `teleport_buttons`, a button back to the hub in each destination. Off, the hub's buttons
-    lead out and the way back is on foot. Mod only.
+    With Teleport Buttons, a button back to the hub in each destination.
     """
 
     display_name = "Teleport Back to Hub"
@@ -353,8 +331,8 @@ class TeleportBackToHub(DefaultOnToggle):
 
 class TowerResyncStations(Toggle):
     """
-    A resync station in each of the five towers, as well as the hub's: a button that brings back
-    your gourds, keys and gadgets lying around and puts them in front of itself. Mod only.
+    A resync station in each of the five towers: a button that brings your gourds, keys and
+    gadgets lying around back in front of it. The hub's station is always there.
     """
 
     display_name = "Tower Resync Stations"
@@ -362,8 +340,7 @@ class TowerResyncStations(Toggle):
 
 class GuestsCanResync(Toggle):
     """
-    The guests may use the resync stations too, buttons and switches. Off, only the host can.
-    Mod only.
+    The guests may use the resync stations too. Off, only the host can.
     """
 
     display_name = "Guests Can Resync"
@@ -371,9 +348,7 @@ class GuestsCanResync(Toggle):
 
 class OpenBlackTower(DefaultOnToggle):
     """
-    The Black Tower's door at its foot is open from the start, instead of opening once the
-    monuments of the hub and the four towers are full. Mod only. It changes no logic: the
-    deposits are counted together, wherever they are made.
+    The Black Tower's door is open from the start, instead of waiting for the five monuments.
     """
 
     display_name = "Open Black Tower"
@@ -381,20 +356,13 @@ class OpenBlackTower(DefaultOnToggle):
 
 class TeleportButtons(Choice):
     """
-    Buttons in the world that teleport you, for players who run the mod: one in the hub for each
-    of the Red Funnel, Green Cup, Blue Castle, Yellow Twist and Black towers and the Silent Gauntlet,
-    and one back to the hub inside each of them. The Green Dome is next to the spawn and has none.
+    Buttons in the hub that teleport you to the Red, Green, Blue, Yellow and Black towers and the
+    Silent Gauntlet.
 
-    - off: no buttons.
-    - free: every button is there from the start.
-    - with_towers: a tower's button in the hub appears once the tower's door has been opened by
-      its button at the foot of the tower; the Black Tower's once the two buttons at its top have been
-      held together; the Gauntlet's once the chapel's two buttons have been held together.
-    - items: as with_towers, and each hub button also needs its own item, a Teleporter, found in
-      the multiworld (6 items).
-
-    The way back to the hub is always there. A teleport can skip a locked door, which the logic
-    does not count on, so this changes no logic: it is a comfort, and it is up to you.
+    - off: none.
+    - free: all there from the start.
+    - with_towers: once the place has been opened on foot (the tower's button, the chapel's).
+    - items: the same, and each also needs its Teleporter item (6 items).
     """
 
     display_name = "Teleport Buttons"
@@ -429,7 +397,7 @@ class CabinFeverSecondsMin(Range):
 
     display_name = "Cabin Fever Shortest Wait"
     range_start = 0
-    range_end = 3600
+    range_end = 300
     default = 60
 
 
@@ -484,7 +452,7 @@ class CabinFeverLongSecondsMin(Range):
 
     display_name = "Cabin Fever Long Shortest Wait"
     range_start = 0
-    range_end = 3600
+    range_end = 1800
     default = 300
 
 
@@ -528,7 +496,9 @@ class JokeFillerPercentage(Range):
     display_name = "Joke Filler Percentage"
     range_start = 0
     range_end = 100
-    default = 20
+    default = 0
+    # Back with the traps and the bonuses (0.1.4): hidden and off until then (player, 2026-10-05).
+    visibility = Visibility.none
 
 
 # Hidden until the mod gives a trap an effect: today a trap is a filler item
@@ -551,8 +521,8 @@ class TrapFillPercentage(Range):
 class BigWalkOptions(PerGameCommonOptions):
     goal: Goal
     gourds_required: GourdsRequired
-    gourd_slot_checks: GourdSlotChecks
-    radio_checks: RadioChecks
+    gourd_sanity: GourdSanity
+    radio_sanity: RadioSanity
     shuffle_radio_music: ShuffleRadioMusic
     start_with_drawbridge_open: StartWithDrawbridgeOpen
     start_with_arch_doors_open: StartWithArchDoorsOpen
@@ -588,33 +558,33 @@ class BigWalkOptions(PerGameCommonOptions):
 
 option_groups = [
     OptionGroup("Goal", [Goal, GourdsRequired]),
-    OptionGroup("Gourds", [GourdSlotChecks]),
-    OptionGroup("Radio", [RadioChecks, ShuffleRadioMusic]),
-    OptionGroup("Keys", [StartWithDrawbridgeOpen, HintKeys]),
-    OptionGroup("Filler", [JokeFillerPercentage]),
-    OptionGroup("Teleport", [TeleportButtons, TeleportBackToHub]),
-    OptionGroup("Black Tower", [OpenBlackTower]),
-    OptionGroup("Resync", [TowerResyncStations, GuestsCanResync]),
-    OptionGroup("Cabin Fever", [CabinFeverTime, CabinFeverSecondsMin, CabinFeverSecondsMax, CabinFeverSeconds, CabinFeverHelp]),
-    OptionGroup("Cabin Fever Long", [CabinFeverLongTime, CabinFeverLongSecondsMin, CabinFeverLongSecondsMax, CabinFeverLongSeconds, CabinFeverLongHelp]),
-    OptionGroup("Doors", [StartWithArchDoorsOpen, RequireArchDoors]),
-    OptionGroup("Gauntlet", [GauntletMode, GauntletPuzzlesRequired, LockGauntletNeeds, GauntletStagesLocal]),
-    OptionGroup("Puzzles", [LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed]),
+    OptionGroup("Sanity", [GourdSanity, RadioSanity, ShuffleRadioMusic]),
+    OptionGroup("Logic", [
+        StartWithDrawbridgeOpen, OpenBlackTower, StartWithArchDoorsOpen, RequireArchDoors,
+        GauntletMode, GauntletPuzzlesRequired, LockGauntletNeeds, GauntletStagesLocal,
+        LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed,
+    ]),
+    OptionGroup("QoL", [HintKeys, TeleportButtons, TeleportBackToHub, TowerResyncStations, GuestsCanResync]),
+    OptionGroup("Puzzle QoL", [
+        CabinFeverTime, CabinFeverSecondsMin, CabinFeverSecondsMax, CabinFeverSeconds, CabinFeverHelp,
+        CabinFeverLongTime, CabinFeverLongSecondsMin, CabinFeverLongSecondsMax, CabinFeverLongSeconds,
+        CabinFeverLongHelp,
+    ]),
 ]
 
 option_presets = {
     # Everything on: the full alpha experience.
     "Full Run": {
         "goal": Goal.option_big_goodbye,
-        "gourd_slot_checks": GourdSlotChecks.option_every_gourd,
-        "radio_checks": True,
+        "gourd_sanity": GourdSanity.option_every_gourd,
+        "radio_sanity": True,
         "shuffle_radio_music": True,
     },
     # Trimmed down: the bell inside the Big Wall, and a check every five gourds placed.
     "Short": {
         "goal": Goal.option_big_wall,
-        "gourd_slot_checks": GourdSlotChecks.option_every_5,
-        "radio_checks": True,
+        "gourd_sanity": GourdSanity.option_every_5,
+        "radio_sanity": True,
         "shuffle_radio_music": True,
     },
 }

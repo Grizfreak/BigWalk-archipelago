@@ -164,7 +164,7 @@ Locations, 93 of them on the default options:
 - Each of the 7 big keys, when it goes into its plinth.
 - Each of the 7 radio stations, when you turn it on (optional).
 - Placing gourds in the towers' slots — every gourd, every fifth one, or
-  none (`gourd_slot_checks`). Gourds are counted across all towers together,
+  none (`gourd_sanity`). Gourds are counted across all towers together,
   so it never matters which tower you walk to.
 
 Items:

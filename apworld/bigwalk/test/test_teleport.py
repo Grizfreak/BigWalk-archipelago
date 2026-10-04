@@ -36,7 +36,7 @@ class TestFree(BigWalkTestBase):
 
     def test_the_mode_travels_and_no_item_is_added(self) -> None:
         self.assertEqual(self.world.fill_slot_data()["teleport_buttons"], "free")
-        self.assertTrue(self.world.fill_slot_data()["teleport_back_to_hub"])
+        self.assertFalse(self.world.fill_slot_data()["teleport_back_to_hub"])
         self.assertFalse(set(pool(self)) & TELEPORTERS)
 
 

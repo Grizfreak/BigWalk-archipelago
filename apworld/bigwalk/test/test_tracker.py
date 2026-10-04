@@ -20,9 +20,9 @@ from .bases import BigWalkTestBase, build_like_universal_tracker, world_shape
 # a region or a number a rule is written against.
 UNLIKE_THE_DEFAULTS = {
     "goal": "big_game",
-    "gourd_slot_checks": "every_gourd",
+    "gourd_sanity": "every_gourd",
     "gourds_required": 25,
-    "radio_checks": False,
+    "radio_sanity": False,
     "shuffle_radio_music": False,
     "start_with_arch_doors_open": [],
     "lock_puzzle_needs": True,
@@ -82,26 +82,26 @@ class TestTheModStillReadsTheSameStrings(BigWalkTestBase):
         self.assertEqual(slot_data["deposit_locations"], "all")
 
     def test_every_value_has_a_wire_name(self) -> None:
-        from ..options import GOAL_ON_THE_WIRE, GOURD_SLOT_CHECKS_ON_THE_WIRE, Goal, GourdSlotChecks
+        from ..options import GOAL_ON_THE_WIRE, GOURD_SANITY_ON_THE_WIRE, Goal, GourdSanity
 
         # name_lookup holds each value's canonical name only, not its aliases
         # (Archipelago adds `false` to any Choice with an `off` on its own).
         self.assertEqual(set(GOAL_ON_THE_WIRE), set(Goal.name_lookup.values()))
         self.assertEqual(set(GOAL_ON_THE_WIRE.values()), {"gauntlet", "ending", "deposits", "second_ending"})
-        self.assertEqual(set(GOURD_SLOT_CHECKS_ON_THE_WIRE), set(GourdSlotChecks.name_lookup.values()))
-        self.assertEqual(set(GOURD_SLOT_CHECKS_ON_THE_WIRE.values()), {"none", "milestones", "all"})
+        self.assertEqual(set(GOURD_SANITY_ON_THE_WIRE), set(GourdSanity.name_lookup.values()))
+        self.assertEqual(set(GOURD_SANITY_ON_THE_WIRE.values()), {"none", "milestones", "all"})
 
 
 class TestAnAlphaYamlStillReads(BigWalkTestBase):
     """The values' pre-rename spellings are aliases, so a first-alpha YAML still generates."""
 
-    options = {"goal": "deposits", "gourd_slot_checks": "milestones"}
+    options = {"goal": "deposits", "gourd_sanity": "milestones"}
 
     def test_the_old_values_land_on_the_new_ones(self) -> None:
-        from ..options import Goal, GourdSlotChecks
+        from ..options import Goal, GourdSanity
 
         self.assertEqual(self.world.options.goal.value, Goal.option_big_collection)
-        self.assertEqual(self.world.options.gourd_slot_checks.value, GourdSlotChecks.option_every_5)
+        self.assertEqual(self.world.options.gourd_sanity.value, GourdSanity.option_every_5)
 
 
 class TestTheHooksAreShapedTheWayUTChecksThem(BigWalkTestBase):

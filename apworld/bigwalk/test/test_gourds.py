@@ -83,7 +83,7 @@ class TestMonumentsBuyOnlyTheirOwnChecks(BigWalkTestBase):
 
     def test_gourd_deposits_still_cost_gourds(self) -> None:
         # The one thing a monument IS still for. Counted in fives because the
-        # default `gourd_slot_checks` is every_5, so 1..4 are not locations.
+        # default `gourd_sanity` is every_5, so 1..4 are not locations.
         self.collect_gourds(5)
         self.assertTrue(self.can_reach_location(data.deposit_location_name(5)))
         self.assertFalse(self.can_reach_location(data.deposit_location_name(10)))
