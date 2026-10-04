@@ -800,6 +800,7 @@ TELEPORT_DESTINATIONS: tuple[tuple[str, str], ...] = (
     ("green", "Green Cup Tower"),
     ("blue", "Blue Castle Tower"),
     ("yellow", "Yellow Twist Tower"),
+    ("black", "Black Tower"),
     ("gauntlet", "Silent Gauntlet"),
 )
 """

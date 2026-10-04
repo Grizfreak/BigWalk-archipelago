@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using BigWalkArchipelago.Core;
 using UnityEngine;
 
@@ -35,7 +35,7 @@ namespace BigWalkArchipelago.Debug
 
             if (TryAimedSurface(player, out var point, out var normal))
             {
-                WorldButtons.Add("Back to the hub", point + normal * 0.02f, Quaternion.LookRotation(normal, Vector3.up),
+                WorldButtons.Add(DebugSlot, "Back to the hub", point + normal * 0.02f, Quaternion.LookRotation(normal, Vector3.up),
                     presser => WorldButtons.TeleportTo(presser, HubSpawn, Quaternion.identity), IconForNextTest());
                 return;
             }
@@ -43,12 +43,14 @@ namespace BigWalkArchipelago.Debug
             var forward = player.transform.forward;
             forward.y = 0f;
             var position = player.transform.position + forward.normalized * 2.5f + Vector3.up * 1.2f;
-            WorldButtons.Add("Back to the hub", position, Quaternion.LookRotation(-forward.normalized, Vector3.up),
+            WorldButtons.Add(DebugSlot, "Back to the hub", position, Quaternion.LookRotation(-forward.normalized, Vector3.up),
                 presser => WorldButtons.TeleportTo(presser, HubSpawn, Quaternion.identity));
         }
 
         // Writes the spot the player is looking at, a point on a surface and the way the surface
         // faces, to a file: how the real buttons get their places, without guessing coordinates.
+        private const int DebugSlot = 31;
+
         internal static void MarkAimedSpot()
         {
             var player = DebugPlayerLookup.FindLocalPlayer();

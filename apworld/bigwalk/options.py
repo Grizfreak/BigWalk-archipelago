@@ -345,14 +345,14 @@ class GauntletStagesLocal(DefaultOnToggle):
 class TeleportButtons(Choice):
     """
     Buttons in the world that teleport you, for players who run the mod: one in the hub for each
-    of the Red Funnel, Green Cup, Blue Castle and Yellow Twist towers and the Silent Gauntlet,
+    of the Red Funnel, Green Cup, Blue Castle, Yellow Twist and Black towers and the Silent Gauntlet,
     and one back to the hub inside each of them. The Green Dome is next to the spawn and has none.
 
     - off: no buttons.
     - free: every button is there from the start.
     - with_towers: a tower's button in the hub appears once the tower's door has been opened by
       its button at the foot of the tower; the Gauntlet's once its Big Wall Door has arrived.
-    - items: each hub button needs its own item, a Teleporter, found in the multiworld (5 items).
+    - items: each hub button needs its own item, a Teleporter, found in the multiworld (6 items).
 
     The way back to the hub is always there. A teleport can skip a locked door, which the logic
     does not count on, so this changes no logic: it is a comfort, and it is up to you.

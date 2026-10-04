@@ -769,3 +769,20 @@ The tables are `data.TOWER_FAR_DOOR` and `data.ZONE_FAR_DOOR`. The doors are pro
 items with it, useful ones without. They are also asked for as early local items while
 the First Arch Door is open and `lock_puzzle_needs` is off (generation fails otherwise:
 measured 6 of 8 seeds with the request in the tight configuration, 8 of 8 without).
+
+## 16. Teleport buttons (`teleport_buttons`)
+
+The in-world teleport buttons are a mod-side comfort; the apworld only carries the option and, in
+`items` mode, six items.
+
+`slot_data`: `teleport_buttons` (`"off"`, `"free"`, `"with_towers"` or `"items"`),
+`teleport_destinations` (the keys `red`, `green`, `blue`, `yellow`, `black`, `gauntlet`, in the
+order of the item ids) and `teleport_id_offset` (2700). The item `BASE_ID + 2700 + n` is the
+Teleporter of destination `n`: `red Teleporter`, and so on. Useful, never progression; nothing in
+logic depends on any of it, since a teleport can skip a lock and cannot be counted on.
+
+What exists in the world is decided by the host and sent to guests in the mod's snapshot as one
+byte (bit n: the hub button of destination n; bit 6: the ways back; bit 7: the resync and gather
+buttons). A guest's press reaches the host's copy of the button and the host sends it back to that
+guest by the mod's own message (kind 4, protocol 4), so the effect runs on the machine of the player
+it moves.

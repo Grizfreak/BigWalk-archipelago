@@ -234,6 +234,25 @@ namespace BigWalkArchipelago.Core.Net
         // Ctrl+R also brings back a stranded key, at the player's request:
         // same promise as for a gourd, since a key already in its plinth is
         // a check already sent and is left exactly where it is.
+        // Everything the resync does, from the key (when one is bound) or from the button in the
+        // hub (Core/TeleportButtons). Only the host can: its world is the one the items live in.
+        internal static void ResyncAll(Vector3? gatherAt = null)
+        {
+            if (!NetworkServer.active)
+            {
+                Plugin.Log.LogInfo($"[{nameof(ApRuntime)}] Resync ignored: only the host can do this.");
+                ApNotices.Post("Only the host can resync", warning: true);
+                return;
+            }
+
+            if (gatherAt != null)
+                ReceivedItemSpawner.GatherAt(gatherAt.Value);
+
+            ResyncGourds();
+            ResyncKeys();
+            ResyncGadgets();
+        }
+
         internal static void ResyncKeys()
         {
             var moved = KeyCustody.ResyncToSpawn();
@@ -455,11 +474,7 @@ namespace BigWalkArchipelago.Core.Net
             // an answer in the log, even when the mod is in a state where
             // it will decline to act.
             if (ModConfig.ResyncGourdsKey.Value.IsDown())
-            {
-                ResyncGourds();
-                ResyncKeys();
-                ResyncGadgets();
-            }
+                ResyncAll();
 
             // A gourd spawned last tick and meant for the player's hands is
             // handed over now, a frame after its spawn went out on the wire
@@ -746,6 +761,7 @@ namespace BigWalkArchipelago.Core.Net
                 KeyCustody.ClearLedger();
                 PuzzleNeeds.ClearLedger();
                 GauntletStairways.ClearLedger();
+                TeleportButtons.ClearLedger();
             }
 
             // After the ledger above, so a save just rebound to a new seed is
@@ -763,6 +779,10 @@ namespace BigWalkArchipelago.Core.Net
                 Connection.SlotData.GauntletMode == "locked_stages",
                 Connection.SlotData.GauntletPuzzlesRequired,
                 Connection.SlotData.LockGauntletNeeds);
+            TeleportButtons.Configure(
+                Connection.SlotData.TeleportButtons,
+                Connection.SlotData.TeleportIdOffset,
+                Connection.SlotData.TeleportDestinations);
             SessionJournal.Write(
                 "connected", $"{Connection.SlotName} | {Connection.SlotData.Describe()} | {_appliedItemCount} item(s) already applied");
 
@@ -1187,6 +1207,9 @@ namespace BigWalkArchipelago.Core.Net
 
             if (ApLocationIds.TryResolveGauntletItem(itemId, out var stairway))
                 return GauntletStairways.Grant(stairway);
+
+            if (TeleportButtons.TryResolveItem(itemId, out var teleporter))
+                return TeleportButtons.Grant(teleporter);
 
             // A filler gadget item (megaphone, walkie-talkie, backpack,
             // belt, flare gun) — same toPlayer split as the gourd above,

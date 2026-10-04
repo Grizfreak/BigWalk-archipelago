@@ -64,7 +64,7 @@ namespace BigWalkArchipelago.Core.Net
 
         // Both ends must speak the same version; a mismatch is logged once
         // and ignored rather than half-read.
-        private const byte ProtocolVersion = 3;
+        private const byte ProtocolVersion = 4;
 
         private const byte KindHello = 1;
         private const byte KindSnapshot = 2;
@@ -74,6 +74,11 @@ namespace BigWalkArchipelago.Core.Net
         // same PC that said hello, so no remote player receives it; a guest
         // that does not know it ignores it, like any kind but a snapshot.
         private const byte KindSummon = 3;
+
+        // The host tells a guest that the guest pressed one of the mod's world buttons: the press
+        // reaches the host's copy of the button (the game is host-authoritative), but what the
+        // button does, a teleport, has to happen on the machine of the player it moves.
+        private const byte KindPress = 4;
 
         private const float SnapshotIntervalSeconds = 1f;
 
@@ -149,6 +154,7 @@ namespace BigWalkArchipelago.Core.Net
                 SpawnBeacon();
 
             PruneAnnounced();
+            TickRepublish();
 
             if (Time.unscaledTime < _nextSnapshot || Announced.Count == 0)
                 return;
@@ -234,6 +240,23 @@ namespace BigWalkArchipelago.Core.Net
             Announced.RemoveWhere(id => !live.Contains(id));
         }
 
+        // After a guest says hello, the holds are said again twice, a few seconds apart: the first
+        // time its world is usually still filling in.
+        private static readonly float[] RepublishDelays = { 3f, 8f };
+        private static readonly List<float> RepublishAt = new();
+
+        private static void TickRepublish()
+        {
+            for (var i = RepublishAt.Count - 1; i >= 0; i--)
+            {
+                if (Time.unscaledTime < RepublishAt[i])
+                    continue;
+
+                RepublishAt.RemoveAt(i);
+                ReceivedItemSpawner.RepublishHolds();
+            }
+        }
+
         // Runs inside Mirror's dispatch: anything thrown here is a failed
         // message, and a failed message disconnects the sender. Nothing may
         // escape it.
@@ -260,6 +283,8 @@ namespace BigWalkArchipelago.Core.Net
                         $"[{nameof(ModChannel)}] Guest #{connection.connectionId} runs the mod; mirroring the overlay "
                         + "and the radio to it.");
                     SendSnapshot(connection);
+                    foreach (var delay in RepublishDelays)
+                        RepublishAt.Add(Time.unscaledTime + delay);
                 }
             }
             catch (Exception ex)
@@ -320,6 +345,7 @@ namespace BigWalkArchipelago.Core.Net
 
                 NetworkWriterExtensions.WriteBool(writer, GauntletStairways.Enabled);
                 NetworkWriterExtensions.WriteBool(writer, GauntletStairways.PartsHidden);
+                writer.WriteByte((byte)TeleportButtons.HostMask());
 
                 connection.Send(writer.ToArraySegment(), 0);
             }
@@ -327,6 +353,28 @@ namespace BigWalkArchipelago.Core.Net
             {
                 Plugin.Log.LogWarning(
                     $"[{nameof(ModChannel)}] Could not send a snapshot to guest #{connection.connectionId}: {ex.Message}");
+            }
+        }
+
+        // Tells the guest on this connection that its player pressed the button in this slot.
+        internal static void SendPress(NetworkConnection connection, int slot)
+        {
+            if (connection == null || !Announced.Contains(connection.connectionId))
+                return;
+
+            try
+            {
+                var writer = new NetworkWriter();
+                NetworkWriterExtensions.WriteUShort(writer, MessageId);
+                writer.WriteByte(KindPress);
+                writer.WriteByte(ProtocolVersion);
+                writer.WriteByte((byte)slot);
+                connection.Send(writer.ToArraySegment(), 0);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(ModChannel)}] Could not send a button press to guest #{connection.connectionId}: {ex.Message}");
             }
         }
 
@@ -404,6 +452,7 @@ namespace BigWalkArchipelago.Core.Net
                 RadioStations.ForgetMirror();
                 PuzzleNeeds.ForgetMirror();
                 GauntletStairways.ForgetMirror();
+                TeleportButtons.ForgetMirror();
             }
 
             _clientHandlerRegistered = false;
@@ -504,6 +553,13 @@ namespace BigWalkArchipelago.Core.Net
                     return;
                 }
 
+                if (kind == KindPress)
+                {
+                    if (reader.ReadByte() == ProtocolVersion)
+                        WorldButtons.RunPress(reader.ReadByte());
+                    return;
+                }
+
                 if (kind != KindSnapshot)
                     return;
 
@@ -550,6 +606,7 @@ namespace BigWalkArchipelago.Core.Net
 
                 var gauntletLocked = NetworkReaderExtensions.ReadBool(reader);
                 var gauntletPartsLocked = NetworkReaderExtensions.ReadBool(reader);
+                var teleportMask = reader.ReadByte();
 
                 var first = _receivedAt < 0f;
 
@@ -568,6 +625,7 @@ namespace BigWalkArchipelago.Core.Net
                 RadioStations.ApplyFromHost(radioItemsInPlay, granted);
                 PuzzleNeeds.ApplyFromHost(needsEnabled, lockedNeeds);
                 GauntletStairways.ApplyFromHost(gauntletLocked, gauntletPartsLocked);
+                TeleportButtons.ApplyFromHost(teleportMask);
             }
             catch (Exception ex)
             {

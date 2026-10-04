@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -40,6 +40,10 @@ namespace BigWalkArchipelago.Core
 
         internal sealed class Button
         {
+            internal int Slot;
+
+            // The tower whose colour the plate takes, when it is not the one of the icon.
+            internal string Tint;
             internal string Label;
             internal Vector3 Position;
             internal Action<PlayerCharacter> OnPress;
@@ -71,16 +75,59 @@ namespace BigWalkArchipelago.Core
         internal static bool HasNative => NativeStates.Count > 0;
 
         private static readonly List<Button> Buttons = new List<Button>();
+
+        // The buttons by slot. A slot is a fixed place in the mod's table, so the tickets of its
+        // button (Core/WorldButtons, FirstTicket) are the same on every machine whatever the
+        // order buttons were made in, which differs: a button may appear on one machine first.
+        private static readonly Dictionary<int, Button> Slots = new Dictionary<int, Button>();
+
+        // False for a button whose world went away with it, so it gets made again.
+        internal static bool Has(int slot) => Slots.TryGetValue(slot, out var button) && button.Root != null;
+
+        // Takes a button out of the world again, and forgets its states.
+        internal static void Remove(int slot)
+        {
+            if (!Slots.TryGetValue(slot, out var button))
+                return;
+
+            Slots.Remove(slot);
+            Buttons.Remove(button);
+            if (button.Root != null)
+                UnityEngine.Object.Destroy(button.Root);
+
+            var gone = new List<int>();
+            foreach (var pair in NativeStates)
+            {
+                if (pair.Value == button)
+                    gone.Add(pair.Key);
+            }
+
+            foreach (var id in gone)
+                NativeStates.Remove(id);
+        }
+
+        // A world went away with all its objects: forget the buttons without touching them.
+        internal static void Forget()
+        {
+            Slots.Clear();
+            Buttons.Clear();
+            NativeStates.Clear();
+            _focused = null;
+        }
         private static Material _material;
         private static Button _focused;
 
         // Puts a button in the world. The look is made at once, from whichever game material
         // can be found; a world reload destroys it, and the caller adds it again.
-        internal static Button Add(string label, Vector3 position, Quaternion rotation, Action<PlayerCharacter> onPress,
-            string icon = null)
+        internal static Button Add(int slot, string label, Vector3 position, Quaternion rotation,
+            Action<PlayerCharacter> onPress, string icon = null, string tint = null)
         {
-            var button = new Button { Label = label, Position = position, OnPress = onPress, Icon = icon };
-            button.Root = Build(position, rotation, Buttons.Count, button);
+            if (Slots.ContainsKey(slot))
+                Remove(slot);
+
+            var button = new Button { Slot = slot, Label = label, Position = position, OnPress = onPress, Icon = icon, Tint = tint };
+            button.Root = Build(position, rotation, slot, button);
+            Slots[slot] = button;
             Measure(button);
             if (icon != null)
                 AddIcon(button, icon);
@@ -93,7 +140,7 @@ namespace BigWalkArchipelago.Core
         // drawn next to the panel's own, and how far it is sunk into the wall.
         private const float IconGap = 0.06f;
         private const float IconScale = 0.6f;
-        private const float IconSink = 0.18f;
+        private const float IconSink = 0.10f;
 
         // The icon of a tower above a button, copied from the Black Tower's panel of them
         // (`EndingGateIndicator`): its dark bezel, its red light and the silhouette named by
@@ -272,6 +319,7 @@ namespace BigWalkArchipelago.Core
             }
 
             Buttons.Clear();
+            Slots.Clear();
             NativeStates.Clear();
             _focused = null;
         }
@@ -380,7 +428,7 @@ namespace BigWalkArchipelago.Core
         // original's references, then given a ticket of its own, then switched on.
         private static bool TryBuildNative(GameObject root, int index, Button button)
         {
-            var template = FindPushButton(root.transform.position);
+            var template = GetTemplate();
             if (template == null)
                 return false;
 
@@ -391,7 +439,8 @@ namespace BigWalkArchipelago.Core
                 var clone = UnityEngine.Object.Instantiate(template, holder.transform);
                 clone.name = "AP native button";
 
-                var ticket = FirstTicket + index * TicketsPerButton;
+                var ticket = FreeTicketBlock(index);
+                var firstTicket = ticket;
                 foreach (var peckSwitch in clone.GetComponentsInChildren<PeckSwitch>(true))
                 {
                     peckSwitch.useTicket = true;
@@ -409,10 +458,10 @@ namespace BigWalkArchipelago.Core
                 clone.transform.localPosition = Vector3.zero;
                 clone.transform.localRotation = Quaternion.identity;
                 clone.SetActive(true);
-                ReplacePlate(clone, PlateColour(button.Icon));
+                ReplacePlate(clone, PlateColour(button.Tint ?? button.Icon));
 
                 Plugin.Log.LogInfo(
-                    $"[{nameof(WorldButtons)}] '{template.name}' copied as a native button, tickets {FirstTicket + index * TicketsPerButton}..{ticket - 1}.");
+                    $"[{nameof(WorldButtons)}] '{template.name}' copied as a native button, tickets {firstTicket}..{ticket - 1}.");
                 return true;
             }
             catch (Exception ex)
@@ -475,9 +524,46 @@ namespace BigWalkArchipelago.Core
             slab.transform.rotation = plate.transform.rotation;
             slab.transform.position = plate.transform.TransformPoint(filter.sharedMesh.bounds.center);
             slab.transform.localScale = Vector3.Scale(filter.sharedMesh.bounds.size, plate.transform.lossyScale);
+            // The game's own plate material, not whichever vertex-colour material the scene lists
+            // first, which changes from run to run and was sometimes one that glows.
+            if (plate.sharedMaterial != null)
+                _material = plate.sharedMaterial;
+
             Paint(slab, colour);
             plate.enabled = false;
             Plugin.Log.LogInfo($"[{nameof(WorldButtons)}] Plate '{plate.gameObject.name}' replaced by a {colour} slab.");
+        }
+
+        // The slots a table can have, so two slots never share a block of tickets.
+        private const int MaxSlots = 32;
+
+        // The first ticket of a block of the button's own tickets that nothing in the game holds.
+        // The game's scene objects carry tickets too, and one of the blocks was one of theirs:
+        // a state of a button then resolved to a switch and every press threw. The next block of
+        // the same slot is taken instead, which is the same on every machine because the scene
+        // is, and never one of another slot's.
+        private static int FreeTicketBlock(int slot)
+        {
+            var office = LobbyNetworking.TicketOffice.instance;
+            for (var round = 0; round < 64; round++)
+            {
+                var first = FirstTicket + (slot + round * MaxSlots) * TicketsPerButton;
+                if (first + TicketsPerButton > ushort.MaxValue)
+                    break;
+
+                var free = true;
+                for (var i = 0; i < TicketsPerButton && free; i++)
+                    free = office == null || !office.tickets.ContainsKey((ushort)(first + i));
+
+                if (free)
+                {
+                    if (round > 0)
+                        Plugin.Log.LogInfo($"[{nameof(WorldButtons)}] Slot {slot}: tickets taken in the game, using block {round}.");
+                    return first;
+                }
+            }
+
+            return FirstTicket + slot * TicketsPerButton;
         }
 
         // Called by Patches/WorldButtonPatch whenever a TrackedPeckState is set: when it is one
@@ -492,9 +578,29 @@ namespace BigWalkArchipelago.Core
             Plugin.Log.LogInfo(
                 $"[{nameof(WorldButtons)}] '{button.Label}' pressed (state {context.state}) by "
                 + $"'{(who != null ? who.name : "<nobody>")}', local={(who != null && who.isLocalPlayer)}.");
+            // A guest's press reaches the host's copy of the button; the guest's own machine is
+            // told to run it, since what it does is to move or serve that player.
+            if (who != null && !who.isLocalPlayer && Mirror.NetworkServer.active)
+            {
+                Net.ModChannel.SendPress(who.connectionToClient, button.Slot);
+                return;
+            }
+
             if (who == null || !who.isLocalPlayer)
                 return;
 
+            RunPress(button);
+        }
+
+        // On a guest: the host says its player pressed the button in this slot.
+        internal static void RunPress(int slot)
+        {
+            if (Slots.TryGetValue(slot, out var button))
+                RunPress(button);
+        }
+
+        private static void RunPress(Button button)
+        {
             try
             {
                 button.OnPress?.Invoke(Debug.DebugPlayerLookup.FindLocalPlayer());
@@ -554,6 +660,43 @@ namespace BigWalkArchipelago.Core
             return made > 0;
         }
 
+        // Where the template is looked for: the hub, whose buttons are the plain ones. A tower's own
+        // button is a different thing (its colour and parts are not the hub's), and a copy of it
+        // came out wholly green or wholly wrong.
+        private static readonly Vector3 TemplateNear = new Vector3(-219.29f, 33.12f, -521.17f);
+        private const float TemplateReach = 40f;
+
+        private static GameObject _template;
+
+        // The push button every native copy is made from, the same one everywhere: a switched-off
+        // copy kept for the whole session, so it survives the world that held the original.
+        // It is only kept when the original is the hub's; otherwise it is used once.
+        private static GameObject GetTemplate()
+        {
+            if (_template != null)
+                return _template;
+
+            var found = FindPushButton(TemplateNear);
+            if (found == null)
+                return null;
+
+            if ((found.transform.position - TemplateNear).magnitude > TemplateReach)
+            {
+                Plugin.Log.LogInfo(
+                    $"[{nameof(WorldButtons)}] No hub push button loaded; '{found.name}' at {found.transform.position} used once.");
+                return found;
+            }
+
+            var holder = new GameObject("AP template holder");
+            holder.SetActive(false);
+            UnityEngine.Object.DontDestroyOnLoad(holder);
+            _template = UnityEngine.Object.Instantiate(found, holder.transform);
+            _template.name = "AP template";
+            Plugin.Log.LogInfo(
+                $"[{nameof(WorldButtons)}] Template kept: '{found.name}' at {found.transform.position}.");
+            return _template;
+        }
+
         // The nearest loaded push button, by the name of its root, that is switched on.
         private static GameObject FindPushButton(Vector3 near)
         {
@@ -565,13 +708,19 @@ namespace BigWalkArchipelago.Core
                     continue;
 
                 GameObject root = null;
+                var ours = false;
                 for (var t = peckSwitch.transform; t != null; t = t.parent)
                 {
                     if (t.name.StartsWith("BasicPushButton", StringComparison.Ordinal))
                         root = t.gameObject;
+
+                    // One of this mod's own buttons: its parts are named like the game's, but
+                    // copying one would copy tickets already registered.
+                    if (t.name.StartsWith("AP ", StringComparison.Ordinal))
+                        ours = true;
                 }
 
-                if (root == null || !root.activeInHierarchy)
+                if (ours || root == null || !root.activeInHierarchy)
                     continue;
 
                 var distance = (root.transform.position - near).sqrMagnitude;

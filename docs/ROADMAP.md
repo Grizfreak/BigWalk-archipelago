@@ -59,15 +59,16 @@ After 0.1.8, without a date: quality of life U2, U4, U5 (placed in the version t
 **Step 2 — Quality of life** *(new: small, and felt on every seed)*
 - [x] U1 Hints for keys from the start (`hint_keys: from_start`) — apworld only
 - [ ] U2 The map shows which puzzles still hold a check
-- [ ] U3 A new save gets its deposits back, not only its items (DataStorage)
-- [ ] U4 A button in the world for the gourd resync, instead of Ctrl+R
-- [ ] U5 Checks remembered per seed, not per save (`ap_reported_*`)
+- [x] U3 A new save gets its deposits back, not only its items (DataStorage)
+- [x] U4 A button in the world for the gourd resync (hub, host only); Ctrl+R stays bound. Its "nearest tower" change is the gather buttons, U11
+- [x] U5 Checks remembered per seed, not per save (`ap_reported_*`)
 - [ ] U6 A PopTracker pack with the island's map (Universal Tracker works today)
 - [ ] U7 The game's own skip aids (`SkipAidToggler`) as an option (research)
-- [ ] U8 Joke filler items (the document's 13 misnamings of gourds), no effect
-- [ ] U9 Names players use: towers by their full name (Red Funnel Tower, …),
+- [x] U8 Joke filler items (the document's 13 misnamings of gourds), no effect
+- [x] U9 Names players use: towers by their full name (Red Funnel Tower, …),
   the document's spellings
-- [ ] U10 Teleport buttons in the world, one per zone (idea from the player, 2026-10-03), the same kind of physical button as U4
+- [x] U10 Teleport buttons in the world (`teleport_buttons`: off / free / with_towers / items); six in the hub, a way back in each destination; solo and loopback guest tested 2026-10-04. To check: the `with_towers` and `items` modes in play, and whether the Black Tower and the Gauntlet should open with the Big Wall Door together
+- [ ] U11 Gather buttons in each tower: a press restocks gourds, keys and gadgets in front of the button (player, 2026-10-04); built, under solo test. To do later: an apworld option for them, exclusion settings (which kinds of item to leave out), a guest able to press them (co-op test planned 2026-10-05), a Resync button per tower so the restock follows the nearest tower
 
 **Step 3 — Traps**
 - [ ] T1 Trap weights as options (`trap_percent` exists, hidden)

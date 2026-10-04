@@ -131,7 +131,7 @@ namespace BigWalkArchipelago
                 "Archipelago",
                 "ResyncGourdsKey",
                 new KeyboardShortcut(KeyCode.R, KeyCode.LeftControl),
-                "Puts everything Archipelago has given you back within reach. Every gourd of yours that is not in a monument, every filler item, and every big key not already in its plinth is swept up — out of your hands too — and the right number is put back from what the server says you have received. For when one has ended up somewhere you cannot reach it: stranded in a sealed puzzle room, say. Monument deposits and placed keys are never touched, so nothing that counts for Archipelago can be lost by pressing this. Host only.");
+                "Puts everything Archipelago has given you back within reach. Every gourd of yours that is not in a monument, every filler item, and every big key not already in its plinth is swept up — out of your hands too — and the right number is put back from what the server says you have received. For when one has ended up somewhere you cannot reach it: stranded in a sealed puzzle room, say. Monument deposits and placed keys are never touched, so nothing that counts for Archipelago can be lost by pressing this. Host only. The Resync button in the hub does the same; clear this binding to have only the button.");
 
             ShowConnectionStatus = file.Bind(
                 "Archipelago",

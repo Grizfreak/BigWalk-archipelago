@@ -1190,6 +1190,44 @@ namespace BigWalkArchipelago.Core
             return true;
         }
 
+        // Says again, to everyone, what each player is holding. A guest who joins after a player
+        // picked something up is told the held state when the player's object reaches it, which can
+        // be before the held prop does: the state then names a prop the guest does not have yet and
+        // the hands stay empty on its screen (reported 2026-10-04: a gourd taken before the guest
+        // arrived). A fresh number makes the guests take it in again, the prop being there by now.
+        internal static void RepublishHolds()
+        {
+            if (!NetworkServer.active)
+                return;
+
+            var all = PlayerCharacter.allPlayerCharacters;
+            if (all == null)
+                return;
+
+            foreach (var player in all)
+            {
+                try
+                {
+                    var networking = player != null ? player.playerNetworking : null;
+                    if (networking == null)
+                        continue;
+
+                    var held = networking.playerHeldInformation;
+                    if (held.identity == null)
+                        continue;
+
+                    held.actionNumber = held.actionNumber + 1;
+                    networking.NetworkplayerHeldInformation = held;
+                    Plugin.Log.LogInfo(
+                        $"[{nameof(ReceivedItemSpawner)}] Hold of '{player.name}' said again for a guest that joined.");
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"[{nameof(ReceivedItemSpawner)}] Could not say a hold again: {ex.Message}");
+                }
+            }
+        }
+
         // "Published" means the networked field, not the local one: that is
         // the only one another machine can read.
         private static bool HoldIsPublished(PlayerCharacter player, Prop prop)
@@ -1248,8 +1286,36 @@ namespace BigWalkArchipelago.Core
         // valid.
         // In front of whoever the item is for since 2026-09-25, which is no
         // longer necessarily the host (see ItemRecipients).
+        // Where the next resync puts what it restocks, instead of the nearest inventory spawn:
+        // set by a gather button of a tower (Core/TeleportButtons) so the items land in front of it.
+        // It lapses by itself, because the restock runs over a few seconds, not at once.
+        private static Vector3? _gatherAt;
+        private static float _gatherUntil;
+        private const float GatherLifetime = 20f;
+        private const float GatherScatter = 0.7f;
+
+        internal static void GatherAt(Vector3 where)
+        {
+            _gatherAt = where;
+            _gatherUntil = Time.unscaledTime + GatherLifetime;
+        }
+
         internal static Vector3? ResolveSpawnPosition(bool toPlayer, PlayerCharacter near = null)
         {
+            if (!toPlayer && _gatherAt != null)
+            {
+                if (Time.unscaledTime < _gatherUntil)
+                {
+                    // Spread over a little ground so a dozen gourds do not land on one another.
+                    return _gatherAt.Value + new Vector3(
+                        UnityEngine.Random.Range(-GatherScatter, GatherScatter),
+                        UnityEngine.Random.Range(0f, 0.5f),
+                        UnityEngine.Random.Range(-GatherScatter, GatherScatter));
+                }
+
+                _gatherAt = null;
+            }
+
             if (toPlayer && ModConfig.SpawnGourdAtPlayer.Value)
             {
                 var player = near != null ? near : FindLocalPlayerCharacter();

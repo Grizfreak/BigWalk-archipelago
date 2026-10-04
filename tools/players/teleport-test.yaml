@@ -1,0 +1,14 @@
+# teleport_buttons: free. The hub's buttons are all there from the start.
+#
+# IMPORTANT: host a save named exactly `BWTele`.
+name: BWTele
+game: Big Walk
+requires:
+  game:
+    Big Walk: 0.1.2
+Big Walk:
+  goal: big_collection
+  gourds_required: 15
+  gourd_slot_checks: every_gourd
+  radio_checks: true
+  teleport_buttons: free

@@ -19,6 +19,7 @@ namespace BigWalkArchipelago.Core.Net
         internal const long DefaultRadioOffset = 1_000;
         internal const long DefaultDepositOffset = 2_000;
         internal const long DefaultGauntletOffset = 2_500;
+        internal const int DefaultTeleportOffset = 2_700;
         internal const long DefaultCutOffset = 3_000;
 
         // The KEY items, which are a different thing from the FEATURE items

@@ -41,6 +41,17 @@ unwinnable, which is why every player of a session should run the same build.
   in the item feed.
 - **`hint_keys: from_start`**: the seven big keys are hinted from the first
   minute.
+- **Teleport buttons** (`teleport_buttons`, `off` by default). Buttons in the world, set into
+  the walls: in the hub one for each of the Red Funnel, Green Cup, Blue Castle, Yellow Twist and
+  Black towers and the Silent Gauntlet, and one back to the hub inside each of them. The
+  Green Dome has none, being next to the spawn. `free`: all there from the start.
+  `with_towers`: a tower's button once its door has been opened by the button at its foot (the
+  Black Tower's and the Gauntlet's with the Big Wall Door). `items`: each needs its own
+  **Teleporter** item, six of them, useful and never required. A teleport can skip a lock the
+  logic does not count on, so none of this is logic. Guests can press them too (mod protocol 4).
+- **A Resync button in the hub** does what Ctrl+R does (still bound), and **a gather button in each
+  tower** does the same but puts the gourds, keys and gadgets in front of itself, to be picked up
+  on the spot. Host only for now; an apworld option for the gather buttons comes later.
 - **A new save gets its deposits back.** The number of gourds placed in the
   monuments is kept on the Archipelago server, per slot, and only ever goes up.
   A new save on the same slot puts that many back as the monuments load, in

@@ -70,6 +70,12 @@ namespace BigWalkArchipelago.Core.Net
         internal bool LockGauntletNeeds { get; private set; }
         internal long GauntletIdOffset { get; private set; } = ApLocationIds.DefaultGauntletOffset;
 
+        // The in-world teleport buttons: off, free, with_towers or items, the destinations in the
+        // order of their Teleporter item ids, and where those ids start.
+        internal string TeleportButtons { get; private set; } = "off";
+        internal string[] TeleportDestinations { get; private set; } = new string[0];
+        internal int TeleportIdOffset { get; private set; } = ApLocationIds.DefaultTeleportOffset;
+
         // FALSE and empty by default, like the others that take something
         // away: an apworld too old to send them has no need items in its
         // pool, so hiding the objects would hide them for good.
@@ -112,6 +118,9 @@ namespace BigWalkArchipelago.Core.Net
             data.ArchDoorIdOffset = GetInt(raw, "arch_door_id_offset", (int)data.ArchDoorIdOffset);
             data.PuzzleNeedIdOffset = GetInt(raw, "puzzle_need_id_offset", (int)data.PuzzleNeedIdOffset);
             data.GauntletIdOffset = GetInt(raw, "gauntlet_id_offset", (int)data.GauntletIdOffset);
+            data.TeleportButtons = GetString(raw, "teleport_buttons", data.TeleportButtons);
+            data.TeleportDestinations = GetStringArray(raw, "teleport_destinations");
+            data.TeleportIdOffset = GetInt(raw, "teleport_id_offset", data.TeleportIdOffset);
 
             return data;
         }
@@ -128,7 +137,8 @@ namespace BigWalkArchipelago.Core.Net
                    + $", big keys as items {(BigKeyItems ? "on" : "off")}"
                    + $", {LockedArchDoors.Length} arch door(s) locked"
                    + $", puzzle needs {(LockPuzzleNeeds ? "locked" : "free")}"
-                   + $", gauntlet {GauntletMode}{(GauntletMode == "locked_stages" && !GauntletPuzzlesRequired ? " (puzzles optional)" : string.Empty)}";
+                   + $", gauntlet {GauntletMode}{(GauntletMode == "locked_stages" && !GauntletPuzzlesRequired ? " (puzzles optional)" : string.Empty)}"
+                   + $", teleport buttons {TeleportButtons}";
         }
 
         private static string GetString(Dictionary<string, object> raw, string key, string fallback)

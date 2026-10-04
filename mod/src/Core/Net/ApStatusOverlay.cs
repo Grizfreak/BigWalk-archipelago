@@ -185,6 +185,9 @@ namespace BigWalkArchipelago.Core.Net
         private static string ResyncHint()
         {
             var shortcut = ModConfig.ResyncGourdsKey.Value;
+            if (shortcut.MainKey == KeyCode.None)
+                return "Resync button in the hub: bring back stranded gourds and keys";
+
             var source = shortcut.ToString();
             if (_hintText != null && _hintSource == source)
                 return _hintText;
