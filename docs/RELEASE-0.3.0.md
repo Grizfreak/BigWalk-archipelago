@@ -6,8 +6,8 @@ texts below. The assets are in `dist/` (the mod) and `apworld/dist/` (the world)
 
 | File | What | SHA-256 |
 |---|---|---|
-| `BigWalkArchipelago-0.3.0.zip` | the mod, BepInEx included, for every player | *to fill after E2* |
-| `bigwalk.apworld` | the world, for whoever generates | *to fill after E2* |
+| `BigWalkArchipelago-0.3.0.zip` | the mod, BepInEx included, for every player | `413ed5e1789afb0b05e67a2e8e0266ae33e5349a39fcdcaec5612f1d38bf0189` |
+| `bigwalk.apworld` | the world, for whoever generates | `6fdfea4ad01d2ea197fc5768e5c1b966fa8d98335dc66da3c989bad5c4ee783b` |
 
 The version number is already 0.3.0 in the plugin, the `.csproj`, `archipelago.json` and
 `WORLD_VERSION`.
