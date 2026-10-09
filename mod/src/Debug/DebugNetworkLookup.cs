@@ -66,8 +66,8 @@ namespace BigWalkArchipelago.Debug
                 $"{Tag} Application.runInBackground={Application.runInBackground}, isFocused={Application.isFocused}");
             Plugin.Log.LogInfo($"{Tag} SteamManager.Initialized={SteamManager.Initialized}");
 
-            // The same call HouseAuthenticator.OnClientAuthenticate makes to
-            // fill InitialialAuthRequestMessage.playerIdentifier; when it
+            // The same call HouseAuthenticator.OnClientAuthenticate made (before the 2026-10-06
+            // game patch) to fill the request's player identifier; when it
             // fails, the game sends SystemInfo.deviceName instead.
             var found = HouseSteamManager.TryGetLocalUserIdentifier(out var identifier);
             Plugin.Log.LogInfo(
@@ -277,9 +277,14 @@ namespace BigWalkArchipelago.Debug
             if (data == null)
                 return "<none>";
 
+            // Since the 2026-10-06 game patch, the host keeps what it checked, not the request.
+            var credentials = data.TryCast<HouseAuthenticator.AuthedCredentials>();
+            if (credentials != null)
+                return $"{Mask(credentials.playerIdentifier)} ({credentials.platform}, platform id {Mask(credentials.platformUserId)})";
+
             var request = data.TryCast<HouseAuthenticator.InitialialAuthRequestMessage>();
             return request != null
-                ? Mask(request.playerIdentifier)
+                ? $"{Mask(request.platformUserId)} ({request.platform})"
                 : $"<{data.GetIl2CppType().FullName}>";
         }
 

@@ -34,6 +34,7 @@ namespace BigWalkArchipelago.Debug
         private const string AppId = "1478500";
         private const int Width = 1280;
         private const int Height = 720;
+        private const int MaxGuests = 3;
         private const string PrefsKey = @"Software\House House\Big Walk";
 
         // withoutTheMod: the guest runs --bwap-vanilla, i.e. only the join —
@@ -50,21 +51,28 @@ namespace BigWalkArchipelago.Debug
                 process.Dispose();
             }
 
-            if (running > 0)
+            // Up to three guests: four players, the most the game takes.
+            if (running >= MaxGuests)
             {
-                Plugin.Log.LogInfo($"{Tag} Another instance of the game is already running; not starting a guest.");
+                Plugin.Log.LogInfo($"{Tag} {running} guest(s) already running; {MaxGuests} is the most (four players).");
                 return;
             }
+
+            // Every guest after the first sends the host an identifier of its own
+            // (LoopbackGuest.Index), or the host would see two players with one.
+            var index = running + 1;
 
             var exe = Environment.ProcessPath;
             var gameDir = Path.GetDirectoryName(exe);
             var hosting = NetworkServer.active;
-            var unityLog = Path.Combine(Application.persistentDataPath, "Player-guest.log");
+            var unityLog = Path.Combine(Application.persistentDataPath, index > 1 ? $"Player-guest{index}.log" : "Player-guest.log");
             var arguments = (withoutTheMod ? LoopbackGuest.VanillaArgument : LoopbackGuest.GuestArgument)
+                + $" {LoopbackGuest.IndexArgument} {index}"
                 + (hosting ? " " + LoopbackGuest.JoinArgument : "")
                 + $" -logFile \"{unityLog}\" -screen-fullscreen 0 -screen-width {Width} -screen-height {Height}";
 
-            var snapshot = SnapshotScreenSettings();
+            // Saved before the first guest only: its watcher waits for every guest.
+            var snapshot = index == 1 ? SnapshotScreenSettings() : null;
 
             Process guest;
             var previous = new Dictionary<string, string>();
@@ -106,8 +114,8 @@ namespace BigWalkArchipelago.Debug
             }
 
             Plugin.Log.LogInfo(
-                $"{Tag} Guest{(withoutTheMod ? " without the mod" : "")} started: process {guest.Id}, "
-                + $"{Width}x{Height} windowed, log BepInEx\\LogOutput.1.log "
+                $"{Tag} Guest {index}{(withoutTheMod ? " without the mod" : "")} started: process {guest.Id}, "
+                + $"{Width}x{Height} windowed, log BepInEx\\LogOutput.{index}.log "
                 + (hosting
                     ? "(joins on its own once its title menu is up)."
                     : "(not hosting yet: host a world, then press Ctrl+L in the guest's window)."));
@@ -171,6 +179,10 @@ namespace BigWalkArchipelago.Debug
             var file = snapshotFile.Replace("'", "''");
             var script =
                 $"$p = Get-Process -Id {guestId} -ErrorAction SilentlyContinue; if ($p) {{ $p.WaitForExit() }}\n"
+                // Up to three guests share these settings: put back once the last one is gone.
+                + "do { Start-Sleep -Seconds 2; $g = @(Get-CimInstance Win32_Process -Filter \"Name='Big Walk.exe'\" -ErrorAction SilentlyContinue | "
+                + "Where-Object { $_.CommandLine -like '*--bwap-guest*' -or $_.CommandLine -like '*--bwap-vanilla*' }) } while ($g.Count -gt 0)\n"
+                + $"if (-not (Test-Path '{file}')) {{ exit 0 }}\n"
                 + "$k = 'HKCU:\\Software\\House House\\Big Walk'\n"
                 + $"$entries = Get-Content '{file}' -Raw | ConvertFrom-Json\n"
                 + "$names = @()\n"

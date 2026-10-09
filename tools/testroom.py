@@ -31,6 +31,29 @@ APWORLD = REPO / "apworld" / "dist" / "bigwalk.apworld"
 DEFAULT_PORT = 38281
 
 
+# Lets tools/deathlink.py run server commands (`admin "/send BWTraps Big Drop"`) through
+# `!admin`, since the console of a room started in the background takes no input.
+ADMIN_PASSWORD = "bwtest"
+
+
+# A resumed room takes its options back from its .apsave, the server password among them, so a
+# room first hosted without one would keep remote administration off.
+def keep_admin_password(archipelago: Path, apsave: Path) -> None:
+    if not apsave.is_file():
+        return
+    script = (
+        "import sys, zlib, pickle\n"
+        "path, password = sys.argv[1], sys.argv[2]\n"
+        "data = pickle.loads(zlib.decompress(open(path, 'rb').read()))\n"
+        "options = data.get('game_options')\n"
+        "if options is not None and options.get('server_password') != password:\n"
+        "    options['server_password'] = password\n"
+        "    open(path, 'wb').write(zlib.compress(pickle.dumps(data)))\n"
+        "    print('admin password written into the room save')\n"
+    )
+    subprocess.run([sys.executable, "-c", script, str(apsave), ADMIN_PASSWORD], cwd=archipelago, check=True)
+
+
 def find_archipelago(explicit: str | None) -> Path:
     """
     Locate an Archipelago setup: either a source checkout (Generate.py) or an
@@ -240,6 +263,7 @@ def main() -> None:
             sys.exit(f"Nothing to resume: no seed in {OUTPUT}.")
         archive = existing[-1]
         print(f"resuming: {archive}")
+        keep_admin_password(archipelago, archive.with_suffix(".apsave"))
     else:
         build_and_install_apworld(archipelago)
         archive = generate(archipelago, args.yaml, args.seed)
@@ -252,7 +276,8 @@ def main() -> None:
 
     try:
         subprocess.run(
-            server_command(archipelago) + [str(archive), "--port", str(args.port)],
+            server_command(archipelago) + [str(archive), "--port", str(args.port),
+                                           "--server_password", ADMIN_PASSWORD],
             cwd=archipelago,
         )
     except KeyboardInterrupt:

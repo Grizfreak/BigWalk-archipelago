@@ -272,6 +272,38 @@ namespace BigWalkArchipelago.Debug
             if (ModConfig.SendDeathLinkKey.Value.IsDown())
                 Core.Net.ApRuntime.SendDeathLink();
 
+            if (ModConfig.FireTrapKey.Value.IsDown())
+                DebugTraps.FireNext();
+
+            if (ModConfig.TrapStateKey.Value.IsDown())
+                DebugTraps.LogState();
+
+            if (ModConfig.MarkTripSpotKey.Value.IsDown())
+                DebugTraps.MarkTripSpot();
+
+            if (ModConfig.PickupCensusKey.Value.IsDown())
+                DebugPickupCensus.Dump();
+
+            if (ModConfig.ColourProbeKey.Value.IsDown())
+                DebugColourProbe.Dump();
+
+            if (ModConfig.BuoyTintKey.Value.IsDown())
+                DebugBuoyTint.Next();
+
+            if (ModConfig.FlareTintKey.Value.IsDown())
+                DebugFlareTint.Next();
+            DebugFlareTint.Tick();
+
+            if (ModConfig.MaskTrapKey.Value.IsDown())
+                DebugMaskTrap.Next();
+            DebugMaskTrap.Tick();
+
+            if (ModConfig.DazeKey.Value.IsDown())
+                DebugMaskTrap.Daze();
+
+            if (ModConfig.PickupTeleportKey.Value.IsDown())
+                DebugPickupCensus.TeleportNext();
+
             if (ModConfig.NeedStatusKey.Value.IsDown())
                 PuzzleNeedHider.LogStatus(detailed: true);
 

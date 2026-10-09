@@ -101,6 +101,14 @@ if ($WatchGuest -ne 0) {
     $guest = Get-Process -Id $WatchGuest -ErrorAction SilentlyContinue
     if ($guest) { $guest.WaitForExit() }
 
+    # Up to three guests share these settings: put them back once the last one is gone.
+    do {
+        Start-Sleep -Seconds 2
+        $guests = @(Get-CimInstance Win32_Process -Filter "Name='Big Walk.exe'" -ErrorAction SilentlyContinue |
+            Where-Object { $_.CommandLine -like '*--bwap-guest*' -or $_.CommandLine -like '*--bwap-vanilla*' })
+    } while ($guests.Count -gt 0)
+    if (-not (Test-Path $Snapshot)) { exit 0 }
+
     # Assigned before the loop, not wrapped in @(): Windows PowerShell's
     # ConvertFrom-Json writes a JSON array to the pipeline as ONE object, and
     # @() around it makes an array holding that array.
@@ -156,10 +164,16 @@ if ($hosting) {
     Write-Host "The host is not hosting yet (nothing on UDP $kcpPort): host a world, then press Ctrl+L in the guest's window." -ForegroundColor Yellow
 }
 
-# --- Save the screen settings the guest is about to overwrite. ---
+# Which guest this is: 1 for the first, up to 3 (four players). Every guest after the first
+# sends the host an identifier of its own (--bwap-guest-index), or the host would see two
+# players with one.
+$index = [Math]::Max(1, $running.Count)
+
+# --- Save the screen settings the guest is about to overwrite (the first guest only: the
+# watcher it starts waits for every guest). ---
 $snapshotFile = Join-Path $env:TEMP 'bwap-guest-screen-prefs.json'
 $saved = 0
-if (Test-Path $prefsKey) {
+if ($index -eq 1 -and (Test-Path $prefsKey)) {
     $key = Get-Item $prefsKey
     $entries = @(foreach ($name in $key.Property | Where-Object { $_ -like 'Screenmanager *' }) {
         [pscustomobject]@{ Name = $name; Kind = $key.GetValueKind($name).ToString(); Value = $key.GetValue($name) }
@@ -172,9 +186,9 @@ if (Test-Path $prefsKey) {
 # Through Start-Process (the shell), with the environment changed in this
 # process for the length of the call: a process started directly inherits
 # this console and prints Unity's boot output into it.
-$unityLog = Join-Path $unityLogDir 'Player-guest.log'
+$unityLog = Join-Path $unityLogDir $(if ($index -gt 1) { "Player-guest$index.log" } else { 'Player-guest.log' })
 $role = if ($Vanilla) { "--bwap-vanilla" } else { "--bwap-guest" }
-$arguments = $role + $(if ($join) { " --bwap-join" } else { "" }) +
+$arguments = $role + " --bwap-guest-index $index" + $(if ($join) { " --bwap-join" } else { "" }) +
     " -logFile `"$unityLog`" -screen-fullscreen 0 -screen-width $Width -screen-height $Height"
 
 $previous = @{}

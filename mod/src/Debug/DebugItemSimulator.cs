@@ -49,7 +49,9 @@ namespace BigWalkArchipelago.Debug
         // exercise all five filler gadgets across a session without needing
         // one binding each.
         private static int _nextGadgetIndex;
-        private static readonly GadgetKind[] GadgetKinds = (GadgetKind[])System.Enum.GetValues(typeof(GadgetKind));
+        // Every kind an item can give: not the trap tomato nor the Big Mask helmet, which no item is.
+        private static readonly GadgetKind[] GadgetKinds = System.Array.FindAll(
+            (GadgetKind[])System.Enum.GetValues(typeof(GadgetKind)), kind => kind != GadgetKind.Pomodoro && kind != GadgetKind.Blindfold);
 
         internal static void SimulateReceiveNextGadget()
         {

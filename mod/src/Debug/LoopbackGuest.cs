@@ -38,6 +38,9 @@ namespace BigWalkArchipelago.Debug
         // connection), not for any feature of the mod.
         internal const string VanillaArgument = "--bwap-vanilla";
 
+        // Which guest this is, 1 to 3 (tools/launch-guest.ps1 and LoopbackLauncher pass it).
+        internal const string IndexArgument = "--bwap-guest-index";
+
         internal const string HostAddress = "127.0.0.1";
 
         private const string Tag = "[" + nameof(LoopbackGuest) + "]";
@@ -48,6 +51,8 @@ namespace BigWalkArchipelago.Debug
 
         internal static bool AutoJoin { get; private set; }
 
+        internal static int Index { get; private set; } = 1;
+
         internal static string RoleName =>
             IsVanilla ? "loopback guest without the mod" : IsGuest ? "loopback guest" : "host or solo";
 
@@ -57,9 +62,14 @@ namespace BigWalkArchipelago.Debug
         // argument from a probe that never ran.
         internal static void DetectRole()
         {
-            foreach (var argument in Environment.GetCommandLineArgs())
+            var arguments = Environment.GetCommandLineArgs();
+            for (var i = 0; i < arguments.Length; i++)
             {
-                if (string.Equals(argument, GuestArgument, StringComparison.OrdinalIgnoreCase))
+                var argument = arguments[i];
+                if (string.Equals(argument, IndexArgument, StringComparison.OrdinalIgnoreCase)
+                    && i + 1 < arguments.Length && int.TryParse(arguments[i + 1], out var index) && index >= 1)
+                    Index = index;
+                else if (string.Equals(argument, GuestArgument, StringComparison.OrdinalIgnoreCase))
                     IsGuest = true;
                 else if (string.Equals(argument, VanillaArgument, StringComparison.OrdinalIgnoreCase))
                     IsGuest = IsVanilla = true;
@@ -70,7 +80,7 @@ namespace BigWalkArchipelago.Debug
             AutoJoin &= IsGuest;
 
             Plugin.Log.LogInfo(IsGuest
-                ? $"{Tag} Role: {RoleName} ({(IsVanilla ? VanillaArgument : GuestArgument)} is on the command line); "
+                ? $"{Tag} Role: {RoleName} {Index} ({(IsVanilla ? VanillaArgument : GuestArgument)} is on the command line); "
                   + (AutoJoin ? $"joins {HostAddress} as soon as the title menu is up." : "press Ctrl+L to join.")
                 : $"{Tag} Role: host or solo (no {GuestArgument} on the command line).");
         }
@@ -83,15 +93,13 @@ namespace BigWalkArchipelago.Debug
             if (!IsGuest)
                 return;
 
+            // The first guest reports no identifier, as it always has; the others one of their own.
             TryPatch(harmony, "the player identifier",
                 () => harmony.Patch(
                     AccessTools.Method(typeof(HouseSteamManager), nameof(HouseSteamManager.TryGetLocalUserIdentifier)),
-                    postfix: new HarmonyMethod(typeof(LoopbackGuest), nameof(IdentifierPostfix))));
+                    postfix: new HarmonyMethod(typeof(LoopbackGuest),
+                        Index > 1 ? nameof(NumberedIdentifierPostfix) : nameof(IdentifierPostfix))));
 
-            TryPatch(harmony, "OnClientConnect",
-                () => harmony.Patch(
-                    AccessTools.Method(typeof(HouseNetworkManager), nameof(HouseNetworkManager.OnClientConnect)),
-                    prefix: new HarmonyMethod(typeof(LoopbackGuest), nameof(OnClientConnectPrefix))));
         }
 
         private static void TryPatch(Harmony harmony, string what, Action patch)
@@ -123,49 +131,18 @@ namespace BigWalkArchipelago.Debug
             __result = false;
         }
 
-        // HouseNetworkManager.OnClientConnect, on a client that is not also
-        // the host, readies the connection, asks for a player, then builds a
-        // LobbyInfo from EOSLobbyManager.currentLobbyInfo and has an EOS lobby
-        // created from it (decompiled 2026-09-25). That field is only filled
-        // by joining through an EOS lobby; after a join by IP it is null and
-        // the method throws a NullReferenceException — and Mirror disconnects
-        // a connection whose message handler throws, which is where this call
-        // comes from (the authenticator's response).
-        //
-        // So, only when that field is empty: do what the method does before
-        // the lobby, verbatim, and skip the lobby, which is EOS presence and
-        // no part of what a loopback guest is for. When it is set, the game's
-        // own method runs untouched.
-        private static bool OnClientConnectPrefix(HouseNetworkManager __instance)
+        // From the second guest on (four players on one PC): with no identifier, every guest
+        // would fall back on the same SystemInfo.deviceName, two players with one identifier
+        // again. So each says its own.
+        private static void NumberedIdentifierPostfix(ref bool __result, ref string __0)
         {
-            try
-            {
-                if (NetworkServer.active)
-                    return true;
-
-                var lobbies = EOSLobbyManager.Instance;
-                if (lobbies != null && lobbies.currentLobbyInfo != null)
-                    return true;
-
-                if (!__instance.clientLoadedScene)
-                {
-                    if (!NetworkClient.ready)
-                        NetworkClient.Ready();
-                    if (__instance.autoCreatePlayer)
-                        NetworkClient.AddPlayer();
-                }
-
-                Plugin.Log.LogInfo(
-                    $"{Tag} OnClientConnect: no EOS lobby behind this connection, so the connection was readied "
-                    + "and a player asked for, and the EOS lobby part was skipped (it would have thrown).");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                Plugin.Log.LogWarning($"{Tag} OnClientConnect prefix threw, leaving it to the game: {ex.Message}");
-                return true;
-            }
+            __0 = $"loopback-guest-{Index}";
+            __result = true;
         }
+
+        // Until the game patch of 2026-10-06, HouseNetworkManager.OnClientConnect threw on a join by
+        // IP (no EOS lobby behind it) and a prefix here skipped the lobby part. The patch removed
+        // EOSLobbyManager and the join by IP now goes through untouched (loopback guest verified).
 
         // The game's own join, as JoinFriendCard.ActionJoin does it: the
         // transport chosen from the address (not a number, so Kcp) and the
