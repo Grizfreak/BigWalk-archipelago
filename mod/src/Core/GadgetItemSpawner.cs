@@ -31,6 +31,18 @@ namespace BigWalkArchipelago.Core
         FlareGunBlue,
         FlareGunGreen,
         FlareGunYellow,
+
+        // Not an item: the timed tomato Big Trip and Big Meeting hand out as their countdown
+        // (Core/Traps). Last, so no other kind's asset ids or tickets move.
+        Pomodoro,
+
+        // The Rainbow Flare Gun (item 9_018, player 2026-10-07): a FlareGunProp clone, painted white,
+        // whose shots run through every colour (Core/ColourPainter). Last again, for the same reason.
+        RainbowFlareGun,
+
+        // Not an item: the blindfold helmet Big Mask puts on every player (Core/Traps), cloned
+        // from the blindfold puzzles' BlindfoldProp. Last, as the tomato.
+        Blindfold,
     }
 
     // Generic sibling of ReceivedItemSpawner for the island's own hand props
@@ -100,6 +112,11 @@ namespace BigWalkArchipelago.Core
             { GadgetKind.FlareGunBlue, "FlareGunPropBlue" },
             { GadgetKind.FlareGunGreen, "FlareGunPropGreen" },
             { GadgetKind.FlareGunYellow, "FlareGunPropYellow" },
+            { GadgetKind.Pomodoro, "Pomodoro" },
+
+            // After FlareGun, so that MatchKind still names a vanilla FlareGunProp a FlareGun.
+            { GadgetKind.RainbowFlareGun, "FlareGunProp" },
+            { GadgetKind.Blindfold, "BlindfoldProp" },
         };
 
         // Kinds whose vanilla instances stay in the world instead of being
@@ -148,7 +165,45 @@ namespace BigWalkArchipelago.Core
         private static readonly HashSet<GadgetKind> KeptInWorld = new()
         {
             GadgetKind.Lamp,
+
+            // The puzzles' tomatoes stay where they are: a clone is a trap's, never one of theirs.
+            GadgetKind.Pomodoro,
+
+            // The blindfold puzzles' helmets too, for the same reason (Big Mask).
+            GadgetKind.Blindfold,
         };
+
+        // A trap's tomato pops this many seconds after it is set going (player, 2026-10-06).
+        internal const float TomatoSeconds = 3f;
+
+        // The packs: on the map when they are checks (Core/PackChecks, `pack_sanity`), hidden
+        // otherwise. Whatever the option, their vanilla instances never lend their tickets to a
+        // clone (VanillaUsable), so a clone and a pack still on the map can never share one, and
+        // host and guests agree on every clone's tickets before the guest knows the option.
+        private static readonly HashSet<GadgetKind> Packs = new()
+        {
+            GadgetKind.Backpack,
+            GadgetKind.Belt,
+            GadgetKind.GourdCarton,
+        };
+
+        // The flare guns stay on the island whatever the options (player, 2026-10-07): checks with
+        // `flare_gun_sanity` (Core/PackChecks, which then takes a collected one off the map), the
+        // game's own without. No flare gun is filler any more, so none has to be hidden. Kept like
+        // the packs: their vanilla instances lend no tickets.
+        private static readonly HashSet<GadgetKind> FlareGuns = new()
+        {
+            GadgetKind.FlareGun,
+            GadgetKind.FlareGunBlue,
+            GadgetKind.FlareGunGreen,
+            GadgetKind.FlareGunYellow,
+            GadgetKind.RainbowFlareGun,
+        };
+
+        private static bool LendsNoTickets(GadgetKind kind)
+        {
+            return KeptInWorld.Contains(kind) || Packs.Contains(kind) || FlareGuns.Contains(kind);
+        }
 
         // A block of our own, clear of ReceivedItemSpawner.CosmeticAssetId
         // (0xB16_9A00) and of anything Mirror or the game might register —
@@ -170,8 +225,8 @@ namespace BigWalkArchipelago.Core
         private const uint InstanceAssetIdBase = 0xB16_9C00;
 
         // More than any kind has in the island (torches, the most numerous,
-        // count nine) and small enough for all 17 kinds to stay inside one
-        // block: 0xB16_9C00 to 0xB16_9E1F.
+        // count nine) and small enough for all 20 kinds to stay inside one
+        // block: 0xB16_9C00 to 0xB16_9E7F (the tomato 17, the rainbow gun 18 and the blindfold 19 the last 96).
         internal const int MaxInstancesPerKind = 32;
 
         // EXTRA SLOTS (2026-09-23). An index at or past the number of vanilla
@@ -429,7 +484,7 @@ namespace BigWalkArchipelago.Core
         // all 32 of its indices.
         private static int VanillaUsable(GadgetKind kind)
         {
-            return KeptInWorld.Contains(kind) ? 0 : VanillaCount(kind);
+            return LendsNoTickets(kind) ? 0 : VanillaCount(kind);
         }
 
         // The template a given index is built from, and whether that index is
@@ -603,8 +658,8 @@ namespace BigWalkArchipelago.Core
                 rank++;
             }
 
-            var why = KeptInWorld.Contains(kind)
-                ? "a kind the island keeps, so it never borrows a vanilla ticket"
+            var why = LendsNoTickets(kind)
+                ? "a kind whose vanilla instances keep their tickets, so it never borrows one"
                 : $"past the {VanillaCount(kind)} vanilla instance(s)";
             Plugin.Log.LogInfo(
                 $"[{nameof(GadgetItemSpawner)}] {kind} #{index} is an extra slot ({why}): gave it "
@@ -745,6 +800,12 @@ namespace BigWalkArchipelago.Core
                 if (matched == null || KeptInWorld.Contains(matched.Value))
                     continue;
 
+                if (Packs.Contains(matched.Value) && PackChecks.KeepsPacksOnMap)
+                    continue;
+
+                if (FlareGuns.Contains(matched.Value))
+                    continue;
+
                 try
                 {
                     var wasActive = prop.gameObject.activeSelf;
@@ -778,6 +839,67 @@ namespace BigWalkArchipelago.Core
         // wave arriving after the sweep — a late joiner's, or interest
         // management rebuilding observers — can undo it. Walks only what was
         // hidden, not the world.
+        // The packs this machine hid before it knew they were checks, back on the map, and out
+        // of the list ReHideVanillaInstances keeps hidden.
+        internal static void ShowPacks(Func<string, bool> stays)
+        {
+            var shown = 0;
+            for (var i = _hidden.Count - 1; i >= 0; i--)
+            {
+                var hidden = _hidden[i];
+                var matched = hidden != null ? MatchKind(hidden.name) : null;
+                if (matched == null || !Packs.Contains(matched.Value))
+                    continue;
+
+                var prop = hidden.GetComponent<Prop>();
+                if (prop == null || !stays(prop.savablePropGuid ?? string.Empty))
+                    continue;
+
+                try
+                {
+                    hidden.SetActive(true);
+                    _hidden.RemoveAt(i);
+                    shown++;
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"[{nameof(GadgetItemSpawner)}] Could not show a pack: {ex.Message}");
+                }
+            }
+
+            if (shown > 0)
+                Plugin.Log.LogInfo($"[{nameof(GadgetItemSpawner)}] {shown} pack(s) back on the map: they are checks.");
+        }
+
+        // A pack collected for its check (Core/PackChecks): off this machine's map, and kept off.
+        internal static void HidePack(GameObject pack)
+        {
+            if (pack == null)
+                return;
+
+            pack.SetActive(false);
+            if (!_hidden.Contains(pack))
+                _hidden.Add(pack);
+        }
+
+        // The island's own packs and flare guns (not a clone, not a template), by guid.
+        internal static Dictionary<string, Prop> VanillaPacksByGuid()
+        {
+            var packs = new Dictionary<string, Prop>();
+            foreach (var prop in UnityEngine.Object.FindObjectsByType<Prop>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (prop == null || prop.gameObject == null || IsOurs(prop.gameObject.name))
+                    continue;
+
+                var matched = MatchKind(prop.gameObject.name);
+                var guid = prop.savablePropGuid;
+                if (matched != null && (Packs.Contains(matched.Value) || FlareGuns.Contains(matched.Value)) && !string.IsNullOrEmpty(guid))
+                    packs[guid] = prop;
+            }
+
+            return packs;
+        }
+
         internal static int ReHideVanillaInstances()
         {
             var again = 0;
@@ -1045,6 +1167,77 @@ namespace BigWalkArchipelago.Core
             }
         }
 
+        // The tomato's tick and pop (PeckEffectAudio, PeckEffectParticleNetworked) listen to a
+        // state through a PeckSystemReference; each is made to listen to the clone's own state,
+        // before the clone wakes and subscribes, and what each listened to is logged.
+        private static void WireTomatoEffects(GameObject clone)
+        {
+            var own = clone.GetComponent<TrackedPeckState>();
+            if (own == null)
+                return;
+
+            var notes = new List<string>();
+            foreach (var audio in clone.GetComponentsInChildren<PeckEffectAudio>(true))
+            {
+                var reference = audio.systemReference;
+                notes.Add($"audio listened to {(reference.peckSystem == null ? "nothing" : reference.peckSystem == own ? "the clone" : reference.peckSystem.gameObject.name)}");
+                reference.peckSystem = own;
+                audio.systemReference = reference;
+
+                // Played at the tomato itself, not at "the context's prop": a guest is told of the
+                // state change without that prop, and heard nothing (2026-10-06).
+                var where = audio.transformReference;
+                where.referenceType = PeckTransformReference.ReferenceType.Custom;
+                where.customTransform = clone.transform;
+                audio.transformReference = where;
+            }
+
+            foreach (var particle in clone.GetComponentsInChildren<PeckEffectParticleNetworked>(true))
+            {
+                var reference = particle.systemReference;
+                notes.Add($"pop listened to {(reference.peckSystem == null ? "nothing" : reference.peckSystem == own ? "the clone" : reference.peckSystem.gameObject.name)}");
+                reference.peckSystem = own;
+                particle.systemReference = reference;
+            }
+
+            Plugin.Log.LogInfo($"[{nameof(GadgetItemSpawner)}] Tomato clone: {string.Join(", ", notes)}; all on the clone now.");
+        }
+
+        // Host: one of `kind` for a given player, in their hands if they are empty, else on the
+        // ground in front of them (a trap's tomato, Core/Traps). Null if it could not be built.
+        internal static Prop SpawnFor(GadgetKind kind, PlayerCharacter player, bool toHands = true)
+        {
+            if (!NetworkServer.active || player == null)
+                return null;
+
+            try
+            {
+                if (GetTemplate(kind) == null)
+                    TryCaptureLate(kind);
+
+                var t = player.transform;
+                var position = t.position + t.forward * 1.2f + Vector3.up * 0.8f;
+                var index = ChooseInstance(kind);
+                var prop = BuildNeutralizedClone(kind, position, Quaternion.identity, index);
+                if (prop == null)
+                    return null;
+
+                NetworkServer.Spawn(prop.gameObject, AssetIdFor(kind, index));
+                prop.SetLoose();
+                PublishLooseStates(prop.gameObject);
+
+                if (toHands && player.hands != null && !player.hands.isHoldingSomething)
+                    ReceivedItemSpawner.QueueHandover(prop, player);
+
+                return prop;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(GadgetItemSpawner)}] Could not give {player.gameObject.name} a {kind}: {ex.Message}");
+                return null;
+            }
+        }
+
         // Builds the clone WITHOUT spawning it — split out so GadgetSpawnHandler
         // can run exactly the same construction from its spawn handler, on a
         // client that never calls SpawnCosmeticPickup itself. Mirrors
@@ -1113,6 +1306,20 @@ namespace BigWalkArchipelago.Core
             ReceivedItemSpawner.NeutralizeProgression(prop);
             StartLooseNotHung(clone);
 
+            // Big Mask's helmet stays on the head it is pinned to, on every machine: a player can no
+            // more take it off than the wearer can (player, 2026-10-07).
+            if (kind == GadgetKind.Blindfold)
+                prop.blockRemovingFromHomes = true;
+
+            // A trap's tomato runs for TomatoSeconds, on every machine: each one's timer is local
+            // (PeckEffectTimer), so each clone, the host's and every guest's, is set here.
+            if (kind == GadgetKind.Pomodoro)
+            {
+                foreach (var timer in clone.GetComponentsInChildren<PeckEffectTimer>(true))
+                    timer.duration = TomatoSeconds;
+                WireTomatoEffects(clone);
+            }
+
             clone.SetActive(true);
 
             if (cloneIdentity != null)
@@ -1130,6 +1337,10 @@ namespace BigWalkArchipelago.Core
             ReceivedItemSpawner.FixMaterialessRenderers(clone);
             ReceivedItemSpawner.RefreshPropertyBlockHelpers(clone);
             SettleOffTheHanger(clone);
+
+            // The seed's colours, after the helpers' refresh, which would put a buoy's tint back.
+            if (kind == GadgetKind.Lamp || FlareGuns.Contains(kind))
+                ColourPainter.PaintClone(kind, clone, kind == GadgetKind.RainbowFlareGun);
 
             return prop;
         }

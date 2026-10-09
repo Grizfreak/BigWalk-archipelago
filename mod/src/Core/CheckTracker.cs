@@ -31,6 +31,14 @@ namespace BigWalkArchipelago.Core
         // the player had it.
         private static readonly HashSet<string> ReportedThisSessionOnly = new();
 
+        internal static bool IsReported(string locationId)
+        {
+            if (!ModConfig.ArchipelagoEnabled.Value)
+                return ReportedThisSessionOnly.Contains(locationId);
+
+            return SaveManager.GetIntValue(KeyPrefix + locationId, 0, false) != 0;
+        }
+
         internal static bool TryMarkReported(string locationId)
         {
             if (!ModConfig.ArchipelagoEnabled.Value)
