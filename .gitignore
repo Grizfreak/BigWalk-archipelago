@@ -36,6 +36,15 @@ BW_export/*
 mod/BigWalk-ghidra-project.zip
 mod/gh-pj/*
 
+# Notes de travail (roadmap, listes de tests, brouillons de release, notes de session et de
+# conception, rétro-ingénierie): gardées sur la machine de l'auteur, jamais publiées. Les
+# fichiers suivis avant le 2026-10-09 restent dans l'historique des commits déjà poussés.
+/docs/
+/apworld/design-decisions.md
+/apworld/protocol.md
+/mod/architecture-mod.md
+/mod/reverse-engineering-notes.md
+
 # Config locale de l'agent Claude Code — spécifique à la machine/l'éditeur,
 # n'a rien à faire dans le repo.
 .claude/

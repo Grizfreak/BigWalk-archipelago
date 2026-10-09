@@ -59,8 +59,9 @@ is usually only visible in that machine's own log.
 
 ## For developers
 
-Building both halves, testing, and how they fit together:
-[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+The world is built with `apworld/build.py` and the mod with `tools/package-mod.ps1`
+(both documented in their own folder: [`apworld/README.md`](apworld/README.md),
+[`mod/README.md`](mod/README.md)).
 
 ## License
 

@@ -1,8 +1,7 @@
 # BigWalkArchipelago
 
 BepInEx mod (IL2CPP, Harmony) for *Big Walk* (House House): it plugs an
-Archipelago multiworld client into the game loop. See
-[architecture-mod.md](architecture-mod.md) for the design.
+Archipelago multiworld client into the game loop.
 
 ## Build
 
@@ -50,8 +49,7 @@ directly does not load BepInEx on this machine).
       investigation)
 - [x] 5. `SaveValuePatch` as a safety net
 - [x] 6. Archipelago network client (`src/Core/Net/`) — connection, incoming
-      items, check reporting, goal. Contract and validation:
-      [`../apworld/protocol.md`](../apworld/protocol.md)
+      items, check reporting, goal
 - [x] 7. Loading and connecting from inside the game confirmed (2026-09-15)
 - [x] 8. Every path exercised in game (2026-09-15): outgoing check, items,
       deposits, goal, gourds rebuilt, network drop, fresh save
@@ -62,7 +60,7 @@ directly does not load BepInEx on this machine).
       The big keys have only ever been exercised **solo**
 - [x] 11. Filler: the island's own hand props, materialized on receipt and
       removed from the map (2026-09-22)
-- [ ] 12. The big keys on two machines ([`../docs/COOP-TESTS.md`](../docs/COOP-TESTS.md))
+- [ ] 12. The big keys on two machines
 - [ ] 13. A seed played from the first check to the goal
 
 ## Archipelago configuration

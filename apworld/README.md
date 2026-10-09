@@ -3,17 +3,10 @@
 The Python Archipelago world for *Big Walk*. The code lives in
 [`bigwalk/`](bigwalk/) and packages into `dist/bigwalk.apworld`.
 
-- [`protocol.md`](protocol.md) — **the contract with the mod**: location and
-  item ids, the contents of `slot_data`, what the C# client has to send and
-  apply. Read it before touching either half.
-- [`design-decisions.md`](design-decisions.md) — the history of the design
-  decisions (goal, monument model, big keys, softlocks, community feedback).
 - [`bigwalk/docs/`](bigwalk/docs/) — the player documentation as the
   Archipelago webhost renders it: the game's page and the setup guide. The
   two files at the root of the repository ([`../README.md`](../README.md),
   [`../SETUP.md`](../SETUP.md)) say the same thing; all four move together.
-- [`../mod/reverse-engineering-notes.md`](../mod/reverse-engineering-notes.md)
-  — how the game works internally, which everything below depends on.
 
 ## State
 
@@ -22,13 +15,12 @@ The Python Archipelago world for *Big Walk*. The code lives in
 - [x] Real generation validated: 3 slots, Archipelago 0.6.8 (source) and
       0.6.7 (local install), with the packaged `.apworld` included
 - [x] The mod's Archipelago network client — connected and played both solo
-      and with two players (see `protocol.md`)
+      and with two players
 - [x] Radio stations as items (`radio_station_items`, 2026-09-21): both
       halves written, generation validated, and the whole chain exercised in
-      game (see `protocol.md` §11)
+      game
 - [x] Big keys (2026-09-21): the door and the key are two separate items, 25
-      cut checks and 7 deposits. Exercised in game, but solo only (see
-      [`../docs/COOP-TESTS.md`](../docs/COOP-TESTS.md))
+      cut checks and 7 deposits. Exercised in game, but solo only at that time
 - [x] Thirteen puzzle locations removed (2026-09-21): they exist in the
       game's metadata but nothing in the shipped build produces them, so
       generation could place progression on a check that can never be sent.
@@ -91,14 +83,13 @@ themselves.
 **Goal** — `big_wall`, `big_goodbye` (default), `big_game` or
 `big_collection`, after the game's achievements. Every earlier name is still
 accepted (`ending`, `gauntlet`, `second_ending` / `secret_ending`, `deposits` /
-`gourds`), and the first alpha's are still what slot_data sends — see
-`protocol.md` §2.
+`gourds`), and the first alpha's are still what slot_data sends.
 
 **Universal Tracker** — supported, and no YAML is needed for it:
 `interpret_slot_data` hands the seed's own settings back to UT, which rebuilds
 the world from those instead of from whatever sits in the tracking player's
 `Players` folder.
 
-The assumptions the logic makes that have never been verified in game are
-listed at the end of [`protocol.md`](protocol.md) — they are what decides
-whether a generated seed is actually finishable.
+The assumptions the logic makes that have never been verified in game decide
+whether a generated seed is actually finishable: a seed played from the first
+check to the goal is still to do.
