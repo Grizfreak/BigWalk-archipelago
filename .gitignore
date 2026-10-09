@@ -2,22 +2,22 @@
 [Bb]in/
 [Oo]bj/
 
-# Artefact généré par apworld/build.py, reconstructible en une commande.
+# Built by apworld/build.py, rebuilt with one command.
 apworld/dist/
 
-# Seeds jetables produites par tools/testroom.py.
+# Throwaway seeds made by tools/testroom.py.
 tools/out/
 
-# Zips livrables produits par tools/package-mod.ps1 (~40 Mo, reconstructibles
-# en une commande, et contiennent une copie de BepInEx).
+# Zips made by tools/package-mod.ps1 (~40 MB, rebuilt with one command, and
+# they contain a copy of BepInEx).
 dist/
 
-# Caches Python (tests de l'apworld).
+# Python caches (the apworld's tests).
 __pycache__/
 *.py[cod]
 
-# DLL locales copiées depuis l'installation du jeu (voir mod/lib/README.md) —
-# jamais commitées : elles dépendent de la machine et de la version du jeu.
+# Local DLLs copied from the game's install (see mod/lib/README.md): never
+# committed, they depend on the machine and on the game's version.
 mod/lib/*.dll
 !mod/lib/README.md
 
@@ -25,29 +25,27 @@ mod/lib/*.dll
 .vs/
 *.user
 
-# Dump complet Il2CppInspectorRedux (~1 Go : DLL du jeu extraites, JSON/header
-# de métadonnées, projet Ghidra binaire) — jamais commité : bien trop volumineux
-# pour git (au-delà de la limite GitHub sans LFS) et contient des binaires
-# extraits du jeu qui n'ont rien à faire dans un repo, même privé.
-# Seules les notes de repro écrites à la main sont gardées (désormais
-# scindées et traduites dans mod/reverse-engineering-notes.md et
-# apworld/design-decisions.md, cf. .gitignore history).
+# Full Il2CppInspectorRedux dump (~1 GB: the game's extracted DLLs, metadata
+# JSON/headers, a binary Ghidra project): never committed. Far too big for git
+# (past GitHub's limit without LFS), and extracted game binaries do not belong
+# in a repo, even a private one.
 BW_export/*
 mod/BigWalk-ghidra-project.zip
 mod/gh-pj/*
 
-# Notes de travail (roadmap, listes de tests, brouillons de release, notes de session et de
-# conception, rétro-ingénierie): gardées sur la machine de l'auteur, jamais publiées. Les
-# fichiers suivis avant le 2026-10-09 restent dans l'historique des commits déjà poussés.
+# Working notes (roadmap, test lists, release drafts, session, design and
+# reverse-engineering notes): kept on the author's machine, never published.
+# What was tracked before 2026-10-09 stays in the history of the commits
+# already pushed.
 /docs/
 /apworld/design-decisions.md
 /apworld/protocol.md
 /mod/architecture-mod.md
 /mod/reverse-engineering-notes.md
 
-# Config locale de l'agent Claude Code — spécifique à la machine/l'éditeur,
-# n'a rien à faire dans le repo.
+# Local config of the Claude Code agent: specific to the machine and the
+# editor, it has no place in the repo.
 .claude/
 
-# Fichiers de joueurs pour les rooms de test : locaux, propres à chaque machine.
+# Players' YAML files for the test rooms: local, specific to each machine.
 tools/players/*.yaml
