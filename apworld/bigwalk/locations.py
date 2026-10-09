@@ -27,6 +27,9 @@ LOCATION_NAME_TO_ID: dict[str, int] = {
     **{data.deposit_location_name(amount): data.deposit_location_id(amount)
        for amount in range(1, data.MAX_MONUMENT_SLOTS + 1)},
     **{stage.location_name: data.gauntlet_stage_id(stage) for stage in data.GAUNTLET_STAGES},
+    **{pickup.location_name: data.pickup_location_id(i) for i, pickup in enumerate(data.PICKUPS)},
+    **{firework.location_name: data.firework_location_id(i) for i, firework in enumerate(data.FIREWORKS)},
+    **{pickup.location_name: data.flare_gun_location_id(i) for i, pickup in enumerate(data.FLARE_GUN_PICKUPS)},
 }
 
 LOCATION_NAME_GROUPS: dict[str, set[str]] = {
@@ -38,6 +41,9 @@ LOCATION_NAME_GROUPS: dict[str, set[str]] = {
     "Gourd Deposits": {data.deposit_location_name(amount)
                        for amount in range(1, data.MAX_MONUMENT_SLOTS + 1)},
     "Gauntlet": {stage.location_name for stage in data.GAUNTLET_STAGES},
+    "Packs": {pickup.location_name for pickup in data.PICKUPS},
+    "Fireworks": {firework.location_name for firework in data.FIREWORKS},
+    "Flare Guns": {pickup.location_name for pickup in data.FLARE_GUN_PICKUPS},
 }
 
 VICTORY_EVENT_NAME = "Victory"
@@ -60,6 +66,12 @@ def gated_regions() -> dict[str, str]:
     mapping.update({name: regions.TUNNEL_ZONE for name in data.tunnel_locations()})
     mapping.update({name: regions.STARTING_ZONE for name in starting_zone_locations()})
     mapping.update({stage.location_name: regions.ENDING_ZONE for stage in data.GAUNTLET_STAGES})
+    mapping.update({pickup.location_name: regions.CHAIRLIFT_ZONE for pickup in data.PICKUPS if pickup.past_chairlift})
+    mapping.update({pickup.location_name: regions.TUNNEL_ZONE for pickup in data.PICKUPS if pickup.past_tunnels})
+    mapping.update({firework.location_name: regions.CHAIRLIFT_ZONE
+                    for firework in data.FIREWORKS if firework.past_chairlift})
+    mapping.update({firework.location_name: regions.STARTING_ZONE
+                    for firework in data.FIREWORKS if firework.in_starting_zone})
     return mapping
 
 
@@ -122,6 +134,15 @@ def create_all_locations(world: BigWalkWorld) -> None:
 
     if world.options.gauntlet_mode == GauntletMode.option_locked_stages:
         place([stage.location_name for stage in data.GAUNTLET_STAGES])
+
+    if world.options.pack_sanity:
+        place([pickup.location_name for pickup in data.PICKUPS])
+
+    if world.options.firework_sanity:
+        place([firework.location_name for firework in data.FIREWORKS])
+
+    if world.options.flare_gun_sanity:
+        place([pickup.location_name for pickup in data.FLARE_GUN_PICKUPS])
 
     create_victory_event(world)
 

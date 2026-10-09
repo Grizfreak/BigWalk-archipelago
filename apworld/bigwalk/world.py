@@ -12,7 +12,7 @@ from worlds.AutoWorld import World
 from . import data, items, locations, regions, rules, web_world
 from . import options as bigwalk_options
 
-WORLD_VERSION = "0.3.0"
+WORLD_VERSION = "0.4.0"
 """Kept in step with archipelago.json; sent in slot_data so the mod can check it."""
 
 TRACKER_OPTIONS = {
@@ -31,6 +31,11 @@ TRACKER_OPTIONS = {
     "lock_puzzle_needs": "lock_puzzle_needs",
     "start_with_puzzle_needs": "start_with_puzzle_needs",
     "start_with_random_puzzle_need": "start_with_random_puzzle_need",
+    "pack_sanity": "pack_sanity",
+    "firework_sanity": "firework_sanity",
+    "flare_gun_sanity": "flare_gun_sanity",
+    "random_colors": "random_colors",
+    "trap_link": "trap_link",
 }
 """
 The slot_data fields that are options, mapped to the option each one comes
@@ -136,28 +141,30 @@ class BigWalkWorld(World):
     def _cabin_fever_waits(self) -> dict[str, dict[str, object]]:
         """
         What the mod does to the waits of the two Cabin Fever puzzles, by puzzle: the mode, the
-        seconds it resolves to (the `random` one drawn here, once, so every player has the same),
-        and whether the hidden help button is there. `seconds` is 0 for `vanilla`.
+        seconds, and whether the hidden help button is there. One number each since 0.4 (players,
+        2026-10-06): the game's own wait is `vanilla` (seconds 0), any other `fixed`; a random wait
+        is Archipelago's `random-range`, drawn once when the options are read.
         """
         waits: dict[str, dict[str, object]] = {}
-        for key, prefix in (("cabin_fever", "cabin_fever"), ("cabin_fever_long", "cabin_fever_long")):
-            options = self.options
-            mode = getattr(options, f"{prefix}_time").current_key
-            low = getattr(options, f"{prefix}_seconds_min").value
-            high = getattr(options, f"{prefix}_seconds_max").value
-            if mode == "reduced":
-                seconds = low
-            elif mode == "random_between":
-                seconds = self.random.randint(min(low, high), max(low, high))
-            elif mode == "fixed":
-                seconds = getattr(options, f"{prefix}_seconds").value
-            else:
-                seconds = 0
-            waits[key] = {"mode": mode, "seconds": seconds, "help": bool(getattr(options, f"{prefix}_help"))}
+        for key, game_wait in (("cabin_fever", 300), ("cabin_fever_long", 1800)):
+            seconds = getattr(self.options, f"{key}_seconds").value
+            mode = "vanilla" if seconds == game_wait else "fixed"
+            waits[key] = {
+                "mode": mode,
+                "seconds": 0 if mode == "vanilla" else seconds,
+                "help": bool(getattr(self.options, f"{key}_help")),
+            }
         return waits
 
     def generate_early(self) -> None:
         self._take_options_from_tracker()
+
+        # The seed's colors (C1, player 2026-10-07): between five and all ten of the palette,
+        # in a drawn order; the first four paint the four flare guns.
+        self.color_palette: list[int] = []
+        if self.options.random_colors:
+            count = self.random.randint(5, data.PALETTE_SIZE)
+            self.color_palette = self.random.sample(range(data.PALETTE_SIZE), count)
 
         # The Green Dome used to be optional (`green_dome_deposits`, removed
         # 2026-09-25 before the first release): its fifteen slots only ever
@@ -355,6 +362,15 @@ class BigWalkWorld(World):
     def get_filler_item_name(self) -> str:
         return items.get_random_filler_item_name(self)
 
+    def _death_link_roulette(self) -> dict[str, int]:
+        weights = self.options.death_link_trap_weights.value
+        allow_hard = bool(self.options.death_link_roulette_hard_traps)
+        return {
+            trap.key: weights[trap.item_name]
+            for trap in data.TRAPS
+            if weights.get(trap.item_name, 0) > 0 and (allow_hard or not trap.hard)
+        }
+
     def fill_slot_data(self) -> Mapping[str, Any]:
         """
         Everything the mod needs to behave correctly without hardcoding this
@@ -412,7 +428,6 @@ class BigWalkWorld(World):
             # The Black Tower's door at its foot, open from the start (mod only).
             "open_black_tower": bool(self.options.open_black_tower),
             "tile_thief": self.options.tile_thief.current_key,
-            "shuffle_peg_tiles": bool(self.options.shuffle_peg_tiles),
 
             # The resync stations (mod only): those of the towers, and whether guests may use them.
             "tower_resync_stations": bool(self.options.tower_resync_stations),
@@ -424,6 +439,42 @@ class BigWalkWorld(World):
                 for puzzle, wait in self.cabin_fever.items()
                 for field, value in wait.items()
             },
+
+            # The packs and fireworks as checks: the mod keeps the packs on the map, and turns a
+            # pick-up (by guid) or a launcher's button (by landmark) into the location at
+            # `<offset> + position` in these lists.
+            "pack_sanity": bool(self.options.pack_sanity),
+            "pickup_guids": [pickup.guid for pickup in data.PICKUPS],
+            "pickup_id_offset": data.PICKUP_ID_OFFSET,
+            "firework_sanity": bool(self.options.firework_sanity),
+            "firework_keys": [firework.key for firework in data.FIREWORKS],
+            "firework_id_offset": data.FIREWORK_ID_OFFSET,
+            "flare_gun_sanity": bool(self.options.flare_gun_sanity),
+            "flare_gun_guids": [pickup.guid for pickup in data.FLARE_GUN_PICKUPS],
+            "flare_gun_id_offset": data.FLARE_GUN_ID_OFFSET,
+
+            # The seed's colors (mod only): indices into the mod's palette, buoys and flare
+            # guns painted from them; empty keeps the game's own.
+            "random_colors": bool(self.options.random_colors),
+            "color_palette": self.color_palette,
+            "trap_link": bool(self.options.trap_link),
+
+            # Traps and bonuses (mod only): each effect's key by its item id offset, how long
+            # one lasts, and whether Big Trip and Big Meeting leave the Gauntlet alone.
+            "effect_items": {
+                str(effect.offset): effect.key for effect in (*data.TRAPS, *data.BONUSES)},
+            "trap_duration": self.options.trap_duration.value,
+            "traps_spare_the_gauntlet": bool(self.options.traps_spare_the_gauntlet),
+
+            # DeathLink (mod only): the mode, what sends one and after how many, and what one
+            # received does; `death_link_roulette` is the traps it may draw, by key, with weights.
+            "death_link": self.options.death_link.current_key,
+            "death_link_triggers": sorted(self.options.death_link_triggers.value),
+            "death_link_amnesty": self.options.death_link_amnesty.value,
+            "death_link_trap_on_send": bool(self.options.death_link_trap_on_send),
+            "death_link_target": self.options.death_link_target.current_key,
+            "death_link_effect": self.options.death_link_effect.current_key,
+            "death_link_roulette": self._death_link_roulette(),
 
             "lock_puzzle_needs": bool(self.options.lock_puzzle_needs),
             "start_with_puzzle_needs": sorted(self.options.start_with_puzzle_needs.value),

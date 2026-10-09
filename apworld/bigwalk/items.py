@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from typing import TYPE_CHECKING
 
 from BaseClasses import Item, ItemClassification
@@ -27,16 +28,27 @@ ITEM_NAME_TO_ID: dict[str, int] = {
     data.PROGRESSIVE_GAUNTLET_ITEM_NAME: data.progressive_gauntlet_id(),
     **{name: data.BASE_ID + offset for name, offset in data.FILLER_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.TRAP_ITEMS},
+    **{name: data.BASE_ID + offset for name, offset in data.BONUS_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.JOKE_ITEMS},
     **{data.teleport_item_name(name): data.teleport_item_id(i) for i, (_, name) in enumerate(data.TELEPORT_DESTINATIONS)},
 }
 
 FILLER_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.FILLER_ITEMS)
 TRAP_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.TRAP_ITEMS)
+BONUS_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.BONUS_ITEMS)
 JOKE_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.JOKE_ITEMS)
 TELEPORT_ITEM_NAMES: tuple[str, ...] = tuple(data.teleport_item_name(name) for _, name in data.TELEPORT_DESTINATIONS)
 
-GUARANTEED_GEAR: dict[str, int] = {"Backpack": 2, "Belt": 2, "Gourd Carton": 1}
+# The gear the pool always holds, and the option that sets how many of each.
+GUARANTEED_GEAR: dict[str, str] = {
+    "Backpack": "backpacks_in_pool",
+    "Belt": "belts_in_pool",
+    "Gourd Carton": "gourd_cartons_in_pool",
+}
+
+# Never drawn as filler (player, 2026-10-07): the four flare guns come in with `flare_gun_sanity`
+# and the Rainbow Flare Gun always, once each, in create_all_items.
+FLARE_GUN_NAMES: frozenset[str] = frozenset((*data.FLARE_GUN_ITEM_NAMES, data.RAINBOW_FLARE_GUN_ITEM_NAME))
 
 RADIO_ITEM_NAMES: tuple[str, ...] = tuple(station.item_name for station in data.RADIO_STATIONS)
 
@@ -60,6 +72,8 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Joke Filler": set(JOKE_ITEM_NAMES),
     "Teleporters": set(TELEPORT_ITEM_NAMES),
     "Traps": set(TRAP_ITEM_NAMES),
+    "Hard Traps": {trap.item_name for trap in data.TRAPS if trap.hard},
+    "Bonuses": set(BONUS_ITEM_NAMES),
 }
 
 
@@ -101,6 +115,9 @@ def classification_for(name: str, require_arch_doors: bool = False) -> ItemClass
         return ItemClassification.progression
     if name in TRAP_ITEM_NAMES:
         return ItemClassification.trap
+    if name in BONUS_ITEM_NAMES:
+        # A boost for a while: nice to get, never needed.
+        return ItemClassification.useful
     # A Radio Music item starts a piece of music playing and nothing else: no
     # rule in this world or any other can ever require one, so it is filler
     # that happens to do something, not a useful item.
@@ -112,14 +129,67 @@ def create_item(world: BigWalkWorld, name: str) -> BigWalkItem:
         name, classification_for(name, bool(world.options.require_arch_doors)), ITEM_NAME_TO_ID[name], world.player)
 
 
+def trap_weights(world: BigWalkWorld) -> dict[str, int]:
+    """Each trap the seed may hold, by name, with its weight: `trap_weights`, less the hard ones
+    when `hard_traps` is off, less every trap weighted 0."""
+    weights = world.options.trap_weights.value
+    hard = bool(world.options.hard_traps)
+    return {
+        trap.item_name: weights.get(trap.item_name, 0)
+        for trap in data.TRAPS
+        if (hard or not trap.hard) and weights.get(trap.item_name, 0) > 0
+    }
+
+
+def pick_trap(world: BigWalkWorld) -> str | None:
+    weights = trap_weights(world)
+    if not weights:
+        return None
+    return world.random.choices(list(weights), weights=list(weights.values()))[0]
+
+
+def pick_bonus(world: BigWalkWorld) -> str | None:
+    weights = {name: weight for name, weight in world.options.bonus_weights.value.items() if weight > 0}
+    if not weights:
+        return None
+    return world.random.choices(list(weights), weights=list(weights.values()))[0]
+
+
 def get_random_filler_item_name(world: BigWalkWorld) -> str:
     if world.random.randint(1, 100) <= world.options.trap_fill_percentage:
-        return world.random.choice(TRAP_ITEM_NAMES)
+        trap = pick_trap(world)
+        if trap is not None:
+            return trap
+    if world.random.randint(1, 100) <= world.options.bonus_fill_percentage:
+        bonus = pick_bonus(world)
+        if bonus is not None:
+            return bonus
     if world.random.randint(1, 100) <= world.options.joke_filler_percentage:
         return world.random.choice(JOKE_ITEM_NAMES)
-    # Gear comes from the guaranteed block in create_all_items, so a top-up
-    # filler (create_filler is also called later by the generator) skips it.
-    return world.random.choice([n for n in FILLER_ITEM_NAMES if n not in GUARANTEED_GEAR])
+    return pick_island_object(world)
+
+
+def pick_island_object(world: BigWalkWorld) -> str:
+    """
+    One of the island's objects, none past its `island_object_limits` count. Gear comes from
+    the guaranteed block in create_all_items, so a top-up filler (create_filler is also called
+    later by the generator) skips it. Once every object is at its limit, a bonus takes the place
+    (by `bonus_weights`); with no bonus left either, the object the pool holds fewest of.
+    """
+    # Made on first use: an item link's group world never runs generate_early.
+    counts = world.__dict__.setdefault("island_objects_made", Counter())
+    limits = world.options.island_object_limits.value
+    objects = [n for n in FILLER_ITEM_NAMES if n not in GUARANTEED_GEAR and n not in FLARE_GUN_NAMES]
+    open_ = [n for n in objects if counts[n] < limits.get(n, 0)]
+    if open_:
+        name = world.random.choice(open_)
+    else:
+        bonus = pick_bonus(world)
+        if bonus is not None:
+            return bonus
+        name = min(objects, key=lambda n: (counts[n], world.random.random()))
+    counts[name] += 1
+    return name
 
 
 def create_all_items(world: BigWalkWorld) -> None:
@@ -182,10 +252,18 @@ def create_all_items(world: BigWalkWorld) -> None:
     # Backpacks and belts are the only gear a player can wear, and a carton is
     # the one bulk container for gourds, so a seed that rolls none of them (one
     # name in seventeen each in the random draw) is a run without a bag. A few
-    # are guaranteed instead, carved out of the filler
+    # are guaranteed instead (how many: the *_in_pool options), carved out of the filler
     # headroom and never past it — a tight pool loses them before it errors.
-    for name, count in GUARANTEED_GEAR.items():
-        take = min(count, filler_needed)
+    for name, option in GUARANTEED_GEAR.items():
+        take = min(getattr(world.options, option).value, filler_needed)
+        pool += [world.create_item(name) for _ in range(take)]
+        filler_needed -= take
+    # The flare guns, from the same headroom, as many of each as `island_object_limits` says: the
+    # island's four with their checks (`flare_gun_sanity`), and the Rainbow Flare Gun always.
+    limits = world.options.island_object_limits.value
+    flare_guns = [*(data.FLARE_GUN_ITEM_NAMES if world.options.flare_gun_sanity else ()), data.RAINBOW_FLARE_GUN_ITEM_NAME]
+    for name in flare_guns:
+        take = min(limits.get(name, 0), max(0, filler_needed))
         pool += [world.create_item(name) for _ in range(take)]
         filler_needed -= take
     pool += [world.create_filler() for _ in range(filler_needed)]

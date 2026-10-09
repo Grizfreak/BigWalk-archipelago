@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from Options import (
-    Choice, DefaultOnToggle, OptionGroup, OptionSet, PerGameCommonOptions, Range, StartInventoryPool, Toggle, Visibility,
+    Choice, DefaultOnToggle, OptionCounter, OptionGroup, OptionSet, PerGameCommonOptions, Range, StartInventoryPool, Toggle, Visibility,
 )
 
 from . import data
@@ -117,6 +117,49 @@ class RadioSanity(DefaultOnToggle):
 # Stations are named after the music they actually play, not the game's
 # internal names, and numbered by their light on the dial, which carries no
 # labels at all (see data.RADIO_STATIONS).
+class PackSanity(DefaultOnToggle):
+    """
+    The island's backpacks, belts and gourd carton (12 in all) as checks.
+
+    - on: picking each one up for the first time is a check (12 locations); the pack then
+      disappears from the map, so the packs a player can wear are still the items of the pool.
+    - off: as in the game, free to take on the map, and no location.
+    """
+
+    display_name = "Pack Sanity"
+
+
+class FireworkSanity(DefaultOnToggle):
+    """
+    Firing each of the eight firework launchers (the button at its foot) for the first time is a
+    check: 8 locations.
+    """
+
+    display_name = "Firework Sanity"
+
+
+class FlareGunSanity(DefaultOnToggle):
+    """
+    Picking up each of the island's four flare guns for the first time is a check: 4 locations. The
+    four flare guns are then items in the pool (how many of each: `island_object_limits`; with
+    `random_colors`, painted from the seed's colors). Off: the flare guns stay on the island and
+    none is an item. The Rainbow Flare Gun is an item either way (`island_object_limits`).
+    """
+
+    display_name = "Flare Gun Sanity"
+
+
+class RandomColors(DefaultOnToggle):
+    """
+    The island's buoys (their body, halo and light) and flare guns (and their shots) take colors
+    drawn for the seed, between five and ten of them, the same on every player's screen. It paints
+    objects of the map only: never the players, the gourds or the keys. Off: the game's own colors.
+    The Rainbow Flare Gun, whose shots run through every color, is not affected by it.
+    """
+
+    display_name = "Random Colors"
+
+
 class ShuffleRadioMusic(DefaultOnToggle):
     """
     If on, each station's music is an item, and a station stays silent until
@@ -392,50 +435,16 @@ class TeleportButtons(Choice):
     default = option_off
 
 
-class CabinFeverTime(Choice):
+class CabinFeverSeconds(Range):
     """
-    The wait of the Cabin Fever puzzle (5 minutes in the game). Mod only; it changes no logic.
-
-    - vanilla: the game's own wait.
-    - reduced: down to `cabin_fever_seconds_min`, never longer than the game's.
-    - random_between: a time between `cabin_fever_seconds_min` and `cabin_fever_seconds_max`, drawn once
-      when the world is made, so it is the same for every player.
-    - fixed: exactly `cabin_fever_seconds` seconds, even longer than the game's.
+    The wait of the Cabin Fever puzzle, in seconds; 300 (5 minutes) is the game's own. Mod only; it
+    changes no logic. For a wait drawn once per seed, Archipelago's own `random-range-60-300`.
     """
 
     display_name = "Cabin Fever Wait"
-    option_vanilla = 0
-    option_reduced = 1
-    option_random_between = 2
-    option_fixed = 3
-    default = option_vanilla
-
-
-class CabinFeverSecondsMin(Range):
-    """The shortest wait of the Cabin Fever puzzle, in seconds: what `reduced` brings it down to, and the low end of `random_between`."""
-
-    display_name = "Cabin Fever Shortest Wait"
-    range_start = 0
-    range_end = 300
-    default = 60
-
-
-class CabinFeverSecondsMax(Range):
-    """The longest wait of the Cabin Fever puzzle, in seconds: the high end of `random_between`."""
-
-    display_name = "Cabin Fever Longest Wait"
     range_start = 0
     range_end = 3600
     default = 300
-
-
-class CabinFeverSeconds(Range):
-    """The wait of the Cabin Fever puzzle, in seconds, when it is `fixed`."""
-
-    display_name = "Cabin Fever Fixed Wait"
-    range_start = 0
-    range_end = 3600
-    default = 120
 
 
 class CabinFeverHelp(Toggle):
@@ -447,50 +456,16 @@ class CabinFeverHelp(Toggle):
     display_name = "Cabin Fever Help Button"
 
 
-class CabinFeverLongTime(Choice):
+class CabinFeverLongSeconds(Range):
     """
-    The wait of the Cabin Fever Long puzzle (30 minutes in the game). Mod only; it changes no logic.
-
-    - vanilla: the game's own wait.
-    - reduced: down to `cabin_fever_long_seconds_min`, never longer than the game's.
-    - random_between: a time between `cabin_fever_long_seconds_min` and `cabin_fever_long_seconds_max`, drawn once
-      when the world is made, so it is the same for every player.
-    - fixed: exactly `cabin_fever_long_seconds` seconds, even longer than the game's.
+    The wait of the Cabin Fever Long puzzle, in seconds; 1800 (30 minutes) is the game's own. Mod
+    only; it changes no logic. For a wait drawn once per seed, `random-range-300-1800`.
     """
 
     display_name = "Cabin Fever Long Wait"
-    option_vanilla = 0
-    option_reduced = 1
-    option_random_between = 2
-    option_fixed = 3
-    default = option_vanilla
-
-
-class CabinFeverLongSecondsMin(Range):
-    """The shortest wait of the Cabin Fever Long puzzle, in seconds: what `reduced` brings it down to, and the low end of `random_between`."""
-
-    display_name = "Cabin Fever Long Shortest Wait"
-    range_start = 0
-    range_end = 1800
-    default = 300
-
-
-class CabinFeverLongSecondsMax(Range):
-    """The longest wait of the Cabin Fever Long puzzle, in seconds: the high end of `random_between`."""
-
-    display_name = "Cabin Fever Long Longest Wait"
     range_start = 0
     range_end = 3600
     default = 1800
-
-
-class CabinFeverLongSeconds(Range):
-    """The wait of the Cabin Fever Long puzzle, in seconds, when it is `fixed`."""
-
-    display_name = "Cabin Fever Long Fixed Wait"
-    range_start = 0
-    range_end = 3600
-    default = 600
 
 
 class CabinFeverLongHelp(Toggle):
@@ -520,13 +495,40 @@ class TileThief(Choice):
     default = option_vanilla
 
 
-class ShufflePegTiles(Toggle):
+class BackpacksInPool(Range):
     """
-    The island's peg tiles swap places on their stands, within each place, differently for each
-    seed. A tile never leaves its place, so nothing becomes harder to reach.
+    How many Backpacks the item pool holds. Each one takes the place of a filler item; a pool
+    without that much room holds fewer.
     """
 
-    display_name = "Shuffle Peg Tiles"
+    display_name = "Backpacks in Pool"
+    range_start = 0
+    range_end = 8
+    default = 2
+
+
+class BeltsInPool(Range):
+    """
+    How many Belts the item pool holds. Each one takes the place of a filler item; a pool
+    without that much room holds fewer.
+    """
+
+    display_name = "Belts in Pool"
+    range_start = 0
+    range_end = 8
+    default = 2
+
+
+class GourdCartonsInPool(Range):
+    """
+    How many Gourd Cartons the item pool holds. Each one takes the place of a filler item; a
+    pool without that much room holds fewer.
+    """
+
+    display_name = "Gourd Cartons in Pool"
+    range_start = 0
+    range_end = 4
+    default = 1
 
 
 class JokeFillerPercentage(Range):
@@ -547,20 +549,262 @@ class JokeFillerPercentage(Range):
     visibility = Visibility.none
 
 
-# Hidden until the mod gives a trap an effect: today a trap is a filler item
-# with a different name, and offering the option would promise otherwise.
 class TrapFillPercentage(Range):
     """
-    Percentage of filler items replaced by traps.
-
-    - Traps do nothing yet: keep it at 0.
+    Percentage of filler items replaced by traps. A trap hits every player of the session, for
+    `trap_duration` seconds when it lasts. Which traps, and how often each: `trap_weights`.
     """
 
     display_name = "Trap Fill Percentage"
     range_start = 0
     range_end = 100
     default = 0
-    visibility = Visibility.none
+
+
+class TrapWeights(OptionCounter):
+    """
+    How often each trap comes, against the others. 0 takes a trap out of the pool.
+
+    - Big Drop: everyone drops what they hold.
+    - Big Throw (hard): everyone throws what they hold, after a five-second wind-up.
+    - Big Trip (hard): everyone is sent somewhere else on the map, each to a different place.
+    - Big Meeting (hard): everyone is sent next to one player drawn at random.
+    - Big Night: the clock fast-forwards to midnight, and runs on from there.
+    - Big Sleep (hard): for `trap_duration` seconds, everyone falls asleep where they stand for two
+      seconds, then wakes for five, again and again.
+    - Big Load (hard): every pack worn comes off, and what it holds falls out.
+    - Big Mask (hard): for `trap_duration` seconds, everyone wears the blindfold helmet of the
+      blindfold puzzles, and nobody can take it off; a player already wearing a mask is spared.
+    - Big Flare: a flare gun shot lands on every player, in the Archipelago colors.
+      Each player can hide it on their own screen (Settings > Archipelago > Gentle effects).
+    """
+
+    display_name = "Trap Weights"
+    valid_keys = frozenset(trap.item_name for trap in data.TRAPS)
+    min = 0
+    max = 100
+    default = {trap.item_name: 10 for trap in data.TRAPS}
+
+
+class TrapLink(Toggle):
+    """
+    TrapLink: a trap received in one game plays in every game that has it on (the "TrapLink" tag).
+
+    With it on, every trap of this world's item pool that reaches you is also sent to the other
+    games, and a trap sent by another game plays here: as the Big Walk trap of the same name when
+    it is one, otherwise as the nearest one by its name (a freeze is Big Sleep, a bomb is Big Flare,
+    ...), and as one drawn from the DeathLink roulette (`death_link_trap_weights`) when none comes
+    near. Bonuses are never sent. A trap that comes from a DeathLink (`death_link_effect:
+    roulette`) or from another game's TrapLink is not sent on, so none loops.
+    """
+
+    display_name = "TrapLink"
+
+
+class HardTraps(DefaultOnToggle):
+    """
+    Lets the hard traps into the pool: those that cost time or progress (Big Throw, Big Trip,
+    Big Meeting, Big Sleep, Big Load, Big Mask). Off keeps only the standard ones.
+    """
+
+    display_name = "Hard Traps"
+
+
+class BonusFillPercentage(Range):
+    """
+    Percentage of filler items replaced by bonuses, a boost for every player. Which bonuses, and how
+    often each: `bonus_weights`.
+    """
+
+    display_name = "Bonus Fill Percentage"
+    range_start = 0
+    range_end = 100
+    default = 25
+
+
+class BonusWeights(OptionCounter):
+    """
+    How often each bonus comes, against the others. 0 takes a bonus out of the pool.
+
+    - Big Speed: everyone walks and runs faster for `trap_duration` seconds.
+    - Big Jump: everyone jumps higher for `trap_duration` seconds.
+    - Big Day: the clock fast-forwards to noon, and runs on from there.
+    """
+
+    display_name = "Bonus Weights"
+    valid_keys = frozenset(bonus.item_name for bonus in data.BONUSES)
+    min = 0
+    max = 100
+    default = {bonus.item_name: 10 for bonus in data.BONUSES}
+
+
+class IslandObjectLimits(OptionCounter):
+    """
+    The most of each of the island's objects the pool holds; 0 leaves one out. Once every object
+    is at its limit, the rest of the filler is bonuses (`bonus_weights`).
+
+    - Most objects are random filler, drawn up to their limit. They are props the item feed names and
+      that land beside you, with no effect and nothing in logic: none is ever needed.
+    - The Walkie-Talkie is one of them, and 8 is not a lot to ask of the pool: 8 is how many the
+      island itself has, so it is the most the filler can ever hold of them, and a seed that does
+      not draw them all just makes more bonuses (traps and bonuses replace part of the filler as
+      well). Lower it, or take it to 0, for a pool with fewer of them.
+    - The four flare guns (`Flare Gun`, `Blue Flare Gun`, `Green Flare Gun`, `Yellow Flare Gun`) are
+      not random filler: with `flare_gun_sanity` the pool holds exactly this many of each, and
+      without it none. The `Rainbow Flare Gun` is always in the pool, this many times (0 leaves
+      it out).
+    - Backpacks, belts and gourd cartons are set apart: `backpacks_in_pool` and the like.
+    """
+
+    display_name = "Island Object Limits"
+    valid_keys = frozenset(name for name, _ in data.FILLER_ITEMS if name not in ("Backpack", "Belt", "Gourd Carton"))
+    min = 0
+    max = 50
+    default = {
+        "Lamp": 2,
+        "Flare Gun": 1,
+        "Blue Flare Gun": 1,
+        "Green Flare Gun": 1,
+        "Yellow Flare Gun": 1,
+        "Rainbow Flare Gun": 1,
+        "Folding Map": 2,
+        "Walkie-Talkie": 8,
+        "Laser": 3,
+        "Torch": 3,
+        "Binoculars": 3,
+        "Megaphone": 3,
+        "Compass": 3,
+        "Radio": 3,
+        "X-Ray Goggles": 3,
+    }
+
+
+class TrapDuration(Range):
+    """How long Big Speed, Big Jump, Big Sleep and Big Mask last, in seconds."""
+
+    display_name = "Trap Duration"
+    range_start = 10
+    range_end = 120
+    default = 20
+
+
+class TrapsSpareTheGauntlet(DefaultOnToggle):
+    """
+    Big Trip and Big Meeting leave alone the players inside the Silent Gauntlet, and Big Meeting
+    never sends anyone into it.
+    """
+
+    display_name = "Traps Spare the Gauntlet"
+
+
+class BigWalkDeathLink(Choice):
+    """
+    DeathLink: a death in one game is a death in every game that has it on.
+
+    - off: nothing sent, nothing received. The host can also switch DeathLink off for a session, and
+      replace the amnesty, in the game's Settings > Archipelago, whatever the YAML says.
+    - send: Big Walk sends one when something in `death_link_triggers` happens, and ignores those it
+      receives.
+    - receive: Big Walk plays `death_link_effect` when one arrives, and sends none.
+    - both: both.
+    """
+
+    display_name = "DeathLink"
+    option_off = 0
+    option_send = 1
+    option_receive = 2
+    option_both = 3
+    default = option_off
+
+
+class DeathLinkTriggers(OptionSet):
+    """
+    What sends a DeathLink, with `death_link` on send or both.
+
+    - puzzle_failed: a puzzle failed, as the game itself tells it: a wrong tile validated, buttons
+      pressed out of order, a count gone wrong, a timer run out.
+    - big_fall: a player falls far enough to land dazed. Not by default. A daze a received
+      DeathLink causes (`death_link_effect: knockout`) sends nothing back.
+    """
+
+    display_name = "DeathLink Triggers"
+    valid_keys = frozenset(data.DEATH_LINK_TRIGGERS)
+    default = frozenset({"puzzle_failed"})
+
+
+class DeathLinkAmnesty(Range):
+    """How many triggers (failed puzzles, big falls) are forgiven before one sends a DeathLink: 0 sends on the first."""
+
+    display_name = "DeathLink Amnesty"
+    range_start = 0
+    range_end = 10
+    default = 0
+
+
+class DeathLinkEffect(Choice):
+    """
+    What a DeathLink received does, with `death_link` on receive or both.
+
+    - knockout: everyone drops what they hold, takes off their backpacks and belts (their contents
+      fall out), and is dazed as after a big fall.
+    - drop: everyone drops what they hold.
+    - roulette: a trap drawn at random, by `death_link_trap_weights`.
+    """
+
+    display_name = "DeathLink Effect"
+    option_drop = 0
+    option_roulette = 1
+    option_knockout = 2
+    default = option_knockout
+
+
+class DeathLinkTrapWeights(OptionCounter):
+    """
+    The traps the DeathLink roulette draws from, and how often each, against the others; 0 leaves
+    one out. Apart from `trap_weights`, which is the item pool's.
+    """
+
+    display_name = "DeathLink Trap Weights"
+    valid_keys = frozenset(trap.item_name for trap in data.TRAPS)
+    min = 0
+    max = 100
+    default = {trap.item_name: 10 for trap in data.TRAPS}
+
+
+class DeathLinkTarget(Choice):
+    """
+    Who a DeathLink received hits, with `death_link` on receive or both.
+
+    - everyone: every player of the session.
+    - one_player: one player only, the one hit the fewest times so far this session (ties at
+      random), as received items go to the player given the fewest. With `death_link_effect:
+      roulette`, the traps that need several players or hit the whole session are left out of the
+      draw, whatever `death_link_trap_weights` says: Big Meeting (it gathers everyone around one
+      player) and Big Night (the clock is the same for everyone). The other traps play on the
+      one player: Big Drop, Big Throw, Big Trip, Big Sleep, Big Load, Big Mask and Big Flare.
+    """
+
+    display_name = "DeathLink Target"
+    option_everyone = 0
+    option_one_player = 1
+    default = option_everyone
+
+
+class DeathLinkTrapOnSend(Toggle):
+    """
+    With `death_link` on send or both: when Big Walk sends a DeathLink, its own players take the
+    effect of a death too (`death_link_effect`, on `death_link_target`). Normally a game only
+    receives the link of the others' deaths; this makes the one who dies pay for it as well.
+    Nothing happens with `death_link` on receive or off: nothing is sent.
+    """
+
+    display_name = "DeathLink Trap on Send"
+
+
+class DeathLinkRouletteHardTraps(DefaultOnToggle):
+    """Lets the roulette draw the hard traps (Big Throw, Big Trip, Big Meeting, Big Sleep, Big Load, Big Mask). Off keeps them out of it."""
+
+    display_name = "DeathLink Roulette Hard Traps"
 
 
 @dataclass
@@ -570,6 +814,8 @@ class BigWalkOptions(PerGameCommonOptions):
     gourd_sanity: GourdSanity
     radio_sanity: RadioSanity
     shuffle_radio_music: ShuffleRadioMusic
+    pack_sanity: PackSanity
+    firework_sanity: FireworkSanity
     start_with_drawbridge_open: StartWithDrawbridgeOpen
     start_with_arch_doors_open: StartWithArchDoorsOpen
     require_arch_doors: RequireArchDoors
@@ -584,40 +830,62 @@ class BigWalkOptions(PerGameCommonOptions):
     guests_can_resync: GuestsCanResync
     teleport_buttons: TeleportButtons
     teleport_back_to_hub: TeleportBackToHub
-    cabin_fever_time: CabinFeverTime
-    cabin_fever_seconds_min: CabinFeverSecondsMin
-    cabin_fever_seconds_max: CabinFeverSecondsMax
     cabin_fever_seconds: CabinFeverSeconds
     cabin_fever_help: CabinFeverHelp
-    cabin_fever_long_time: CabinFeverLongTime
-    cabin_fever_long_seconds_min: CabinFeverLongSecondsMin
-    cabin_fever_long_seconds_max: CabinFeverLongSecondsMax
     cabin_fever_long_seconds: CabinFeverLongSeconds
     cabin_fever_long_help: CabinFeverLongHelp
     tile_thief: TileThief
-    shuffle_peg_tiles: ShufflePegTiles
     gauntlet_mode: GauntletMode
     gauntlet_puzzles_required: GauntletPuzzlesRequired
     lock_gauntlet_needs: LockGauntletNeeds
     gauntlet_stages_local: GauntletStagesLocal
     gauntlet_stage_items: GauntletStageItems
     trap_fill_percentage: TrapFillPercentage
+    trap_weights: TrapWeights
+    hard_traps: HardTraps
+    bonus_fill_percentage: BonusFillPercentage
+    bonus_weights: BonusWeights
+    island_object_limits: IslandObjectLimits
+    trap_duration: TrapDuration
+    traps_spare_the_gauntlet: TrapsSpareTheGauntlet
+    death_link: BigWalkDeathLink
+    death_link_triggers: DeathLinkTriggers
+    death_link_amnesty: DeathLinkAmnesty
+    death_link_effect: DeathLinkEffect
+    death_link_roulette_hard_traps: DeathLinkRouletteHardTraps
+    death_link_trap_weights: DeathLinkTrapWeights
+    death_link_trap_on_send: DeathLinkTrapOnSend
+    death_link_target: DeathLinkTarget
+    trap_link: TrapLink
+    backpacks_in_pool: BackpacksInPool
+    belts_in_pool: BeltsInPool
+    gourd_cartons_in_pool: GourdCartonsInPool
+    flare_gun_sanity: FlareGunSanity
+    random_colors: RandomColors
     start_inventory_from_pool: StartInventoryPool
 
 
 option_groups = [
     OptionGroup("Goal", [Goal, GourdsRequired]),
-    OptionGroup("Sanity", [GourdSanity, RadioSanity, ShuffleRadioMusic]),
+    OptionGroup("Sanity", [GourdSanity, RadioSanity, ShuffleRadioMusic, PackSanity, FireworkSanity, FlareGunSanity]),
     OptionGroup("Logic", [
         StartWithDrawbridgeOpen, OpenBlackTower, StartWithArchDoorsOpen, RequireArchDoors,
         GauntletMode, GauntletStageItems, GauntletPuzzlesRequired, LockGauntletNeeds, GauntletStagesLocal,
         LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed,
     ]),
+    OptionGroup("Item Pool", [BackpacksInPool, BeltsInPool, GourdCartonsInPool, IslandObjectLimits]),
+    OptionGroup("Colors", [RandomColors]),
+    OptionGroup("Traps and Bonuses", [
+        TrapFillPercentage, TrapWeights, HardTraps, BonusFillPercentage, BonusWeights, TrapDuration, TrapsSpareTheGauntlet,
+        TrapLink,
+    ]),
+    OptionGroup("DeathLink", [
+        BigWalkDeathLink, DeathLinkTriggers, DeathLinkAmnesty, DeathLinkEffect, DeathLinkTrapWeights,
+        DeathLinkRouletteHardTraps, DeathLinkTrapOnSend, DeathLinkTarget,
+    ]),
     OptionGroup("QoL", [HintKeys, TeleportButtons, TeleportBackToHub, TowerResyncStations, GuestsCanResync]),
     OptionGroup("Puzzle QoL", [
-        CabinFeverTime, CabinFeverSecondsMin, CabinFeverSecondsMax, CabinFeverSeconds, CabinFeverHelp,
-        CabinFeverLongTime, CabinFeverLongSecondsMin, CabinFeverLongSecondsMax, CabinFeverLongSeconds,
-        CabinFeverLongHelp, TileThief, ShufflePegTiles,
+        CabinFeverSeconds, CabinFeverHelp, CabinFeverLongSeconds, CabinFeverLongHelp, TileThief,
     ]),
 ]
 

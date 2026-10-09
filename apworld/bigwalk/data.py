@@ -797,6 +797,7 @@ FILLER_ITEMS: tuple[tuple[str, int], ...] = (
     ("Blue Flare Gun", 9_015),
     ("Green Flare Gun", 9_016),
     ("Yellow Flare Gun", 9_017),
+    ("Rainbow Flare Gun", 9_018),
 )
 """
 The island's own hand props, cloned in and spawned near the player on
@@ -808,6 +809,22 @@ without a matching mod change silently swaps what two ids grant. Their
 vanilla instances are removed from the map on the mod side for the same
 reason a big key's plinth is emptied on pickup: a filler item must not also
 be findable for free outside the multiworld.
+
+The Rainbow Flare Gun (player, 2026-10-07) is the one object the island has none of: a white
+flare gun whose shots run through every colour. It is always in the pool, once, and never drawn
+as filler (FLARE_GUN_NAMES, items.py).
+"""
+
+FLARE_GUN_ITEM_NAMES: tuple[str, ...] = ("Flare Gun", "Blue Flare Gun", "Green Flare Gun", "Yellow Flare Gun")
+"""The island's four flare guns as items: in the pool with `flare_gun_sanity`, never as filler."""
+
+RAINBOW_FLARE_GUN_ITEM_NAME = "Rainbow Flare Gun"
+
+PALETTE_SIZE = 10
+"""
+How many colours the mod's palette holds (mod/src/Core/Palette.cs): red, orange, yellow, lime,
+green, cyan, blue, purple, pink, white. With `random_colors`, a seed draws between 5 and all of
+them, by index, and the buoys and flare guns are painted from that draw.
 """
 
 TELEPORT_ID_OFFSET = 2_700
@@ -857,9 +874,146 @@ the rest: the mod knows no id here, so one shows up as a line in the item feed a
 nothing. Ids 9_201.., clear of the gadgets' 9_001..9_017 whose order the mod relies on.
 """
 
-TRAP_ITEMS: tuple[tuple[str, int], ...] = (
-    ("Untied Shoelace", 9_101),
+class Pickup(NamedTuple):
+    """A backpack, belt or gourd carton of the island, whose first pick-up is a check (`pack_sanity`)."""
+
+    guid: str
+    """The prop's `savablePropGuid`: the game's own identity for it, the same on every machine."""
+    location_name: str
+    past_chairlift: bool = False
+    past_tunnels: bool = False
+
+
+PICKUP_ID_OFFSET = 13_000
+"""A pick-up's location id: `BASE_ID + 13_000 + position` in PICKUPS."""
+
+PICKUPS: tuple[Pickup, ...] = (
+    Pickup("2d8101c4-223f-4939-8df6-809562469516", "Sky Blue Backpack"),
+    Pickup("76601ed6-da1c-4326-9c8d-2c6168d31f36", "Yellow Backpack"),
+    Pickup("730affd5-3139-473c-aaf2-4ecd5142c82f", "Teal Backpack"),
+    Pickup("22009189-d33d-4e65-8b3c-c8257188743d", "Orange Backpack"),
+    Pickup("f2dea8ab-08ea-434d-b98b-7e66a499392e", "Pink Backpack"),
+    Pickup("02e75b25-ffa8-49e9-9fa3-7c453206aad9", "Maroon Backpack", past_chairlift=True),
+    Pickup("9057af3c-12c5-48d8-8251-07233a203861", "Green Belt"),
+    Pickup("d73ec09b-8e2b-432e-8e62-b5ff71db2d23", "Purple Belt", past_tunnels=True),
+    Pickup("3bfe0dec-42de-4c31-87ab-a72f0b94722a", "Yellow Belt"),
+    Pickup("ef09f445-cd71-4414-938a-7a7122dcd121", "Orange Belt"),
+    Pickup("3e944e74-2d2e-40e2-b1ba-a1afa8c937ee", "Blue Belt", past_chairlift=True),
+    Pickup("5fa8468a-dfaa-48fe-8057-46d47b9e56a5", "Gourd Carton Pickup"),
 )
+"""
+Every backpack (6), belt (5, `HolsterProp`) and gourd carton (1) of the island, from the
+census of 2026-10-05 (Ctrl+F1): all twelve are in every map version (2, 3 and 4 players).
+Named by colour (player, 2026-10-05), the `_TintColor` each carries (census, pickup-colours.tsv):
+no two of a kind share one; the carton has none, and its location says Pickup so as not to read like the item. Every one walked to by the player on 2026-10-05: the far-east
+pair is past the chairlift (like the purple gourds), the belt at (63, 59, -390) in the
+tunnels, and nothing else has a way in other than the open island.
+"""
+
+
+FLARE_GUN_ID_OFFSET = 13_050
+"""A flare gun pick-up's location id: `BASE_ID + 13_050 + position` in FLARE_GUN_PICKUPS."""
+
+FLARE_GUN_PICKUPS: tuple[Pickup, ...] = (
+    Pickup("80381b52-ede7-494f-b800-0c77a71f57e0", "Red Flare Gun Pickup"),
+    Pickup("72bc4c22-4418-4b7c-9c1d-e8cfa5040102", "Green Flare Gun Pickup"),
+    Pickup("66de92ed-177d-49d5-aa97-e86d98083ac0", "Yellow Flare Gun Pickup"),
+    Pickup("8b9fc973-4200-4934-8169-dde2de5b1d10", "Blue Flare Gun Pickup"),
+)
+"""
+The island's four flare guns (census of 2026-10-07, Ctrl+F1), whose first pick-up is a check with
+`flare_gun_sanity`: in every map version, all four on the open island (walked to by the player,
+2026-10-07). Named Pickup, like the carton, so as not to read like the items.
+"""
+
+
+class Firework(NamedTuple):
+    """A firework launcher, whose first firing (the button at its foot) is a check (`firework_sanity`)."""
+
+    key: str
+    """The landmark the launcher stands in, as the mod finds it among the launcher's parents."""
+    location_name: str
+    past_chairlift: bool = False
+    in_starting_zone: bool = False
+
+
+FIREWORK_ID_OFFSET = 13_100
+"""A firework's location id: `BASE_ID + 13_100 + position` in FIREWORKS."""
+
+FIREWORKS: tuple[Firework, ...] = (
+    Firework("Hub", "Hub Fireworks", in_starting_zone=True),
+    Firework("Lookout_RedCone", "Red Funnel Tower Fireworks"),
+    Firework("Lookout_YellowZigzag", "Yellow Twist Tower Fireworks"),
+    Firework("Lookout_BlueTube", "Blue Castle Tower Fireworks"),
+    Firework("Lookout_GreenHourglass", "Green Cup Tower Fireworks"),
+    Firework("PeakMarker", "Peak Fireworks"),
+    Firework("SouthPeak", "South Peak Fireworks"),
+    Firework("FireworksPlatform_Intro", "Intro Platform Fireworks"),
+)
+"""
+The eight firework launchers (census of 2026-10-05), in every map version. The game saves
+nothing when one is fired: the mod sees its button go to state 1 (`PokeButtonPeckLogic`
+under `FireworkLauncher`), measured at the hub's. All on the open island but the hub's, in
+the starting zone (walked to by the player, 2026-10-05).
+"""
+
+
+def pickup_location_id(position: int) -> int:
+    return BASE_ID + PICKUP_ID_OFFSET + position
+
+
+def firework_location_id(position: int) -> int:
+    return BASE_ID + FIREWORK_ID_OFFSET + position
+
+
+def flare_gun_location_id(position: int) -> int:
+    return BASE_ID + FLARE_GUN_ID_OFFSET + position
+
+
+class Effect(NamedTuple):
+    """A trap or a bonus: an item whose effect the mod plays on every player of the session."""
+
+    item_name: str
+    offset: int
+    # What the mod knows the effect by (slot data, the ModChannel).
+    key: str
+    # A trap that costs time or progress (player, 2026-10-05): `hard_traps` keeps them out.
+    hard: bool = False
+
+
+TRAPS: tuple[Effect, ...] = (
+    Effect("Big Drop", 9_102, "drop"),
+    Effect("Big Throw", 9_103, "throw", hard=True),
+    Effect("Big Trip", 9_104, "trip", hard=True),
+    Effect("Big Meeting", 9_105, "meeting", hard=True),
+    Effect("Big Night", 9_106, "night"),
+    Effect("Big Sleep", 9_107, "sleep", hard=True),
+    Effect("Big Load", 9_108, "load", hard=True),
+    Effect("Big Mask", 9_109, "mask", hard=True),
+    Effect("Big Flare", 9_110, "flare"),
+)
+"""
+Every trap is "Big" + one word (player, 2026-10-05) and hits every player of the session. Only
+the traps the mod plays are here; the others wait in docs/ROADMAP.md. 9_101 was "Untied
+Shoelace", a trap that did nothing and was never in a pool: retired, not reused.
+"""
+
+BONUSES: tuple[Effect, ...] = (
+    Effect("Big Speed", 9_301, "speed"),
+    Effect("Big Jump", 9_302, "jump"),
+    Effect("Big Day", 9_303, "day"),
+)
+"""The traps' good twins: a boost for every player, for `trap_duration` seconds."""
+
+TRAP_ITEMS: tuple[tuple[str, int], ...] = tuple((trap.item_name, trap.offset) for trap in TRAPS)
+BONUS_ITEMS: tuple[tuple[str, int], ...] = tuple((bonus.item_name, bonus.offset) for bonus in BONUSES)
+
+DEATH_LINK_TRIGGERS: tuple[str, ...] = ("puzzle_failed", "big_fall")
+"""
+What sends a DeathLink: a puzzle failed, as the game itself signals it (tile validators, buttons in
+order, counting, timers), and a fall that knocks a player down. The fall was dropped on 2026-10-05
+and is back as a choice, off by default (players, 2026-10-07). Falling asleep stays dropped.
+"""
 
 
 # --------------------------------------------------------------------------
