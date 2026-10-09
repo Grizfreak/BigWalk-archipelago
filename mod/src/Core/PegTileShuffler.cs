@@ -1,12 +1,13 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
 
 namespace BigWalkArchipelago.Core
 {
-    // The island's peg tiles swapped among their own places, per seed (`shuffle_peg_tiles`,
-    // player's wish 2026-10-05: "they are always laid out the same").
+    // The island's peg tiles swapped among their own places, per seed, in every Archipelago game
+    // (player's wish 2026-10-05: "they are always laid out the same"; no option since: "it has to
+    // be native"). Never in a save hosted without Archipelago (ApRuntime.ShufflesPegTiles).
     //
     //  - Within a place only: tiles swap among the homes of the same landmark (the first two
     //    levels of the scene path, LandmarksPlayerCountAny/TileThief...), never across the island,
@@ -27,22 +28,21 @@ namespace BigWalkArchipelago.Core
         // A few seconds after the world is ready, so its tiles have been pinned by the game first.
         private const float Delay = 5f;
 
-        internal static void Configure(bool enabled, string seed)
+        internal static void Configure(string seed)
         {
             // Once per world: a second pass would only see the tiles still at their own place and
             // shuffle those again. A reconnection to the same seed changes nothing.
             if ((seed ?? string.Empty) != _seed)
                 _doneThisWorld = false;
 
-            _enabled = enabled;
+            _enabled = true;
             _seed = seed ?? string.Empty;
-            Plugin.Log.LogInfo($"[{nameof(PegTileShuffler)}] Peg tiles {(enabled ? "shuffled on their stands" : "as in the game")}.");
         }
 
         // Every couple of seconds (TeleportButtonRunner).
         internal static void Tick()
         {
-            if (!_enabled || _doneThisWorld || !NetworkServer.active)
+            if (!_enabled || !Net.ApRuntime.ShufflesPegTiles || _doneThisWorld || !NetworkServer.active)
                 return;
 
             if (_at < 0f)

@@ -272,6 +272,19 @@ namespace BigWalkArchipelago.Core
                 }, icon, tint);
         }
 
+        // Big Trip's places among these (Core/Traps.cs): the hub, and each tower reached on foot,
+        // whatever the `teleport_buttons` option. Never the Gauntlet.
+        internal static IEnumerable<KeyValuePair<string, Vector3>> TripLandings()
+        {
+            yield return new KeyValuePair<string, Vector3>("the hub", InFrontOf(Destinations[0].HubSpot));
+            foreach (var destination in Destinations)
+            {
+                if (destination.Key == "gauntlet" || !Reached(destination.Key))
+                    continue;
+                yield return new KeyValuePair<string, Vector3>(destination.Label, InFrontOf(destination.ReturnSpot));
+            }
+        }
+
         // Where the hub's button for a destination sends a player: in front of that
         // destination's return button; nowhere until that button is marked.
         private static Vector3? ArrivalOf(int destination)

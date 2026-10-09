@@ -41,6 +41,10 @@ launch — NOT the dummy DLLs):
   `TMP_InputField`
 - `UnityEngine.IMGUIModule.dll` (step 5, 2026-09-15) — `OnGUI`/`GUI.Label`,
   for the on-screen Archipelago status (`Core/Net/ApStatusOverlay.cs`)
+- `AudioSystem.dll` (2026-10-09) — `AudioAsset`, named by the colour probe's audio listing
+  (`Debug/DebugColourProbe.cs`)
+- `UnityEngine.ParticleSystemModule.dll` (2026-10-06) — `ParticleSystem`, for the colour probe
+  (`Debug/DebugColourProbe.cs`) and the flares' colours
 - `Mirror.Transports.dll` (step 6, 2026-09-25) — `KcpTransport`,
   `MultiplexTransport`, `EosTransport`, for the loopback guest
   (`Debug/DebugNetworkLookup.cs`). Copied from the Steam install's

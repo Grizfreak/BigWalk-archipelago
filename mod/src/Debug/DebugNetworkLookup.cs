@@ -39,6 +39,7 @@ namespace BigWalkArchipelago.Debug
             Section("process", DumpProcess);
             Section("manager", DumpManager);
             Section("connections", DumpConnections);
+            Section("player names", DumpPlayerNames);
             Section("input", DumpInput);
             Section("prefabs", DumpPrefabs);
 
@@ -72,6 +73,43 @@ namespace BigWalkArchipelago.Debug
             Plugin.Log.LogInfo(
                 $"{Tag} Player identifier this machine would send a host: "
                 + (found ? Mask(identifier) : $"<none; the game falls back to the machine name, {Mask(SystemInfo.deviceName)}>"));
+        }
+
+        // Every name the game keeps for each player (0.4.0, version warnings): the host's warnings
+        // name a guest, and the first try, `username`, read "127.0.0.1-1" on a loopback guest.
+        private static void DumpPlayerNames()
+        {
+            var players = PlayerCharacter.allPlayerCharacters;
+            if (players == null)
+            {
+                Plugin.Log.LogInfo($"{Tag} No players.");
+                return;
+            }
+
+            foreach (var player in players)
+            {
+                if (player == null)
+                    continue;
+                var networking = player.GetComponentInChildren<PlayerNetworking>();
+                Plugin.Log.LogInfo(
+                    $"{Tag} Player object '{player.gameObject.name}': "
+                    + (networking == null
+                        ? "no PlayerNetworking"
+                        : $"username='{networking.username}', moderationName='{networking.moderationName}', "
+                          + $"sanitized='{networking.moderationNameSanitized}', platform={networking.platform}, "
+                          + $"warning label='{LabelOf(player)}'"));
+            }
+        }
+
+        // The label the version warnings give this player, found through their connection.
+        private static string LabelOf(PlayerCharacter player)
+        {
+            foreach (var connection in Mirror.NetworkServer.connections.Values)
+            {
+                if (connection?.identity != null && connection.identity.gameObject == player.gameObject)
+                    return BigWalkArchipelago.Core.Net.ModChannel.PlayerLabel(connection.connectionId);
+            }
+            return "?";
         }
 
         private static void DumpManager()

@@ -63,20 +63,51 @@ namespace BigWalkArchipelago.Core.Net
 
         private static readonly ApConnection Connection = new();
 
+        // Whether the session hosted right now is connected to a seed, whose peg tiles are then
+        // shuffled. Read live rather than kept by the shuffler: a static set by one seed survived
+        // into the next save hosted, Archipelago or not (2026-10-05).
+        internal static bool ShufflesPegTiles =>
+            Connection.Status == ApConnection.ConnectionStatus.Connected && Connection.SlotData != null;
+
+        // The host turned DeathLink on or off in the settings: the tag follows at once.
+        // A trap of the item pool that has just reached this world, for the other games (TrapLink).
+        internal static bool SendTrapLink(string trapName) => Connection.SendTrapLink(trapName);
+
+        internal static void ApplyDeathLinkSetting()
+        {
+            Connection.ListenForDeathLinks(Traps.ReceivesDeathLink);
+            Plugin.Log.LogInfo($"[{nameof(ApRuntime)}] DeathLink {(Traps.DeathLinkOn ? "on (as the seed says)" : "off")} in the settings.");
+        }
+
+        // A location's name as the server has it ("Blindfold Catwalk Puzzle"), or its id.
+        internal static string LocationName(long locationId) => Connection.LocationName(locationId);
+
         private static float _lastDeathLink = -10f;
 
-        // Debug key only. The host holds the connection; a guest has none.
+        // The debug key. The host holds the connection; a guest has none.
         internal static void SendDeathLink()
         {
             if (Time.unscaledTime - _lastDeathLink < 3f)
                 return;
 
             _lastDeathLink = Time.unscaledTime;
-            var cause = $"{Connection.SlotName} pressed the DeathLink key";
-            var sent = Connection.SendDeathLink(cause);
-            ApNotices.Post(sent ? "DeathLink sent" : "DeathLink not sent: not connected", warning: !sent);
-            SessionJournal.Write("deathlink", sent ? "sent" : "not sent");
+            SendDeathLink("pressed the DeathLink key", announce: true);
         }
+
+        // A DeathLink for the rest of the multiworld (Core/Traps: its triggers). No line on the
+        // screen for a real one, only the log (player, 2026-10-05).
+        internal static void SendDeathLink(string what, bool announce = false)
+        {
+            var cause = $"{Connection.SlotName} {what}";
+            var sent = Connection.SendDeathLink(cause);
+            if (announce)
+                ApNotices.Post(sent ? "DeathLink sent" : "DeathLink not sent: not connected", warning: !sent);
+            Plugin.Log.LogInfo($"[{nameof(ApRuntime)}] DeathLink {(sent ? "sent" : "NOT sent (not connected)")}: {cause}.");
+            SessionJournal.Write("deathlink", $"{(sent ? "sent" : "not sent")} ({cause})");
+        }
+
+        // The startup burst is through: items, traps among them, now arrive live.
+        internal static bool SessionSettled => _looseGourdsRestored;
         private static readonly List<long> SendBuffer = new();
 
         // Position in the slot's ordered received-items list. _seen counts
@@ -469,7 +500,7 @@ namespace BigWalkArchipelago.Core.Net
 
                 case "deposits":
                     var target = slotData.DepositGoalAmount;
-                    goal = $"Big Collection, place {target} gourds in the towers' slots ({_depositCount}/{target})";
+                    goal = $"Big Collection, place {target} {GourdNames.Plural} in the towers' slots ({_depositCount}/{target})";
                     break;
 
                 default:
@@ -614,6 +645,12 @@ namespace BigWalkArchipelago.Core.Net
                 return;
 
             FlushPendingChecks();
+
+            while (Connection.TryDequeueDeathLink(out var deathLinkCause))
+                Traps.OnDeathLinkReceived(deathLinkCause);
+
+            while (Connection.TryDequeueTrapLink(out var linkSource, out var linkTrap))
+                Traps.OnTrapLinkReceived(linkSource, linkTrap);
 
             // Applying an item spawns props and writes the save, so it waits
             // for the same "safe to touch the world" signal the rest of the
@@ -798,6 +835,7 @@ namespace BigWalkArchipelago.Core.Net
                 PuzzleNeeds.ClearLedger();
                 GauntletStairways.ClearLedger();
                 TeleportButtons.ClearLedger();
+                Traps.ClearLedger();
             }
 
             // After the ledger above, so a save just rebound to a new seed is
@@ -817,7 +855,7 @@ namespace BigWalkArchipelago.Core.Net
                 Connection.SlotData.LockGauntletNeeds);
             BlackTowerDoor.Configure(Connection.SlotData.OpenBlackTower);
             TileThiefHelper.Configure(Connection.SlotData.TileThief);
-            PegTileShuffler.Configure(Connection.SlotData.ShufflePegTiles, Connection.SeedName);
+            PegTileShuffler.Configure(Connection.SeedName);
             ResyncStations.Configure(Connection.SlotData.TowerResyncStations, Connection.SlotData.GuestsCanResync);
             CabinFeverWaits.Configure(
                 Connection.SlotData.CabinFeverMode, Connection.SlotData.CabinFeverSeconds, Connection.SlotData.CabinFeverHelp,
@@ -828,6 +866,11 @@ namespace BigWalkArchipelago.Core.Net
                 Connection.SlotData.TeleportIdOffset,
                 Connection.SlotData.TeleportDestinations,
                 Connection.SlotData.TeleportBackToHub);
+            Traps.Configure(Connection.SlotData);
+            PackChecks.Configure(Connection.SlotData);
+            Palette.Configure(Connection.SlotData);
+            Connection.ListenForDeathLinks(Traps.ReceivesDeathLink);
+            Connection.ListenForTrapLinks(Connection.SlotData.TrapLink);
             SessionJournal.Write(
                 "connected", $"{Connection.SlotName} | {Connection.SlotData.Describe()} | {_appliedItemCount} item(s) already applied");
 
@@ -1158,7 +1201,7 @@ namespace BigWalkArchipelago.Core.Net
                 // that is new to this save. A fresh connection to a slot
                 // already owed forty gourds still posts forty of them in one
                 // frame, which is why ApNotices collapses repeats.
-                ApNotices.Post($"Received: {item.ItemName}");
+                ApNotices.Post($"Received: {Palette.Display(GourdNames.Display(item.ItemName))}");
                 SessionJournal.Write(
                     "item", $"{item.ItemName} | from {item.Player?.Name} | at {item.LocationName}", withPosition: false);
 
@@ -1265,7 +1308,17 @@ namespace BigWalkArchipelago.Core.Net
             if (ApLocationIds.TryResolveGadgetItem(itemId, out var gadgetKind))
                 return ItemApplier.ApplyGadgetItem(gadgetKind, toPlayer: _looseGadgetsRestored);
 
-            // Traps and anything a newer apworld invents: no effect, by
+            // A trap or a bonus: queued, and fired on every player once the session has settled
+            // (Core/Traps). Not "materialized" in the sense the gourd ledger counts.
+            if (Traps.TryResolveItem(itemId, out var effect))
+            {
+                var queued = Traps.Enqueue(effect, $"item {item.ItemName}");
+                if (queued)
+                    Traps.SendTrapLink(effect, item.ItemName);
+                return queued;
+            }
+
+            // Anything a newer apworld invents: no effect, by
             // design. Logged rather than silent so a genuinely unhandled
             // item is visible in the log instead of looking like a bug in the
             // multiworld.

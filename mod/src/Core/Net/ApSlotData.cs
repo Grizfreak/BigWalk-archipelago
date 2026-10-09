@@ -85,9 +85,6 @@ namespace BigWalkArchipelago.Core.Net
         // Tile Thief's helping button: vanilla (none), easy or chaos.
         internal string TileThief { get; private set; } = "vanilla";
 
-        // The island's peg tiles swapped among their own stands, per seed.
-        internal bool ShufflePegTiles { get; private set; }
-
         // The resync stations: those of the towers, and whether guests may use them.
         internal bool TowerResyncStations { get; private set; }
         internal bool GuestsCanResync { get; private set; }
@@ -105,6 +102,46 @@ namespace BigWalkArchipelago.Core.Net
         internal bool LockPuzzleNeeds { get; private set; }
         internal string[] PuzzleNeedKeys { get; private set; } = Array.Empty<string>();
         internal long PuzzleNeedIdOffset { get; private set; } = 11_000;
+
+        // Traps and bonuses: each effect's key by its item id offset, how long one lasts, and
+        // whether Big Trip and Big Meeting leave the Silent Gauntlet alone. Empty on a seed older
+        // than 0.4.0, which has none of these items.
+        internal Dictionary<long, string> EffectItems { get; private set; } = new();
+        internal int TrapDuration { get; private set; } = 30;
+        internal bool TrapsSpareTheGauntlet { get; private set; } = true;
+
+        // DeathLink: off, send, receive or both; what sends one and after how many; what one
+        // received does (drop or roulette); the traps the roulette draws from, with weights.
+        internal string DeathLink { get; private set; } = "off";
+        internal string[] DeathLinkTriggers { get; private set; } = Array.Empty<string>();
+        internal int DeathLinkTolerance { get; private set; }
+        internal bool DeathLinkTrapOnSend { get; private set; }
+        internal string DeathLinkTarget { get; private set; } = "everyone";
+        internal string DeathLinkEffect { get; private set; } = "drop";
+        internal Dictionary<string, int> DeathLinkRoulette { get; private set; } = new();
+
+        // The packs and fireworks as checks (0.4.0): the guids of the island's packs and the
+        // landmarks of its launchers, in the order of their location ids. Off and empty on an
+        // older seed, which has none of these locations.
+        internal string PackSanity { get; private set; } = "off";
+        internal string[] PickupGuids { get; private set; } = Array.Empty<string>();
+        internal int PickupIdOffset { get; private set; } = 13_000;
+        internal bool FireworkSanity { get; private set; }
+        internal string[] FireworkKeys { get; private set; } = Array.Empty<string>();
+        internal int FireworkIdOffset { get; private set; } = 13_100;
+
+        // The flare guns as checks and the seed's colours (0.4.0, C1). Off and empty on an older seed.
+        internal bool FlareGunSanity { get; private set; }
+        internal string[] FlareGunGuids { get; private set; } = Array.Empty<string>();
+        internal int FlareGunIdOffset { get; private set; } = 13_050;
+        internal bool RandomColours { get; private set; }
+        internal int[] ColourPalette { get; private set; } = Array.Empty<int>();
+
+        // TrapLink (0.4.0): the traps received are sent to the other games, theirs play here.
+        internal bool TrapLink { get; private set; }
+
+        internal bool SendsDeathLink => DeathLink is "send" or "both";
+        internal bool ReceivesDeathLink => DeathLink is "receive" or "both";
 
         internal static ApSlotData From(Dictionary<string, object> raw)
         {
@@ -147,7 +184,6 @@ namespace BigWalkArchipelago.Core.Net
             data.TeleportBackToHub = GetBool(raw, "teleport_back_to_hub", true);
             data.OpenBlackTower = GetBool(raw, "open_black_tower", false);
             data.TileThief = GetString(raw, "tile_thief", data.TileThief);
-            data.ShufflePegTiles = GetBool(raw, "shuffle_peg_tiles", false);
             data.TowerResyncStations = GetBool(raw, "tower_resync_stations", false);
             data.GuestsCanResync = GetBool(raw, "guests_can_resync", false);
             data.CabinFeverMode = GetString(raw, "cabin_fever_mode", data.CabinFeverMode);
@@ -156,6 +192,42 @@ namespace BigWalkArchipelago.Core.Net
             data.CabinFeverLongMode = GetString(raw, "cabin_fever_long_mode", data.CabinFeverLongMode);
             data.CabinFeverLongSeconds = GetInt(raw, "cabin_fever_long_seconds", 0);
             data.CabinFeverLongHelp = GetBool(raw, "cabin_fever_long_help", false);
+
+            foreach (var pair in GetMap(raw, "effect_items"))
+            {
+                // Offset -> key, the offset written as text (a JSON key is always a string).
+                if (long.TryParse(pair.Key, out var offset))
+                    data.EffectItems[offset] = pair.Value.Text;
+            }
+
+            data.PackSanity = GetString(raw, "pack_sanity", "off");
+            data.PickupGuids = GetStringArray(raw, "pickup_guids");
+            data.PickupIdOffset = GetInt(raw, "pickup_id_offset", data.PickupIdOffset);
+            data.FireworkSanity = GetBool(raw, "firework_sanity", false);
+            data.FireworkKeys = GetStringArray(raw, "firework_keys");
+            data.FireworkIdOffset = GetInt(raw, "firework_id_offset", data.FireworkIdOffset);
+            data.FlareGunSanity = GetBool(raw, "flare_gun_sanity", false);
+            data.FlareGunGuids = GetStringArray(raw, "flare_gun_guids");
+            data.FlareGunIdOffset = GetInt(raw, "flare_gun_id_offset", data.FlareGunIdOffset);
+            // "random_colours" and "colour_palette" in the first builds of 0.4.
+            data.RandomColours = GetBool(raw, "random_colors", GetBool(raw, "random_colours", false));
+            data.ColourPalette = raw.ContainsKey("color_palette") ? GetIntArray(raw, "color_palette") : GetIntArray(raw, "colour_palette");
+            data.TrapLink = GetBool(raw, "trap_link", false);
+
+            data.TrapDuration = GetInt(raw, "trap_duration", data.TrapDuration);
+            data.TrapsSpareTheGauntlet = GetBool(raw, "traps_spare_the_gauntlet", data.TrapsSpareTheGauntlet);
+            data.DeathLink = GetString(raw, "death_link", data.DeathLink);
+            data.DeathLinkTriggers = GetStringArray(raw, "death_link_triggers");
+            // "death_link_tolerance" until it took the usual name, amnesty.
+            data.DeathLinkTolerance = GetInt(raw, "death_link_amnesty", GetInt(raw, "death_link_tolerance", 0));
+            data.DeathLinkTrapOnSend = GetBool(raw, "death_link_trap_on_send", false);
+            data.DeathLinkTarget = GetString(raw, "death_link_target", data.DeathLinkTarget);
+            data.DeathLinkEffect = GetString(raw, "death_link_effect", data.DeathLinkEffect);
+            foreach (var pair in GetMap(raw, "death_link_roulette"))
+            {
+                if (pair.Value.Number > 0)
+                    data.DeathLinkRoulette[pair.Key] = pair.Value.Number;
+            }
 
             return data;
         }
@@ -176,7 +248,12 @@ namespace BigWalkArchipelago.Core.Net
                    + $", teleport buttons {TeleportButtons}"
                    + $", black tower {(OpenBlackTower ? "open" : "vanilla")}"
                    + $", cabin fever {CabinFeverMode} {CabinFeverSeconds}s{(CabinFeverHelp ? " +help" : string.Empty)}"
-                   + $", cabin fever long {CabinFeverLongMode} {CabinFeverLongSeconds}s{(CabinFeverLongHelp ? " +help" : string.Empty)}";
+                   + $", cabin fever long {CabinFeverLongMode} {CabinFeverLongSeconds}s{(CabinFeverLongHelp ? " +help" : string.Empty)}"
+                   + $", packs {PackSanity}, fireworks {(FireworkSanity ? FireworkKeys.Length.ToString() : "off")}"
+                   + $", flare guns {(FlareGunSanity ? FlareGunGuids.Length.ToString() : "off")}, colours {(RandomColours ? ColourPalette.Length.ToString() : "off")}"
+                   + $", {EffectItems.Count} trap/bonus item(s), {TrapDuration}s"
+                   + $", deathlink {DeathLink}"
+                   + (DeathLink != "off" ? $" [{string.Join(",", DeathLinkTriggers)}] tolerance {DeathLinkTolerance}, {DeathLinkEffect}" : string.Empty);
         }
 
         private static string GetString(Dictionary<string, object> raw, string key, string fallback)
@@ -229,6 +306,31 @@ namespace BigWalkArchipelago.Core.Net
             }
 
             return result.ToArray();
+        }
+
+        internal struct MapValue
+        {
+            internal string Text;
+            internal int Number;
+        }
+
+        // A JSON object of the slot data (Newtonsoft's JObject), as its keys and values: each value
+        // as text, and as a number when it is one (0 otherwise).
+        private static List<KeyValuePair<string, MapValue>> GetMap(Dictionary<string, object> raw, string key)
+        {
+            var result = new List<KeyValuePair<string, MapValue>>();
+            if (!raw.TryGetValue(key, out var value) || value is not Newtonsoft.Json.Linq.JObject map)
+                return result;
+
+            foreach (var property in map.Properties())
+            {
+                var entry = new MapValue { Text = property.Value?.ToString() ?? string.Empty };
+                if (property.Value != null && property.Value.Type == Newtonsoft.Json.Linq.JTokenType.Integer)
+                    entry.Number = property.Value.ToObject<int>();
+                result.Add(new KeyValuePair<string, MapValue>(property.Name, entry));
+            }
+
+            return result;
         }
 
         private static int[] GetIntArray(Dictionary<string, object> raw, string key)

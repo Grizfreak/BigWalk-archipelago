@@ -77,9 +77,23 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> LockNextNeedKey;
         internal static ConfigEntry<KeyboardShortcut> NeedStatusKey;
         internal static ConfigEntry<KeyboardShortcut> SendDeathLinkKey;
+        internal static ConfigEntry<KeyboardShortcut> FireTrapKey;
+        internal static ConfigEntry<KeyboardShortcut> TrapStateKey;
+        internal static ConfigEntry<KeyboardShortcut> MarkTripSpotKey;
+        internal static ConfigEntry<KeyboardShortcut> PickupCensusKey;
+        internal static ConfigEntry<KeyboardShortcut> PickupTeleportKey;
+        internal static ConfigEntry<string> GourdName;
+        internal static ConfigEntry<bool> DeathLinkEnabled;
+        internal static ConfigEntry<bool> GentleEffects;
+        internal static ConfigEntry<int> DeathLinkAmnesty;
         internal static ConfigEntry<KeyboardShortcut> SimulateGadgetItemKey;
         internal static ConfigEntry<KeyboardShortcut> DumpHeldItemKey;
         internal static ConfigEntry<KeyboardShortcut> DumpCosmeticGadgetsKey;
+        internal static ConfigEntry<KeyboardShortcut> ColourProbeKey;
+        internal static ConfigEntry<KeyboardShortcut> BuoyTintKey;
+        internal static ConfigEntry<KeyboardShortcut> FlareTintKey;
+        internal static ConfigEntry<KeyboardShortcut> MaskTrapKey;
+        internal static ConfigEntry<KeyboardShortcut> DazeKey;
         internal static ConfigEntry<KeyboardShortcut> DumpNetworkKey;
         internal static ConfigEntry<KeyboardShortcut> LoopbackJoinKey;
         internal static ConfigEntry<KeyboardShortcut> LoopbackFocusKey;
@@ -129,6 +143,32 @@ namespace BigWalkArchipelago
                 "PutGourdInHands",
                 true,
                 "Puts a gourd or gadget received during play straight into a player's hands. It goes to a player whose hands are free, the one given the fewest items this session first, ties at random; if nobody's hands are free, to one of everyone the same way, who drops what they were holding first. The count is not saved. With this off, items only drop in front of that player. Never applies to the batch rebuilt at the start of a session. Note that a gourd received inside a sealed puzzle room stays there until the next world load, hands or not — the game does not let you carry it out.");
+
+            GourdName = file.Bind(
+                "Archipelago",
+                "GourdName",
+                "Gourd",
+                "What the gourds are called on screen when this machine hosts (Settings > Archipelago > Gourd name): the item feed and the goal line say it instead of \"Gourd\", on every player's screen. Guests see the host's.");
+
+            GentleEffects = file.Bind(
+                "Archipelago",
+                "GentleEffects",
+                false,
+                "Accessibility, this machine only (Settings > Archipelago > Gentle effects): on, the traps' flashes are not shown here (Big Flare shows nothing on this screen), for photosensitive players. The other players keep theirs; nothing else changes, the clock included.");
+
+            DeathLinkEnabled = file.Bind(
+                "Archipelago",
+                "DeathLinkEnabled",
+                true,
+                "When this machine hosts (Settings > Archipelago > DeathLink): false sends no DeathLink and takes none, whatever the seed's death_link says; true does what the seed says. Live: the DeathLink tag comes off the connection at once.");
+
+            DeathLinkAmnesty = file.Bind(
+                "Archipelago",
+                "DeathLinkAmnesty",
+                -1,
+                new ConfigDescription(
+                    "When this machine hosts (Settings > Archipelago > DeathLink amnesty): how many failed puzzles are forgiven before one sends a DeathLink. -1 keeps the seed's death_link_amnesty.",
+                    new AcceptableValueRange<int>(-1, 10)));
 
             ShowConnectionStatus = file.Bind(
                 "Archipelago",
@@ -465,6 +505,66 @@ namespace BigWalkArchipelago
                 "SendDeathLinkKey",
                 new KeyboardShortcut(KeyCode.P, KeyCode.LeftControl),
                 "Sends a DeathLink to the multiworld (a Bounce packet tagged DeathLink), for a friend whose game listens for them. Host only: a guest has no connection (only has an effect if Debug.Enabled is active).");
+
+            FireTrapKey = file.Bind(
+                "Debug",
+                "FireTrapKey",
+                new KeyboardShortcut(KeyCode.Keypad0, KeyCode.LeftControl),
+                "On the host: fires the next trap or bonus on every player, one per press in turn (Big Drop, Big Throw, Big Trip, Big Meeting, Big Night, Big Sleep, Big Load, Big Day, Big Speed, Big Jump), as if its item had arrived; works without a server, for 30 seconds then. Its name goes in the log and the feed (only has an effect if Debug.Enabled is active).");
+
+            TrapStateKey = file.Bind(
+                "Debug",
+                "TrapStateKey",
+                new KeyboardShortcut(KeyCode.KeypadEnter, KeyCode.LeftControl),
+                "Logs what the traps see: on this machine the effects running, the screen mask, the hour; on the host every player (where, in the Gauntlet or not, masked or not) and every place Big Trip could send someone now (only has an effect if Debug.Enabled is active).");
+
+            MarkTripSpotKey = file.Bind(
+                "Debug",
+                "MarkTripSpotKey",
+                new KeyboardShortcut(KeyCode.KeypadPeriod, KeyCode.LeftControl),
+                "Writes where the player stands (position, facing, nearest puzzle) to BepInEx/trip-spots.txt, to mark the places Big Trip should be able to send a player beside a puzzle or a firework (only has an effect if Debug.Enabled is active).");
+
+            PickupCensusKey = file.Bind(
+                "Debug",
+                "PickupCensusKey",
+                new KeyboardShortcut(KeyCode.F1, KeyCode.LeftControl),
+                "Writes BepInEx/pickup-census.tsv: every backpack, belt and gourd carton of the island and everything that could be a firework launcher, with its guid, position, nearest puzzle and the map versions (2, 3, 4 players) it belongs to. One press from anywhere: the game builds every object everywhere (only has an effect if Debug.Enabled is active).");
+
+            PickupTeleportKey = file.Bind(
+                "Debug",
+                "PickupTeleportKey",
+                new KeyboardShortcut(KeyCode.F3, KeyCode.LeftControl),
+                "Teleports the player beside the next backpack, belt, gourd carton or firework launcher of the island, in turn: for walking every pack and firework check without crossing the island (only has an effect if Debug.Enabled is active).");
+
+            ColourProbeKey = file.Bind(
+                "Debug",
+                "ColourProbeKey",
+                new KeyboardShortcut(KeyCode.F5, KeyCode.LeftControl),
+                "Logs what carries the colour of the buoys, the flare guns and their flares (helpers, shader colour properties, lights, particles), one example of each kind (only has an effect if Debug.Enabled is active).");
+
+            BuoyTintKey = file.Bind(
+                "Debug",
+                "BuoyTintKey",
+                new KeyboardShortcut(KeyCode.F6, KeyCode.LeftControl),
+                "Paints every buoy's body cyan through the next property of its shader in turn (_TintColor, then _TintMask0 to 3, then back to normal), its halo and light too: which one recolours the body (only has an effect if Debug.Enabled is active).");
+
+            FlareTintKey = file.Bind(
+                "Debug",
+                "FlareTintKey",
+                new KeyboardShortcut(KeyCode.F7, KeyCode.LeftControl),
+                "Paints every flare gun and its shot with the next colour of the buoys' palette, then a white gun with shots of every colour, then the shots back (only has an effect if Debug.Enabled is active).");
+
+            MaskTrapKey = file.Bind(
+                "Debug",
+                "MaskTrapKey",
+                new KeyboardShortcut(KeyCode.F8, KeyCode.LeftControl),
+                "Puts the next screen mask (binoculars, telescope, blindfold) on this machine's screen for five seconds, as Big Mask would (only has an effect if Debug.Enabled is active).");
+
+            DazeKey = file.Bind(
+                "Debug",
+                "DazeKey",
+                new KeyboardShortcut(KeyCode.F9, KeyCode.LeftControl),
+                "Dazes this machine's player as a big fall does (PlayerFaller.TriggerFall), for the DeathLink knock-out (only has an effect if Debug.Enabled is active).");
 
             SimulateGadgetItemKey = file.Bind(
                 "Debug",

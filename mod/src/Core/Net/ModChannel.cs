@@ -64,7 +64,7 @@ namespace BigWalkArchipelago.Core.Net
 
         // Both ends must speak the same version; a mismatch is logged once
         // and ignored rather than half-read.
-        private const byte ProtocolVersion = 8;
+        private const byte ProtocolVersion = 12;
 
         private const byte KindHello = 1;
         private const byte KindSnapshot = 2;
@@ -82,6 +82,14 @@ namespace BigWalkArchipelago.Core.Net
 
         // The host tells a guest something for its feed (a press of its refused on the host).
         private const byte KindNotice = 5;
+
+        // The host tells a guest to play a trap or a bonus on its own player (Core/TrapEffects),
+        // with where to go for Big Trip and Big Meeting.
+        private const byte KindEffect = 6;
+
+        // A guest tells the host whether a puzzle's mask is on its screen, which Big Trip and Big
+        // Meeting read (Core/Traps). The only kind a guest sends besides hello.
+        private const byte KindStatus = 7;
 
         private const float SnapshotIntervalSeconds = 1f;
 
@@ -115,6 +123,110 @@ namespace BigWalkArchipelago.Core.Net
         internal static bool MirroredGoalIsWarning { get; private set; }
         internal static readonly List<MirroredLine> MirroredLines = new();
         private static float _receivedAt = -1f;
+
+        // ------------------------------------------------------------------
+        // Builds that do not match (0.4.0, player 2026-10-09). A guest on another build of the mod
+        // ignores its host, and the host its guest, and until now only the log said so: the screen
+        // stayed empty. These lines are drawn by the overlay (ApStatusOverlay), in warning colour.
+        // ------------------------------------------------------------------
+
+        private const float SilentGuestSeconds = 60f;
+        private const float UnansweredHelloSeconds = 25f;
+
+        // Host: guests whose hello named another protocol, and guests with a player that never said
+        // hello at all (no mod, or a build too old to).
+        private static readonly Dictionary<int, byte> MismatchedGuests = new();
+        private static readonly Dictionary<int, float> FirstSeen = new();
+        private static readonly HashSet<int> SilentGuests = new();
+
+        // Guest: the host spoke another protocol, or never answered our hello.
+        private static bool _hostIsAnotherBuild;
+        private static float _helloAt = -1f;
+
+        internal static List<string> VersionWarnings()
+        {
+            var lines = new List<string>();
+            if (NetworkServer.active)
+            {
+                foreach (var id in MismatchedGuests.Keys)
+                    lines.Add($"{PlayerLabel(id)} runs another build of the mod: they see none of this session's overlay, traps or colors. Everyone needs the same build.");
+                foreach (var id in SilentGuests)
+                    lines.Add($"{PlayerLabel(id)} has not said hello after {SilentGuestSeconds:0}s: no mod, or an old build. Everyone needs the same build.");
+                return lines;
+            }
+
+            var unanswered = _hostHasMod && _helloSent && _receivedAt < 0f && _helloAt >= 0f
+                             && Time.unscaledTime - _helloAt > UnansweredHelloSeconds;
+            if (_hostIsAnotherBuild || unanswered)
+                lines.Add("The host runs another build of the mod: update yours so both match, or you will see none of its overlay, traps or colors.");
+            return lines;
+        }
+
+        // A guest as the host names them on screen: the player's own name (PlayerNetworking.
+        // moderationNameSanitized, their Steam or Epic pseudo; `username` is only an internal id,
+        // "127.0.0.1-1" on a loopback guest, measured 2026-10-09), else the connection's number.
+        // Never the platform id.
+        internal static string PlayerLabel(int connectionId)
+        {
+            try
+            {
+                if (NetworkServer.connections.TryGetValue(connectionId, out var connection) && connection?.identity != null)
+                {
+                    var networking = connection.identity.GetComponentInChildren<PlayerNetworking>();
+                    var name = networking != null ? networking.moderationNameSanitized : null;
+                    if (string.IsNullOrWhiteSpace(name) && networking != null)
+                        name = networking.moderationName;
+                    if (!string.IsNullOrWhiteSpace(name))
+                        return name.Length > 24 ? name.Substring(0, 24) : name.Trim();
+                }
+            }
+            catch (Exception)
+            {
+                // The label is a courtesy: the number does.
+            }
+
+            return $"Player #{connectionId}";
+        }
+
+        // Host, about once a second: who is on this session and has not said hello.
+        private static float _nextGuestCheck;
+
+        private static void TrackGuests()
+        {
+            if (Time.unscaledTime < _nextGuestCheck)
+                return;
+            _nextGuestCheck = Time.unscaledTime + 1f;
+
+            var live = new HashSet<int>();
+            var local = NetworkServer.localConnection != null ? NetworkServer.localConnection.connectionId : 0;
+            foreach (var connection in NetworkServer.connections.Values)
+            {
+                if (connection == null || connection.connectionId == local)
+                    continue;
+                live.Add(connection.connectionId);
+
+                // Only a connection with a player in the world counts: one still loading is not silent.
+                if (connection.identity == null || Announced.Contains(connection.connectionId)
+                    || MismatchedGuests.ContainsKey(connection.connectionId))
+                    continue;
+                if (!FirstSeen.TryGetValue(connection.connectionId, out var since))
+                    FirstSeen[connection.connectionId] = Time.unscaledTime;
+                else if (Time.unscaledTime - since >= SilentGuestSeconds && SilentGuests.Add(connection.connectionId))
+                    Plugin.Log.LogWarning($"[{nameof(ModChannel)}] {PlayerLabel(connection.connectionId)} (connection #{connection.connectionId}) has not said hello after {SilentGuestSeconds:0}s: no mod, or an old build.");
+            }
+
+            foreach (var id in new List<int>(MismatchedGuests.Keys))
+            {
+                if (!live.Contains(id))
+                    MismatchedGuests.Remove(id);
+            }
+            foreach (var id in new List<int>(FirstSeen.Keys))
+            {
+                if (!live.Contains(id))
+                    FirstSeen.Remove(id);
+            }
+            SilentGuests.RemoveWhere(id => !live.Contains(id) || Announced.Contains(id));
+        }
 
         // True on a guest that has heard from its host recently enough to
         // believe it. Never true on the host, which has the real thing.
@@ -157,6 +269,7 @@ namespace BigWalkArchipelago.Core.Net
                 SpawnBeacon();
 
             PruneAnnounced();
+            TrackGuests();
             TickRepublish();
 
             if (Time.unscaledTime < _nextSnapshot || Announced.Count == 0)
@@ -169,6 +282,9 @@ namespace BigWalkArchipelago.Core.Net
         private static void ResetHost()
         {
             Announced.Clear();
+            MismatchedGuests.Clear();
+            FirstSeen.Clear();
+            SilentGuests.Clear();
             _beacon = null;
             _serverHandlerRegistered = false;
         }
@@ -268,24 +384,35 @@ namespace BigWalkArchipelago.Core.Net
             try
             {
                 var kind = reader.ReadByte();
+                if (kind == KindStatus)
+                {
+                    if (reader.ReadByte() == ProtocolVersion && Announced.Contains(connection.connectionId))
+                        Traps.NoteGuestMasked(connection.connectionId, NetworkReaderExtensions.ReadBool(reader));
+                    return;
+                }
+
                 if (kind != KindHello)
                     return;
 
                 var version = reader.ReadByte();
                 if (version != ProtocolVersion)
                 {
+                    MismatchedGuests[connection.connectionId] = version;
                     Plugin.Log.LogWarning(
                         $"[{nameof(ModChannel)}] Guest #{connection.connectionId} runs protocol v{version}, this host "
                         + $"v{ProtocolVersion}; not mirroring to it. Both players need the same build of the mod.");
                     return;
                 }
 
+                MismatchedGuests.Remove(connection.connectionId);
+                SilentGuests.Remove(connection.connectionId);
                 if (Announced.Add(connection.connectionId))
                 {
                     Plugin.Log.LogInfo(
                         $"[{nameof(ModChannel)}] Guest #{connection.connectionId} runs the mod; mirroring the overlay "
                         + "and the radio to it.");
                     SendSnapshot(connection);
+                    Traps.OnGuestJoined(connection);
                     foreach (var delay in RepublishDelays)
                         RepublishAt.Add(Time.unscaledTime + delay);
                 }
@@ -362,6 +489,16 @@ namespace BigWalkArchipelago.Core.Net
                 writer.WriteByte((byte)((CabinFeverWaits.Help(0) ? 1 : 0) | (CabinFeverWaits.Help(1) ? 2 : 0)
                                         | (TileThiefHelper.HostMode << 2)));
                 writer.WriteByte(ResyncStations.HostState());
+                NetworkWriterExtensions.WriteString(writer, GourdNames.Current);
+                writer.WriteByte(PackChecks.HostMode);
+                var collected = new List<string>(PackChecks.HostCollected);
+                writer.WriteByte((byte)Math.Min(collected.Count, byte.MaxValue));
+                for (var i = 0; i < collected.Count && i < byte.MaxValue; i++)
+                    NetworkWriterExtensions.WriteString(writer, collected[i]);
+                var colours = Palette.HostColours;
+                writer.WriteByte((byte)Math.Min(colours.Length, byte.MaxValue));
+                for (var i = 0; i < colours.Length && i < byte.MaxValue; i++)
+                    writer.WriteByte((byte)colours[i]);
 
                 connection.Send(writer.ToArraySegment(), 0);
             }
@@ -391,6 +528,61 @@ namespace BigWalkArchipelago.Core.Net
             {
                 Plugin.Log.LogWarning(
                     $"[{nameof(ModChannel)}] Could not send a button press to guest #{connection.connectionId}: {ex.Message}");
+            }
+        }
+
+        internal static void SendEffect(NetworkConnection connection, string key, int seconds, Vector3? destination, float yaw)
+        {
+            if (connection == null || !Announced.Contains(connection.connectionId))
+                return;
+
+            try
+            {
+                var writer = new NetworkWriter();
+                NetworkWriterExtensions.WriteUShort(writer, MessageId);
+                writer.WriteByte(KindEffect);
+                writer.WriteByte(ProtocolVersion);
+                NetworkWriterExtensions.WriteString(writer, key);
+                NetworkWriterExtensions.WriteUShort(writer, (ushort)Math.Clamp(seconds, 0, ushort.MaxValue));
+                NetworkWriterExtensions.WriteBool(writer, destination != null);
+                var point = destination ?? Vector3.zero;
+                NetworkWriterExtensions.WriteFloat(writer, point.x);
+                NetworkWriterExtensions.WriteFloat(writer, point.y);
+                NetworkWriterExtensions.WriteFloat(writer, point.z);
+                NetworkWriterExtensions.WriteFloat(writer, yaw);
+                connection.Send(writer.ToArraySegment(), 0);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning(
+                    $"[{nameof(ModChannel)}] Could not send {key} to guest #{connection.connectionId}: {ex.Message}");
+            }
+        }
+
+        // Guest side; false when there is no host to tell yet.
+        internal static bool SendStatus(bool masked)
+        {
+            if (!_helloSent || !_hostHasMod)
+                return false;
+
+            try
+            {
+                var connection = NetworkClient.connection;
+                if (connection == null)
+                    return false;
+
+                var writer = new NetworkWriter();
+                NetworkWriterExtensions.WriteUShort(writer, MessageId);
+                writer.WriteByte(KindStatus);
+                writer.WriteByte(ProtocolVersion);
+                NetworkWriterExtensions.WriteBool(writer, masked);
+                connection.Send(writer.ToArraySegment(), 0);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(ModChannel)}] Could not tell the host about the mask: {ex.Message}");
+                return false;
             }
         }
 
@@ -428,13 +620,15 @@ namespace BigWalkArchipelago.Core.Net
 
                 try
                 {
+                    // With several guests, each a step further back, so they do not land in one another.
+                    var spot = position + rotation * Vector3.back * (1.5f * sent);
                     var writer = new NetworkWriter();
                     NetworkWriterExtensions.WriteUShort(writer, MessageId);
                     writer.WriteByte(KindSummon);
                     writer.WriteByte(ProtocolVersion);
-                    NetworkWriterExtensions.WriteFloat(writer, position.x);
-                    NetworkWriterExtensions.WriteFloat(writer, position.y);
-                    NetworkWriterExtensions.WriteFloat(writer, position.z);
+                    NetworkWriterExtensions.WriteFloat(writer, spot.x);
+                    NetworkWriterExtensions.WriteFloat(writer, spot.y);
+                    NetworkWriterExtensions.WriteFloat(writer, spot.z);
                     NetworkWriterExtensions.WriteFloat(writer, rotation.eulerAngles.y);
                     connection.Send(writer.ToArraySegment(), 0);
                     sent++;
@@ -494,6 +688,9 @@ namespace BigWalkArchipelago.Core.Net
                 CabinFeverWaits.ForgetMirror();
                 TileThiefHelper.ForgetMirror();
                 ResyncStations.ForgetMirror();
+                PackChecks.ForgetMirror();
+                Palette.ForgetMirror();
+                GourdNames.ForgetMirror();
             }
 
             _clientHandlerRegistered = false;
@@ -501,6 +698,8 @@ namespace BigWalkArchipelago.Core.Net
             _hostHasMod = false;
             _helloSent = false;
             _versionMismatchLogged = false;
+            _hostIsAnotherBuild = false;
+            _helloAt = -1f;
             _receivedAt = -1f;
             MirroredStatus = null;
             MirroredGoal = null;
@@ -574,6 +773,7 @@ namespace BigWalkArchipelago.Core.Net
                 writer.WriteByte(ProtocolVersion);
                 connection.Send(writer.ToArraySegment(), 0);
                 _helloSent = true;
+                _helloAt = Time.unscaledTime;
             }
             catch (Exception ex)
             {
@@ -601,6 +801,23 @@ namespace BigWalkArchipelago.Core.Net
                     return;
                 }
 
+                if (kind == KindEffect)
+                {
+                    if (reader.ReadByte() != ProtocolVersion)
+                        return;
+
+                    var key = NetworkReaderExtensions.ReadString(reader);
+                    var seconds = NetworkReaderExtensions.ReadUShort(reader);
+                    var hasDestination = NetworkReaderExtensions.ReadBool(reader);
+                    var point = new Vector3(
+                        NetworkReaderExtensions.ReadFloat(reader),
+                        NetworkReaderExtensions.ReadFloat(reader),
+                        NetworkReaderExtensions.ReadFloat(reader));
+                    var yaw = NetworkReaderExtensions.ReadFloat(reader);
+                    TrapEffects.Play(key, seconds, hasDestination ? point : null, yaw);
+                    return;
+                }
+
                 if (kind == KindNotice)
                 {
                     if (reader.ReadByte() == ProtocolVersion)
@@ -618,6 +835,7 @@ namespace BigWalkArchipelago.Core.Net
                 var version = reader.ReadByte();
                 if (version != ProtocolVersion)
                 {
+                    _hostIsAnotherBuild = true;
                     if (!_versionMismatchLogged)
                     {
                         _versionMismatchLogged = true;
@@ -663,6 +881,16 @@ namespace BigWalkArchipelago.Core.Net
                 var cabinFeverLong = NetworkReaderExtensions.ReadUShort(reader);
                 var cabinFeverHelp = reader.ReadByte();
                 var resyncStations = reader.ReadByte();
+                var gourdName = NetworkReaderExtensions.ReadString(reader);
+                var packMode = reader.ReadByte();
+                var collectedPacks = new List<string>();
+                var collectedCount = reader.ReadByte();
+                for (var i = 0; i < collectedCount; i++)
+                    collectedPacks.Add(NetworkReaderExtensions.ReadString(reader));
+                var colours = new List<byte>();
+                var colourCount = reader.ReadByte();
+                for (var i = 0; i < colourCount; i++)
+                    colours.Add(reader.ReadByte());
 
                 var first = _receivedAt < 0f;
 
@@ -685,6 +913,9 @@ namespace BigWalkArchipelago.Core.Net
                 CabinFeverWaits.ApplyFromHost(cabinFever, cabinFeverLong, (cabinFeverHelp & 1) != 0, (cabinFeverHelp & 2) != 0);
                 TileThiefHelper.ApplyFromHost((cabinFeverHelp >> 2) & 3);
                 ResyncStations.ApplyFromHost(resyncStations);
+                PackChecks.ApplyFromHost(packMode, collectedPacks);
+                Palette.ApplyFromHost(colours);
+                GourdNames.ApplyFromHost(gourdName);
             }
             catch (Exception ex)
             {

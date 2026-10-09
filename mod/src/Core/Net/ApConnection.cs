@@ -49,6 +49,11 @@ namespace BigWalkArchipelago.Core.Net
         private volatile ConcurrentQueue<ItemInfo> _incomingItems = new();
 
         private ArchipelagoSession _session;
+
+        // The DeathLink service of the current session, made with it, and what it has received:
+        // "source: cause", for ApRuntime to drain on the main thread (threading note above).
+        private DeathLinkService _deathLink;
+        private readonly ConcurrentQueue<string> _deathLinksReceived = new();
         private volatile ConnectionStatus _status = ConnectionStatus.Idle;
 
         // Bumped for every attempt, so a stale one can be fenced off.
@@ -205,7 +210,19 @@ namespace BigWalkArchipelago.Core.Net
 
                 var storedDeposits = ReadStoredDeposits(session);
 
+                var deathLink = session.CreateDeathLinkService();
+                var slot = endpoint.SlotName;
+                deathLink.OnDeathLinkReceived += received =>
+                {
+                    // Managed types only. One of this slot's own comes back from the server too.
+                    if (received == null || received.Source == slot)
+                        return;
+                    _deathLinksReceived.Enqueue(
+                        string.IsNullOrEmpty(received.Cause) ? received.Source : $"{received.Source}: {received.Cause}");
+                };
+
                 _session = session;
+                _deathLink = deathLink;
                 StoredDeposits = storedDeposits;
                 SlotData = ApSlotData.From(success.SlotData);
                 SeedName = session.RoomState?.Seed ?? string.Empty;
@@ -386,20 +403,17 @@ namespace BigWalkArchipelago.Core.Net
             }
         }
 
-        // A DeathLink for the friend's game (debug key, 2026-10-02). It is a
-        // Bounce packet tagged "DeathLink", which the server hands only to
-        // clients that asked for the tag: this one need not have, since it is
-        // sending and not listening — Big Walk has no death to receive.
-        // Whether it kills anything is the other game's business.
+        // A DeathLink for the other games: a Bounce packet tagged "DeathLink", which the server
+        // hands only to clients that asked for the tag. Sending needs no tag of ours; whether it
+        // kills anything is the other game's business.
         internal bool SendDeathLink(string cause)
         {
-            if (_status != ConnectionStatus.Connected)
+            if (_status != ConnectionStatus.Connected || _deathLink == null)
                 return false;
 
             try
             {
-                var service = _session.CreateDeathLinkService();
-                service.SendDeathLink(new DeathLink(SlotName, cause));
+                _deathLink.SendDeathLink(new DeathLink(SlotName, cause));
                 return true;
             }
             catch (Exception ex)
@@ -409,9 +423,114 @@ namespace BigWalkArchipelago.Core.Net
             }
         }
 
+        // Asks the server for the DeathLinks of the multiworld (the "DeathLink" tag), with the
+        // slot's `death_link` on receive or both. Sending needs no tag.
+        internal void ListenForDeathLinks(bool listen)
+        {
+            if (_status != ConnectionStatus.Connected || _deathLink == null)
+                return;
+
+            try
+            {
+                if (listen)
+                    _deathLink.EnableDeathLink();
+                else
+                    _deathLink.DisableDeathLink();
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(ApConnection)}] Could not change the DeathLink tag: {ex.Message}");
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // TrapLink: Bounce packets tagged "TrapLink", {"time", "source", "trap_name"}
+        // ------------------------------------------------------------------
+
+        private readonly ConcurrentQueue<(string source, string trap)> _trapLinksReceived = new();
+        private bool _trapLinkHooked;
+
+        // Asks the server for the TrapLinks of the multiworld (the tag), or stops.
+        internal void ListenForTrapLinks(bool listen)
+        {
+            if (_status != ConnectionStatus.Connected || _session == null)
+                return;
+
+            try
+            {
+                var tags = new List<string>(_session.ConnectionInfo.Tags ?? Array.Empty<string>());
+                tags.Remove("TrapLink");
+                if (listen)
+                    tags.Add("TrapLink");
+                _session.ConnectionInfo.UpdateConnectionOptions(tags.ToArray());
+
+                if (listen && !_trapLinkHooked)
+                {
+                    _trapLinkHooked = true;
+                    var own = SlotName;
+                    _session.Socket.PacketReceived += packet =>
+                    {
+                        // Managed types only, off Unity's thread: queued for the main loop.
+                        if (packet is not Archipelago.MultiClient.Net.Packets.BouncedPacket bounced
+                            || bounced.Tags == null || !bounced.Tags.Contains("TrapLink") || bounced.Data == null)
+                            return;
+                        var source = bounced.Data.TryGetValue("source", out var s) ? s?.ToString() : null;
+                        var trap = bounced.Data.TryGetValue("trap_name", out var t) ? t?.ToString() : null;
+                        if (!string.IsNullOrEmpty(trap) && source != own)
+                            _trapLinksReceived.Enqueue((source ?? "?", trap));
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(ApConnection)}] Could not change the TrapLink tag: {ex.Message}");
+            }
+        }
+
+        internal bool SendTrapLink(string trapName)
+        {
+            if (_status != ConnectionStatus.Connected || _session == null)
+                return false;
+
+            try
+            {
+                _session.Socket.SendPacket(new Archipelago.MultiClient.Net.Packets.BouncePacket
+                {
+                    Tags = new List<string> { "TrapLink" },
+                    Data = new Dictionary<string, Newtonsoft.Json.Linq.JToken>
+                    {
+                        ["time"] = (double)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000.0,
+                        ["source"] = SlotName,
+                        ["trap_name"] = trapName,
+                    },
+                });
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(ApConnection)}] Failed to send a TrapLink: {ex.Message}");
+                return false;
+            }
+        }
+
+        internal bool TryDequeueTrapLink(out string source, out string trap)
+        {
+            var found = _trapLinksReceived.TryDequeue(out var pair);
+            source = pair.source;
+            trap = pair.trap;
+            return found;
+        }
+
+        internal bool TryDequeueDeathLink(out string cause)
+        {
+            return _deathLinksReceived.TryDequeue(out cause);
+        }
+
         internal void Reset()
         {
             _session = null;
+            _deathLink = null;
+            _trapLinkHooked = false;
             _status = ConnectionStatus.Idle;
         }
     }

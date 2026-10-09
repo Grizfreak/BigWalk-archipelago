@@ -77,6 +77,39 @@ namespace BigWalkArchipelago.Core.Net
             _keyItemOffset = slotData.KeyItemIdOffset;
             _archDoorOffset = slotData.ArchDoorIdOffset;
             _gourdItemId = slotData.GourdItemId;
+            _pickupGuids = slotData.PickupGuids;
+            _pickupOffset = slotData.PickupIdOffset;
+            _fireworkKeys = slotData.FireworkKeys;
+            _fireworkOffset = slotData.FireworkIdOffset;
+            _flareGunGuids = slotData.FlareGunGuids;
+            _flareGunOffset = slotData.FlareGunIdOffset;
+        }
+
+        // The packs and fireworks (Core/PackChecks): reported as "pickup:<guid>" and
+        // "firework:<landmark>", their id the position in the slot's lists. Whether the slot has
+        // them at all is the slot's business, as for every location (BelongsToSlot).
+        internal const string PickupPrefix = "pickup:";
+        internal const string FireworkPrefix = "firework:";
+        private static string[] _pickupGuids = Array.Empty<string>();
+        private static long _pickupOffset = 13_000;
+        private static string[] _fireworkKeys = Array.Empty<string>();
+        private static long _fireworkOffset = 13_100;
+        internal const string FlareGunPrefix = "flaregun:";
+        private static string[] _flareGunGuids = Array.Empty<string>();
+        private static long _flareGunOffset = 13_050;
+
+        private static bool TryResolveListed(string locationName, string prefix, string[] list, long offset, out long locationId)
+        {
+            locationId = 0;
+            if (!locationName.StartsWith(prefix, StringComparison.Ordinal))
+                return false;
+
+            var position = Array.IndexOf(list, locationName.Substring(prefix.Length));
+            if (position < 0)
+                return false;
+
+            locationId = _base + offset + position;
+            return true;
         }
 
         // Resolves what ICheckReporter.ReportCheck already receives: the
@@ -110,6 +143,11 @@ namespace BigWalkArchipelago.Core.Net
             }
 
             if (TryResolveCut(locationName, out locationId))
+                return true;
+
+            if (TryResolveListed(locationName, PickupPrefix, _pickupGuids, _pickupOffset, out locationId)
+                || TryResolveListed(locationName, FireworkPrefix, _fireworkKeys, _fireworkOffset, out locationId)
+                || TryResolveListed(locationName, FlareGunPrefix, _flareGunGuids, _flareGunOffset, out locationId))
                 return true;
 
             locationId = 0;
@@ -266,6 +304,7 @@ namespace BigWalkArchipelago.Core.Net
             GadgetKind.FlareGunBlue,
             GadgetKind.FlareGunGreen,
             GadgetKind.FlareGunYellow,
+            GadgetKind.RainbowFlareGun,
         };
 
         internal static bool TryResolveGadgetItem(long itemId, out GadgetKind kind)

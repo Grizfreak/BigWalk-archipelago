@@ -63,7 +63,11 @@ namespace BigWalkArchipelago.Core.Net
             var mirrored = string.IsNullOrEmpty(ApRuntime.StatusMessage) && ModChannel.HasFreshSnapshot;
 
             var message = mirrored ? GuestStatus(ModChannel.MirroredStatus) : ApRuntime.StatusMessage;
-            if (string.IsNullOrEmpty(message))
+
+            // Another build of the mod on the other side (ModChannel): said even when there is
+            // nothing else to say, which is exactly a guest that never hears from its host.
+            var warnings = ModChannel.VersionWarnings();
+            if (string.IsNullOrEmpty(message) && warnings.Count == 0)
                 return;
 
             var statusIsWarning = mirrored ? ModChannel.MirroredStatusIsWarning : ApRuntime.StatusIsWarning;
@@ -87,6 +91,11 @@ namespace BigWalkArchipelago.Core.Net
             }
 
             var y = (float)Margin;
+            foreach (var warning in warnings)
+                y = DrawLine(warning, WarningColor, fontSize, y);
+            if (string.IsNullOrEmpty(message))
+                return;
+
             y = DrawLine(message, statusIsWarning ? WarningColor : InfoColor, fontSize, y);
 
             // Full size, next to the status rather than down in the feed.
