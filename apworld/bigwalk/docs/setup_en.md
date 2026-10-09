@@ -14,8 +14,8 @@ There is no separate client to run while you play: the mod talks to
 Archipelago from inside the game.
 
 **This is an alpha.** Every path has been exercised in game, on two machines
-as well as one, but no one has yet played a seed from the first check to the
-goal.
+as well as one, and with four players on one PC, but no one has yet played a seed
+from the first check to the goal.
 
 ## About BepInEx
 
@@ -56,7 +56,7 @@ below for why.
    for it.
 
 To check it worked, `BepInEx/LogOutput.log` should contain a line reading
-`Big Walk Archipelago v0.1.2 loaded (build …).` — the build is a short code that tells two copies of the mod apart.
+`Big Walk Archipelago v0.4.0 loaded (build …).` — the build is a short code that tells two copies of the mod apart.
 
 Everyone must run the same mod version and the same game version, and since
 0.1.2 the same build: the host and its guests talk through a channel that
@@ -94,6 +94,18 @@ Archipelago is looking. Check `custom_worlds` again.
 
 A co-op group shares one Archipelago slot, so they fill in **one** YAML
 between them, with one slot name.
+
+### Moving a YAML from 0.3 to 0.4
+
+One thing stops a 0.3 YAML from generating, and everything else keeps working: `cabin_fever_time`,
+`cabin_fever_long_time` and their `_seconds_min` / `_seconds_max` are gone. Use `cabin_fever_seconds`
+(300, the game's own wait) and `cabin_fever_long_seconds` (1800). For a wait drawn once per seed,
+Archipelago's own syntax does it: `cabin_fever_seconds: random-range-60-300`.
+
+The defaults changed too, so a seed made from an unchanged YAML is bigger: 117 locations instead of
+93 (packs, fireworks and flare guns), a quarter of the filler as bonuses, and the colors drawn per
+seed. Turn `pack_sanity`, `firework_sanity`, `flare_gun_sanity`, `bonus_fill_percentage` or
+`random_colors` off to go back.
 
 ## Joining a MultiWorld Game
 
@@ -209,6 +221,15 @@ The big keys have been through a two-machine session too: a guest can carry,
 cut and place a key, and every one of those checks reaches the host. If
 something still looks wrong on the joining player's side, that is worth
 reporting rather than working around.
+
+### The mod's settings, in the game
+
+**Settings > Archipelago**, last in the game's Settings, from the main menu or the pause menu: the
+overlay's text size, the host's DeathLink switch and amnesty, **Gentle effects** (hides the traps'
+flashes on your screen, for photosensitive players) and the **gourd name** (the host names the gourds
+for everyone). The whole list, and who can change what, is on the game's page, "In-game settings".
+They live in the mod's own file, `BepInEx/config/com.grizfreak.bigwalk.archipelago.cfg`, which can be
+edited by hand with the game closed.
 
 ### Always keep the same host
 

@@ -113,6 +113,18 @@ A co-op group shares one Archipelago slot, so it fills in **one** YAML
 between them, with one slot name. Two people in one Big Walk session cannot
 take two slots — see below.
 
+### Moving a YAML from 0.3 to 0.4
+
+One thing stops a 0.3 YAML from generating, and everything else keeps working: `cabin_fever_time`,
+`cabin_fever_long_time` and their `_seconds_min` / `_seconds_max` are gone. Use `cabin_fever_seconds`
+(300, the game's own wait) and `cabin_fever_long_seconds` (1800). For a wait drawn once per seed,
+Archipelago's own syntax does it: `cabin_fever_seconds: random-range-60-300`.
+
+The defaults changed too, so a seed made from an unchanged YAML is bigger: 117 locations instead of
+93 (packs, fireworks and flare guns), a quarter of the filler as bonuses, and the colors drawn per
+seed. Turn `pack_sanity`, `firework_sanity`, `flare_gun_sanity`, `bonus_fill_percentage` or
+`random_colors` off to go back. The game's page lists every option.
+
 ## Generating and hosting
 
 Put every player's `.yaml` into `Players/` and run `ArchipelagoGenerate.exe`,
@@ -260,6 +272,23 @@ of them. The one thing that does not come back by itself is the gourds you
 had already deposited: they reappear at the hub and have to be walked back to
 a monument. Since deposits are counted globally, it does not matter which one.
 
+## Settings in the game
+
+The mod adds a category to the game's own Settings, last in the list: **Settings > Archipelago**, from
+the main menu or the pause menu. Nothing there is in the YAML.
+
+- **Archipelago text** (each player): the size of the corner overlay's text, Small to Huge.
+- **DeathLink** and **DeathLink amnesty** (the host): On follows the YAML; Off sends and receives
+  none for this session, whatever the YAML says. The amnesty is the seed's, or 0 to 10 of your own.
+- **Gentle effects** (each player, off by default): the traps' flashes are not shown on your screen,
+  for players who find them hard to look at. Today that is Big Flare's. Everyone else keeps theirs, and
+  nothing else changes, the clock included.
+- **Gourd name** (the host): free text, up to 24 characters, applied with Enter or by leaving the
+  field. The overlay says it instead of "Gourd" on every player's screen; a guest sees the host's,
+  greyed. It lives in the mod only: the server, the Text Client and the other games still say "Gourd".
+
+On a guest, the host's settings are greyed ("Set by the host").
+
 ## Mod settings
 
 The mod writes `BepInEx/config/com.grizfreak.bigwalk.archipelago.cfg` on its
@@ -279,8 +308,11 @@ the `[Archipelago]` section:
   the hub.
 - `ColorBigKeys` — whether received keys are tinted so they stand out from
   the ones sitting at their towers. Received gourds always come in one of six
-  colours.
+  colors.
 - `ResyncGourdsKey` — the Ctrl+R shortcut above.
+
+- `GentleEffects`, `DeathLinkEnabled`, `DeathLinkAmnesty`, `GourdName` — what Settings >
+  Archipelago above writes; they can be edited by hand with the game closed.
 
 The `[Debug]` section is off by default and is developer tooling, not
 gameplay.

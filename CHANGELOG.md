@@ -6,6 +6,112 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## 0.4.0 (unreleased)
+
+### Moving from 0.3 to 0.4
+
+- **One thing stops a 0.3 YAML from generating.** `cabin_fever_time`, `cabin_fever_long_time` and
+  their `_seconds_min` / `_seconds_max` are gone: use `cabin_fever_seconds` and
+  `cabin_fever_long_seconds` (300 and 1800, the game's own waits). For a wait drawn once per seed,
+  Archipelago's own syntax: `cabin_fever_seconds: random-range-60-300`. Everything else in a 0.3
+  YAML works.
+- **The defaults make a bigger seed.** 117 locations instead of 93 (12 packs, 8 fireworks, 4 flare
+  guns), a quarter of the filler as bonuses, and colors drawn per seed. `pack_sanity`,
+  `firework_sanity`, `flare_gun_sanity`, `bonus_fill_percentage` and `random_colors` turn them off.
+- **Everyone needs this build:** the host's channel to its guests changed (protocol v12).
+- **Some settings are not in the YAML:** they are in the game, Settings > Archipelago (below).
+
+### Added
+
+**Checks and items**
+
+- **24 more checks, on by default.** `pack_sanity`: the island's 6 backpacks, 5 belts and gourd
+  carton stay on the map, and picking one up for the first time is a check (named by color: Sky Blue
+  Backpack, Purple Belt, ...); the pack then disappears. Off, they are on the map as in the game, free,
+  with no check. `firework_sanity`: firing each of the 8 firework launchers. `flare_gun_sanity`:
+  picking up each of the island's 4 flare guns, which then come back as items too (off, they stay
+  on the island and none is an item).
+- **The Rainbow Flare Gun:** a white flare gun whose shots flicker through every color, in the pool
+  once in every seed.
+- **`island_object_limits`**: the most of each island object the pool holds (2 buoy lights, 2 maps,
+  8 walkie-talkies, 3 of the rest, 1 of each flare gun and of the Rainbow by default; 0 leaves one
+  out). Past every limit, the rest of the filler is bonuses. The flare guns are not random filler:
+  their limit is how many the pool holds, with `flare_gun_sanity` (the Rainbow always).
+- **`backpacks_in_pool`, `belts_in_pool`, `gourd_cartons_in_pool`** (2, 2 and 1 by default; up to 8,
+  8 and 4), in a new Item Pool group: how many of each the pool holds, taken out of the filler.
+
+**Colors**
+
+- **`random_colors`** (on by default): five to ten colors drawn per seed paint the island's buoys
+  (body, halo and light) and its flare guns (body, barrel and shot: flare, light and smoke), the same
+  on every screen. **Only objects of the map:** never the players, the gourds or the keys. The item
+  feed names a flare gun by its color ("Received: Pink Flare Gun").
+
+**Traps and bonuses**
+
+- **Traps** (`trap_fill_percentage`, 0 by default, `trap_weights`, `hard_traps`, `trap_duration`, 20 s
+  by default, `traps_spare_the_gauntlet`), each one on every player of the session: Big Drop
+  (everyone drops what they hold), Big Throw (hard: a full wind-up that cannot be cancelled, then a
+  throw), Big Trip (hard: everyone sent to a different place already reached), Big Meeting (hard:
+  everyone gathered around one player), Big Night (the clock fast-forwards to midnight, the same
+  hour for everyone, and runs on from there), Big Sleep (hard: for `trap_duration`, everyone falls
+  asleep for two seconds out of seven), Big Load (hard: every pack worn comes off and what it holds
+  falls out), Big Mask (hard: for `trap_duration`, everyone wears the blindfold puzzles' helmet and
+  nobody can take it off; a player already masked is spared), Big Flare (a flare gun shot lands on
+  every player, in the Archipelago colors).
+- **Bonuses** (`bonus_fill_percentage`, 25 % of the filler by default; `bonus_weights`, 0 leaves one
+  out): Big Speed, Big Jump, Big Day (a fast forward to noon).
+- **`trap_link`** (off by default): TrapLink. The traps of the pool that reach you are sent to the
+  other games that have it on, and their traps play here: as the Big Walk trap of the same name or
+  the nearest by its name (a freeze is Big Sleep, a bomb is Big Flare), and drawn from the DeathLink
+  roulette when none comes near. Bonuses are never sent. A trap that comes from a DeathLink or from
+  a TrapLink is not sent on, so none loops.
+
+**DeathLink**
+
+- **`death_link`** (off, send, receive or both). Sent when a puzzle is failed
+  (`death_link_triggers: [puzzle_failed]`): a validator screen going red, buttons pressed out of
+  order, a synchronised button letting go unsolved, a dispenser's timed tomato running out, 29
+  puzzles in all; add `big_fall` for a fall that leaves a player dazed. `death_link_amnesty`
+  forgives that many first. The message reads "*slot* failed the *puzzle* (*how*)".
+- **Received** (`death_link_effect`): by default a **knock-out**, everyone drops what they hold, takes
+  off their backpacks and belts (they spill) and is dazed as after a big fall, which sends nothing
+  back; or `drop` only; or a `roulette` of traps (`death_link_trap_weights`,
+  `death_link_roulette_hard_traps`).
+- **`death_link_target: one_player`**: a DeathLink received hits only the player hit the fewest times
+  so far this session. With the roulette, Big Meeting and Big Night, which need everyone, are left
+  out of the draw.
+- **`death_link_trap_on_send`**: with `send` or `both`, when this world sends a DeathLink its own
+  players take the effect of a death too, as the others do.
+
+**In the game: Settings > Archipelago**
+
+A new category, last in the game's Settings (main menu or pause menu), kept in the mod's .cfg on the
+machine that sets it: the overlay's **text size** (each player); **DeathLink** on or off and its
+**amnesty** (the host, over the YAML for the session); **Gentle effects** (each player: the traps'
+flashes, Big Flare's today, are not shown on their screen; off by default); and the **gourd name**
+(the host: free text, applied on Enter or on leaving the field, shown on every player's overlay). A
+guest sees the host's, greyed. The gourd name lives in the mod only: the Archipelago server, the Text
+Client and the other games of a multiworld still say "Gourd", since an item's name is fixed in the
+apworld's data.
+
+**A warning when the builds do not match**
+
+- The host sees a red line for each player on another build of the mod, or who has not said hello
+  after a minute (no mod, or an old one). A guest whose host runs another build sees one too,
+  where its screen used to stay empty. Everyone still needs the same build.
+
+**Tools**
+
+- Up to three loopback guests on one PC (Ctrl+L again for each, four players), Ctrl+T cycles
+  through every window; `tools/deathlink.py` plays another game (DeathLink, TrapLink, server
+  commands).
+
+### Changed
+
+- **Cabin Fever in one number per puzzle** (players), `cabin_fever_seconds` and
+  `cabin_fever_long_seconds`; see above for the YAMLs it breaks.
+
 ## 0.3.0 (2026-10-05)
 
 Numbered 0.3.0 rather than 0.1.3: a release this size moves the minor number; the next ones are 0.4, 0.5...
@@ -74,8 +180,9 @@ Numbered 0.3.0 rather than 0.1.3: a release this size moves the minor number; th
 - **`tile_thief`** (`vanilla` by default): a button beside Tile Thief that makes new peg tiles in
   front of it, for every player: `easy` the ones the puzzle expects, `chaos` one of every kind it
   draws from. With `lock_puzzle_needs` it waits for the puzzle's panels.
-- **`shuffle_peg_tiles`** (off by default): the island's peg tiles swap places on their stands,
-  within each place, differently for each seed.
+- **Peg tiles shuffled**: in every Archipelago game, the island's peg tiles swap places on their
+  stands, within each place, differently for each seed. Not an option; a save hosted without
+  Archipelago keeps the game's layout.
 - **`open_black_tower`** (on by default): the Black Tower's door at its foot is open from the
   start, instead of waiting for the monuments of the hub and the four towers to be full.
 - **Cabin Fever waits** (`cabin_fever_time`, `cabin_fever_long_time`: `vanilla` by default,
