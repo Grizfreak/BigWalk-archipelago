@@ -65,8 +65,9 @@ class TestIdTables(unittest.TestCase):
 
         others = [location_id for name, location_id in locations.LOCATION_NAME_TO_ID.items()
                   if location_id not in set(cut_ids)]
-        self.assertTrue(min(cut_ids) > max(others),
-                        "the cut block overlaps something else in the id space")
+        # The packs and fireworks (13_000 and up) sit above the block, clear of it.
+        inside = [location_id for location_id in others if min(cut_ids) <= location_id <= max(cut_ids)]
+        self.assertFalse(inside, "the cut block overlaps something else in the id space")
 
         for tower in data.TOWERS:
             self.assertLessEqual(tower.segments, data.CUT_STRIDE,

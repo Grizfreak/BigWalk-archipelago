@@ -37,7 +37,7 @@ class TestShareOfFiller(BigWalkTestBase):
     def test_every_random_filler_is_a_joke_but_the_gear(self) -> None:
         names = pool(self)
         filler = [n for n in names if n in items.FILLER_ITEM_NAMES or n in JOKES]
-        gear = set(items.GUARANTEED_GEAR)
+        gear = set(items.GUARANTEED_GEAR) | items.FLARE_GUN_NAMES
         extra = [n for n in filler if n not in gear]
         self.assertTrue(extra)
         self.assertTrue(all(n in JOKES for n in extra))
