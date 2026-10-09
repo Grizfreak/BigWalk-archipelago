@@ -14,6 +14,9 @@ namespace BigWalkArchipelago.Patches
             if (Debug.DebugStateLog.On)
                 Debug.DebugStateLog.ObserveState(__instance, __0.state);
 
+            PackChecks.OnState(__instance, __0.state);
+            PuzzleFailures.OnState(__instance, __0.state);
+
             if (!WorldButtons.HasNative || __instance == null)
                 return;
 
