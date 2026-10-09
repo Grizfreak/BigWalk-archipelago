@@ -285,7 +285,9 @@ the main menu or the pause menu. Nothing there is in the YAML.
   nothing else changes, the clock included.
 - **Gourd name** (the host): free text, up to 24 characters, applied with Enter or by leaving the
   field. The overlay says it instead of "Gourd" on every player's screen; a guest sees the host's,
-  greyed. It lives in the mod only: the server, the Text Client and the other games still say "Gourd".
+  greyed. Left at "Gourd", it shows the seed's `gourd_name` (the YAML option, which renames the
+  gourds for the server, the Text Client and the other games as well); anything else typed here
+  is for the overlay only.
 
 On a guest, the host's settings are greyed ("Set by the host").
 

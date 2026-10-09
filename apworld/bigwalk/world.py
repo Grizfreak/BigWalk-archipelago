@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any, TextIO
 
+from BaseClasses import MultiWorld
 from Options import OptionError
 from worlds.AutoWorld import World
 
-from . import data, items, locations, regions, rules, web_world
+from . import data, gourd_name, items, locations, regions, rules, web_world
 from . import options as bigwalk_options
+
+if TYPE_CHECKING:
+    from NetUtils import MultiData
 
 WORLD_VERSION = "0.4.0"
 """Kept in step with archipelago.json; sent in slot_data so the mod can check it."""
@@ -126,6 +130,9 @@ class BigWalkWorld(World):
     locked_arch_doors: tuple[data.ArchDoor, ...]
     """Arch doors held closed until their item arrives."""
 
+    gourd_name: str = data.GOURD_ITEM_NAME
+    """Display name of the gourds, shared by every Big Walk slot."""
+
     @staticmethod
     def interpret_slot_data(slot_data: Mapping[str, Any]) -> Mapping[str, Any]:
         """
@@ -186,6 +193,29 @@ class BigWalkWorld(World):
         self._ask_for_the_far_doors_early()
         self._hint_the_keys()
         self._keep_the_gauntlet_stages_local()
+
+    @classmethod
+    def stage_generate_early(cls, multiworld: MultiWorld) -> None:
+        # The data package is per game, so one name for all Big Walk slots.
+        worlds = [multiworld.worlds[player] for player in multiworld.get_game_players(cls.game)]
+        taken = (*cls.item_name_to_id, *cls.item_name_groups)
+        name = gourd_name.shared({
+            world.player_name: gourd_name.clean(world.options.gourd_name.value, taken, world.player_name)
+            for world in worlds
+        })
+        for world in worlds:
+            world.gourd_name = name
+
+    def modify_multidata(self, multidata: MultiData) -> None:
+        package = multidata["datapackage"].get(self.game)
+        if self.gourd_name == data.GOURD_ITEM_NAME or package is None:
+            return
+        if data.GOURD_ITEM_NAME in package["item_name_to_id"]:
+            multidata["datapackage"][self.game] = gourd_name.renamed_package(package, self.gourd_name)
+
+    def write_spoiler_header(self, spoiler_handle: TextIO) -> None:
+        if self.gourd_name != self.options.gourd_name.value:
+            spoiler_handle.write(f"{'Gourds called:':33}{self.gourd_name}\n")
 
     def _keep_the_gauntlet_stages_local(self) -> None:
         """
@@ -519,4 +549,5 @@ class BigWalkWorld(World):
             "cut_id_offset": data.CUT_ID_OFFSET,
             "key_item_id_offset": data.KEY_ITEM_ID_OFFSET,
             "gourd_item_id": items.ITEM_NAME_TO_ID[data.GOURD_ITEM_NAME],
+            "gourd_name": self.gourd_name,
         }

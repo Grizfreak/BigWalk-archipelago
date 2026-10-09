@@ -185,6 +185,17 @@ mod's ten (red, orange, yellow, lime, green, cyan, blue, purple, pink, white), a
 **Only objects of the map are painted.** The players, the gourds and the keys are not touched. Turn
 `random_colors` off to keep the game's own colors.
 
+## The gourds' name
+
+**`gourd_name`** renames the gourds for the run, up to 24 characters: `gourd_name: Plumbus du
+Destin`. Every game of the multiworld, the Text Client, Universal Tracker, the spoiler log and the
+mod's overlay say that name, and `!hint Plumbus du Destin` finds them (`!hint Gourd` too). Only the
+name changes: the gourds are the same items.
+
+The name belongs to the game, not to a slot: every Big Walk slot of a multiworld has to ask for the
+same one, or they all keep "Gourd". A name that already belongs to another Big Walk item or item
+group (Backpack, Plumbus, Traps...) keeps "Gourd" too.
+
 ## Traps and bonuses
 
 Traps and bonuses are items that hit **every player of the session**, and they replace part of the

@@ -137,6 +137,9 @@ namespace BigWalkArchipelago.Core.Net
         internal bool RandomColours { get; private set; }
         internal int[] ColourPalette { get; private set; } = Array.Empty<int>();
 
+        // gourd_name (0.4.0); "Gourd" on older seeds.
+        internal string GourdName { get; private set; } = GourdNames.Default;
+
         // TrapLink (0.4.0): the traps received are sent to the other games, theirs play here.
         internal bool TrapLink { get; private set; }
 
@@ -212,6 +215,7 @@ namespace BigWalkArchipelago.Core.Net
             // "random_colours" and "colour_palette" in the first builds of 0.4.
             data.RandomColours = GetBool(raw, "random_colors", GetBool(raw, "random_colours", false));
             data.ColourPalette = raw.ContainsKey("color_palette") ? GetIntArray(raw, "color_palette") : GetIntArray(raw, "colour_palette");
+            data.GourdName = GetString(raw, "gourd_name", data.GourdName);
             data.TrapLink = GetBool(raw, "trap_link", false);
 
             data.TrapDuration = GetInt(raw, "trap_duration", data.TrapDuration);

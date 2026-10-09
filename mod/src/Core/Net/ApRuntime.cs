@@ -869,6 +869,7 @@ namespace BigWalkArchipelago.Core.Net
             Traps.Configure(Connection.SlotData);
             PackChecks.Configure(Connection.SlotData);
             Palette.Configure(Connection.SlotData);
+            GourdNames.Configure(Connection.SlotData);
             Connection.ListenForDeathLinks(Traps.ReceivesDeathLink);
             Connection.ListenForTrapLinks(Connection.SlotData.TrapLink);
             SessionJournal.Write(
@@ -1201,7 +1202,7 @@ namespace BigWalkArchipelago.Core.Net
                 // that is new to this save. A fresh connection to a slot
                 // already owed forty gourds still posts forty of them in one
                 // frame, which is why ApNotices collapses repeats.
-                ApNotices.Post($"Received: {Palette.Display(GourdNames.Display(item.ItemName))}");
+                ApNotices.Post($"Received: {Palette.Display(GourdNames.Display(item.ItemId, item.ItemName))}");
                 SessionJournal.Write(
                     "item", $"{item.ItemName} | from {item.Player?.Name} | at {item.LocationName}", withPosition: false);
 

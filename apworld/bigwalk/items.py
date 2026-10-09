@@ -80,6 +80,15 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
 class BigWalkItem(Item):
     game = "Big Walk"
 
+    def __repr__(self) -> str:
+        # Spoiler log: show gourd_name, keep item.name for the rules.
+        text = super().__repr__()
+        region = self.location.parent_region if self.location else None
+        if self.name != data.GOURD_ITEM_NAME or region is None or region.multiworld is None:
+            return text
+        world = region.multiworld.worlds.get(self.player)
+        return getattr(world, "gourd_name", self.name) + text[len(self.name):]
+
 
 def classification_for(name: str, require_arch_doors: bool = False) -> ItemClassification:
     if name == data.GOURD_ITEM_NAME:

@@ -148,7 +148,7 @@ namespace BigWalkArchipelago
                 "Archipelago",
                 "GourdName",
                 "Gourd",
-                "What the gourds are called on screen when this machine hosts (Settings > Archipelago > Gourd name): the item feed and the goal line say it instead of \"Gourd\", on every player's screen. Guests see the host's.");
+                "What the gourds are called on screen when this machine hosts (Settings > Archipelago > Gourd name): the item feed and the goal line say it instead of \"Gourd\", on every player's screen. Guests see the host's. Left at \"Gourd\", shows the seed's gourd_name.");
 
             GentleEffects = file.Bind(
                 "Archipelago",

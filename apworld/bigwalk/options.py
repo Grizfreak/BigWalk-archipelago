@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from Options import (
-    Choice, DefaultOnToggle, OptionCounter, OptionGroup, OptionSet, PerGameCommonOptions, Range, StartInventoryPool, Toggle, Visibility,
+    Choice, DefaultOnToggle, FreeText, OptionCounter, OptionGroup, OptionSet, PerGameCommonOptions, Range, StartInventoryPool, Toggle, Visibility,
 )
 
 from . import data
@@ -147,6 +147,17 @@ class FlareGunSanity(DefaultOnToggle):
     """
 
     display_name = "Flare Gun Sanity"
+
+
+class GourdName(FreeText):
+    """
+    Renames the gourds for the run (24 characters max), everywhere: clients, hints, spoiler, overlay.
+    All Big Walk slots must use the same name, and it can't be another item's or group's name;
+    otherwise it stays "Gourd".
+    """
+
+    display_name = "Gourd Name"
+    default = "Gourd"
 
 
 class RandomColors(DefaultOnToggle):
@@ -862,6 +873,7 @@ class BigWalkOptions(PerGameCommonOptions):
     gourd_cartons_in_pool: GourdCartonsInPool
     flare_gun_sanity: FlareGunSanity
     random_colors: RandomColors
+    gourd_name: GourdName
     start_inventory_from_pool: StartInventoryPool
 
 
@@ -874,7 +886,7 @@ option_groups = [
         LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed,
     ]),
     OptionGroup("Item Pool", [BackpacksInPool, BeltsInPool, GourdCartonsInPool, IslandObjectLimits]),
-    OptionGroup("Colors", [RandomColors]),
+    OptionGroup("Colors and Names", [RandomColors, GourdName]),
     OptionGroup("Traps and Bonuses", [
         TrapFillPercentage, TrapWeights, HardTraps, BonusFillPercentage, BonusWeights, TrapDuration, TrapsSpareTheGauntlet,
         TrapLink,

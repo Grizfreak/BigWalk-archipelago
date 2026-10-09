@@ -46,6 +46,9 @@ unwinnable, which is why every player of a session should run the same build.
   (body, halo and light) and its flare guns (body, barrel and shot: flare, light and smoke), the same
   on every screen. **Only objects of the map:** never the players, the gourds or the keys. The item
   feed names a flare gun by its color ("Received: Pink Flare Gun").
+- **`gourd_name`**: renames the gourds for the run (24 characters max) in the server, the Text
+  Client, other games, Universal Tracker, the spoiler and the overlay. `!hint Gourd` still works.
+  One name per multiworld: if Big Walk slots disagree, or the name is already taken, it stays "Gourd".
 
 **Traps and bonuses**
 
@@ -91,9 +94,8 @@ machine that sets it: the overlay's **text size** (each player); **DeathLink** o
 **amnesty** (the host, over the YAML for the session); **Gentle effects** (each player: the traps'
 flashes, Big Flare's today, are not shown on their screen; off by default); and the **gourd name**
 (the host: free text, applied on Enter or on leaving the field, shown on every player's overlay). A
-guest sees the host's, greyed. The gourd name lives in the mod only: the Archipelago server, the Text
-Client and the other games of a multiworld still say "Gourd", since an item's name is fixed in the
-apworld's data.
+guest sees the host's, greyed. Left at "Gourd", it says the seed's `gourd_name`; anything else typed
+there wins over it on the overlay only, the server and the other games keep the seed's.
 
 **A warning when the builds do not match**
 
