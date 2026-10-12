@@ -49,6 +49,9 @@ namespace BigWalkArchipelago.Core
         // A flare in front of every player, in the Archipelago colours (Core/BigFlare).
         internal const string Flare = "flare";
 
+        // The three that are a boost, not a trap: they get the item sound, not the alert of a trap.
+        internal static bool IsBonus(string key) => key == Day || key == Speed || key == Jump;
+
         // Every effect this build plays, so a key from a newer apworld is refused by name.
         internal static readonly string[] Known = { Drop, Throw, Trip, Meeting, Night, Sleep, Load, Mask, Flare, Day, Speed, Jump, Knockout };
 

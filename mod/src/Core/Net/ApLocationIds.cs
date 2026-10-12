@@ -83,6 +83,8 @@ namespace BigWalkArchipelago.Core.Net
             _fireworkOffset = slotData.FireworkIdOffset;
             _flareGunGuids = slotData.FlareGunGuids;
             _flareGunOffset = slotData.FlareGunIdOffset;
+            _towerKeys = slotData.TowerReachedKeys;
+            _towerOffset = slotData.TowerReachedIdOffset;
         }
 
         // The packs and fireworks (Core/PackChecks): reported as "pickup:<guid>" and
@@ -94,6 +96,10 @@ namespace BigWalkArchipelago.Core.Net
         private static long _pickupOffset = 13_000;
         private static string[] _fireworkKeys = Array.Empty<string>();
         private static long _fireworkOffset = 13_100;
+        // A tower reached (ROADMAP S8): reported as "tower:<big key's prop name>".
+        internal const string TowerPrefix = "tower:";
+        private static string[] _towerKeys = Array.Empty<string>();
+        private static long _towerOffset = 13_200;
         internal const string FlareGunPrefix = "flaregun:";
         private static string[] _flareGunGuids = Array.Empty<string>();
         private static long _flareGunOffset = 13_050;
@@ -147,7 +153,8 @@ namespace BigWalkArchipelago.Core.Net
 
             if (TryResolveListed(locationName, PickupPrefix, _pickupGuids, _pickupOffset, out locationId)
                 || TryResolveListed(locationName, FireworkPrefix, _fireworkKeys, _fireworkOffset, out locationId)
-                || TryResolveListed(locationName, FlareGunPrefix, _flareGunGuids, _flareGunOffset, out locationId))
+                || TryResolveListed(locationName, FlareGunPrefix, _flareGunGuids, _flareGunOffset, out locationId)
+                || TryResolveListed(locationName, TowerPrefix, _towerKeys, _towerOffset, out locationId))
                 return true;
 
             locationId = 0;

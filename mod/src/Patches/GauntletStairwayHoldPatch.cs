@@ -19,14 +19,17 @@ namespace BigWalkArchipelago.Patches
     {
         private static bool Prefix(TrackedPeckState __instance, PeckContext __0)
         {
-            if (!GauntletStairways.Enabled || __0 == null || __0.compressedState < 1)
+            if ((!GauntletStairways.Enabled && !ObjectiveBoard.HoldsTheLastStairway) || __0 == null || __0.compressedState < 1)
                 return true;
 
             if (!GauntletStairways.IsHeldShut(__instance, out var level))
                 return true;
 
             Plugin.Log.LogInfo(
-                $"[{nameof(GauntletStairwayHoldPatch)}] Stage {level + 1}'s {__instance.transform.parent?.name} stays shut: its item has not arrived.");
+                $"[{nameof(GauntletStairwayHoldPatch)}] Stage {level + 1}'s {__instance.transform.parent?.name} stays shut: "
+                + (GauntletStairways.Enabled && !GauntletStairways.IsGranted(level) ? "its item has not arrived." : "the objectives are not done."));
+            if (!GauntletStairways.Enabled || GauntletStairways.IsGranted(level))
+                ObjectiveBoard.SayEndingIsShut("big_goodbye");
             return false;
         }
     }

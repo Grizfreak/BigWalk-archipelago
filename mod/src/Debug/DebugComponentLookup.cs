@@ -31,7 +31,7 @@ namespace BigWalkArchipelago.Debug
     // scene assembly — hence the addition below.
     internal static class DebugComponentLookup
     {
-        private static readonly string[] DefaultKeywords = { "arch", "door", "switch", "button", "gate", "peck", "shortcut", "bell", "chime", "gong", "cowbell", "sphere", "orb", "void", "block", "barrier", "wall", "unlock", "skip", "proven", "reward", "postgame", "complet", "second", "ending", "cosmetic" };
+        private static readonly string[] DefaultKeywords = { "arch", "door", "switch", "button", "gate", "peck", "shortcut", "bell", "chime", "gong", "cowbell", "sphere", "orb", "void", "block", "barrier", "wall", "unlock", "skip", "proven", "reward", "postgame", "complet", "second", "ending", "cosmetic", "paper", "dispens", "ticket", "goodbye", "print", "hold", "tray", "slot", "speaker", "plug", "radio", "party", "club", "antenna", "cable", "stereo", "boombox" };
 
         internal static void DumpNearbyByKeyword(float radius)
         {

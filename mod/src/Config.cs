@@ -22,6 +22,13 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<bool> ShowConnectionStatus;
         internal static ConfigEntry<int> StatusFontSize;
         internal static ConfigEntry<bool> ShowItemFeed;
+        internal static ConfigEntry<bool> ApSounds;
+        internal static ConfigEntry<bool> ShowObjectives;
+        internal static ConfigEntry<bool> ShowTowerOrder;
+        internal static ConfigEntry<KeyboardShortcut> LatchGoalFlagsKey;
+        internal static ConfigEntry<string> ClimbSpot;
+        internal static ConfigEntry<string> ReceivedSound;
+        internal static ConfigEntry<string> CheckSound;
         internal static ConfigEntry<float> NoticeSeconds;
         internal static ConfigEntry<bool> ShowResyncHint;
         internal static ConfigEntry<bool> SpawnGourdAtPlayer;
@@ -90,6 +97,19 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> DumpHeldItemKey;
         internal static ConfigEntry<KeyboardShortcut> DumpCosmeticGadgetsKey;
         internal static ConfigEntry<KeyboardShortcut> ColourProbeKey;
+        internal static ConfigEntry<KeyboardShortcut> AudioProbeKey;
+        internal static ConfigEntry<KeyboardShortcut> ApFeedKey;
+        internal static ConfigEntry<KeyboardShortcut> MarkObjectiveSpotKey;
+        internal static ConfigEntry<KeyboardShortcut> ResetObjectiveSpotsKey;
+        internal static ConfigEntry<KeyboardShortcut> FakeObjectivesKey;
+        internal static ConfigEntry<KeyboardShortcut> OpenLastStairwayKey;
+        internal static ConfigEntry<KeyboardShortcut> MonumentModeKey;
+        internal static ConfigEntry<KeyboardShortcut> GrantMonumentKey;
+        internal static ConfigEntry<KeyboardShortcut> FillMonumentKey;
+        internal static ConfigEntry<KeyboardShortcut> SoundCandidatesKey;
+        internal static ConfigEntry<KeyboardShortcut> AudioNextKey;
+        internal static ConfigEntry<KeyboardShortcut> AudioPrevKey;
+        internal static ConfigEntry<string> AudioFilter;
         internal static ConfigEntry<KeyboardShortcut> BuoyTintKey;
         internal static ConfigEntry<KeyboardShortcut> FlareTintKey;
         internal static ConfigEntry<KeyboardShortcut> MaskTrapKey;
@@ -148,7 +168,7 @@ namespace BigWalkArchipelago
                 "Archipelago",
                 "GourdName",
                 "Gourd",
-                "What the gourds are called on screen when this machine hosts (Settings > Archipelago > Gourd name): the item feed and the goal line say it instead of \"Gourd\", on every player's screen. Guests see the host's.");
+                "What the gourds are called on screen when this machine hosts (Settings > Archipelago > Gourd name): the item feed and the goal line say it instead of \"Gourd\", on every player's screen. Guests see the host's. Left at \"Gourd\", shows the seed's gourd_name.");
 
             GentleEffects = file.Bind(
                 "Archipelago",
@@ -186,7 +206,43 @@ namespace BigWalkArchipelago
                 "Archipelago",
                 "ShowItemFeed",
                 true,
-                "Lists the last few checks sent and items received under the status line, each fading after a few seconds. Big Walk itself never says whether a puzzle counted or what just arrived from the multiworld, which left 'nothing happened' and 'it happened and I could not see it' looking identical. Identical lines in a row collapse into a count, so the burst replayed on connect does not fill the screen.");
+                "Lists the lines under the status line (items received, DeathLink, traps that did nothing, a key placed before its item...), each fading after a few seconds; false hides them all. Also in the game's Settings > Archipelago. Big Walk itself never says whether a puzzle counted or what just arrived from the multiworld, which left 'nothing happened' and 'it happened and I could not see it' looking identical. Identical lines in a row collapse into a count, so the burst replayed on connect does not fill the screen.");
+
+            ApSounds = file.Bind(
+                "Archipelago",
+                "ApSounds",
+                true,
+                "A small sound when an item is received from the multiworld, and one when a check other than a puzzle is sent. One sound stands for a burst: after one, none for fifteen seconds.");
+
+            ShowObjectives = file.Bind(
+                "Archipelago",
+                "ShowObjectives",
+                false,
+                "Keeps the seed's objectives on the overlay at all times, ticked or not. Off: they are on the board in the hub and at each ending's entry point only. Only a seed that lists objectives has any.");
+
+            ShowTowerOrder = file.Bind(
+                "Archipelago",
+                "ShowTowerOrder",
+                false,
+                "Lists on the board in the hub the order the seed opens the towers in. Off (the default): only the towers already full and the one open are named, the others are hidden so the order stays a surprise. Only has an effect when a seed opens the towers in order (tower_mode in_order or by_item).");
+
+            ClimbSpot = file.Bind(
+                "Archipelago",
+                "ClimbSpot",
+                "94.5, 179.6, -329.1, 25",
+                "Where the objective big_climb (the island's highest point) is done: x, y, z and a radius, in metres. The default is the Peak fireworks. A player within the radius does it.");
+
+            ReceivedSound = file.Bind(
+                "Archipelago",
+                "ReceivedSound",
+                "",
+                "The game's own clip played when an item is received (empty: the default). Names come from the debug key Ctrl + 6, which cycles through candidates and shows each name on screen.");
+
+            CheckSound = file.Bind(
+                "Archipelago",
+                "CheckSound",
+                "",
+                "The game's own clip played when a check other than a puzzle is sent (empty: the default).");
 
             NoticeSeconds = file.Bind(
                 "Archipelago",
@@ -541,6 +597,90 @@ namespace BigWalkArchipelago
                 "ColourProbeKey",
                 new KeyboardShortcut(KeyCode.F5, KeyCode.LeftControl),
                 "Logs what carries the colour of the buoys, the flare guns and their flares (helpers, shader colour properties, lights, particles), one example of each kind (only has an effect if Debug.Enabled is active).");
+
+            AudioProbeKey = file.Bind(
+                "Debug",
+                "AudioProbeKey",
+                new KeyboardShortcut(KeyCode.Backslash, KeyCode.LeftControl),
+                "Writes BepInEx/audio-probe.tsv: every audio effect of the scene with the state system it listens to and the clip it plays in each state, to find the game's own sounds for the monuments, the puzzles' end and a click (only has an effect if Debug.Enabled is active).");
+
+            MarkObjectiveSpotKey = file.Bind(
+                "Debug",
+                "MarkObjectiveSpotKey",
+                new KeyboardShortcut(KeyCode.Alpha1, KeyCode.LeftAlt),
+                "Writes where the player stands to BepInEx/objective-spots.txt, as the line for ClimbSpot or ClubSpot (only has an effect if Debug.Enabled is active).");
+
+            ResetObjectiveSpotsKey = file.Bind(
+                "Debug",
+                "ResetObjectiveSpotsKey",
+                new KeyboardShortcut(KeyCode.Alpha2, KeyCode.LeftAlt),
+                "Forgets that big_climb and big_fiesta were done, to try them again (only has an effect if Debug.Enabled is active).");
+
+            ApFeedKey = file.Bind(
+                "Debug",
+                "ApFeedKey",
+                new KeyboardShortcut(KeyCode.Alpha5, KeyCode.LeftControl),
+                "Shows, one per press, the overlay's lines and plays the sounds of the Archipelago feed without a server: an item received, a check sent, DeathLink sent, received and forgiven, Big Trip with nowhere to go, the settings overriding the seed, a key placed before its item (only has an effect if Debug.Enabled is active).");
+
+            FakeObjectivesKey = file.Bind(
+                "Debug",
+                "FakeObjectivesKey",
+                new KeyboardShortcut(KeyCode.Alpha7, KeyCode.LeftControl),
+                "Cycles fake objectives (the Gauntlet and the gourds, two endings, none) to see the board in the hub, the overlay line and the shut endings without a server (only has an effect if Debug.Enabled is active).");
+
+            OpenLastStairwayKey = file.Bind(
+                "Debug",
+                "OpenLastStairwayKey",
+                new KeyboardShortcut(KeyCode.Alpha8, KeyCode.LeftControl),
+                "Asks the Gauntlet's last stairway (to the bell chamber) to open, to test the objectives' hold on it (only has an effect if Debug.Enabled is active).");
+
+            MonumentModeKey = file.Bind(
+                "Debug",
+                "MonumentModeKey",
+                new KeyboardShortcut(KeyCode.Alpha9, KeyCode.LeftControl),
+                "Cycles the monuments held to an order (in_order, by_item, none) without a server: the first is the Red tower's, then the drawbridge's, the Green, Blue, Yellow, Black and the Green Dome (only has an effect if Debug.Enabled is active).");
+
+            GrantMonumentKey = file.Bind(
+                "Debug",
+                "GrantMonumentKey",
+                new KeyboardShortcut(KeyCode.Alpha0, KeyCode.LeftControl),
+                "Receives one Progressive Monument, as with by_item in the debug monuments (only has an effect if Debug.Enabled is active).");
+
+            FillMonumentKey = file.Bind(
+                "Debug",
+                "FillMonumentKey",
+                new KeyboardShortcut(KeyCode.Alpha3, KeyCode.LeftAlt),
+                "Fills, in the save, the first monument of the debug order (Ctrl + 9) that is not full, so the next one can open (only has an effect if Debug.Enabled is active).");
+
+            LatchGoalFlagsKey = file.Bind(
+                "Debug",
+                "LatchGoalFlagsKey",
+                new KeyboardShortcut(KeyCode.Alpha4, KeyCode.LeftAlt),
+                "Latches in the save the bell and the Gauntlet as if both had been played, to see an objectives goal go out without playing them (only has an effect if Debug.Enabled is active).");
+
+            SoundCandidatesKey = file.Bind(
+                "Debug",
+                "SoundCandidatesKey",
+                new KeyboardShortcut(KeyCode.Alpha6, KeyCode.LeftControl),
+                "Plays the next candidate for the 'item received' sound and shows its name on screen, to choose it by ear (only has an effect if Debug.Enabled is active).");
+
+            AudioNextKey = file.Bind(
+                "Debug",
+                "AudioNextKey",
+                new KeyboardShortcut(KeyCode.RightBracket, KeyCode.LeftControl),
+                "Plays the next sound the audio probe or the played-sound log has seen (names containing Debug.AudioFilter) where the player stands, and logs its name: to hear a candidate (only has an effect if Debug.Enabled is active).");
+
+            AudioPrevKey = file.Bind(
+                "Debug",
+                "AudioPrevKey",
+                new KeyboardShortcut(KeyCode.LeftBracket, KeyCode.LeftControl),
+                "Plays the previous sound of that list (only has an effect if Debug.Enabled is active).");
+
+            AudioFilter = file.Bind(
+                "Debug",
+                "AudioFilter",
+                "",
+                "Only the sounds whose name contains this text are played by the two keys above (empty: all). Read when a key is pressed, so it can be changed in the .cfg while the game runs only through a reload: set it before launching.");
 
             BuoyTintKey = file.Bind(
                 "Debug",

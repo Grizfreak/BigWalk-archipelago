@@ -66,6 +66,11 @@ namespace BigWalkArchipelago.Core.Net
         // Whether the session hosted right now is connected to a seed, whose peg tiles are then
         // shuffled. Read live rather than kept by the shuffler: a static set by one seed survived
         // into the next save hosted, Archipelago or not (2026-10-05).
+        internal static void ScoutAsHints(long[] locationIds) => Connection.ScoutAsHints(locationIds);
+
+        // The seed's slot data; null until a login has succeeded.
+        internal static ApSlotData SlotData => Connection.SlotData;
+
         internal static bool ShufflesPegTiles =>
             Connection.Status == ApConnection.ConnectionStatus.Connected && Connection.SlotData != null;
 
@@ -94,14 +99,16 @@ namespace BigWalkArchipelago.Core.Net
             SendDeathLink("pressed the DeathLink key", announce: true);
         }
 
-        // A DeathLink for the rest of the multiworld (Core/Traps: its triggers). No line on the
-        // screen for a real one, only the log (player, 2026-10-05).
+        // A DeathLink for the rest of the multiworld (Core/Traps: its triggers). A line on the
+        // screen for each (player, 2026-10-09: the first playtest could not tell it worked).
         internal static void SendDeathLink(string what, bool announce = false)
         {
             var cause = $"{Connection.SlotName} {what}";
             var sent = Connection.SendDeathLink(cause);
+            if (sent)
+                ApSounds.DeathLinkAlert();
             if (announce)
-                ApNotices.Post(sent ? "DeathLink sent" : "DeathLink not sent: not connected", warning: !sent);
+                ApNotices.Post(sent ? $"DeathLink sent: {what}" : "DeathLink not sent: not connected", warning: !sent);
             Plugin.Log.LogInfo($"[{nameof(ApRuntime)}] DeathLink {(sent ? "sent" : "NOT sent (not connected)")}: {cause}.");
             SessionJournal.Write("deathlink", $"{(sent ? "sent" : "not sent")} ({cause})");
         }
@@ -169,6 +176,7 @@ namespace BigWalkArchipelago.Core.Net
         // deposit checks, the goal, and the line on screen, which OnGUI
         // would otherwise ask for several times a frame.
         private static int _depositCount;
+        internal static int DepositCount => _depositCount;
 
         private static bool _goalSent;
 
@@ -470,6 +478,17 @@ namespace BigWalkArchipelago.Core.Net
         // this runs once a frame and the tracker walks the whole save.
         private static void RefreshGoalLine()
         {
+            RefreshGoalLineCore();
+
+            // With a tower order (in_order, by_item): which tower takes the gourds now, or what is missing to open one
+            // (the player, 2026-10-12). One more line under the goal; the guests read it in the goal they are told.
+            var towers = MonumentOrder.HudLine();
+            if (towers != null)
+                GoalLine = string.IsNullOrEmpty(GoalLine) ? towers : GoalLine + "\n" + towers;
+        }
+
+        private static void RefreshGoalLineCore()
+        {
             // SlotData IS NULL until a login has succeeded, and this runs from
             // the frame the player starts hosting — unlike every other reader
             // of it, all of which are downstream of a connection. Hosting
@@ -480,6 +499,15 @@ namespace BigWalkArchipelago.Core.Net
             if (slotData == null || !ModConfig.ArchipelagoEnabled.Value)
             {
                 GoalLine = null;
+                return;
+            }
+
+            // A seed with objectives (ROADMAP G5): their own line, only when the player asked for it on
+            // the overlay; the board in the world is the rest.
+            if (ApObjectives.Active)
+            {
+                GoalLine = ModConfig.ShowObjectives.Value ? ApObjectives.Summary() : null;
+                GoalLineIsWarning = !ApObjectives.Detectable;
                 return;
             }
 
@@ -834,6 +862,7 @@ namespace BigWalkArchipelago.Core.Net
                 KeyCustody.ClearLedger();
                 PuzzleNeeds.ClearLedger();
                 GauntletStairways.ClearLedger();
+                MonumentOrder.ClearLedger();
                 TeleportButtons.ClearLedger();
                 Traps.ClearLedger();
             }
@@ -867,8 +896,10 @@ namespace BigWalkArchipelago.Core.Net
                 Connection.SlotData.TeleportDestinations,
                 Connection.SlotData.TeleportBackToHub);
             Traps.Configure(Connection.SlotData);
+            Traps.AnnounceOverrides();
             PackChecks.Configure(Connection.SlotData);
             Palette.Configure(Connection.SlotData);
+            GourdNames.Configure(Connection.SlotData);
             Connection.ListenForDeathLinks(Traps.ReceivesDeathLink);
             Connection.ListenForTrapLinks(Connection.SlotData.TrapLink);
             SessionJournal.Write(
@@ -899,12 +930,14 @@ namespace BigWalkArchipelago.Core.Net
             // say why. Refuse it loudly here, once, rather than silently
             // polling for something that will never be true.
             var goal = Connection.SlotData.Goal;
-            _goalDetectable = goal is "gauntlet" or "ending" or "deposits" or "second_ending";
+            _goalDetectable = ApObjectives.Active
+                ? ApObjectives.Detectable
+                : goal is "gauntlet" or "ending" or "deposits" or "second_ending";
             _goalSent = !_goalDetectable;
             if (!_goalDetectable)
             {
                 Plugin.Log.LogWarning(
-                    $"[{nameof(ApRuntime)}] This slot's goal is '{goal}', which this version of the mod cannot detect. "
+                    $"[{nameof(ApRuntime)}] This slot's goal is '{(ApObjectives.Active ? string.Join(", ", ApObjectives.Keys) : goal)}', which this version of the mod cannot detect. "
                     + "Goal completion will NOT be reported automatically — update the mod to match the apworld.");
             }
 
@@ -990,8 +1023,17 @@ namespace BigWalkArchipelago.Core.Net
             // pushes on every connect: those are already-known checks being
             // repeated for the server's benefit, and announcing them would
             // replay the player's whole run at them on each reconnection.
+            // A sound, no line (player, 2026-10-09). A puzzle's check is the puzzle's own end, which the
+            // game already plays.
             foreach (var id in SendBuffer)
-                ApNotices.Post($"Check: {Connection.LocationName(id)}");
+            {
+                var name = Connection.LocationName(id);
+                if (name == null || !name.EndsWith("Puzzle", StringComparison.Ordinal))
+                {
+                    ApSounds.CheckSent();
+                    break;
+                }
+            }
         }
 
         // Puts back the gourds this save owns but no longer physically has.
@@ -1201,7 +1243,12 @@ namespace BigWalkArchipelago.Core.Net
                 // that is new to this save. A fresh connection to a slot
                 // already owed forty gourds still posts forty of them in one
                 // frame, which is why ApNotices collapses repeats.
-                ApNotices.Post($"Received: {Palette.Display(GourdNames.Display(item.ItemName))}");
+                ApNotices.Post($"Received: {Palette.Display(GourdNames.Display(item.ItemId, item.ItemName))}");
+                // A trap sounds like a DeathLink (the player, 2026-10-12): the large cowbell; a bonus and the rest, the small one.
+                if (Traps.TryResolveItem(item.ItemId, out var trapKey) && !TrapEffects.IsBonus(trapKey))
+                    ApSounds.DeathLinkAlert();
+                else
+                    ApSounds.Received();
                 SessionJournal.Write(
                     "item", $"{item.ItemName} | from {item.Player?.Name} | at {item.LocationName}", withPosition: false);
 
@@ -1274,6 +1321,9 @@ namespace BigWalkArchipelago.Core.Net
             // apart and a key id would otherwise never be reached. Same
             // settled flag as the gourd above: the two arrive in the same
             // startup burst and belong at the same place during it.
+            if (MonumentOrder.IsItem(itemId))
+                return MonumentOrder.Grant();
+
             if (ApLocationIds.TryResolveKeyItem(itemId, out var keyName))
                 return KeyCustody.Grant(keyName, toPlayer: _looseGourdsRestored);
 
@@ -1424,6 +1474,11 @@ namespace BigWalkArchipelago.Core.Net
             // connected to anything.
             if (Connection.SlotData == null)
                 return false;
+
+            // Every objective listed, in any order (ROADMAP G5): each one is latched when it
+            // happens, so the goal goes out on the last of them.
+            if (ApObjectives.Active)
+                return ApObjectives.AllDone;
 
             switch (Connection.SlotData.Goal)
             {

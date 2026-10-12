@@ -79,6 +79,19 @@ namespace BigWalkArchipelago.Core
         internal static int SeedAmnesty => _tolerance;
         internal static int Amnesty => ModConfig.DeathLinkAmnesty.Value >= 0 ? ModConfig.DeathLinkAmnesty.Value : _tolerance;
 
+        // At connection (ROADMAP U20): what the host's Settings change from the seed's, said once so
+        // nobody wonders why DeathLink does nothing.
+        internal static void AnnounceOverrides()
+        {
+            if (!SeedHasDeathLink)
+                return;
+
+            if (!DeathLinkOn)
+                Net.ApNotices.Post("DeathLink is off in the Settings (the seed has it on)", warning: true);
+            else if (ModConfig.DeathLinkAmnesty.Value >= 0 && ModConfig.DeathLinkAmnesty.Value != _tolerance)
+                Net.ApNotices.Post($"DeathLink amnesty {Amnesty} in the Settings (the seed says {_tolerance})", warning: true);
+        }
+
         internal static bool TryResolveItem(long itemId, out string key)
         {
             return _items.TryGetValue(itemId - ApLocationIds.Base, out key);
@@ -191,13 +204,15 @@ namespace BigWalkArchipelago.Core
             if (!ReceivesDeathLink)
                 return;
 
-            ApplyDeathEffect($"received ({cause})", $"DeathLink from {cause}");
+            ApSounds.DeathLinkAlert();
+
+            ApplyDeathEffect($"received ({cause})", $"DeathLink from {cause}", $"DeathLink from {cause}");
         }
 
         // What a death does here (`death_link_effect`, on `death_link_target`): when a DeathLink
         // arrives, and, with `death_link_trap_on_send`, when this world sends one. Not a trap of the
         // pool: never sent on as a TrapLink.
-        private static void ApplyDeathEffect(string journal, string why)
+        private static void ApplyDeathEffect(string journal, string why, string notice = null)
         {
             var single = _deathLinkOnePlayer;
             var key = _deathLinkEffect switch
@@ -207,6 +222,8 @@ namespace BigWalkArchipelago.Core
                 _ => TrapEffects.Knockout,
             };
             SessionJournal.Write("deathlink", $"{journal} -> {TrapEffects.DisplayName(key)}");
+            if (notice != null)
+                Net.ApNotices.Post($"{notice}: {TrapEffects.DisplayName(key)}");
             Enqueue(key, why + (single ? ", one player" : string.Empty), single);
         }
 
@@ -304,6 +321,7 @@ namespace BigWalkArchipelago.Core
             if (key == null || !_roulette.TryGetValue(key, out var weight) || weight <= 0)
                 key = Roulette();
 
+            ApSounds.DeathLinkAlert();
             SessionJournal.Write("traplink", $"received ({source}: {trapName}) -> {TrapEffects.DisplayName(key)}");
             Enqueue(key, $"TrapLink from {source}: {trapName}");
         }
@@ -665,12 +683,14 @@ namespace BigWalkArchipelago.Core
             if (spots.Count == 0)
             {
                 Plugin.Log.LogInfo($"{Tag} Big Trip: no place to send anyone yet.");
+                Net.ApNotices.Post("Big Trip: nowhere to go yet", warning: true);
                 return;
             }
 
             // A different place for each player, none of them where that player already is.
             var shuffled = spots.OrderBy(_ => UnityEngine.Random.value).ToList();
             var used = new HashSet<int>();
+            var sentAny = false;
             foreach (var walker in walkers)
             {
                 if (IsSpared(walker, out var why))
@@ -698,7 +718,11 @@ namespace BigWalkArchipelago.Core
                 used.Add(pick);
                 Plugin.Log.LogInfo($"{Tag} Big Trip sends {walker.Player.gameObject.name} to {shuffled[pick].Label}.");
                 Send(walker, key, shuffled[pick].Point, walker.Yaw);
+                sentAny = true;
             }
+
+            if (!sentAny)
+                Net.ApNotices.Post("Big Trip: nobody free to move", warning: true);
         }
 
         private static void FireMeeting()
@@ -1004,15 +1028,19 @@ namespace BigWalkArchipelago.Core
             {
                 _missed++;
                 Plugin.Log.LogInfo($"{Tag} DeathLink forgiven ({trigger}): {_missed}/{Amnesty} of the amnesty.");
+                Net.ApNotices.Post($"DeathLink forgiven {_missed}/{Amnesty}: {what}");
                 return;
             }
 
             if (Time.unscaledTime - _lastSent < DeathLinkCooldown)
+            {
+                Net.ApNotices.Post($"DeathLink not sent, one was sent a moment ago: {what}");
                 return;
+            }
 
             _missed = 0;
             _lastSent = Time.unscaledTime;
-            ApRuntime.SendDeathLink(what);
+            ApRuntime.SendDeathLink(what, announce: true);
 
             // `death_link_trap_on_send`: the players who sent it take the effect of a death too.
             if (_trapOnSend)
@@ -1068,21 +1096,97 @@ namespace BigWalkArchipelago.Core
     {
         private const string RootPrefix = "SilentGauntlet";
         private const float Margin = 6f;
+        private const float MaxBoxSize = 200f;
 
-        private static Bounds? _bounds;
+        // The Gauntlet is not one block: its parts are spread over the island (the 0.4 playtest
+        // measured one box of 1586 x 182 x 1577 m around everything under the root, and no single
+        // renderer was the cause). So a box per part: a branch whose renderers fit in MaxBoxSize
+        // is one box, a wider one is split into its children, and a lone renderer wider than that
+        // is dropped, named in the log.
+        private static readonly System.Collections.Generic.List<Bounds> _boxes = new();
         private static bool _looked;
 
         internal static bool Contains(Vector3 point)
         {
             if (!_looked)
                 Find();
-            return _bounds != null && _bounds.Value.Contains(point);
+            foreach (var box in _boxes)
+            {
+                if (box.Contains(point))
+                    return true;
+            }
+
+            return false;
         }
 
         internal static void Forget()
         {
-            _bounds = null;
+            _boxes.Clear();
             _looked = false;
+        }
+
+        // A particle system's bounds sit at the world's origin until it has played (the confetti
+        // dispensers' "RewardConfettiParticle", 750 m from the Gauntlet): they are not part of it.
+        private static bool IsParticle(Renderer renderer) =>
+            renderer.GetIl2CppType().Name == "ParticleSystemRenderer";
+
+        private static bool Measure(Transform branch, out Bounds bounds)
+        {
+            bounds = default;
+            var any = false;
+            foreach (var renderer in branch.GetComponentsInChildren<Renderer>(true))
+            {
+                if (renderer == null || IsParticle(renderer))
+                    continue;
+                if (!any)
+                    bounds = renderer.bounds;
+                else
+                    bounds.Encapsulate(renderer.bounds);
+                any = true;
+            }
+
+            return any;
+        }
+
+        private static float Widest(Bounds bounds) =>
+            Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z));
+
+        private static void Collect(Transform branch)
+        {
+            if (!Measure(branch, out var bounds))
+                return;
+            if (Widest(bounds) <= MaxBoxSize)
+            {
+                bounds.Expand(Margin * 2f);
+                _boxes.Add(bounds);
+                Plugin.Log.LogInfo($"[{nameof(Gauntlet)}]   box '{branch.name}': {bounds.size.x:F0} x {bounds.size.y:F0} x {bounds.size.z:F0} m around {bounds.center}.");
+                return;
+            }
+
+            Plugin.Log.LogInfo($"[{nameof(Gauntlet)}]   '{branch.name}' is {bounds.size.x:F0} x {bounds.size.y:F0} x {bounds.size.z:F0} m: split into its children.");
+            if (branch.childCount == 0)
+            {
+                Plugin.Log.LogInfo($"[{nameof(Gauntlet)}]   dropped '{branch.name}', a single renderer too wide.");
+                return;
+            }
+
+            // Its own renderers (not a child's) count one by one.
+            foreach (var renderer in branch.GetComponents<Renderer>())
+            {
+                if (IsParticle(renderer))
+                    continue;
+                var own = renderer.bounds;
+                if (Widest(own) <= MaxBoxSize)
+                {
+                    own.Expand(Margin * 2f);
+                    _boxes.Add(own);
+                }
+                else
+                    Plugin.Log.LogInfo($"[{nameof(Gauntlet)}]   dropped the renderer of '{branch.name}', too wide.");
+            }
+
+            for (var i = 0; i < branch.childCount; i++)
+                Collect(branch.GetChild(i));
         }
 
         private static void Find()
@@ -1116,29 +1220,10 @@ namespace BigWalkArchipelago.Core
                     return;
                 }
 
-                Bounds? bounds = null;
-                foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
-                {
-                    if (renderer == null)
-                        continue;
-                    if (bounds == null)
-                        bounds = renderer.bounds;
-                    else
-                    {
-                        var b = bounds.Value;
-                        b.Encapsulate(renderer.bounds);
-                        bounds = b;
-                    }
-                }
-
-                if (bounds != null)
-                {
-                    var b = bounds.Value;
-                    b.Expand(Margin * 2f);
-                    _bounds = b;
-                }
-
-                Plugin.Log.LogInfo($"[{nameof(Gauntlet)}] '{root.name}': {(_bounds != null ? $"from {_bounds.Value.min:F0} to {_bounds.Value.max:F0}" : "no renderer")}.");
+                _boxes.Clear();
+                Plugin.Log.LogInfo($"[{nameof(Gauntlet)}] '{root.name}':");
+                Collect(root);
+                Plugin.Log.LogInfo($"[{nameof(Gauntlet)}] {_boxes.Count} box(es) in all.");
             }
             catch (Exception ex)
             {

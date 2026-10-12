@@ -68,6 +68,7 @@ namespace BigWalkArchipelago.Patches
                     BuildSizeRow(template, rows);
                     BuildDeathLinkRows(template, rows);
                     BuildFlareRow(template, rows);
+                    BuildMessagesRows(template, rows);
                     _rows = rows;
                     BuildGourdNameRow(rows);
                 }
@@ -625,26 +626,60 @@ namespace BigWalkArchipelago.Patches
                 _ => ModConfig.GentleEffects.Value = !ModConfig.GentleEffects.Value);
         }
 
-        private static void BuildDeathLinkRows(SettingsRow template, Transform parent)
-        {
-            BuildArrayRow(template, parent, "DeathLink", "DEATHLINK :", hostOnly: true,
-                () => !ModConfig.DeathLinkEnabled.Value ? "Off"
-                    : Traps.SeedHasDeathLink || !Core.Net.ApRuntime.ShufflesPegTiles ? "On" : "On (not in this seed)",
-                _ =>
-                {
-                    ModConfig.DeathLinkEnabled.Value = !ModConfig.DeathLinkEnabled.Value;
-                    Core.Net.ApRuntime.ApplyDeathLinkSetting();
-                });
+        // Each player's own (player, 2026-10-11): the lines under "Archipelago: Connected" (what
+        // arrived, what a DeathLink or a trap did) and the two small sounds, one row for both (the
+        // page is full): text and sound, sound only, text only, neither.
+        private static readonly string[] Alerts = { "Text + sound", "Sound only", "Text only", "Off" };
 
-            BuildArrayRow(template, parent, "DeathLink amnesty", "DEATHLINK AMNESTY :", hostOnly: true,
-                () => ModConfig.DeathLinkAmnesty.Value < 0
-                    ? Core.Net.ApRuntime.ShufflesPegTiles ? $"Seed's ({Traps.SeedAmnesty})" : "Seed's"
-                    : ModConfig.DeathLinkAmnesty.Value.ToString(),
+        private static int CurrentAlerts() =>
+            (ModConfig.ShowItemFeed.Value ? 0 : 2) + (ModConfig.ApSounds.Value ? 0 : 1);
+
+        private static void BuildMessagesRows(SettingsRow template, Transform parent)
+        {
+            BuildArrayRow(template, parent, "Archipelago alerts", "ARCHIPELAGO ALERTS :", hostOnly: false,
+                () => Alerts[CurrentAlerts()],
                 delta =>
                 {
-                    var index = Math.Max(0, Array.IndexOf(Amnesties, ModConfig.DeathLinkAmnesty.Value));
-                    ModConfig.DeathLinkAmnesty.Value = Amnesties[(index + delta + Amnesties.Length) % Amnesties.Length];
-                    Plugin.Log.LogInfo($"{Tag} DeathLink amnesty: {(ModConfig.DeathLinkAmnesty.Value < 0 ? "the seed's" : ModConfig.DeathLinkAmnesty.Value.ToString())}.");
+                    var next = (CurrentAlerts() + delta + Alerts.Length) % Alerts.Length;
+                    ModConfig.ShowItemFeed.Value = next < 2;
+                    ModConfig.ApSounds.Value = next % 2 == 0;
+                });
+
+            // The seed's objectives on the overlay at all times (ROADMAP G5); the boards in the world
+            // show them either way.
+            BuildArrayRow(template, parent, "Objectives on screen", "OBJECTIVES ON SCREEN :", hostOnly: false,
+                () => ModConfig.ShowObjectives.Value ? "Shown" : "Hidden",
+                _ => ModConfig.ShowObjectives.Value = !ModConfig.ShowObjectives.Value);
+        }
+
+        // One row for both (player, 2026-10-11, the page is full): Off, then the amnesty, the seed's
+        // or a number of its own. Position 0 is off, 1 the seed's amnesty, 2 and on the numbers.
+        private static void BuildDeathLinkRows(SettingsRow template, Transform parent)
+        {
+            int Position() => !ModConfig.DeathLinkEnabled.Value
+                ? 0
+                : 1 + Math.Max(0, Array.IndexOf(Amnesties, ModConfig.DeathLinkAmnesty.Value));
+
+            BuildArrayRow(template, parent, "DeathLink", "DEATHLINK :", hostOnly: true,
+                () =>
+                {
+                    var notInSeed = !Traps.SeedHasDeathLink && Core.Net.ApRuntime.ShufflesPegTiles ? " (not in this seed)" : string.Empty;
+                    if (!ModConfig.DeathLinkEnabled.Value)
+                        return "Off";
+                    return ModConfig.DeathLinkAmnesty.Value < 0
+                        ? (Core.Net.ApRuntime.ShufflesPegTiles ? $"On, seed's amnesty ({Traps.SeedAmnesty})" : "On, seed's amnesty") + notInSeed
+                        : $"On, amnesty {ModConfig.DeathLinkAmnesty.Value}" + notInSeed;
+                },
+                delta =>
+                {
+                    var next = (Position() + delta + Amnesties.Length + 1) % (Amnesties.Length + 1);
+                    var wasOn = ModConfig.DeathLinkEnabled.Value;
+                    ModConfig.DeathLinkEnabled.Value = next > 0;
+                    if (next > 0)
+                        ModConfig.DeathLinkAmnesty.Value = Amnesties[next - 1];
+                    if (wasOn != ModConfig.DeathLinkEnabled.Value)
+                        Core.Net.ApRuntime.ApplyDeathLinkSetting();
+                    Plugin.Log.LogInfo($"{Tag} DeathLink: {(next == 0 ? "off" : ModConfig.DeathLinkAmnesty.Value < 0 ? "on, the seed's amnesty" : $"on, amnesty {ModConfig.DeathLinkAmnesty.Value}")}.");
                 });
         }
 

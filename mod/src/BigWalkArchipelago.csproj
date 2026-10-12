@@ -15,7 +15,7 @@
     <RootNamespace>BigWalkArchipelago</RootNamespace>
     <!-- À garder aligné sur Plugin.PluginVersion : c'est ce numéro que lit
          tools/package-mod.ps1 pour nommer le zip livré aux joueurs. -->
-    <Version>0.4.0</Version>
+    <Version>0.5.0</Version>
 
     <!-- Les <Reference> ci-dessous portent toutes <Private>false</Private> :
          elles existent déjà dans BepInEx/ et BepInEx/interop/ au runtime et ne
@@ -69,6 +69,10 @@
     </Reference>
     <Reference Include="AudioSystem">
       <HintPath>..\lib\AudioSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>..\lib\UnityEngine.AudioModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.ParticleSystemModule">

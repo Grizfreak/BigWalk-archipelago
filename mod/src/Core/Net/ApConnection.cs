@@ -364,6 +364,23 @@ namespace BigWalkArchipelago.Core.Net
             }
         }
 
+        // Hints for these locations of this slot (ROADMAP H3): what sits there, shown to the player and
+        // free, like the hints at the start. Announced once each by the server.
+        internal void ScoutAsHints(long[] locationIds)
+        {
+            if (_status != ConnectionStatus.Connected || locationIds.Length == 0)
+                return;
+
+            try
+            {
+                _session.Locations.ScoutLocationsAsync(HintCreationPolicy.CreateAndAnnounceOnce, locationIds);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(ApConnection)}] Failed to scout {locationIds.Length} location(s) as hints: {ex.Message}");
+            }
+        }
+
         internal void SendChecks(long[] locationIds)
         {
             if (_status != ConnectionStatus.Connected || locationIds.Length == 0)

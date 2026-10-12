@@ -64,7 +64,7 @@ namespace BigWalkArchipelago.Core.Net
 
         // Both ends must speak the same version; a mismatch is logged once
         // and ignored rather than half-read.
-        private const byte ProtocolVersion = 12;
+        private const byte ProtocolVersion = 15;
 
         private const byte KindHello = 1;
         private const byte KindSnapshot = 2;
@@ -116,6 +116,8 @@ namespace BigWalkArchipelago.Core.Net
             internal string Text;
             internal bool Warning;
         }
+
+        private static readonly byte[] _heardCounts = new byte[4];
 
         internal static string MirroredStatus { get; private set; }
         internal static bool MirroredStatusIsWarning { get; private set; }
@@ -499,6 +501,11 @@ namespace BigWalkArchipelago.Core.Net
                 writer.WriteByte((byte)Math.Min(colours.Length, byte.MaxValue));
                 for (var i = 0; i < colours.Length && i < byte.MaxValue; i++)
                     writer.WriteByte((byte)colours[i]);
+                NetworkWriterExtensions.WriteString(writer, ObjectiveBoard.HostText());
+                writer.WriteByte(ObjectiveBoard.HostLocks());
+                writer.WriteByte(MonumentOrder.HostMask());
+                for (var kind = 0; kind < ApSounds.Counts.Length; kind++)
+                    writer.WriteByte(ApSounds.Counts[kind]);
 
                 connection.Send(writer.ToArraySegment(), 0);
             }
@@ -688,6 +695,8 @@ namespace BigWalkArchipelago.Core.Net
                 CabinFeverWaits.ForgetMirror();
                 TileThiefHelper.ForgetMirror();
                 ResyncStations.ForgetMirror();
+                ObjectiveBoard.ForgetMirror();
+                MonumentOrder.ForgetMirror();
                 PackChecks.ForgetMirror();
                 Palette.ForgetMirror();
                 GourdNames.ForgetMirror();
@@ -891,6 +900,12 @@ namespace BigWalkArchipelago.Core.Net
                 var colourCount = reader.ReadByte();
                 for (var i = 0; i < colourCount; i++)
                     colours.Add(reader.ReadByte());
+                var boardText = NetworkReaderExtensions.ReadString(reader);
+                var endingLocks = reader.ReadByte();
+                var monumentMask = reader.ReadByte();
+                var soundCounts = new byte[ApSounds.Counts.Length];
+                for (var sound = 0; sound < soundCounts.Length; sound++)
+                    soundCounts[sound] = reader.ReadByte();
 
                 var first = _receivedAt < 0f;
 
@@ -898,6 +913,20 @@ namespace BigWalkArchipelago.Core.Net
                 MirroredStatusIsWarning = statusWarning;
                 MirroredGoal = string.IsNullOrEmpty(goal) ? null : goal;
                 MirroredGoalIsWarning = goalWarning;
+
+                // A guest hears what the host hears (the player, 2026-10-12): a sound whose count moved plays here too (ApSounds holds
+                // the received and check ones to a burst, and every one to the player's own setting). Not on the first snapshot.
+                if (!first)
+                {
+                    for (var sound = 0; sound < soundCounts.Length; sound++)
+                    {
+                        if (soundCounts[sound] != _heardCounts[sound])
+                            ApSounds.PlayForGuest(sound);
+                    }
+                }
+
+                System.Array.Copy(soundCounts, _heardCounts, soundCounts.Length);
+
                 MirroredLines.Clear();
                 MirroredLines.AddRange(lines);
                 _receivedAt = Time.unscaledTime;
@@ -916,6 +945,8 @@ namespace BigWalkArchipelago.Core.Net
                 PackChecks.ApplyFromHost(packMode, collectedPacks);
                 Palette.ApplyFromHost(colours);
                 GourdNames.ApplyFromHost(gourdName);
+                ObjectiveBoard.ApplyFromHost(boardText, endingLocks);
+                MonumentOrder.ApplyFromHost(monumentMask);
             }
             catch (Exception ex)
             {

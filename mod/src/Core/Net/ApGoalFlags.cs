@@ -79,6 +79,14 @@ namespace BigWalkArchipelago.Core.Net
             if (LoadBaseline.TryGetValue(system, out var baseline) && baseline == value)
                 return;
 
+            // A zero is never the goal: the bell rung or the Gauntlet finished writes 1 or more (2026-10-12: a refused
+            // ring wrote EndingGate = 0 with no baseline known, and that was taken for the goal).
+            if (value < 1)
+            {
+                LoadBaseline[system] = value;
+                return;
+            }
+
             var previous = LoadBaseline.TryGetValue(system, out var known) ? known.ToString() : "unknown";
             LoadBaseline[system] = value;
 
@@ -86,6 +94,14 @@ namespace BigWalkArchipelago.Core.Net
             SaveManager.SetIntValue(key, 1);
             Plugin.Log.LogInfo(
                 $"[{nameof(ApGoalFlags)}] {system} changed during play ({previous} -> {value}): goal reached, latched as {key}.");
+        }
+
+        // Alt + 4 (debug): the two flags latched in the save as if both endings had been played, to see the goal go out.
+        internal static void DebugLatchBoth()
+        {
+            SaveManager.SetIntValue(KeyPrefix + SavableSystem.EndingGate, 1);
+            SaveManager.SetIntValue(KeyPrefix + SavableSystem.GauntletComplete, 1);
+            Plugin.Log.LogInfo($"[{nameof(ApGoalFlags)}] Debug: the bell and the Gauntlet are latched.");
         }
 
         internal static bool IsLatched(SavableSystem system)

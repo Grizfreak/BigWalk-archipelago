@@ -42,6 +42,7 @@ namespace BigWalkArchipelago.Core.Net
         private static readonly Color InfoColor = new(0.72f, 0.9f, 0.72f);
         private static readonly Color ProgressColor = new(0.95f, 0.88f, 0.6f);
         private static readonly Color FeedColor = new(0.86f, 0.86f, 0.86f);
+        private static readonly Color DoneColor = new(0.6f, 0.6f, 0.55f);
         private static readonly Color ShadowColor = new(0f, 0f, 0f, 0.75f);
 
         // Built on first use, not in a field initializer: anything touching
@@ -103,24 +104,26 @@ namespace BigWalkArchipelago.Core.Net
             // connected: both are session-long facts, and neither is worth
             // hunting for in a log. The warning colour is reserved for a
             // goal this build cannot detect.
-            if (!string.IsNullOrEmpty(goal))
-                y = DrawLine(goal, goalIsWarning ? WarningColor : ProgressColor, fontSize, y);
-
             var secondary = Mathf.Max(8, Mathf.RoundToInt(fontSize * SecondaryScale));
 
-            // What is still locked, so a player does not look for a button that
-            // has not arrived. Short: the first few, then a count.
-            if (PuzzleNeeds.Active)
+            // A goal of several lines (the objectives list): the first at full size, one line each after it.
+            if (!string.IsNullOrEmpty(goal))
             {
-                var locked = PuzzleNeeds.LockedNeeds();
-                locked.Sort(StringComparer.Ordinal);
-                var shown = string.Join(", ", locked.Take(6).Select(n => n.Replace('_', ' ')));
-                var line = locked.Count == 0
-                    ? "Puzzle parts: all found"
-                    : $"Puzzle parts missing ({locked.Count}): {shown}{(locked.Count > 6 ? ", ..." : string.Empty)}";
-                y = DrawLine(line, FeedColor, secondary, y);
+                var goalLines = goal.Split('\n');
+                for (var i = 0; i < goalLines.Length; i++)
+                {
+                    // A done objective ("[x]") is dimmed and struck through, like on the board in the hub.
+                    var done = i > 0 && goalLines[i].TrimStart().StartsWith("[x]", StringComparison.Ordinal);
+                    // The ending in bold (the player, 2026-10-12): rich text for these lines only, as an item name of
+                    // another game may hold a `<`.
+                    _style.richText = true;
+                    y = DrawLine(goalLines[i], goalIsWarning ? WarningColor : done ? DoneColor : ProgressColor, i == 0 ? fontSize : secondary, y, done);
+                    _style.richText = false;
+                }
             }
 
+            // The puzzle parts still missing are no longer listed here (player, 2026-10-09): the
+            // permanent overlay is the connection and what arrives.
             if (mirrored)
             {
                 foreach (var line in ModChannel.MirroredLines)
@@ -156,7 +159,7 @@ namespace BigWalkArchipelago.Core.Net
         }
 
         // Returns the y to draw the next line at.
-        private float DrawLine(string text, Color color, int fontSize, float y)
+        private float DrawLine(string text, Color color, int fontSize, float y, bool struck = false)
         {
             _style.fontSize = fontSize;
 
@@ -171,6 +174,16 @@ namespace BigWalkArchipelago.Core.Net
 
             _style.normal.textColor = color;
             GUI.Label(rect, text, _style);
+
+            if (struck)
+            {
+                // The label's own text starts after the "[x]" box; the strike runs over the name only.
+                var start = _style.CalcSize(new GUIContent(text.Substring(0, text.IndexOf(']') + 1))).x;
+                var old = GUI.color;
+                GUI.color = color;
+                GUI.DrawTexture(new Rect(rect.x + start + 4f, rect.y + size.y * 0.55f, size.x - start - 4f, 1.5f), Texture2D.whiteTexture);
+                GUI.color = old;
+            }
 
             return y + size.y;
         }

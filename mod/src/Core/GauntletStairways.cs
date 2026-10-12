@@ -181,7 +181,7 @@ namespace BigWalkArchipelago.Core
         internal static bool IsHeldShut(TrackedPeckState state, out int level)
         {
             level = -1;
-            if (!Enabled || state == null)
+            if ((!Enabled && !ObjectiveBoard.HoldsTheLastStairway) || state == null)
                 return false;
 
             var id = state.GetInstanceID();
@@ -197,8 +197,15 @@ namespace BigWalkArchipelago.Core
                 }
             }
 
-            return !IsGranted(level);
+            return Enabled && !IsGranted(level) || IsHeldByObjectives(level, state);
         }
+
+        // `lock_endings` (ROADMAP G5): the stairway to the bell chamber, the entry of Big Goodbye,
+        // stays shut until the other objectives are done. Only the stairway itself, and only on the
+        // host, whose gate state the guests follow.
+        private static bool IsHeldByObjectives(int level, TrackedPeckState state) =>
+            level == Chambers.Length - 1 && NetworkServer.active && ObjectiveBoard.HoldsTheLastStairway
+            && ObjectiveBoard.Locked("big_goodbye") && state != null && GateByLevel[level] == state;
 
         // The lowest stage whose stairway item has not arrived, for a progressive door; -1 when all
         // seven have.
@@ -243,8 +250,20 @@ namespace BigWalkArchipelago.Core
         // not lock the stages.
         internal static void Enforce()
         {
-            if (!Enabled || !NetworkServer.active || !WorldManager.isReadyForEffects)
+            if (!NetworkServer.active || !WorldManager.isReadyForEffects)
                 return;
+
+            // The objectives' hold on the last stairway, whether or not the stages are locked.
+            if (!Enabled)
+            {
+                if (ObjectiveBoard.HoldsTheLastStairway && ObjectiveBoard.Locked("big_goodbye"))
+                {
+                    Discover();
+                    ShutGate(GateByLevel[Chambers.Length - 1], "Stage 7 stairway (the objectives are not done)");
+                }
+
+                return;
+            }
 
             Discover();
             for (var level = 0; level < Chambers.Length; level++)
@@ -282,6 +301,23 @@ namespace BigWalkArchipelago.Core
             // it itself, the hold being lifted.
             if (!_puzzlesRequired || PuzzleDone(level))
                 OpenGate(WallByLevel[level], $"Stage {level + 1} wall");
+        }
+
+        // Debug key (Ctrl + 8): asks the last stairway, to the bell chamber, to open, the way any
+        // opening of it is asked (a state raise), to see whether the objectives' hold refuses it.
+        internal static void DebugOpenLast()
+        {
+            Discover();
+            var gate = GateByLevel[Chambers.Length - 1];
+            if (gate == null)
+            {
+                Plugin.Log.LogInfo($"[{nameof(GauntletStairways)}] Debug: the last stairway is not in this world.");
+                return;
+            }
+
+            Plugin.Log.LogInfo($"[{nameof(GauntletStairways)}] Debug: asking the last stairway to open (state {gate.currentPeckContext.state}).");
+            gate.SetState(1);
+            Plugin.Log.LogInfo($"[{nameof(GauntletStairways)}] Debug: the last stairway is now at state {gate.currentPeckContext.state}.");
         }
 
         private static void OpenGate(TrackedPeckState gate, string what)

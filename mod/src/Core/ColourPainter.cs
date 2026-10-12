@@ -38,6 +38,73 @@ namespace BigWalkArchipelago.Core
 
         internal static void Repaint() => _dirty = true;
 
+        // P2 (0.4 playtest: an orange lamp gave a green light, a blue one a white light): the body holds its tint, but
+        // switching a lamp on lets the game's own effects put back its light and its halo. So each painted lamp's light
+        // and halo are remembered and put back, twice a second, when something else changed them.
+        private static readonly List<(Light light, Renderer halo, Color colour, Renderer body, Color bodyColour)> Lamps = new();
+        private static float _nextLampCheck;
+
+        private static void KeepTheLamps()
+        {
+            if (Lamps.Count == 0 || Time.unscaledTime < _nextLampCheck)
+                return;
+
+            _nextLampCheck = Time.unscaledTime + 0.5f;
+            var fixedCount = 0;
+            for (var i = Lamps.Count - 1; i >= 0; i--)
+            {
+                var (light, halo, colour, body, bodyColour) = Lamps[i];
+                if (light == null && halo == null && body == null)
+                {
+                    Lamps.RemoveAt(i);
+                    continue;
+                }
+
+                if (light != null && light.enabled && light.color != colour)
+                {
+                    light.color = colour;
+                    fixedCount++;
+                }
+
+                if (halo != null)
+                {
+                    var block = new MaterialPropertyBlock();
+                    halo.GetPropertyBlock(block);
+                    // A lamp switched off hides its halo (LobbyFlare inactive, colour probe 2026-10-12): only a shown one
+                    // is put back. A block the game wrote again reads black, which is no sign of "off".
+                    if (halo.gameObject.activeInHierarchy && block.GetColor("_MainColor") != colour)
+                    {
+                        block.SetColor("_MainColor", colour);
+                        halo.SetPropertyBlock(block);
+                        fixedCount++;
+                    }
+                }
+
+                // The body too: the buoy's own PropertyBlockHelper writes its block again when the lamp is switched, and
+                // that block has no tint, so a map lamp went back to its own colour while its light kept the seed's
+                // (2026-10-12, colour probe: an orange pedestal buoy with the seed's lime light).
+                if (body != null)
+                {
+                    var block = new MaterialPropertyBlock();
+                    body.GetPropertyBlock(block);
+                    if (block.GetColor("_TintColor") != bodyColour)
+                    {
+                        block.SetColor("_TintColor", bodyColour);
+                        body.SetPropertyBlock(block);
+                        fixedCount++;
+                    }
+                }
+            }
+
+            if (fixedCount > 0 && !_lampFixLogged)
+            {
+                _lampFixLogged = true;
+                Plugin.Log.LogInfo($"{Tag} A lamp's light or halo had been changed by the game: put back to the seed's colour.");
+            }
+        }
+
+        private static bool _lampFixLogged;
+
         // Every frame (TrapRunner): the world once it is ready or the colours change, and the
         // rainbow guns' shots.
         internal static void Tick()
@@ -46,7 +113,10 @@ namespace BigWalkArchipelago.Core
             if (ready && !_wasReady)
                 _dirty = true;
             if (!ready)
+            {
                 RainbowShots.Clear();
+                Lamps.Clear();
+            }
             _wasReady = ready;
 
             if (ready && _dirty)
@@ -56,6 +126,8 @@ namespace BigWalkArchipelago.Core
             }
 
             TickRainbow();
+            if (ready)
+                KeepTheLamps();
         }
 
         private static void PaintWorld()
@@ -128,6 +200,9 @@ namespace BigWalkArchipelago.Core
                 return true;
 
             var colour = Palette.For(string.IsNullOrEmpty(key) ? root.name : key);
+            Renderer haloRenderer = null;
+            Renderer bodyRenderer = null;
+            Light lampLight = null;
             foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
             {
                 if (renderer.name == "buoy")
@@ -136,6 +211,7 @@ namespace BigWalkArchipelago.Core
                     renderer.GetPropertyBlock(block);
                     block.SetColor("_TintColor", colour.body);
                     renderer.SetPropertyBlock(block);
+                    bodyRenderer = renderer;
                 }
                 else if (renderer.name == "LobbyFlareMesh" && UnderBuoyLight(renderer.transform))
                 {
@@ -143,13 +219,23 @@ namespace BigWalkArchipelago.Core
                     renderer.GetPropertyBlock(block);
                     block.SetColor("_MainColor", colour.halo);
                     renderer.SetPropertyBlock(block);
+                    haloRenderer = renderer;
                 }
             }
 
             foreach (var light in root.GetComponentsInChildren<Light>(true))
             {
                 if (light.name == "bouyLight")
+                {
                     light.color = colour.halo;
+                    lampLight = light;
+                }
+            }
+
+            if (lampLight != null || haloRenderer != null || bodyRenderer != null)
+            {
+                Lamps.RemoveAll(entry => entry.light == lampLight && entry.halo == haloRenderer && entry.body == bodyRenderer);
+                Lamps.Add((lampLight, haloRenderer, colour.halo, bodyRenderer, colour.body));
             }
 
             return true;

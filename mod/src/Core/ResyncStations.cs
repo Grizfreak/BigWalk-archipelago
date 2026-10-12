@@ -285,6 +285,8 @@ namespace BigWalkArchipelago.Core
             station.ShownText = null;
         }
 
+        internal static TMP_FontAsset SignFont() => FindFont();
+
         private static TMP_FontAsset _font;
 
         // The game's own font, from any text it shows.

@@ -287,6 +287,45 @@ namespace BigWalkArchipelago.Debug
             if (ModConfig.ColourProbeKey.Value.IsDown())
                 DebugColourProbe.Dump();
 
+            if (ModConfig.AudioProbeKey.Value.IsDown())
+                DebugAudioProbe.Dump();
+
+            if (ModConfig.FillMonumentKey.Value.IsDown())
+                MonumentOrder.DebugFillNext();
+
+            if (ModConfig.ResetObjectiveSpotsKey.Value.IsDown())
+                ObjectiveSpots.ResetLatches();
+
+            if (ModConfig.MarkObjectiveSpotKey.Value.IsDown())
+                ObjectiveSpots.Mark();
+
+            if (ModConfig.ApFeedKey.Value.IsDown())
+                DebugApFeed.Next();
+
+            if (ModConfig.FakeObjectivesKey.Value.IsDown())
+                DebugApFeed.NextObjectives();
+
+            if (ModConfig.LatchGoalFlagsKey.Value.IsDown())
+                Core.Net.ApGoalFlags.DebugLatchBoth();
+
+            if (ModConfig.OpenLastStairwayKey.Value.IsDown())
+                GauntletStairways.DebugOpenLast();
+
+            if (ModConfig.MonumentModeKey.Value.IsDown())
+                DebugApFeed.NextMonumentMode();
+
+            if (ModConfig.GrantMonumentKey.Value.IsDown())
+                DebugApFeed.GrantMonument();
+
+            if (ModConfig.SoundCandidatesKey.Value.IsDown())
+                DebugApFeed.NextCandidate();
+
+            if (ModConfig.AudioNextKey.Value.IsDown())
+                DebugAudioProbe.Cycle(1);
+
+            if (ModConfig.AudioPrevKey.Value.IsDown())
+                DebugAudioProbe.Cycle(-1);
+
             if (ModConfig.BuoyTintKey.Value.IsDown())
                 DebugBuoyTint.Next();
 

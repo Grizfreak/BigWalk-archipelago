@@ -58,6 +58,19 @@ namespace BigWalkArchipelago.Patches
         // prefix asking for one that is not there throws at `PatchAll` and
         // takes the whole plugin down. `__0` is `PropHome propHome`, `__1` is
         // `bool pinned`.
+        // What a big key opens, as the players read it (the apworld's feature names).
+        private static string FeatureName(SaveablePropName key) => key.ToString() switch
+        {
+            "bigKeyIntro" => "Drawbridge",
+            "bigKeyRedZone" => "Map Room",
+            "bigKeyGreenZone" => "Chairlift",
+            "bigKeyBlueZone" => "Train",
+            "bigKeyYellowZone" => "Tunnels",
+            "bigKeyBoss" => "Big Wall Door",
+            "bigKeyOverflow" => "Spawn Secret Door",
+            _ => null,
+        };
+
         private static void Prefix(Prop __instance, PropHome __0, bool __1,
             out TrackedPeckState __state)
         {
@@ -80,6 +93,12 @@ namespace BigWalkArchipelago.Patches
                 + (KeyFeatures.IsGranted(__instance.saveablePropName)
                     ? " (already granted, so it is open anyway)."
                     : " — it opens when the matching item arrives."));
+
+            // And on screen (ROADMAP U21): a door that does not move after a key is placed looks
+            // like a bug to the player.
+            var feature = FeatureName(__instance.saveablePropName);
+            if (feature != null && !KeyFeatures.IsGranted(__instance.saveablePropName))
+                Core.Net.ApNotices.Post($"{feature}: opens when its item arrives");
         }
 
         private static void Postfix(PropHome __0, TrackedPeckState __state)

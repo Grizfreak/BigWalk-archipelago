@@ -82,7 +82,8 @@ namespace BigWalkArchipelago.Core
         internal static int PutDepositsBack(int count)
         {
             var marked = 0;
-            foreach (var (prefix, slots) in MonumentSlots)
+            // In the seed's order when the monuments open one after the other (tower_mode).
+            foreach (var (prefix, slots) in MonumentOrder.OrderedMonuments() ?? MonumentSlots)
             {
                 for (var slot = 0; slot < slots && marked < count; slot++)
                 {
@@ -129,6 +130,7 @@ namespace BigWalkArchipelago.Core
                 return;
 
             home.onChangeServer += (Action<PropHome, Prop, Prop>)OnHomeChanged;
+            MonumentOrder.Learn(home);
             PendingRestoreCheck.Enqueue(home);
         }
 
@@ -159,6 +161,26 @@ namespace BigWalkArchipelago.Core
                 var entry = entries[i];
                 if (entry.value != 0 && entry.key != null
                     && entry.key.StartsWith(SaveKeyPrefix, StringComparison.Ordinal))
+                    count++;
+            }
+
+            return count;
+        }
+
+        // How many slots of one monument hold a cosmetic gourd, by the same save entries (tower_mode).
+        internal static int FilledSlots(string prefix)
+        {
+            var data = SaveManager.instance != null ? SaveManager.instance.currentData : null;
+            if (data == null || data.entries == null)
+                return 0;
+
+            var start = SaveKeyPrefix + prefix + "Slot";
+            var count = 0;
+            var entries = data.entries;
+            for (var i = 0; i < entries.Count; i++)
+            {
+                var entry = entries[i];
+                if (entry.value != 0 && entry.key != null && entry.key.StartsWith(start, StringComparison.Ordinal))
                     count++;
             }
 

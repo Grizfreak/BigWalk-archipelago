@@ -17,6 +17,28 @@ namespace BigWalkArchipelago.Core.Net
     {
         internal string WorldVersion { get; private set; } = "unknown";
         internal string Goal { get; private set; } = "gauntlet";
+
+        // 0.5 (ROADMAP G5): what the seed asks for, one by one. Empty for a seed that keeps the single
+        // `goal` above, which is then played as before. See ApObjectives.
+        internal string[] Objectives { get; private set; } = Array.Empty<string>();
+        internal bool LockEndings { get; private set; }
+        internal int KeysRequired { get; private set; } = 7;
+
+        // `tower_mode` (ROADMAP G4, 0.5): "all_open", "in_order" or "by_item"; the order the monuments open in
+        // (the towers' big key props); the Progressive Monument's item id; the towers `big_towers` asks for.
+        internal string TowerMode { get; private set; } = "all_open";
+        internal string[] TowerOrder { get; private set; } = Array.Empty<string>();
+        internal bool FirstTowerOpen { get; private set; } = true;
+        internal bool EveryoneGathers { get; private set; }
+        internal int GreenDomeSlots { get; private set; } = 15;
+        internal long MonumentItemId { get; private set; }
+        internal int TowersRequired { get; private set; } = 7;
+
+        // Reaching a tower (ROADMAP S8, H3): the check's ids (the position in the list) and the ids hinted on arrival.
+        internal string[] TowerReachedKeys { get; private set; } = Array.Empty<string>();
+        internal int TowerReachedIdOffset { get; private set; } = 13_200;
+        internal Dictionary<string, long[]> TowerReachHints { get; private set; } = new();
+        internal int RadioStationsRequired { get; private set; } = 7;
         internal int DepositGoalAmount { get; private set; }
         internal bool RadioStationChecks { get; private set; } = true;
 
@@ -137,6 +159,9 @@ namespace BigWalkArchipelago.Core.Net
         internal bool RandomColours { get; private set; }
         internal int[] ColourPalette { get; private set; } = Array.Empty<int>();
 
+        // gourd_name (0.4.0); "Gourd" on older seeds.
+        internal string GourdName { get; private set; } = GourdNames.Default;
+
         // TrapLink (0.4.0): the traps received are sent to the other games, theirs play here.
         internal bool TrapLink { get; private set; }
 
@@ -155,6 +180,33 @@ namespace BigWalkArchipelago.Core.Net
 
             data.WorldVersion = GetString(raw, "world_version", data.WorldVersion);
             data.Goal = GetString(raw, "goal", data.Goal);
+            data.Objectives = GetStringArray(raw, "objectives");
+            data.LockEndings = GetBool(raw, "lock_endings", false);
+            data.KeysRequired = GetInt(raw, "keys_required", data.KeysRequired);
+            data.TowerMode = GetString(raw, "tower_mode", data.TowerMode);
+            data.TowerOrder = GetStringArray(raw, "tower_order");
+            data.FirstTowerOpen = GetBool(raw, "first_tower_open", true);
+            data.EveryoneGathers = GetBool(raw, "everyone_gathers", false);
+            data.GreenDomeSlots = GetInt(raw, "green_dome_slots", 15);
+            data.MonumentItemId = GetInt(raw, "monument_item_id", 0);
+            data.TowersRequired = GetInt(raw, "towers_required", data.TowersRequired);
+            data.TowerReachedKeys = GetStringArray(raw, "tower_reached_keys");
+            data.TowerReachedIdOffset = GetInt(raw, "tower_reached_id_offset", data.TowerReachedIdOffset);
+            foreach (var pair in GetMap(raw, "tower_reach_hints"))
+            {
+                try
+                {
+                    var ids = new List<long>();
+                    foreach (var id in Newtonsoft.Json.Linq.JArray.Parse(pair.Value.Text))
+                        ids.Add(id.ToObject<long>());
+                    data.TowerReachHints[pair.Key] = ids.ToArray();
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"[{nameof(ApSlotData)}] slot_data['tower_reach_hints'][{pair.Key}] is unreadable: {ex.Message}");
+                }
+            }
+            data.RadioStationsRequired = GetInt(raw, "radio_stations_required", data.RadioStationsRequired);
             data.DepositGoalAmount = GetInt(raw, "deposit_goal_amount", data.DepositGoalAmount);
             data.RadioStationChecks = GetBool(raw, "radio_station_checks", data.RadioStationChecks);
             data.RadioStationItems = GetBool(raw, "radio_station_items", data.RadioStationItems);
@@ -212,6 +264,7 @@ namespace BigWalkArchipelago.Core.Net
             // "random_colours" and "colour_palette" in the first builds of 0.4.
             data.RandomColours = GetBool(raw, "random_colors", GetBool(raw, "random_colours", false));
             data.ColourPalette = raw.ContainsKey("color_palette") ? GetIntArray(raw, "color_palette") : GetIntArray(raw, "colour_palette");
+            data.GourdName = GetString(raw, "gourd_name", data.GourdName);
             data.TrapLink = GetBool(raw, "trap_link", false);
 
             data.TrapDuration = GetInt(raw, "trap_duration", data.TrapDuration);
@@ -234,7 +287,7 @@ namespace BigWalkArchipelago.Core.Net
 
         internal string Describe()
         {
-            return $"apworld v{WorldVersion}, goal={Goal}"
+            return $"apworld v{WorldVersion}, goal={(Objectives.Length > 0 ? "[" + string.Join(", ", Objectives) + "]" : Goal)}"
                    + (Goal == "deposits" ? $" ({DepositGoalAmount} deposits)" : string.Empty)
                    + $", {TotalMonumentSlots} monument slots"
                    + $", {DepositLocationAmounts.Length} deposit check(s)"

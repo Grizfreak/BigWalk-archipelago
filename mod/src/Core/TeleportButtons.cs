@@ -236,6 +236,10 @@ namespace BigWalkArchipelago.Core
         internal static void Sync()
         {
             var mask = Mask();
+            ObjectiveBoard.Sync();
+            TowerReach.Tick();
+            MonumentOrder.Tick();
+            ObjectiveSpots.Tick();
             ResyncStations.Sync((mask & ToolsBit) != 0);
             for (var i = 0; i < Destinations.Length; i++)
             {
