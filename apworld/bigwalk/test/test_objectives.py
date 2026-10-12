@@ -54,6 +54,21 @@ class TestTheBellEndsBeforeTheGauntlet(unittest.TestCase):
             build_like_universal_tracker({"goal": "big_wall", "gauntlet_mode": "locked_stages"})
 
 
+class TestTheGourdsAsTheGoalWithObjectives(BigWalkTestBase):
+    """goal big_collection with objectives: won once the gourds AND the rest are done, in any order."""
+
+    options = {"goal": "big_collection", "objectives": ["big_climb", "big_collection"], "gourds_required": 20}
+    run_default_tests = False
+
+    def test_the_list_holds_the_gourds_once(self) -> None:
+        self.assertEqual(["big_collection", "big_climb"], self.world.fill_slot_data()["objectives"])
+
+    def test_the_gourds_are_needed(self) -> None:
+        self.assertFalse(self.can_reach_location("Victory"))
+        self.collect_gourds(20)
+        self.assertTrue(self.can_reach_location("Victory"))
+
+
 class TestRandomObjectives(BigWalkTestBase):
     """random_objectives draws among those listed."""
 
