@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from Options import (
-    Choice, DefaultOnToggle, OptionCounter, OptionGroup, OptionSet, PerGameCommonOptions, Range, StartInventoryPool, Toggle, Visibility,
+    Choice, DefaultOnToggle, FreeText, OptionCounter, OptionGroup, OptionSet, PerGameCommonOptions, Range, StartInventoryPool, Toggle, Visibility,
 )
 
 from . import data
@@ -61,9 +61,94 @@ names are also aliases of the option, so the tracker reads them back.
 """
 
 
+OBJECTIVE_ENDINGS = ("big_goodbye", "big_game", "big_wall")
+"""What can end a list: the Gauntlet's bell, the secret ending, and the chapel's bell for a short seed without the
+Gauntlet (the player, 2026-10-12)."""
+
+EXCLUSIVE_ENDINGS = ("big_goodbye", "big_game")
+"""The endings a save plays only one of: a list holds at most one of these (the chapel's bell can go beside either)."""
+
+OBJECTIVE_KEYS = (
+    "big_wall", "big_goodbye", "big_game", "big_collection", "big_keys", "big_radio", "big_towers",
+    "big_climb", "big_fiesta",
+)
+"""Every objective, in the order the slot data lists them. Frozen: the mod reads these strings."""
+
+
+class Objectives(OptionSet):
+    """
+    What a seed asks for besides its Goal, in any order: the Goal (the ending) is then won once every objective listed
+    is done too. Empty (the default): the Goal alone, as before. With Random Objectives, a few of these are drawn instead.
+
+    - big_collection: place a number of gourds in the towers' slots (see Gourds Required).
+    - big_keys: place a number of big keys in their plinths, the drawbridge's included (see Keys Required).
+    - big_radio: switch on a number of radio stations (see Radio Stations Required; needs Radio Sanity).
+    - big_towers: complete a number of towers (see Towers Required; needs Tower Mode in_order or by_item).
+    - big_climb: stand on the highest point of the island.
+    - big_fiesta (also read as big_club): the party on the beach, a radio plugged into the big speakers with a music
+      playing. Needs a Radio, and with Shuffle Radio Music one of the stations, which become progression.
+
+    The endings (big_wall, big_goodbye, big_game) are not listed here: they are the Goal.
+    """
+
+    display_name = "Objectives"
+    # The endings and the dropped big_walk are accepted only to be refused with a clear word (world._check_the_objectives).
+    valid_keys = frozenset(OBJECTIVE_KEYS) | {"big_bell", "big_club", "big_walk"}
+    default = frozenset()
+
+
+class RandomObjectives(Range):
+    """
+    Draws this many objectives at random, from the Objectives listed or, if none are, from all of those the other options
+    allow. 0 (the default): the Objectives listed are all asked for, none drawn.
+    """
+
+    display_name = "Random Objectives"
+    range_start = 0
+    range_end = len(OBJECTIVE_KEYS) - len(OBJECTIVE_ENDINGS)
+    default = 0
+
+
+class LockEndingsUntilObjectives(Toggle):
+    """
+    With Objectives: the ending's entry point (the chapel's bell, the Gauntlet's bell door, the secret room's
+    printer) stays shut on every screen until the other objectives are done, so an ending,
+    which plays once per save, is never played too early. Off: nothing is shut, and the ending
+    can be played in any order.
+    """
+
+    display_name = "Lock Endings Until Objectives"
+
+
+class KeysRequired(Range):
+    """
+    Only relevant if the Objectives hold "big_keys".
+
+    How many big keys must be placed in their plinths, the drawbridge's and the six towers'.
+    """
+
+    display_name = "Keys Required"
+    range_start = 1
+    range_end = len(data.TOWERS)
+    default = len(data.TOWERS)
+
+
+class RadioStationsRequired(Range):
+    """
+    Only relevant if the Objectives hold "big_radio".
+
+    How many radio stations must be switched on. Needs Radio Sanity, whose checks are the stations.
+    """
+
+    display_name = "Radio Stations Required"
+    range_start = 1
+    range_end = len(data.RADIO_STATIONS)
+    default = len(data.RADIO_STATIONS)
+
+
 class GourdsRequired(Range):
     """
-    Only relevant if the Goal is "big_collection".
+    Only relevant if the Goal, or the Objectives, hold "big_collection".
 
     How many gourds must be placed in the towers' slots to win.
     """
@@ -147,6 +232,97 @@ class FlareGunSanity(DefaultOnToggle):
     """
 
     display_name = "Flare Gun Sanity"
+
+
+class GourdName(FreeText):
+    """
+    Renames the gourds for the run (24 characters max), everywhere: clients, hints, spoiler, overlay.
+    Letters, digits and spaces, with ' - _ . , ! ? & + : ; ( ) @; anything else is dropped.
+    All Big Walk slots must use the same name, and it can't be another item's or group's name;
+    otherwise it stays "Gourd".
+    """
+
+    display_name = "Gourd Name"
+    default = "Gourd"
+
+
+class TowerMode(Choice):
+    """
+    How the towers' monuments open for the gourds.
+
+    - all_open: every monument takes gourds from the start, in any order. The way it has always been.
+    - in_order: one monument at a time, in an order the seed draws: the next opens once the one before is
+      full, and a monument that is not the next refuses gourds, and its tower's button stays still.
+    - by_item: the same order, and the next monument also waits for a Progressive Monument item, the first
+      monument being open from the start.
+    """
+
+    display_name = "Tower Mode"
+    option_all_open = 0
+    option_in_order = 1
+    option_by_item = 2
+    default = option_all_open
+
+
+class FirstTowerOpen(DefaultOnToggle):
+    """
+    With Tower Mode by_item: the first monument takes gourds from the start (the default). Off: it waits for a
+    Progressive Monument like the others, and the seed starts with no monument open. Needs by_item: nothing could
+    open the first monument in in_order.
+    """
+
+    display_name = "First Tower Open"
+
+
+class EveryoneGathers(Toggle):
+    """
+    Big Climb and Big Fiesta count their ten seconds only while every player is there: at the island's highest point for
+    the climb, near the big speakers on the beach for the party. Off (the default): one player is enough.
+    """
+
+    display_name = "Everyone Gathers"
+
+
+class TowersRequired(Range):
+    """
+    Only relevant if the Objectives hold "big_towers" (which needs Tower Mode in_order or by_item).
+
+    How many towers must be completed, a tower being complete when its monument is full, in the seed's order.
+    """
+
+    display_name = "Towers Required"
+    range_start = 1
+    range_end = len(data.TOWERS)
+    default = len(data.TOWERS)
+
+
+class TowerSanity(DefaultOnToggle):
+    """
+    A check for reaching each of the seven towers: the Red, Green, Blue, Yellow and Black ones when the tower's
+    opening button is pressed (the two buttons at the top of the Black Tower held together), the drawbridge and
+    the Green Dome when a player gets there.
+    """
+
+    display_name = "Tower Sanity"
+
+
+class HintDiscoveredKeyLocations(Toggle):
+    """
+    When a tower is reached (its opening button pressed), hint what sits at its key cuts and its key deposit, so a player who
+    walks up to a tower learns what is waiting there. Free, like the hints at the start.
+    """
+
+    display_name = "Hint Discovered Key Locations"
+
+
+class HintDiscoveredDepositBoxes(Toggle):
+    """
+    With Tower Mode in_order or by_item: when a tower is reached, hint the gourd deposit checks that sit in its
+    monument (the gourds placed there, counted from the towers before it). Free, like the hints at the start.
+    Without a tower order the deposits belong to no tower, and nothing is hinted.
+    """
+
+    display_name = "Hint Discovered Deposit Boxes"
 
 
 class RandomColors(DefaultOnToggle):
@@ -318,8 +494,8 @@ class GauntletMode(Choice):
       inside the stage, but you only leave it with that stage's item. 7 checks,
       7 items.
 
-    Whatever the goal. With Big Goodbye the seven items are needed to win. With
-    another goal the Gauntlet is extra: its checks sit behind the chapel, so with
+    Not with the goal big_wall, which ends the run before the Gauntlet. With Big
+    Goodbye the seven items are needed to win. With big_game the Gauntlet is extra: its checks sit behind the chapel, so with
     the usual accessibility (full) the Black Monolith Key and the seven items
     are always findable, but the goal itself asks for none of them.
     """
@@ -657,7 +833,9 @@ class IslandObjectLimits(OptionCounter):
     """
 
     display_name = "Island Object Limits"
-    valid_keys = frozenset(name for name, _ in data.FILLER_ITEMS if name not in ("Backpack", "Belt", "Gourd Carton"))
+    # "X-Ray Goggles" is the Scanner's name before 0.5.0, still read (items.island_object_limits).
+    valid_keys = frozenset(name for name, _ in data.FILLER_ITEMS if name not in ("Backpack", "Belt", "Gourd Carton")) | {
+        "X-Ray Goggles"}
     min = 0
     max = 50
     default = {
@@ -675,7 +853,7 @@ class IslandObjectLimits(OptionCounter):
         "Megaphone": 3,
         "Compass": 3,
         "Radio": 3,
-        "X-Ray Goggles": 3,
+        "Scanner": 3,
     }
 
 
@@ -810,6 +988,11 @@ class DeathLinkRouletteHardTraps(DefaultOnToggle):
 @dataclass
 class BigWalkOptions(PerGameCommonOptions):
     goal: Goal
+    objectives: Objectives
+    random_objectives: RandomObjectives
+    lock_endings_until_objectives: LockEndingsUntilObjectives
+    keys_required: KeysRequired
+    radio_stations_required: RadioStationsRequired
     gourds_required: GourdsRequired
     gourd_sanity: GourdSanity
     radio_sanity: RadioSanity
@@ -862,11 +1045,23 @@ class BigWalkOptions(PerGameCommonOptions):
     gourd_cartons_in_pool: GourdCartonsInPool
     flare_gun_sanity: FlareGunSanity
     random_colors: RandomColors
+    tower_mode: TowerMode
+    first_tower_open: FirstTowerOpen
+    everyone_gathers: EveryoneGathers
+    towers_required: TowersRequired
+    tower_sanity: TowerSanity
+    hint_discovered_key_locations: HintDiscoveredKeyLocations
+    hint_discovered_deposit_boxes: HintDiscoveredDepositBoxes
+    gourd_name: GourdName
     start_inventory_from_pool: StartInventoryPool
 
 
 option_groups = [
-    OptionGroup("Goal", [Goal, GourdsRequired]),
+    OptionGroup("Goal", [
+        Goal, Objectives, RandomObjectives, LockEndingsUntilObjectives, GourdsRequired, KeysRequired, RadioStationsRequired,
+        TowersRequired, EveryoneGathers,
+    ]),
+    OptionGroup("Towers", [TowerMode, FirstTowerOpen]),
     OptionGroup("Sanity", [GourdSanity, RadioSanity, ShuffleRadioMusic, PackSanity, FireworkSanity, FlareGunSanity]),
     OptionGroup("Logic", [
         StartWithDrawbridgeOpen, OpenBlackTower, StartWithArchDoorsOpen, RequireArchDoors,
@@ -874,7 +1069,7 @@ option_groups = [
         LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed,
     ]),
     OptionGroup("Item Pool", [BackpacksInPool, BeltsInPool, GourdCartonsInPool, IslandObjectLimits]),
-    OptionGroup("Colors", [RandomColors]),
+    OptionGroup("Colors and Names", [RandomColors, GourdName]),
     OptionGroup("Traps and Bonuses", [
         TrapFillPercentage, TrapWeights, HardTraps, BonusFillPercentage, BonusWeights, TrapDuration, TrapsSpareTheGauntlet,
         TrapLink,
@@ -883,7 +1078,7 @@ option_groups = [
         BigWalkDeathLink, DeathLinkTriggers, DeathLinkAmnesty, DeathLinkEffect, DeathLinkTrapWeights,
         DeathLinkRouletteHardTraps, DeathLinkTrapOnSend, DeathLinkTarget,
     ]),
-    OptionGroup("QoL", [HintKeys, TeleportButtons, TeleportBackToHub, TowerResyncStations, GuestsCanResync]),
+    OptionGroup("QoL", [HintKeys, HintDiscoveredKeyLocations, HintDiscoveredDepositBoxes, TowerSanity, TeleportButtons, TeleportBackToHub, TowerResyncStations, GuestsCanResync]),
     OptionGroup("Puzzle QoL", [
         CabinFeverSeconds, CabinFeverHelp, CabinFeverLongSeconds, CabinFeverLongHelp, TileThief,
     ]),

@@ -127,11 +127,11 @@ class TestWithPuzzleNeeds(BigWalkTestBase):
 class TestTheGoalIsSomethingElse(BigWalkTestBase):
     """Only the Gauntlet goal asks for the stairways."""
 
-    options = {"gauntlet_mode": "locked_stages", "gauntlet_stage_items": "individual", "goal": "big_wall"}
+    options = {"gauntlet_mode": "locked_stages", "gauntlet_stage_items": "individual", "goal": "big_game"}
     run_default_tests = False
 
-    def test_the_bell_asks_for_no_stairway(self) -> None:
-        self.collect_by_name(data.BLACK_MONOLITH.item_name)
+    def test_the_secret_ending_asks_for_no_stairway(self) -> None:
+        self.collect_by_name(data.GREEN_DOME.item_name)
         self.assertTrue(self.can_reach_location(locations.VICTORY_EVENT_NAME))
 
 

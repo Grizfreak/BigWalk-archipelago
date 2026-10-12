@@ -4,19 +4,32 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any, TextIO
 
+from BaseClasses import MultiWorld
 from Options import OptionError
 from worlds.AutoWorld import World
 
-from . import data, items, locations, regions, rules, web_world
+from . import data, gourd_name, items, locations, regions, rules, web_world
 from . import options as bigwalk_options
 
-WORLD_VERSION = "0.4.0"
+if TYPE_CHECKING:
+    from NetUtils import MultiData
+
+WORLD_VERSION = "0.5.0"
 """Kept in step with archipelago.json; sent in slot_data so the mod can check it."""
 
 TRACKER_OPTIONS = {
     "goal": "goal",
+    "objectives": "objectives",
+    "lock_endings": "lock_endings_until_objectives",
+    "keys_required": "keys_required",
+    "tower_sanity": "tower_sanity",
+    "tower_mode": "tower_mode",
+    "first_tower_open": "first_tower_open",
+    "everyone_gathers": "everyone_gathers",
+    "towers_required": "towers_required",
+    "radio_stations_required": "radio_stations_required",
     "deposit_goal_amount": "gourds_required",
     "deposit_locations": "gourd_sanity",
     "radio_station_checks": "radio_sanity",
@@ -72,6 +85,8 @@ class BigWalkWorld(World):
     """
 
     game = "Big Walk"
+    # What the seed asks for besides its Goal (_check_the_objectives); empty for a world that never generates early.
+    objectives: frozenset[str] = frozenset()
 
     web = web_world.BigWalkWebWorld()
 
@@ -126,6 +141,9 @@ class BigWalkWorld(World):
     locked_arch_doors: tuple[data.ArchDoor, ...]
     """Arch doors held closed until their item arrives."""
 
+    gourd_name: str = data.GOURD_ITEM_NAME
+    """Display name of the gourds, shared by every Big Walk slot."""
+
     @staticmethod
     def interpret_slot_data(slot_data: Mapping[str, Any]) -> Mapping[str, Any]:
         """
@@ -176,6 +194,8 @@ class BigWalkWorld(World):
         self.deposit_amounts = self._pick_deposit_amounts(self.gourd_count)
         self.cabin_fever = self._cabin_fever_waits()
         self.deposit_goal = self.options.gourds_required.value
+        self._check_the_objectives()
+        self._draw_the_tower_order()
 
         self._pick_a_random_puzzle_need()
         self._ask_for_buttons_early()
@@ -186,6 +206,31 @@ class BigWalkWorld(World):
         self._ask_for_the_far_doors_early()
         self._hint_the_keys()
         self._keep_the_gauntlet_stages_local()
+
+    @classmethod
+    def stage_generate_early(cls, multiworld: MultiWorld) -> None:
+        # The data package is per game, so one name for all Big Walk slots.
+        worlds = [multiworld.worlds[player] for player in multiworld.get_game_players(cls.game)]
+        taken = (*cls.item_name_to_id, *cls.item_name_groups)
+        name = gourd_name.shared({
+            world.player_name: gourd_name.clean(world.options.gourd_name.value, taken, world.player_name)
+            for world in worlds
+        })
+        for world in worlds:
+            world.gourd_name = name
+
+    def modify_multidata(self, multidata: MultiData) -> None:
+        package = multidata["datapackage"].get(self.game)
+        if self.gourd_name == data.GOURD_ITEM_NAME or package is None:
+            return
+        if data.GOURD_ITEM_NAME in package["item_name_to_id"]:
+            multidata["datapackage"][self.game] = gourd_name.renamed_package(package, self.gourd_name)
+
+    def write_spoiler_header(self, spoiler_handle: TextIO) -> None:
+        if self.gourd_name != self.options.gourd_name.value:
+            spoiler_handle.write(f"{'Gourds called:':33}{self.gourd_name}\n")
+        if self.options.random_objectives.value:
+            spoiler_handle.write(f"{'Objectives drawn:':33}{', '.join(self.objective_keys())}\n")
 
     def _keep_the_gauntlet_stages_local(self) -> None:
         """
@@ -328,6 +373,142 @@ class BigWalkWorld(World):
             self.options.gauntlet_stage_items = bigwalk_options.GauntletStageItems(
                 bigwalk_options.GauntletStageItems.option_individual)
 
+    def _check_the_objectives(self) -> None:
+        """
+        The objectives asked for besides the Goal (the ending, chosen apart, the player 2026-10-12): those listed, or a
+        few drawn among them (`random_objectives`). Universal Tracker reads back what the seed drew.
+        """
+        passthrough = getattr(self.multiworld, "re_gen_passthrough", None)
+        slot_data = passthrough.get(self.game) if passthrough else None
+        if slot_data and "objectives" in slot_data:
+            self.objectives = frozenset(slot_data["objectives"]) - {self.options.goal.current_key}
+            return
+
+        if (self.options.goal == bigwalk_options.Goal.option_big_wall
+                and self.options.gauntlet_mode == bigwalk_options.GauntletMode.option_locked_stages):
+            raise OptionError(
+                f"Big Walk ({self.player_name}): the goal big_wall ends the run at the chapel, before the Silent "
+                f"Gauntlet, whose locked stages would then hold checks for nothing (the player, 2026-10-12). Set "
+                f"gauntlet_mode to vanilla, or the goal to big_goodbye or big_game.")
+
+        listed = set(self.options.objectives.value)
+        if "big_walk" in listed:
+            raise OptionError(
+                f"Big Walk ({self.player_name}): big_walk is no longer an objective (0.5.0): the drawbridge's key is one "
+                f"of big_keys. For a short seed, set the goal to big_wall or big_game.")
+        if "big_club" in listed:
+            listed.discard("big_club")
+            listed.add("big_fiesta")
+        endings = sorted(listed & (set(bigwalk_options.OBJECTIVE_ENDINGS) | {"big_bell"}))
+        if endings:
+            raise OptionError(
+                f"Big Walk ({self.player_name}): {', '.join(endings)} is an ending: it is the goal, not an objective. "
+                f"Set `goal` to the ending, and list the other things to do in `objectives`.")
+
+        count = self.options.random_objectives.value
+        if count:
+            pool = listed or {key for key in bigwalk_options.OBJECTIVE_KEYS
+                              if key not in bigwalk_options.OBJECTIVE_ENDINGS and self._objective_allowed(key)}
+            if count > len(pool):
+                logging.warning(f"Big Walk ({self.player_name}): random_objectives asks for {count}, "
+                                f"only {len(pool)} can be drawn.")
+                count = len(pool)
+            listed = set(self.random.sample(sorted(pool), count))
+
+        if "big_radio" in listed and not self.options.radio_sanity:
+            raise OptionError(
+                f"Big Walk ({self.player_name}): the Objectives hold big_radio, whose stations are the "
+                f"Radio Sanity checks. Turn Radio Sanity on.")
+        self.objectives = frozenset(listed)
+
+    def _objective_allowed(self, key: str) -> bool:
+        """Whether the other options let this objective be drawn."""
+        if key == "big_radio":
+            return bool(self.options.radio_sanity)
+        if key == "big_towers":
+            return self.options.tower_mode != bigwalk_options.TowerMode.option_all_open
+        return True
+
+    def _tower_reach_hints(self) -> dict[str, list[int]]:
+        """
+        By tower: the key cuts and the key deposit, hinted when it is reached (`hint_discovered_key_locations`), and its
+        monument's deposits. All seven: the drawbridge and the Green Dome are reached by position (no check of their own).
+        """
+        hints: dict[str, list[int]] = {}
+        for tower in data.TOWERS:
+            ids: list[int] = []
+            if self.options.hint_discovered_key_locations:
+                ids += [data.cut_location_id(tower, i) for i in range(tower.segments)]
+                ids.append(data.key_deposit_location_id(tower))
+            if self.options.hint_discovered_deposit_boxes and self.tower_order:
+                ids += self._deposit_ids_of(tower)
+            if ids:
+                hints[tower.prop_name] = ids
+        return hints
+
+    def _deposit_ids_of(self, tower: data.Tower) -> list[int]:
+        """The gourd deposit checks that sit in this tower's monument, in the seed's order of towers."""
+        start = 0
+        for prop in self.tower_order:
+            if prop == tower.prop_name:
+                break
+            start += self.tower_slots(data.tower_by_prop(prop))
+        return [data.deposit_location_id(amount) for amount in self.deposit_amounts
+                if start < amount <= start + self.tower_slots(tower)]
+
+    def tower_slots(self, tower: data.Tower) -> int:
+        """
+        How many slots of this tower the seed's gourds can fill. The monuments hold 45 slots and the pool 45 gourds, so
+        today it is the tower's own number; if the pool holds fewer, the Green Dome, the last tower, gives up what is
+        missing (the player, 2026-10-12), so that every other tower can still be filled and the dome is the one left short.
+        """
+        missing = max(0, data.MAX_MONUMENT_SLOTS - self.gourd_count)
+        if tower.prop_name == "bigKeyOverflow":
+            return max(0, tower.slots - missing)
+        return tower.slots
+
+    def _draw_the_tower_order(self) -> None:
+        """
+        With `tower_mode` in_order or by_item, the order the monuments open in: drawn once per seed from all
+        seven towers, or read back from the seed's slot data while Universal Tracker re-generates it.
+        """
+        self.tower_order: tuple[str, ...] = ()
+        if self.options.tower_mode == bigwalk_options.TowerMode.option_all_open:
+            if "big_towers" in self.objectives:
+                raise OptionError(
+                    f"Big Walk ({self.player_name}): the Objectives hold big_towers, which needs Tower Mode "
+                    f"in_order or by_item.")
+            return
+
+        if not self.options.first_tower_open and self.options.tower_mode != bigwalk_options.TowerMode.option_by_item:
+            raise OptionError(
+                f"Big Walk ({self.player_name}): first_tower_open is off, which needs Tower Mode by_item: in_order has "
+                f"nothing to open the first monument.")
+
+        passthrough = getattr(self.multiworld, "re_gen_passthrough", None)
+        slot_data = passthrough.get(self.game) if passthrough else None
+        known = tuple(slot_data.get("tower_order", ())) if slot_data else ()
+        props = [tower.prop_name for tower in self.towers]
+        if sorted(known) == sorted(props):
+            self.tower_order = known
+            return
+
+        order = list(props)
+        self.random.shuffle(order)
+        self.tower_order = tuple(order)
+
+    def tower_index(self, prop_name: str) -> int:
+        return self.tower_order.index(prop_name)
+
+    def _goal_for_older_mods(self) -> str:
+        """The single goal a mod from before the objectives reads: the Goal itself, which is the ending."""
+        return self.options.goal.current_key
+
+    def objective_keys(self) -> tuple[str, ...]:
+        """What this seed asks for, in the frozen order: the objectives and the Goal; the Goal alone when none are."""
+        listed = self.objectives | {self.options.goal.current_key}
+        return tuple(key for key in bigwalk_options.OBJECTIVE_KEYS if key in listed)
+
     def _pick_deposit_amounts(self, total_slots: int) -> tuple[int, ...]:
         choice = self.options.gourd_sanity
         if choice == bigwalk_options.GourdSanity.option_off:
@@ -385,7 +566,26 @@ class BigWalkWorld(World):
             # silently change what the mod does. They are the pre-rename
             # names, frozen in the *_ON_THE_WIRE tables, so renaming a YAML
             # value never needs a matching mod release.
-            "goal": bigwalk_options.GOAL_ON_THE_WIRE[self.options.goal.current_key],
+            "goal": bigwalk_options.GOAL_ON_THE_WIRE[self._goal_for_older_mods()],
+            # The objectives (ROADMAP G5, 0.5): empty for a seed that keeps the older `goal`, which
+            # the mod then plays as before. `lock_endings` only means something with a list.
+            "objectives": list(self.objective_keys()) if self.objectives else [],
+            "lock_endings": bool(self.objectives and self.options.lock_endings_until_objectives),
+            "keys_required": self.options.keys_required.value,
+            # Reaching a tower (ROADMAP S8, H3, 0.5): the check, and what to hint when a tower is reached
+            # (the ids of this slot's own locations, which a client can scout as hints).
+            "tower_mode": self.options.tower_mode.current_key,
+            "tower_order": list(self.tower_order),
+            "green_dome_slots": self.tower_slots(data.tower_by_prop("bigKeyOverflow")),
+            "first_tower_open": bool(self.options.first_tower_open),
+            "everyone_gathers": bool(self.options.everyone_gathers),
+            "monument_item_id": data.progressive_monument_id(),
+            "towers_required": self.options.towers_required.value,
+            "tower_sanity": bool(self.options.tower_sanity),
+            "tower_reached_keys": [tower.prop_name for tower in data.reached_towers()] if self.options.tower_sanity else [],
+            "tower_reached_id_offset": data.TOWER_REACHED_ID_OFFSET,
+            "tower_reach_hints": self._tower_reach_hints(),
+            "radio_stations_required": self.options.radio_stations_required.value,
             "deposit_goal_amount": self.deposit_goal,
             "deposit_locations": bigwalk_options.GOURD_SANITY_ON_THE_WIRE[
                 self.options.gourd_sanity.current_key],
@@ -519,4 +719,5 @@ class BigWalkWorld(World):
             "cut_id_offset": data.CUT_ID_OFFSET,
             "key_item_id_offset": data.KEY_ITEM_ID_OFFSET,
             "gourd_item_id": items.ITEM_NAME_TO_ID[data.GOURD_ITEM_NAME],
+            "gourd_name": self.gourd_name,
         }

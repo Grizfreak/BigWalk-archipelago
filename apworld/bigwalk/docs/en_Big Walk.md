@@ -120,7 +120,7 @@ There are 17: **Buttons**, **Synchronized Buttons**, **Icon Panels**,
 **Drawing Panels**, **Pose Panels**, **Sound Panels**, **Point Panels**,
 **Speakers**, **Lights**, **Teapots**, **Timed Tomato**, **Golf Ball**,
 **Big Head Mask**, **Ink Viewer**, **Counter**, **Coordinates Computer** and
-**Eggs**. A part is global: Buttons turns on every puzzle button on the
+**Terrain Pegs**. A part is global: Buttons turns on every puzzle button on the
 island, for every player. The generator only counts on a puzzle once you
 hold every part it needs, so a puzzle may be possible earlier than the logic
 expects (you found a way round) but never the other way.
@@ -184,6 +184,17 @@ mod's ten (red, orange, yellow, lime, green, cyan, blue, purple, pink, white), a
 
 **Only objects of the map are painted.** The players, the gourds and the keys are not touched. Turn
 `random_colors` off to keep the game's own colors.
+
+## The gourds' name
+
+**`gourd_name`** renames the gourds for the run, up to 24 characters: `gourd_name: Plumbus du
+Destin`. Every game of the multiworld, the Text Client, Universal Tracker, the spoiler log and the
+mod's overlay say that name, and `!hint Plumbus du Destin` finds them (`!hint Gourd` too). Only the
+name changes: the gourds are the same items.
+
+The name belongs to the game, not to a slot: every Big Walk slot of a multiworld has to ask for the
+same one, or they all keep "Gourd". A name that already belongs to another Big Walk item or item
+group (Backpack, Plumbus, Traps...) keeps "Gourd" too.
 
 ## Traps and bonuses
 
@@ -274,7 +285,7 @@ a multiworld still say "Gourd", because an item's name is fixed in the apworld.
 
 ## What is the goal of Big Walk when randomized?
 
-Whichever of these you picked in your YAML:
+Either one goal, or a list of **objectives** (below). The single goals, whichever you picked in your YAML:
 
 - **Big Wall** — break the bell inside the Big Wall.
 - **Big Goodbye** (default) — pass behind the Big Wall and complete the
@@ -287,6 +298,68 @@ Whichever of these you picked in your YAML:
 
 Whichever you picked, the corner of the screen names it for the whole session,
 under the connection line, with the running count for **Big Collection**.
+
+### Objectives
+
+**`objectives`** adds things to do besides the `goal`, in any order: the game is won once the goal **and every
+objective listed** are done. The goal is then the run's **ending**: `big_wall` (the chapel bell, a short seed without
+the Gauntlet), `big_goodbye` (the Gauntlet, the default) or `big_game` (the secret ending); `big_collection` works too.
+Left empty (the default), the goal alone applies, exactly as before, so an older YAML plays as it did.
+
+**`random_objectives`** draws that many at random: among the objectives listed, or, if none are, among all of those
+the other options allow (`big_radio` needs `radio_sanity`, `big_towers` a `tower_mode`). 0 (the default) asks for the
+whole list.
+
+```yaml
+Big Walk:
+  goal: big_wall
+  objectives: [big_keys, big_radio, big_climb, big_fiesta]
+  random_objectives: 2   # two of these four, drawn per seed
+```
+
+- **big_collection**: place `gourds_required` gourds.
+- **big_keys**: place `keys_required` big keys, the drawbridge's included.
+- **big_radio**: switch on `radio_stations_required` radio stations (needs `radio_sanity`).
+- **big_climb**: stand on the highest point of the island.
+- **big_fiesta** (also read as big_club): the party, on the beach: plug a radio into the big speakers, with a music playing. A
+  **Radio** is certain to be in the pool, and with `shuffle_radio_music` the Radio Music items (any one will do) become required.
+- **big_towers**: complete `towers_required` towers, a tower being complete when its monument is full, in the
+  seed's order (needs `tower_mode` `in_order` or `by_item`).
+
+An ending plays **once per save**, so each objective is remembered when it happens, and the goal goes out
+on the last of them, whatever the order. The objectives are on a **board in the hub**, above the resync
+station's sign, ticked as they are done; **Settings > Archipelago > Objectives on screen** keeps them on the
+overlay too. With **`lock_endings_until_objectives`**, the entry of the ending stays shut on every screen
+until the other objectives are done: the Gauntlet's last stairway (the door to its bell) and the secret
+room's printer.
+
+### The towers, one after the other
+
+**`tower_mode`** decides how the monuments take gourds:
+
+- **all_open** (the default): every monument takes gourds from the start, in any order.
+- **in_order**: **one monument at a time**, in an order the seed draws from all seven towers (the drawbridge
+  and the Green Dome included). The next opens once the one before is full. A monument that is not the
+  next refuses a gourd, and the button that opens its tower stays still.
+- **by_item**: the same order, and the next monument also waits for a **Progressive Monument**, an item of
+  the pool: the first monument is open from the start, and the k-th item opens the monument at position k + 1.
+
+**`first_tower_open`** (on by default), with `by_item`: off, and the first monument waits for a Progressive Monument too, so the
+seed starts with no monument open (seven items instead of six).
+
+**`everyone_gathers`** (off by default): Big Climb and Big Fiesta count their ten seconds only while every player is there (at the
+highest point; near the big speakers on the beach). Off, one player is enough.
+
+With one monument at a time, the logic is exact: a gourd placed costs the doors of the towers before it and,
+with `by_item`, their items. The monuments in the order, with each tower full, open or waiting, are on the
+same board in the hub.
+
+**`tower_sanity`** (on by default) adds **a check for reaching each of the seven towers**: made when the
+tower's opening button is pressed (the two buttons at the top of the Black Tower held together), and for the
+drawbridge and the Green Dome, which have none, when a player gets there.
+**`hint_discovered_key_locations`** hints, at that moment, what sits at the tower's five key cuts and its key
+deposit. **`hint_discovered_deposit_boxes`**, with `tower_mode`, hints the gourd deposits that sit in
+its monument.
 
 Both bells need two players hitting two buttons at once, and placing a gourd
 in a tower's slot is a two-player action too. This world is not playable
@@ -338,7 +411,7 @@ Items:
   (**Flare Gun**, **Blue Flare Gun**, **Green Flare Gun**, **Yellow Flare Gun**, with `flare_gun_sanity`)
   and the **Rainbow Flare Gun** (`island_object_limits`).
 - Filler: a megaphone, a walkie-talkie, a laser, binoculars, a compass, a folding
-  map, a portable radio, a torch or X-ray goggles — the island's own hand props
+  map, a portable radio, a torch or a scanner — the island's own hand props
   (the most of each is `island_object_limits`), dropped near you when you
   receive one. They are cosmetic only, and their vanilla copies are removed
   from the map so they can't also be found lying around for free.

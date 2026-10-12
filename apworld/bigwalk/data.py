@@ -186,7 +186,7 @@ PUZZLE_NEEDS: tuple[PuzzleNeed, ...] = (
     PuzzleNeed("ink_viewer", "Ink Viewer Unlock"),
     PuzzleNeed("counter", "Counter Unlock"),
     PuzzleNeed("coordinates_computer", "Coordinates Computer Unlock"),
-    PuzzleNeed("eggs", "Eggs Unlock"),
+    PuzzleNeed("eggs", "Terrain Pegs Unlock"),
 )
 
 EARLY_NEEDS: tuple[PuzzleNeed, ...] = PUZZLE_NEEDS[0:3]
@@ -195,7 +195,7 @@ EARLY_NEEDS: tuple[PuzzleNeed, ...] = PUZZLE_NEEDS[0:3]
 What a puzzle can need that this world turns into an item (`lock_puzzle_needs`).
 The order is load-bearing: an item's id is its position here.
 
-The eggs of Egg Hunt are a need of their own, like the tomato, the golf ball
+The terrain pegs of Egg Hunt (the YAML key stays `eggs`) are a need of their own, like the tomato, the golf ball
 and the mask: objects belonging to one puzzle, hidden until the item arrives.
 
 Not in this list on purpose: `coop`, `throwable` and `item_pickup`. They are
@@ -793,7 +793,7 @@ FILLER_ITEMS: tuple[tuple[str, int], ...] = (
     ("Gourd Carton", 9_011),
     ("Torch", 9_012),
     ("Lamp", 9_013),
-    ("X-Ray Goggles", 9_014),
+    ("Scanner", 9_014),  # "X-Ray Goggles" until 0.5.0 (the player, 2026-10-12)
     ("Blue Flare Gun", 9_015),
     ("Green Flare Gun", 9_016),
     ("Yellow Flare Gun", 9_017),
@@ -956,6 +956,47 @@ nothing when one is fired: the mod sees its button go to state 1 (`PokeButtonPec
 under `FireworkLauncher`), measured at the hub's. All on the open island but the hub's, in
 the starting zone (walked to by the player, 2026-10-05).
 """
+
+
+TOWER_REACHED_ID_OFFSET = 13_200
+"""`BASE_ID + TOWER_REACHED_ID_OFFSET + the tower's position in reached_towers()`: a check for reaching it."""
+
+
+def reachable_towers() -> tuple[Tower, ...]:
+    """
+    The towers a player can walk up to and be seen at: the four coloured ones and the Black Tower. Not the
+    drawbridge, which has no tower, nor the Green Dome, whose place in the world was never measured.
+    """
+    return tuple(tower for tower in TOWERS if tower.prop_name not in ("bigKeyIntro", "bigKeyOverflow"))
+
+
+def reached_towers() -> tuple[Tower, ...]:
+    """
+    Every tower with a "reached" check, in the order of their ids: the five with a button, then the drawbridge and the
+    Green Dome, reached by position (measured in game, 2026-10-12). Appended, so the first five keep their ids.
+    """
+    return (*reachable_towers(), tower_by_prop("bigKeyIntro"), tower_by_prop("bigKeyOverflow"))
+
+
+def tower_reached_location_name(tower: Tower) -> str:
+    return f"Reached the {tower.key_name}"
+
+
+def tower_reached_location_id(tower: Tower) -> int:
+    return BASE_ID + TOWER_REACHED_ID_OFFSET + reached_towers().index(tower)
+
+
+PROGRESSIVE_MONUMENT_ITEM_NAME = "Progressive Monument"
+PROGRESSIVE_MONUMENT_ID_OFFSET = 13_300
+
+
+def progressive_monument_id() -> int:
+    """`BASE_ID + 13_300`: one id, for every copy (`tower_mode: by_item` holds one fewer than there are towers)."""
+    return BASE_ID + PROGRESSIVE_MONUMENT_ID_OFFSET
+
+
+def tower_by_prop(prop_name: str) -> Tower:
+    return next(tower for tower in TOWERS if tower.prop_name == prop_name)
 
 
 def pickup_location_id(position: int) -> int:

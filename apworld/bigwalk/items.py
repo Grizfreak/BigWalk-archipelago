@@ -26,6 +26,7 @@ ITEM_NAME_TO_ID: dict[str, int] = {
     **{need.item_name: data.puzzle_need_item_id(need) for need in data.PUZZLE_NEEDS},
     **{stage.item_name: data.gauntlet_stage_id(stage) for stage in data.GAUNTLET_STAGES},
     data.PROGRESSIVE_GAUNTLET_ITEM_NAME: data.progressive_gauntlet_id(),
+    data.PROGRESSIVE_MONUMENT_ITEM_NAME: data.progressive_monument_id(),
     **{name: data.BASE_ID + offset for name, offset in data.FILLER_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.TRAP_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.BONUS_ITEMS},
@@ -68,6 +69,7 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Arch Doors": {door.item_name for door in data.ARCH_DOORS},
     "Puzzle Needs": set(PUZZLE_NEED_ITEM_NAMES),
     "Gauntlet Doors": set(GAUNTLET_ITEM_NAMES) | {data.PROGRESSIVE_GAUNTLET_ITEM_NAME},
+    "Monuments": {data.PROGRESSIVE_MONUMENT_ITEM_NAME},
     "Filler": set(FILLER_ITEM_NAMES),
     "Joke Filler": set(JOKE_ITEM_NAMES),
     "Teleporters": set(TELEPORT_ITEM_NAMES),
@@ -77,8 +79,25 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
 }
 
 
+def island_object_limits(world: BigWalkWorld) -> dict[str, int]:
+    """`island_object_limits`, with the Scanner's older name ("X-Ray Goggles") read as the Scanner."""
+    limits = dict(world.options.island_object_limits.value)
+    if "X-Ray Goggles" in limits:
+        limits.setdefault("Scanner", limits.pop("X-Ray Goggles"))
+    return limits
+
+
 class BigWalkItem(Item):
     game = "Big Walk"
+
+    def __repr__(self) -> str:
+        # Spoiler log: show gourd_name, keep item.name for the rules.
+        text = super().__repr__()
+        region = self.location.parent_region if self.location else None
+        if self.name != data.GOURD_ITEM_NAME or region is None or region.multiworld is None:
+            return text
+        world = region.multiworld.worlds.get(self.player)
+        return getattr(world, "gourd_name", self.name) + text[len(self.name):]
 
 
 def classification_for(name: str, require_arch_doors: bool = False) -> ItemClassification:
@@ -109,6 +128,9 @@ def classification_for(name: str, require_arch_doors: bool = False) -> ItemClass
         # Only ever created with `gauntlet_mode: locked_stages`, where each one
         # is the way up out of its stage and the goal asks for all seven.
         return ItemClassification.progression
+    if name in ITEM_NAME_GROUPS["Monuments"]:
+        # Only ever created with `tower_mode: by_item`, where the k-th one opens the k-th tower after the first.
+        return ItemClassification.progression
     if name in ITEM_NAME_GROUPS["Puzzle Needs"]:
         # Only ever created when lock_puzzle_needs is on, where each one is
         # required by every puzzle built from it.
@@ -124,9 +146,20 @@ def classification_for(name: str, require_arch_doors: bool = False) -> ItemClass
     return ItemClassification.filler
 
 
+RADIO_ITEM_NAME = "Radio"
+"""The portable radio, a gadget item (the world's own radios are taken out of the island)."""
+
+
+def party_asked_for(world: BigWalkWorld) -> bool:
+    return "big_fiesta" in world.objectives
+
+
 def create_item(world: BigWalkWorld, name: str) -> BigWalkItem:
-    return BigWalkItem(
-        name, classification_for(name, bool(world.options.require_arch_doors)), ITEM_NAME_TO_ID[name], world.player)
+    classification = classification_for(name, bool(world.options.require_arch_doors))
+    # The party (`big_fiesta`) needs a radio and a music: from filler, they become what the goal waits for.
+    if party_asked_for(world) and (name == RADIO_ITEM_NAME or name in RADIO_ITEM_NAMES):
+        classification = ItemClassification.progression
+    return BigWalkItem(name, classification, ITEM_NAME_TO_ID[name], world.player)
 
 
 def trap_weights(world: BigWalkWorld) -> dict[str, int]:
@@ -178,7 +211,7 @@ def pick_island_object(world: BigWalkWorld) -> str:
     """
     # Made on first use: an item link's group world never runs generate_early.
     counts = world.__dict__.setdefault("island_objects_made", Counter())
-    limits = world.options.island_object_limits.value
+    limits = island_object_limits(world)
     objects = [n for n in FILLER_ITEM_NAMES if n not in GUARANTEED_GEAR and n not in FLARE_GUN_NAMES]
     open_ = [n for n in objects if counts[n] < limits.get(n, 0)]
     if open_:
@@ -233,6 +266,12 @@ def create_all_items(world: BigWalkWorld) -> None:
         else:
             pool += [world.create_item(stage.item_name) for stage in data.GAUNTLET_STAGES]
 
+    # With `tower_mode: by_item`, one copy opens each monument after the first, displacing filler.
+    if world.options.tower_mode == bigwalk_options.TowerMode.option_by_item:
+        # One for each monument after the first, and for the first as well when it does not start open.
+        count = len(world.towers) - (1 if world.options.first_tower_open else 0)
+        pool += [world.create_item(data.PROGRESSIVE_MONUMENT_ITEM_NAME) for _ in range(count)]
+
     # The needs the player starts with are handed over up front, like the
     # drawbridge, and never enter the pool.
     if world.options.lock_puzzle_needs:
@@ -258,9 +297,14 @@ def create_all_items(world: BigWalkWorld) -> None:
         take = min(getattr(world.options, option).value, filler_needed)
         pool += [world.create_item(name) for _ in range(take)]
         filler_needed -= take
+    # One radio is certain when the party is asked for (the draw above may give none); the filler gives more up
+    # to `island_object_limits`.
+    if party_asked_for(world) and filler_needed > 0:
+        pool.append(world.create_item(RADIO_ITEM_NAME))
+        filler_needed -= 1
     # The flare guns, from the same headroom, as many of each as `island_object_limits` says: the
     # island's four with their checks (`flare_gun_sanity`), and the Rainbow Flare Gun always.
-    limits = world.options.island_object_limits.value
+    limits = island_object_limits(world)
     flare_guns = [*(data.FLARE_GUN_ITEM_NAMES if world.options.flare_gun_sanity else ()), data.RAINBOW_FLARE_GUN_ITEM_NAME]
     for name in flare_guns:
         take = min(limits.get(name, 0), max(0, filler_needed))

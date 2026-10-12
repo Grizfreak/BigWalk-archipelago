@@ -30,6 +30,7 @@ LOCATION_NAME_TO_ID: dict[str, int] = {
     **{pickup.location_name: data.pickup_location_id(i) for i, pickup in enumerate(data.PICKUPS)},
     **{firework.location_name: data.firework_location_id(i) for i, firework in enumerate(data.FIREWORKS)},
     **{pickup.location_name: data.flare_gun_location_id(i) for i, pickup in enumerate(data.FLARE_GUN_PICKUPS)},
+    **{data.tower_reached_location_name(tower): data.tower_reached_location_id(tower) for tower in data.reached_towers()},
 }
 
 LOCATION_NAME_GROUPS: dict[str, set[str]] = {
@@ -44,6 +45,7 @@ LOCATION_NAME_GROUPS: dict[str, set[str]] = {
     "Packs": {pickup.location_name for pickup in data.PICKUPS},
     "Fireworks": {firework.location_name for firework in data.FIREWORKS},
     "Flare Guns": {pickup.location_name for pickup in data.FLARE_GUN_PICKUPS},
+    "Towers Reached": {data.tower_reached_location_name(tower) for tower in data.reached_towers()},
 }
 
 VICTORY_EVENT_NAME = "Victory"
@@ -90,12 +92,37 @@ def starting_zone_locations() -> list[str]:
     names = [by_prop[prop_name] for prop_name in data.START_ZONE_PUZZLES]
     names += list(data.cut_locations(drawbridge))
     names.append(drawbridge.location_name)
+    names.append(data.tower_reached_location_name(drawbridge))
     names += [data.deposit_location_name(amount) for amount in range(1, drawbridge.slots + 1)]
     return names
 
 
+def tower_of_deposit(world: BigWalkWorld, amount: int) -> data.Tower | None:
+    """
+    With the monuments opening in order, the tower the `amount`-th gourd placed lands in: the towers'
+    slots, added up in the seed's order. None when every monument is open from the start.
+    """
+    if not world.tower_order:
+        return None
+    total = 0
+    for prop in world.tower_order:
+        tower = data.tower_by_prop(prop)
+        total += world.tower_slots(tower)
+        if amount <= total:
+            return tower
+    return data.tower_by_prop(world.tower_order[-1])
+
+
 def create_all_locations(world: BigWalkWorld) -> None:
     gated = gated_regions()
+    if world.tower_order:
+        # The tutorial's monument is the first only if the seed says so: the deposits that were in the
+        # starting zone go where the order puts them.
+        for amount in range(1, data.MAX_MONUMENT_SLOTS + 1):
+            name = data.deposit_location_name(amount)
+            gated.pop(name, None)
+            if tower_of_deposit(world, amount).prop_name == "bigKeyIntro":
+                gated[name] = regions.STARTING_ZONE
 
     def place(location_names: list[str]) -> None:
         """Puts each location in its own region, which is the overworld unless
@@ -144,6 +171,9 @@ def create_all_locations(world: BigWalkWorld) -> None:
     if world.options.flare_gun_sanity:
         place([pickup.location_name for pickup in data.FLARE_GUN_PICKUPS])
 
+    if world.options.tower_sanity:
+        place([data.tower_reached_location_name(tower) for tower in data.reached_towers()])
+
     create_victory_event(world)
 
 
@@ -168,7 +198,11 @@ def create_victory_event(world: BigWalkWorld) -> None:
     first run used.
     """
     goal = world.options.goal
-    if goal == Goal.option_big_collection:
+    if world.objectives:
+        # Several things asked for at once: the event sits in the first region and its rule
+        # (rules.set_completion_rule) asks for each objective's own place or count.
+        region_name = regions.OVERWORLD
+    elif goal == Goal.option_big_collection:
         region_name = regions.OVERWORLD
     elif goal == Goal.option_big_game:
         region_name = regions.GREEN_DOME_ZONE
