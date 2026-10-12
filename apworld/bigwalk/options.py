@@ -274,10 +274,10 @@ class FirstTowerOpen(DefaultOnToggle):
     display_name = "First Tower Open"
 
 
-class EveryoneGathers(Toggle):
+class EveryoneGathers(DefaultOnToggle):
     """
     Big Climb and Big Fiesta count their ten seconds only while every player is there: at the island's highest point for
-    the climb, near the big speakers on the beach for the party. Off (the default): one player is enough.
+    the climb, near the big speakers on the beach for the party (the default). Off: one player is enough.
     """
 
     display_name = "Everyone Gathers"

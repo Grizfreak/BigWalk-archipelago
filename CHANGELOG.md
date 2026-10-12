@@ -33,7 +33,7 @@ unwinnable, which is why every player of a session should run the same build.
   a way it did not count.
 - **`first_tower_open`** (on by default): with `by_item`, off means no monument is open at the start, the first waits for a
   Progressive Monument too (seven in the pool instead of six). Needs `by_item`.
-- **`everyone_gathers`** (off by default): `big_climb` and `big_fiesta` count their ten seconds only while every player is at the place.
+- **`everyone_gathers`** (on by default): `big_climb` and `big_fiesta` count their ten seconds only while every player is at the place.
 - **`tower_sanity`** (on by default): a check for reaching each of the seven towers, made when its opening button is
   pressed (the drawbridge and the Green Dome: when a player gets there). **`hint_discovered_key_locations`**: hints, at that moment, what sits at the tower's key cuts and its key
   deposit. **`hint_discovered_deposit_boxes`** (with `tower_mode`): the gourd deposits in its monument.

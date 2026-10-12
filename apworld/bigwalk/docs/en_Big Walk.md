@@ -347,7 +347,7 @@ room's printer.
 **`first_tower_open`** (on by default), with `by_item`: off, and the first monument waits for a Progressive Monument too, so the
 seed starts with no monument open (seven items instead of six).
 
-**`everyone_gathers`** (off by default): Big Climb and Big Fiesta count their ten seconds only while every player is there (at the
+**`everyone_gathers`** (on by default): Big Climb and Big Fiesta count their ten seconds only while every player is there (at the
 highest point; near the big speakers on the beach). Off, one player is enough.
 
 With one monument at a time, the logic is exact: a gourd placed costs the doors of the towers before it and,
