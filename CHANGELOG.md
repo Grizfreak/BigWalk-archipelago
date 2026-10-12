@@ -6,6 +6,63 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## 0.5.0 (unreleased)
+
+### Moving from 0.4 to 0.5
+
+- **A 0.4 YAML generates as it did.** `objectives` is empty by default, which keeps the single `goal`, and `tower_mode`
+  is `all_open`. One default changes the seed: `tower_sanity` adds seven checks (the towers reached), so a seed made now
+  has 7 more locations. Turn it off for the 0.4 count.
+- **Everyone needs this build:** the host's channel to its guests changed (protocol v15).
+- A 0.4 seed keeps working with the new mod; the new options need a new seed.
+- **`goal: big_wall` with `gauntlet_mode: locked_stages` is refused**: the chapel bell ends the run before the Gauntlet.
+
+### Added
+
+- **`objectives`**: things to do besides the `goal`, in any order: `big_collection`, `big_keys`, `big_radio`, `big_towers`,
+  `big_climb` (the highest point), `big_fiesta` (the party on the beach: a radio plugged into the big speakers, with a
+  music playing; also read as `big_club`). The `goal` is then the run's ending: `big_wall` (the chapel bell, now a goal
+  for a short seed without the Gauntlet), `big_goodbye` or `big_game`. **`random_objectives`** draws a number of them,
+  from the list or from all. They are on a board in the hub, ticked as they are done;
+  **Settings > Archipelago > Objectives on screen** keeps them on the overlay. `keys_required`,
+  `radio_stations_required` and `towers_required` set the counts. `lock_endings_until_objectives` keeps the Gauntlet's
+  last stairway and the secret room's printer shut until the other objectives are done.
+- **`tower_mode`**: `all_open` (as before), `in_order` (the monuments take gourds one at a time, in an order the seed
+  draws; a monument that is not the next refuses a gourd and its tower's button stays still) and `by_item` (the same,
+  and each monument after the first also needs a **Progressive Monument**). The logic is exact: nothing is spent in
+  a way it did not count.
+- **`first_tower_open`** (on by default): with `by_item`, off means no monument is open at the start, the first waits for a
+  Progressive Monument too (seven in the pool instead of six). Needs `by_item`.
+- **`everyone_gathers`** (off by default): `big_climb` and `big_fiesta` count their ten seconds only while every player is at the place.
+- **`tower_sanity`** (on by default): a check for reaching each of the seven towers, made when its opening button is
+  pressed (the drawbridge and the Green Dome: when a player gets there). **`hint_discovered_key_locations`**: hints, at that moment, what sits at the tower's key cuts and its key
+  deposit. **`hint_discovered_deposit_boxes`** (with `tower_mode`): the gourd deposits in its monument.
+- **The board does not give the order away:** only the towers already full and the one open are named; `ShowTowerOrder`
+  in the .cfg lists them all. The overlay says which tower is open (`Tower open: Yellow Twist Tower (2/5)`) or that a
+  Progressive Monument is missing.
+- **Two small sounds**: a cowbell when an item arrives, a plinth when a check other than a puzzle is sent, one per burst
+  of fifteen seconds. **Settings > Archipelago > Archipelago alerts** (text and sound, sound only, text only, off).
+- **Lines on the screen for what happened:** DeathLink sent, received and forgiven, a Big Trip with nowhere to go, the
+  Settings overriding the seed, a key placed before its item.
+- **`gourd_name`** (letters, digits, spaces and a few signs; the rest is dropped) renames the gourds for the run, on the server, in the Text Client, in other games, in the
+  trackers, in the spoiler and on the overlay.
+
+### Changed
+
+- **Everything the host hears, the guests hear:** the received and check sounds, the confetti of an objective done, the
+  DeathLink and trap cowbell (the host's snapshot carries a count of each).
+- The overlay keeps "Archipelago: Connected" and what arrives; the puzzle parts missing are no longer listed.
+- **X-Ray Goggles** are called **Scanner** (same item id; `island_object_limits` still reads the old name).
+- The Eggs need is shown as **Terrain Pegs** (the YAML key stays `eggs`).
+- **DeathLink** and its amnesty are one row in Settings > Archipelago.
+
+### Fixed
+
+- **A lamp keeps one colour:** switched on, an island lamp went back to its own body colour while its light kept the
+  seed's; the body, the halo and the light now keep the seed's colour.
+- **Big Trip and Big Meeting spare the Gauntlet again.** Its box ran from the world's origin to the Gauntlet (particle
+  renderers), so every place was dropped and every player spared; the box is now the Gauntlet's own.
+
 ## 0.4.0 (unreleased)
 
 ### Moving from 0.3 to 0.4
@@ -46,6 +103,9 @@ unwinnable, which is why every player of a session should run the same build.
   (body, halo and light) and its flare guns (body, barrel and shot: flare, light and smoke), the same
   on every screen. **Only objects of the map:** never the players, the gourds or the keys. The item
   feed names a flare gun by its color ("Received: Pink Flare Gun").
+- **`gourd_name`**: renames the gourds for the run (24 characters max) in the server, the Text
+  Client, other games, Universal Tracker, the spoiler and the overlay. `!hint Gourd` still works.
+  One name per multiworld: if Big Walk slots disagree, or the name is already taken, it stays "Gourd".
 
 **Traps and bonuses**
 
@@ -91,9 +151,8 @@ machine that sets it: the overlay's **text size** (each player); **DeathLink** o
 **amnesty** (the host, over the YAML for the session); **Gentle effects** (each player: the traps'
 flashes, Big Flare's today, are not shown on their screen; off by default); and the **gourd name**
 (the host: free text, applied on Enter or on leaving the field, shown on every player's overlay). A
-guest sees the host's, greyed. The gourd name lives in the mod only: the Archipelago server, the Text
-Client and the other games of a multiworld still say "Gourd", since an item's name is fixed in the
-apworld's data.
+guest sees the host's, greyed. Left at "Gourd", it says the seed's `gourd_name`; anything else typed
+there wins over it on the overlay only, the server and the other games keep the seed's.
 
 **A warning when the builds do not match**
 
@@ -229,7 +288,7 @@ Numbered 0.3.0 rather than 0.1.3: a release this size moves the minor number; th
 - **Puzzle parts** (`lock_puzzle_needs`, off by default). What a puzzle is
   built from becomes an item: Buttons, Synchronized Buttons, Icon, Drawing,
   Pose, Sound and Point Panels, Speakers, Lights, Teapots, Timed Tomato, Golf
-  Ball, Big Head Mask, Ink Viewer, Counter, Coordinates Computer and Eggs
+  Ball, Big Head Mask, Ink Viewer, Counter, Coordinates Computer and Terrain Pegs
   (17). A part is not on the map until its item arrives, and then appears for
   every player. Nothing blocks a puzzle itself, and the generator counts on a
   puzzle only once it holds every part it needs.
