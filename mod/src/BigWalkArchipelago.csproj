@@ -15,7 +15,7 @@
     <RootNamespace>BigWalkArchipelago</RootNamespace>
     <!-- À garder aligné sur Plugin.PluginVersion : c'est ce numéro que lit
          tools/package-mod.ps1 pour nommer le zip livré aux joueurs. -->
-    <Version>0.5.0</Version>
+    <Version>0.6.0</Version>
 
     <!-- Les <Reference> ci-dessous portent toutes <Private>false</Private> :
          elles existent déjà dans BepInEx/ et BepInEx/interop/ au runtime et ne
@@ -91,6 +91,10 @@
     </Reference>
     <!-- The game's input stack, read by Debug/DebugNetworkLookup.cs for the
          loopback guest (which instance hears which controller). -->
+    <Reference Include="DissonanceVoip">
+      <HintPath>..\lib\DissonanceVoip.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="Rewired_Core">
       <HintPath>..\lib\Rewired_Core.dll</HintPath>
       <Private>false</Private>

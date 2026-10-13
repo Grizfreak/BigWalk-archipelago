@@ -861,6 +861,8 @@ namespace BigWalkArchipelago.Core.Net
                 KeyFeatures.ClearLedger();
                 KeyCustody.ClearLedger();
                 PuzzleNeeds.ClearLedger();
+                AbilityLocks.ClearLedger();
+                PackChecks.ClearLightLedger();
                 GauntletStairways.ClearLedger();
                 MonumentOrder.ClearLedger();
                 TeleportButtons.ClearLedger();
@@ -877,6 +879,11 @@ namespace BigWalkArchipelago.Core.Net
                 Connection.SlotData.LockPuzzleNeeds,
                 Connection.SlotData.PuzzleNeedKeys,
                 ApLocationIds.Base + Connection.SlotData.PuzzleNeedIdOffset);
+            AbilityLocks.Configure(
+                Connection.SlotData.LockAbilities,
+                Connection.SlotData.LockRunning,
+                Connection.SlotData.AbilityKeys,
+                ApLocationIds.Base + Connection.SlotData.AbilityIdOffset);
             // Also after the ledger, for the same reason.
             GauntletStairways.Configure(
                 Connection.SlotData.GauntletMode == "locked_stages",
@@ -1342,6 +1349,9 @@ namespace BigWalkArchipelago.Core.Net
 
             if (PuzzleNeeds.TryResolveItem(itemId, out var need))
                 return PuzzleNeeds.Grant(need);
+
+            if (AbilityLocks.TryResolveItem(itemId, out var ability))
+                return AbilityLocks.Grant(ability);
 
             if (ApLocationIds.TryResolveGauntletItem(itemId, out var stairway))
                 return GauntletStairways.Grant(stairway);

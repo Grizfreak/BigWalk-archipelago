@@ -221,6 +221,25 @@ namespace BigWalkArchipelago.Core.Net
                         string.IsNullOrEmpty(received.Cause) ? received.Source : $"{received.Source}: {received.Cause}");
                 };
 
+                // A check this slot sent, as the server tells it (player, 2026-10-13): what it was and what it gave to
+                // whom, a short line on the overlay. On the socket's thread: queued, shown from the main thread.
+                session.MessageLog.OnMessageReceived += message =>
+                {
+                    try
+                    {
+                        if (message is Archipelago.MultiClient.Net.MessageLog.Messages.ItemSendLogMessage sent
+                            && sent.IsSenderTheActivePlayer && sent.Item != null)
+                        {
+                            // Always who it went to, this slot included (player, 2026-10-13).
+                            ApNotices.PostFromSocket($"Check: {sent.Item.LocationName} -> {sent.Item.ItemName} ({sent.Receiver?.Name})");
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // A message the library cannot describe is no reason to touch the connection.
+                    }
+                };
+
                 _session = session;
                 _deathLink = deathLink;
                 StoredDeposits = storedDeposits;

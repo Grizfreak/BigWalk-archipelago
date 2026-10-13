@@ -20,7 +20,7 @@ namespace BigWalkArchipelago.Core.Net
         private static readonly string[] Known =
         {
             "big_wall", "big_goodbye", "big_game", "big_collection", "big_keys", "big_radio", "big_towers",
-            "big_climb", "big_fiesta",
+            "big_climb", "big_fiesta", "big_lights", "big_objects", "big_body",
         };
         private static readonly string[] Endings = { "big_goodbye", "big_game", "big_wall" };
 
@@ -55,6 +55,17 @@ namespace BigWalkArchipelago.Core.Net
         private static int KeysTarget => ApRuntime.SlotData != null ? ApRuntime.SlotData.KeysRequired : DebugKeys != null ? 3 : int.MaxValue;
         private static int StationsTarget => ApRuntime.SlotData != null ? ApRuntime.SlotData.RadioStationsRequired : DebugKeys != null ? 3 : int.MaxValue;
 
+        private static int ObjectsTarget => ApRuntime.SlotData != null ? ApRuntime.SlotData.ObjectsRequiredCount : DebugKeys != null ? 5 : 0;
+        private static int BodyTarget => ApRuntime.SlotData != null ? ApRuntime.SlotData.BodyRequiredCount : DebugKeys != null ? 5 : 0;
+
+        // Object Sanity's checks this save has sent: each object (every) or each kind (first_pickup).
+        internal static int ObjectsPicked() =>
+            CheckTracker.GetReportedLocationNames().Count(name =>
+                name.StartsWith(ApLocationIds.ObjectPrefix, StringComparison.Ordinal)
+                || name.StartsWith(ApLocationIds.ObjectKindPrefix, StringComparison.Ordinal));
+
+        private static int LightsTarget => ApRuntime.SlotData != null ? ApRuntime.SlotData.LightsRequiredCount : DebugKeys != null ? 5 : 0;
+
         internal static bool IsEnding(string key) => Array.IndexOf(Endings, key) >= 0;
 
         internal static bool IsDone(string key)
@@ -78,6 +89,12 @@ namespace BigWalkArchipelago.Core.Net
                     return KeysPlaced() >= KeysTarget;
                 case "big_radio":
                     return StationsOn() >= StationsTarget;
+                case "big_lights":
+                    return LightsTarget > 0 && PackChecks.LightsOn() >= LightsTarget;
+                case "big_objects":
+                    return ObjectsTarget > 0 && ObjectsPicked() >= ObjectsTarget;
+                case "big_body":
+                    return BodyTarget > 0 && AbilityLocks.ItemsReceived >= BodyTarget;
                 default:
                     return false;
             }
@@ -106,6 +123,12 @@ namespace BigWalkArchipelago.Core.Net
                     return $"Big Keys ({KeysPlaced()}/{KeysTarget} placed)";
                 case "big_radio":
                     return $"Big Radio ({StationsOn()}/{StationsTarget} stations)";
+                case "big_lights":
+                    return $"Big Lights ({PackChecks.LightsOn()}/{LightsTarget} lit)";
+                case "big_objects":
+                    return $"Big Objects ({ObjectsPicked()}/{ObjectsTarget} picked up)";
+                case "big_body":
+                    return $"Big Body ({AbilityLocks.ItemsReceived}/{BodyTarget} abilities)";
                 case "big_goodbye":
                     return "Big Goodbye (the Gauntlet)";
                 case "big_game":

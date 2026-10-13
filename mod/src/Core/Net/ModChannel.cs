@@ -64,7 +64,7 @@ namespace BigWalkArchipelago.Core.Net
 
         // Both ends must speak the same version; a mismatch is logged once
         // and ignored rather than half-read.
-        private const byte ProtocolVersion = 15;
+        private const byte ProtocolVersion = 18;
 
         private const byte KindHello = 1;
         private const byte KindSnapshot = 2;
@@ -493,6 +493,12 @@ namespace BigWalkArchipelago.Core.Net
                 writer.WriteByte(ResyncStations.HostState());
                 NetworkWriterExtensions.WriteString(writer, GourdNames.Current);
                 writer.WriteByte(PackChecks.HostMode);
+                writer.WriteByte(PackChecks.HostObjectMode);
+                NetworkWriterExtensions.WriteBool(writer, FastGolf.HostLightweight);
+                var kinds = new List<string>(PackChecks.HostCountedKinds);
+                writer.WriteByte((byte)kinds.Count);
+                foreach (var kind in kinds)
+                    NetworkWriterExtensions.WriteString(writer, kind);
                 var collected = new List<string>(PackChecks.HostCollected);
                 writer.WriteByte((byte)Math.Min(collected.Count, byte.MaxValue));
                 for (var i = 0; i < collected.Count && i < byte.MaxValue; i++)
@@ -506,6 +512,8 @@ namespace BigWalkArchipelago.Core.Net
                 writer.WriteByte(MonumentOrder.HostMask());
                 for (var kind = 0; kind < ApSounds.Counts.Length; kind++)
                     writer.WriteByte(ApSounds.Counts[kind]);
+                NetworkWriterExtensions.WriteBool(writer, AbilityLocks.Enabled);
+                NetworkWriterExtensions.WriteUShort(writer, AbilityLocks.HostMask());
 
                 connection.Send(writer.ToArraySegment(), 0);
             }
@@ -690,6 +698,8 @@ namespace BigWalkArchipelago.Core.Net
             {
                 RadioStations.ForgetMirror();
                 PuzzleNeeds.ForgetMirror();
+                AbilityLocks.ForgetMirror();
+                FastGolf.ForgetMirror();
                 GauntletStairways.ForgetMirror();
                 TeleportButtons.ForgetMirror();
                 CabinFeverWaits.ForgetMirror();
@@ -892,6 +902,12 @@ namespace BigWalkArchipelago.Core.Net
                 var resyncStations = reader.ReadByte();
                 var gourdName = NetworkReaderExtensions.ReadString(reader);
                 var packMode = reader.ReadByte();
+                var objectMode = reader.ReadByte();
+                var golfLightweight = NetworkReaderExtensions.ReadBool(reader);
+                var objectKinds = new List<string>();
+                var objectKindCount = reader.ReadByte();
+                for (var i = 0; i < objectKindCount; i++)
+                    objectKinds.Add(NetworkReaderExtensions.ReadString(reader));
                 var collectedPacks = new List<string>();
                 var collectedCount = reader.ReadByte();
                 for (var i = 0; i < collectedCount; i++)
@@ -906,6 +922,8 @@ namespace BigWalkArchipelago.Core.Net
                 var soundCounts = new byte[ApSounds.Counts.Length];
                 for (var sound = 0; sound < soundCounts.Length; sound++)
                     soundCounts[sound] = reader.ReadByte();
+                var abilitiesEnabled = NetworkReaderExtensions.ReadBool(reader);
+                var abilityMask = NetworkReaderExtensions.ReadUShort(reader);
 
                 var first = _receivedAt < 0f;
 
@@ -942,11 +960,13 @@ namespace BigWalkArchipelago.Core.Net
                 CabinFeverWaits.ApplyFromHost(cabinFever, cabinFeverLong, (cabinFeverHelp & 1) != 0, (cabinFeverHelp & 2) != 0);
                 TileThiefHelper.ApplyFromHost((cabinFeverHelp >> 2) & 3);
                 ResyncStations.ApplyFromHost(resyncStations);
-                PackChecks.ApplyFromHost(packMode, collectedPacks);
+                PackChecks.ApplyFromHost(packMode, objectMode, objectKinds, collectedPacks);
+                FastGolf.ApplyFromHost(golfLightweight);
                 Palette.ApplyFromHost(colours);
                 GourdNames.ApplyFromHost(gourdName);
                 ObjectiveBoard.ApplyFromHost(boardText, endingLocks);
                 MonumentOrder.ApplyFromHost(monumentMask);
+                AbilityLocks.ApplyFromHost(abilitiesEnabled, abilityMask);
             }
             catch (Exception ex)
             {

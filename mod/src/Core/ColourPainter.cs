@@ -200,6 +200,8 @@ namespace BigWalkArchipelago.Core
                 return true;
 
             var colour = Palette.For(string.IsNullOrEmpty(key) ? root.name : key);
+            if (root.name.StartsWith("BuoyLight", StringComparison.Ordinal))
+                colour = ("Orange", Color.white, PedestalLampHalo);
             Renderer haloRenderer = null;
             Renderer bodyRenderer = null;
             Light lampLight = null;
@@ -240,6 +242,12 @@ namespace BigWalkArchipelago.Core
 
             return true;
         }
+
+        // The pedestal lamps (BuoyLight): their sphere is orange in the model itself and no tint reaches it (all four
+        // regions of househouse/VertexColors tried on 2026-10-13: only the cap took the tint). So their light follows the
+        // sphere instead (player, 2026-10-13): an orange light and halo, the body left untinted (its cap stays black).
+        private static readonly Color PedestalLampHalo = new Color(1.00f, 0.40f, 0.00f);
+
 
         // The halo sits at bouyLight/LobbyFlare/LobbyFlareMesh, two levels under the light.
         private static bool UnderBuoyLight(Transform transform)

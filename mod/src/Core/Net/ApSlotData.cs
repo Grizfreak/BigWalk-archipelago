@@ -124,6 +124,27 @@ namespace BigWalkArchipelago.Core.Net
         internal bool LockPuzzleNeeds { get; private set; }
         internal string[] PuzzleNeedKeys { get; private set; } = Array.Empty<string>();
         internal long PuzzleNeedIdOffset { get; private set; } = 11_000;
+        // `lock_abilities` (ROADMAP R3, 0.6): disabled, handed or ambidextrous, and every ability item key in id order.
+        internal string LockAbilities { get; private set; } = "disabled";
+        internal string[] AbilityKeys { get; private set; } = Array.Empty<string>();
+        internal long AbilityIdOffset { get; private set; } = 13_400;
+        internal bool LockRunning { get; private set; }
+        // L4 (0.6): the purple puzzles are shown on the map only with from_start (the default, and older seeds).
+        internal string IncludeBigGamePuzzles { get; private set; } = "from_start";
+        // L1 (0.6): the towers whose monument full is a check, by their big key's prop, in id order.
+        internal string[] MonumentFullKeys { get; private set; } = Array.Empty<string>();
+        internal int MonumentFullIdOffset { get; private set; } = 13_800;
+        // Light sanity (0.6): the mode, every light's key in id order, and what big_lights asks for.
+        internal string LightSanity { get; private set; } = "off";
+        internal string[] LightKeys { get; private set; } = Array.Empty<string>();
+        internal int LightIdOffset { get; private set; } = 14_000;
+        internal int LightsRequiredCount { get; private set; }
+        // The lights big_lights counts: light_sanity's, or the lamps without it (counted, no check).
+        internal string[] LightsCounted { get; private set; } = Array.Empty<string>();
+        internal int ObjectsRequiredCount { get; private set; }
+        // fast_golf (R6, 0.6): the golf ball no longer too heavy.
+        internal bool FastGolf { get; private set; }
+        internal int BodyRequiredCount { get; private set; }
 
         // Traps and bonuses: each effect's key by its item id offset, how long one lasts, and
         // whether Big Trip and Big Meeting leave the Silent Gauntlet alone. Empty on a seed older
@@ -156,6 +177,15 @@ namespace BigWalkArchipelago.Core.Net
         internal bool FlareGunSanity { get; private set; }
         internal string[] FlareGunGuids { get; private set; } = Array.Empty<string>();
         internal int FlareGunIdOffset { get; private set; } = 13_050;
+        // `object_sanity` (ROADMAP S7, 0.6): off, first_pickup or every; the objects by guid and the kinds by the
+        // game's name, each list in id order.
+        internal string ObjectSanity { get; private set; } = "off";
+        internal string[] ObjectGuids { get; private set; } = Array.Empty<string>();
+        internal int ObjectIdOffset { get; private set; } = 13_500;
+        internal string[] ObjectKinds { get; private set; } = Array.Empty<string>();
+        internal int ObjectKindIdOffset { get; private set; } = 13_700;
+        // The kinds `object_sanity_kinds` counts; without the field (the first 0.6 builds), every kind.
+        internal string[] ObjectSanityKinds { get; private set; }
         internal bool RandomColours { get; private set; }
         internal int[] ColourPalette { get; private set; } = Array.Empty<int>();
 
@@ -217,6 +247,21 @@ namespace BigWalkArchipelago.Core.Net
             data.LockedArchDoors = GetStringArray(raw, "locked_arch_doors");
             data.LockPuzzleNeeds = GetBool(raw, "lock_puzzle_needs", data.LockPuzzleNeeds);
             data.PuzzleNeedKeys = GetStringArray(raw, "puzzle_need_keys");
+            data.LockAbilities = GetString(raw, "lock_abilities", data.LockAbilities);
+            data.AbilityKeys = GetStringArray(raw, "ability_keys");
+            data.AbilityIdOffset = GetInt(raw, "ability_id_offset", (int)data.AbilityIdOffset);
+            data.LockRunning = GetBool(raw, "lock_running", data.LockRunning);
+            data.IncludeBigGamePuzzles = GetString(raw, "include_big_game_puzzles", data.IncludeBigGamePuzzles);
+            data.MonumentFullKeys = GetStringArray(raw, "monument_full_keys");
+            data.MonumentFullIdOffset = GetInt(raw, "monument_full_id_offset", data.MonumentFullIdOffset);
+            data.LightSanity = GetString(raw, "light_sanity", data.LightSanity);
+            data.LightKeys = GetStringArray(raw, "light_keys");
+            data.LightIdOffset = GetInt(raw, "light_id_offset", data.LightIdOffset);
+            data.LightsRequiredCount = GetInt(raw, "lights_required_count", 0);
+            data.LightsCounted = GetStringArray(raw, "lights_counted");
+            data.ObjectsRequiredCount = GetInt(raw, "objects_required_count", 0);
+            data.FastGolf = GetBool(raw, "fast_golf", false);
+            data.BodyRequiredCount = GetInt(raw, "body_required_count", 0);
             data.GauntletMode = GetString(raw, "gauntlet_mode", data.GauntletMode);
             data.GauntletPuzzlesRequired = GetBool(raw, "gauntlet_puzzles_required", data.GauntletPuzzlesRequired);
             data.LockGauntletNeeds = GetBool(raw, "lock_gauntlet_needs", data.LockGauntletNeeds);
@@ -261,6 +306,12 @@ namespace BigWalkArchipelago.Core.Net
             data.FlareGunSanity = GetBool(raw, "flare_gun_sanity", false);
             data.FlareGunGuids = GetStringArray(raw, "flare_gun_guids");
             data.FlareGunIdOffset = GetInt(raw, "flare_gun_id_offset", data.FlareGunIdOffset);
+            data.ObjectSanity = GetString(raw, "object_sanity", data.ObjectSanity);
+            data.ObjectGuids = GetStringArray(raw, "object_guids");
+            data.ObjectIdOffset = GetInt(raw, "object_id_offset", data.ObjectIdOffset);
+            data.ObjectKinds = GetStringArray(raw, "object_kinds");
+            data.ObjectKindIdOffset = GetInt(raw, "object_kind_id_offset", data.ObjectKindIdOffset);
+            data.ObjectSanityKinds = raw.ContainsKey("object_sanity_kinds") ? GetStringArray(raw, "object_sanity_kinds") : null;
             // "random_colours" and "colour_palette" in the first builds of 0.4.
             data.RandomColours = GetBool(raw, "random_colors", GetBool(raw, "random_colours", false));
             data.ColourPalette = raw.ContainsKey("color_palette") ? GetIntArray(raw, "color_palette") : GetIntArray(raw, "colour_palette");

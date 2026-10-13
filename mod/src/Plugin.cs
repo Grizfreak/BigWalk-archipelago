@@ -21,7 +21,7 @@ namespace BigWalkArchipelago
         // lost to a fresh file — rename the old one by hand if that happens.
         public const string PluginGuid = "com.grizfreak.bigwalk.archipelago";
         public const string PluginName = "Big Walk Archipelago";
-        public const string PluginVersion = "0.5.0";
+        public const string PluginVersion = "0.6.0";
 
         // BasePlugin.Log is an INSTANCE property (confirmed via reflection on
         // BepInEx.Unity.IL2CPP.dll): we deliberately shadow it (`new`) with a
@@ -74,6 +74,7 @@ namespace BigWalkArchipelago
             AddComponent<Core.StaleHeldPropReleaser>();
             AddComponent<Core.PuzzleGourdRetirer>();
             AddComponent<Core.PuzzleNeedHider>();
+            AddComponent<Core.AbilityLockEnforcer>();
             AddComponent<Core.WorldButtons>();
             AddComponent<Core.TeleportButtonRunner>();
             AddComponent<Core.PegTileSpawnHandler>();
@@ -92,6 +93,7 @@ namespace BigWalkArchipelago
                 AddComponent<Debug.DebugWorldLayoutDump>();
                 AddComponent<Debug.DebugPuzzleMapDump>();
                 AddComponent<Debug.DebugPuzzleNeedsDump>();
+                AddComponent<Debug.DebugPuzzleTour>();
                 Log.LogInfo($"[Debug] Debug module active (key: {ModConfig.ToggleFlightKey.Value}).");
             }
 

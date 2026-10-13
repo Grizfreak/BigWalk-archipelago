@@ -39,12 +39,18 @@ namespace BigWalkArchipelago.Core.Net
 
         internal static IReadOnlyList<Notice> Lines => Live;
 
-        internal static void Post(string text, bool warning = false)
+        // A check this slot sent (ApConnection, from the socket's thread): shown for a short while only.
+        private const float CheckSeconds = 6f;
+        private static readonly System.Collections.Concurrent.ConcurrentQueue<string> FromSocket = new();
+
+        internal static void PostFromSocket(string text) => FromSocket.Enqueue(text);
+
+        internal static void Post(string text, bool warning = false, float seconds = -1f)
         {
             if (string.IsNullOrEmpty(text) || !ModConfig.ShowItemFeed.Value)
                 return;
 
-            var expiry = Time.unscaledTime + ModConfig.NoticeSeconds.Value;
+            var expiry = Time.unscaledTime + (seconds > 0f ? seconds : ModConfig.NoticeSeconds.Value);
 
             // Only the last line collapses, never one further up: two
             // different items arriving either side of a third would
@@ -78,6 +84,9 @@ namespace BigWalkArchipelago.Core.Net
         // runs several times per frame and must stay pure presentation.
         internal static void Prune()
         {
+            while (FromSocket.TryDequeue(out var sent))
+                Post(sent, seconds: CheckSeconds);
+
             var now = Time.unscaledTime;
             while (Live.Count > 0 && Live[0].ExpiresAt <= now)
                 Live.RemoveAt(0);

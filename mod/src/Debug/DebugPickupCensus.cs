@@ -94,6 +94,167 @@ namespace BigWalkArchipelago.Debug
             }
         }
 
+        // S7 (0.6): every island object a player can pick up, of every kind, to BepInEx/object-census.tsv
+        // (Ctrl + Shift + 5). The kind is the object's name less its " (n)" suffix; the mod's own clones are left
+        // out. Hidden ones are listed too (the mod hides the island's gadgets while Archipelago is on).
+        internal static void DumpObjects()
+        {
+            try
+            {
+                var versions = VersionsByObject();
+                var text = new StringBuilder();
+                text.AppendLine($"# object census, map version now: {PlayerCountSwapper.playerCount}");
+                text.AppendLine("kind	name	guid	x	y	z	active	versions	nearest puzzle	distance	path");
+                var count = 0;
+                foreach (var prop in UnityEngine.Object.FindObjectsByType<Prop>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                {
+                    if (prop == null || ReceivedItemSpawner.IsCosmeticClone(prop) || prop.gameObject.name.Contains("(AP", StringComparison.Ordinal))
+                        continue;
+                    var name = prop.gameObject.name;
+                    var cut = name.IndexOf(" (", StringComparison.Ordinal);
+                    var kind = cut > 0 ? name.Substring(0, cut) : name;
+                    text.AppendLine(Row(kind, prop.transform, prop.savablePropGuid, versions));
+                    count++;
+                }
+
+                // S9 recon: every lamp pedestal of the island, full or empty (a pedestal is a PropHome; an empty one
+                // has no prop, so the object rows above cannot show it).
+                var pedestals = 0;
+                foreach (var home in UnityEngine.Object.FindObjectsByType<PropHome>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                {
+                    if (home == null)
+                        continue;
+                    var homePath = PathOf(home.transform);
+                    if (homePath.IndexOf("pedestal", StringComparison.OrdinalIgnoreCase) < 0
+                        && homePath.IndexOf("pedistal", StringComparison.OrdinalIgnoreCase) < 0)
+                        continue;
+                    pedestals++;
+                    var pinned = home.pinnedProp != null ? home.pinnedProp.gameObject.name : "EMPTY";
+                    text.AppendLine(Row("Pedestal", home.transform, $"holds {pinned}", versions));
+                }
+                Plugin.Log.LogInfo($"{Tag} {pedestals} lamp pedestal(s) listed (kind Pedestal).");
+
+                // The lamp nearest the player (2026-10-13, lit lamp with an orange body and a green light): what its body
+                // block and its light hold, against the seed's two colours for it.
+                var local = Mirror.NetworkClient.localPlayer;
+                Vector3? here = local != null ? local.transform.position : Camera.main != null ? Camera.main.transform.position : null;
+                Prop nearest = null;
+                var best = float.MaxValue;
+                foreach (var prop in UnityEngine.Object.FindObjectsByType<Prop>(FindObjectsSortMode.None))
+                {
+                    if (prop == null || here == null || !(prop.gameObject.name.StartsWith("BuoyLight", StringComparison.Ordinal)
+                                                         || prop.gameObject.name.StartsWith("BuoyProp", StringComparison.Ordinal)
+                                                         || prop.gameObject.name.StartsWith("BuoyRedProp", StringComparison.Ordinal)))
+                        continue;
+                    var d = (prop.transform.position - here.Value).sqrMagnitude;
+                    if (d < best)
+                    {
+                        best = d;
+                        nearest = prop;
+                    }
+                }
+                if (nearest != null)
+                {
+                    var expected = Palette.For(string.IsNullOrEmpty(nearest.savablePropGuid) ? nearest.gameObject.name : nearest.savablePropGuid);
+                    Plugin.Log.LogInfo($"{Tag} nearest lamp {nearest.gameObject.name} {nearest.savablePropGuid} at {Mathf.Sqrt(best):0.0} m; "
+                        + $"seed wants body {expected.body} halo {expected.halo} ({expected.name})");
+                    foreach (var renderer in nearest.GetComponentsInChildren<Renderer>(true))
+                    {
+                        var block = new MaterialPropertyBlock();
+                        renderer.GetPropertyBlock(block);
+                        Plugin.Log.LogInfo($"{Tag}   renderer {renderer.name}: _TintColor={block.GetColor("_TintColor")} _MainColor={block.GetColor("_MainColor")} "
+                            + $"mat={(renderer.sharedMaterial != null ? renderer.sharedMaterial.name : "-")} active={renderer.gameObject.activeInHierarchy}");
+                    }
+                    foreach (var light in nearest.GetComponentsInChildren<Light>(true))
+                        Plugin.Log.LogInfo($"{Tag}   light {light.name}: {light.color} enabled={light.enabled}");
+                    LogBodyShader(nearest.gameObject);
+                }
+                else
+                {
+                    Plugin.Log.LogInfo($"{Tag} nearest lamp: none found (player position known: {here != null}).");
+                }
+
+                // A BuoyProp too, whose body the tint does reach, to compare the two models' materials.
+                foreach (var prop in UnityEngine.Object.FindObjectsByType<Prop>(FindObjectsSortMode.None))
+                {
+                    if (prop != null && prop.gameObject.name == "BuoyProp")
+                    {
+                        Plugin.Log.LogInfo($"{Tag} compare with BuoyProp {prop.savablePropGuid}:");
+                        LogBodyShader(prop.gameObject);
+                        break;
+                    }
+                }
+
+                // Lamp colours (2026-10-13: a BuoyLight showed an orange body and a green light): the parts of one
+                // lamp of each model, with their renderers and lights, to compare with what ColourPainter paints.
+                foreach (var model in new[] { "BuoyLight", "BuoyProp" })
+                {
+                    foreach (var prop in UnityEngine.Object.FindObjectsByType<Prop>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                    {
+                        if (prop == null || prop.gameObject.name != model)
+                            continue;
+                        foreach (var t in prop.GetComponentsInChildren<Transform>(true))
+                        {
+                            var light = t.GetComponent<Light>();
+                            Plugin.Log.LogInfo($"{Tag} lamp part {model} '{PathOf(t)}' [{Components(t.gameObject)}]"
+                                + (light != null ? $" light={light.color}" : ""));
+                            foreach (var helper in t.GetComponents<PropertyBlockHelper>())
+                            {
+                                if (helper?.colorSettings == null)
+                                    continue;
+                                foreach (var setting in helper.colorSettings)
+                                    Plugin.Log.LogInfo($"{Tag}   helper colour {setting.propertyName} = {setting.color}");
+                            }
+                        }
+                        break;
+                    }
+                }
+
+                // T8 Big Time recon: what makes a clock's hands turn (LobbyClock? something else?).
+                foreach (var prop in UnityEngine.Object.FindObjectsByType<Prop>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                {
+                    if (prop == null || !prop.gameObject.name.StartsWith("ClockProp", StringComparison.Ordinal))
+                        continue;
+                    foreach (var t in prop.GetComponentsInChildren<Transform>(true))
+                        Plugin.Log.LogInfo($"{Tag} clock part '{PathOf(t)}' rot={t.localEulerAngles} [{Components(t.gameObject)}]");
+                    break;
+                }
+
+                var path = System.IO.Path.Combine(BepInEx.Paths.BepInExRootPath, "object-census.tsv");
+                System.IO.File.WriteAllText(path, text.ToString());
+                Plugin.Log.LogInfo($"{Tag} {count} object(s) written to {path}.");
+                Core.Net.ApNotices.Post($"Census: {count} objects");
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"{Tag} Object census failed: {ex}");
+            }
+        }
+
+        // Every colour and float property of a lamp body's shader, with the material's value and the block's.
+        private static void LogBodyShader(GameObject lamp)
+        {
+            foreach (var renderer in lamp.GetComponentsInChildren<Renderer>(true))
+            {
+                if (renderer == null || renderer.name != "buoy" || renderer.sharedMaterial == null)
+                    continue;
+                var material = renderer.sharedMaterial;
+                var shader = material.shader;
+                var block = new MaterialPropertyBlock();
+                renderer.GetPropertyBlock(block);
+                Plugin.Log.LogInfo($"{Tag}   body material {material.name}, shader {shader.name}, {shader.GetPropertyCount()} properties");
+                for (var i = 0; i < shader.GetPropertyCount(); i++)
+                {
+                    var name = shader.GetPropertyName(i);
+                    var type = shader.GetPropertyType(i);
+                    if (type == UnityEngine.Rendering.ShaderPropertyType.Color || type == UnityEngine.Rendering.ShaderPropertyType.Vector)
+                        Plugin.Log.LogInfo($"{Tag}     {name} ({type}) material={material.GetColor(name)} block={block.GetColor(name)}");
+                    else if (type == UnityEngine.Rendering.ShaderPropertyType.Float || type == UnityEngine.Rendering.ShaderPropertyType.Range)
+                        Plugin.Log.LogInfo($"{Tag}     {name} ({type}) material={material.GetFloat(name)} block={block.GetFloat(name)}");
+                }
+            }
+        }
+
         private static int _nextSpot;
 
         // Ctrl + F3: the local player to the next pack or firework launcher, in turn, beside it.

@@ -85,6 +85,14 @@ namespace BigWalkArchipelago.Core.Net
             _flareGunOffset = slotData.FlareGunIdOffset;
             _towerKeys = slotData.TowerReachedKeys;
             _towerOffset = slotData.TowerReachedIdOffset;
+            _objectGuids = slotData.ObjectGuids;
+            _objectOffset = slotData.ObjectIdOffset;
+            _objectKinds = slotData.ObjectKinds;
+            _objectKindOffset = slotData.ObjectKindIdOffset;
+            _lightKeys = slotData.LightKeys;
+            _lightOffset = slotData.LightIdOffset;
+            _monumentKeys = slotData.MonumentFullKeys;
+            _monumentOffset = slotData.MonumentFullIdOffset;
         }
 
         // The packs and fireworks (Core/PackChecks): reported as "pickup:<guid>" and
@@ -103,6 +111,37 @@ namespace BigWalkArchipelago.Core.Net
         internal const string FlareGunPrefix = "flaregun:";
         private static string[] _flareGunGuids = Array.Empty<string>();
         private static long _flareGunOffset = 13_050;
+        // The island's gadgets (ROADMAP S7): "object:<guid>" with `every`, "objectkind:<the game's name>" with
+        // `first_pickup`.
+        internal const string ObjectPrefix = "object:";
+        private static string[] _objectGuids = Array.Empty<string>();
+        private static long _objectOffset = 13_500;
+        internal const string ObjectKindPrefix = "objectkind:";
+        private static string[] _objectKinds = Array.Empty<string>();
+        private static long _objectKindOffset = 13_700;
+        // A monument full (ROADMAP L1): "monument:<the tower's big key prop>". Its id is the tower's position in the
+        // apworld's TOWERS (the order MonumentOrder keeps), not in the slot's list, which may leave a tower out.
+        // A light switched on (light_sanity): "light:<a lamp's guid or a switch's state path>".
+        internal const string LightPrefix = "light:";
+        private static string[] _lightKeys = Array.Empty<string>();
+        private static long _lightOffset = 14_000;
+
+        internal const string MonumentPrefix = "monument:";
+        private static string[] _monumentKeys = Array.Empty<string>();
+        private static long _monumentOffset = 13_800;
+
+        private static bool TryResolveMonument(string locationName, out long locationId)
+        {
+            locationId = 0;
+            if (!locationName.StartsWith(MonumentPrefix, StringComparison.Ordinal))
+                return false;
+            var prop = locationName.Substring(MonumentPrefix.Length);
+            var position = MonumentOrder.TowerIndexOf(prop);
+            if (position < 0 || Array.IndexOf(_monumentKeys, prop) < 0)
+                return false;
+            locationId = _base + _monumentOffset + position;
+            return true;
+        }
 
         private static bool TryResolveListed(string locationName, string prefix, string[] list, long offset, out long locationId)
         {
@@ -154,7 +193,11 @@ namespace BigWalkArchipelago.Core.Net
             if (TryResolveListed(locationName, PickupPrefix, _pickupGuids, _pickupOffset, out locationId)
                 || TryResolveListed(locationName, FireworkPrefix, _fireworkKeys, _fireworkOffset, out locationId)
                 || TryResolveListed(locationName, FlareGunPrefix, _flareGunGuids, _flareGunOffset, out locationId)
-                || TryResolveListed(locationName, TowerPrefix, _towerKeys, _towerOffset, out locationId))
+                || TryResolveListed(locationName, TowerPrefix, _towerKeys, _towerOffset, out locationId)
+                || TryResolveListed(locationName, ObjectPrefix, _objectGuids, _objectOffset, out locationId)
+                || TryResolveListed(locationName, ObjectKindPrefix, _objectKinds, _objectKindOffset, out locationId)
+                || TryResolveMonument(locationName, out locationId)
+                || TryResolveListed(locationName, LightPrefix, _lightKeys, _lightOffset, out locationId))
                 return true;
 
             locationId = 0;

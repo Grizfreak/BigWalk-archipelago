@@ -264,7 +264,7 @@ namespace BigWalkArchipelago.Core
         private static readonly string[] PoolTraps =
         {
             TrapEffects.Drop, TrapEffects.Throw, TrapEffects.Trip, TrapEffects.Meeting, TrapEffects.Night,
-            TrapEffects.Sleep, TrapEffects.Load, TrapEffects.Mask, TrapEffects.Flare,
+            TrapEffects.Sleep, TrapEffects.Load, TrapEffects.Mask, TrapEffects.Flare, TrapEffects.BigTime, TrapEffects.Silence, TrapEffects.Slide,
         };
 
         // A trap of the pool that has just reached this world, for the other games. Only the
@@ -290,6 +290,9 @@ namespace BigWalkArchipelago.Core
             (TrapEffects.Night, new[] { "dark", "night", "fog", "blackout", "blind" }),
             (TrapEffects.Mask, new[] { "mask", "screen", "blur", "tiny", "zoom" }),
             (TrapEffects.Flare, new[] { "flare", "flash", "bomb", "explo", "fire", "light" }),
+            (TrapEffects.BigTime, new[] { "time", "clock", "timer", "alarm" }),
+            (TrapEffects.Silence, new[] { "silence", "mute", "quiet", "deaf", "comms", "voice" }),
+            (TrapEffects.Slide, new[] { "slide", "slipp", "skate", "oil", "grease" }),
             (TrapEffects.Load, new[] { "strip", "unequip", "lose", "inventory", "rupee", "item" }),
         };
 
@@ -439,6 +442,15 @@ namespace BigWalkArchipelago.Core
                 case TrapEffects.Mask:
                     FireMask();
                     break;
+                case TrapEffects.BigTime:
+                    // A clock for everyone, to keep (player, 2026-10-13): it goes to the hands, or at their
+                    // feet when they hold something.
+                    foreach (var walker in Walkers())
+                    {
+                        if (GadgetItemSpawner.SpawnFor(GadgetKind.Clock, walker.Player) != null)
+                            Plugin.Log.LogInfo($"{Tag} Big Time: a clock for {walker.Player.gameObject.name}.");
+                    }
+                    break;
                 case TrapEffects.Flare:
                 {
                     // Every machine readies its colours (or its gentle clearing), then the host's
@@ -468,7 +480,7 @@ namespace BigWalkArchipelago.Core
 
         // The effects that last, and until when, so that a player who joins while one runs gets it
         // too, for the time left (player, 2026-10-05). The others happen once and are over.
-        private static readonly string[] Lasting = { TrapEffects.Speed, TrapEffects.Jump, TrapEffects.Sleep };
+        private static readonly string[] Lasting = { TrapEffects.Speed, TrapEffects.Jump, TrapEffects.Sleep, TrapEffects.Slide, TrapEffects.Silence };
         private static readonly Dictionary<string, float> ActiveUntil = new();
 
         // From the ModChannel, when a guest says hello.
@@ -1407,6 +1419,8 @@ namespace BigWalkArchipelago.Core
                 _worldWasReady = ready;
                 TrapEffects.Tick();
                 PackChecks.Tick();
+                MonumentOrder.TickFullChecks();
+                FastGolf.Tick();
                 ColourPainter.Tick();
                 BigFlare.Tick();
                 Patches.SettingsMenuArchipelagoRows.KeepPlaced();

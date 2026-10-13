@@ -268,9 +268,16 @@ namespace BigWalkArchipelago.Core
                 if (NetworkServer.active)
                 {
                     if (ModConfig.ArchipelagoEnabled.Value)
+                    {
                         PuzzleNeeds.Rearm();
+                        if (AbilityLocks.Enabled)
+                            AbilityLocks.Rearm();
+                    }
                     else
+                    {
                         PuzzleNeeds.Forget();
+                        AbilityLocks.Forget();
+                    }
                 }
             }
 

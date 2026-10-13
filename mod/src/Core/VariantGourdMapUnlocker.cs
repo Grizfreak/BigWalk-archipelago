@@ -29,6 +29,15 @@ namespace BigWalkArchipelago.Core
                 return;
 
             _nextPollTime = Time.time + PollIntervalSeconds;
+
+            // L4 (0.6): with `include_big_game_puzzles` when_unlocked or disabled, the game's own way: hidden until an
+            // ending. The host waits for its slot before revealing anything: a reveal made before the slot arrived
+            // stayed on the map (seen 2026-10-13). A guest has no slot and keeps revealing (it only shows more), and so
+            // does a game with Archipelago switched off.
+            var isGuest = Mirror.NetworkClient.active && !Mirror.NetworkServer.active;
+            var slot = Net.ApRuntime.SlotData;
+            if (!isGuest && ModConfig.ArchipelagoEnabled.Value && (slot == null || slot.IncludeBigGamePuzzles != "from_start"))
+                return;
             VariantGourdRevealer.RevealAll();
         }
     }

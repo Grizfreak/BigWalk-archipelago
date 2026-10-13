@@ -43,6 +43,10 @@ namespace BigWalkArchipelago.Core
         // Not an item: the blindfold helmet Big Mask puts on every player (Core/Traps), cloned
         // from the blindfold puzzles' BlindfoldProp. Last, as the tomato.
         Blindfold,
+
+        // Not an item: the clock Big Time hands every player (Core/Traps), cloned from the train stops'
+        // ClockProp, its hands on the real time (Patches/BigTimeClockPatch). Last, as the tomato.
+        Clock,
     }
 
     // Generic sibling of ReceivedItemSpawner for the island's own hand props
@@ -117,6 +121,7 @@ namespace BigWalkArchipelago.Core
             // After FlareGun, so that MatchKind still names a vanilla FlareGunProp a FlareGun.
             { GadgetKind.RainbowFlareGun, "FlareGunProp" },
             { GadgetKind.Blindfold, "BlindfoldProp" },
+            { GadgetKind.Clock, "ClockProp" },
         };
 
         // Kinds whose vanilla instances stay in the world instead of being
@@ -171,6 +176,9 @@ namespace BigWalkArchipelago.Core
 
             // The blindfold puzzles' helmets too, for the same reason (Big Mask).
             GadgetKind.Blindfold,
+
+            // The train stops' clocks, as in the game (Big Time clones them; object_sanity has its own say).
+            GadgetKind.Clock,
         };
 
         // A trap's tomato pops this many seconds after it is set going (player, 2026-10-06).
@@ -180,6 +188,14 @@ namespace BigWalkArchipelago.Core
         // otherwise. Whatever the option, their vanilla instances never lend their tickets to a
         // clone (VanillaUsable), so a clone and a pack still on the map can never share one, and
         // host and guests agree on every clone's tickets before the guest knows the option.
+        // The gadgets `object_sanity` leaves on the island (ROADMAP S7). The clocks, paintbrushes and cowbells
+        // are not gadgets of the pool and were never hidden.
+        private static readonly HashSet<GadgetKind> IslandObjects = new()
+        {
+            GadgetKind.Megaphone, GadgetKind.WalkieTalkie, GadgetKind.Laser, GadgetKind.Binoculars,
+            GadgetKind.Compass, GadgetKind.FoldingMap, GadgetKind.Radio, GadgetKind.Torch, GadgetKind.XrayGoggles,
+        };
+
         private static readonly HashSet<GadgetKind> Packs = new()
         {
             GadgetKind.Backpack,
@@ -803,6 +819,9 @@ namespace BigWalkArchipelago.Core
                 if (Packs.Contains(matched.Value) && PackChecks.KeepsPacksOnMap)
                     continue;
 
+                if (IslandObjects.Contains(matched.Value) && PackChecks.KeepsObjectOnMap(prop.gameObject.name))
+                    continue;
+
                 if (FlareGuns.Contains(matched.Value))
                     continue;
 
@@ -869,6 +888,38 @@ namespace BigWalkArchipelago.Core
 
             if (shown > 0)
                 Plugin.Log.LogInfo($"[{nameof(GadgetItemSpawner)}] {shown} pack(s) back on the map: they are checks.");
+        }
+
+        // The island's gadgets hidden before this machine knew `object_sanity` keeps them (a guest's first
+        // snapshot, a slot read after the world came up): back on the map, all but those collected.
+        internal static void ShowObjects(Func<Prop, bool> stays)
+        {
+            var shown = 0;
+            for (var i = _hidden.Count - 1; i >= 0; i--)
+            {
+                var hidden = _hidden[i];
+                var matched = hidden != null ? MatchKind(hidden.name) : null;
+                if (matched == null || !IslandObjects.Contains(matched.Value))
+                    continue;
+
+                var prop = hidden.GetComponent<Prop>();
+                if (prop == null || !stays(prop))
+                    continue;
+
+                try
+                {
+                    hidden.SetActive(true);
+                    _hidden.RemoveAt(i);
+                    shown++;
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"[{nameof(GadgetItemSpawner)}] Could not show an object: {ex.Message}");
+                }
+            }
+
+            if (shown > 0)
+                Plugin.Log.LogInfo($"[{nameof(GadgetItemSpawner)}] {shown} object(s) back on the map: they are checks.");
         }
 
         // A pack collected for its check (Core/PackChecks): off this machine's map, and kept off.

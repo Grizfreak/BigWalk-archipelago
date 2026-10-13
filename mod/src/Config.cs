@@ -30,10 +30,8 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<string> ReceivedSound;
         internal static ConfigEntry<string> CheckSound;
         internal static ConfigEntry<float> NoticeSeconds;
-        internal static ConfigEntry<bool> ShowResyncHint;
         internal static ConfigEntry<bool> SpawnGourdAtPlayer;
         internal static ConfigEntry<bool> PutGourdInHands;
-        internal static ConfigEntry<KeyboardShortcut> ResyncGourdsKey;
         internal static ConfigEntry<KeyboardShortcut> ToggleFlightKey;
         internal static ConfigEntry<KeyboardShortcut> UnlockNextKey;
         internal static ConfigEntry<KeyboardShortcut> SimulateReceivedItemKey;

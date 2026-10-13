@@ -226,6 +226,37 @@ namespace BigWalkArchipelago.Core
                 + (guessed == best ? " (as guessed)." : $" (not {Names[guessed]}, as guessed): corrected."));
         }
 
+        // A tower's position in the apworld's TOWERS (the order above), or -1.
+        internal static int TowerIndexOf(string prop) => IndexOfProp(prop);
+
+        // L1 (0.6): once a second on the host, each monument whose fill is a check (`monument_full_keys`) and is now
+        // full sends it ("monument:<prop>"); remembered like every check, so each reports once. A tower without slots
+        // in this seed has no check (the apworld leaves it out).
+        private static float _nextFullCheck;
+
+        internal static void TickFullChecks()
+        {
+            if (!NetworkServer.active || Time.unscaledTime < _nextFullCheck || !WorldManager.isReadyForEffects)
+                return;
+            _nextFullCheck = Time.unscaledTime + 1f;
+
+            var keys = ApRuntime.SlotData?.MonumentFullKeys;
+            if (keys == null || keys.Length == 0)
+                return;
+
+            foreach (var prop in keys)
+            {
+                var tower = IndexOfProp(prop);
+                if (tower < 0 || SlotsOf(tower) <= 0 || !IsFull(tower))
+                    continue;
+                var location = ApLocationIds.MonumentPrefix + prop;
+                if (!CheckTracker.TryMarkReported(location))
+                    continue;
+                Plugin.Log.LogInfo($"{Tag} {Names[tower]}'s monument is full: {location}.");
+                Plugin.Reporter.ReportCheck(location);
+            }
+        }
+
         internal static bool IsFull(int tower) =>
             CosmeticMonumentFillTracker.FilledSlots(PrefixOf(tower)) >= SlotsOf(tower);
 

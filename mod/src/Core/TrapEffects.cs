@@ -49,11 +49,36 @@ namespace BigWalkArchipelago.Core
         // A flare in front of every player, in the Archipelago colours (Core/BigFlare).
         internal const string Flare = "flare";
 
+        // A clock in every player's hands, on the real time of their own computer (host only, Core/Traps).
+        internal const string BigTime = "time";
+
+        // Every player muted for a while (R9 "No Comms", player 2026-10-13: the player muted, not their radios). Each
+        // machine mutes its own player the way the game's mute does: the game's own state (PlayerNetworking.CmdSetMute,
+        // which shows the mute icon to everyone) and the voice chat's microphone (DissonanceComms.IsMuted), held every
+        // frame so the mute key cannot lift it, then put back as the player had it.
+        internal const string Silence = "silence";
+        private static float _silenceUntil = -1f;
+        private static bool _silenceWasMuted;
+        private static bool _silenceCommsWasMuted;
+        private static Dissonance.DissonanceComms _comms;
+
+        // The ground slippery for a while. Each fixed step the game sets the velocity the controls ask for
+        // (PlayerMover.localControlsVelocity, in LocalFixedUpdate, decompiled 2026-10-13); while this lasts the
+        // velocity only drifts towards it (Patches/BigSlidePatch), so starting, stopping and turning slide. Each
+        // machine for its own player. (PlayerMover.defaultSmoothTime, tried first, changed nothing in game.)
+        internal const string Slide = "slide";
+        private static float _slideUntil = -1f;
+
+        // How much of the asked-for velocity is taken each fixed step (50 a second); 0.04 was a little weak (player, 2026-10-13).
+        internal const float SlideGrip = 0.025f;
+
+        internal static bool SlideActive => _slideUntil >= 0f;
+
         // The three that are a boost, not a trap: they get the item sound, not the alert of a trap.
         internal static bool IsBonus(string key) => key == Day || key == Speed || key == Jump;
 
         // Every effect this build plays, so a key from a newer apworld is refused by name.
-        internal static readonly string[] Known = { Drop, Throw, Trip, Meeting, Night, Sleep, Load, Mask, Flare, Day, Speed, Jump, Knockout };
+        internal static readonly string[] Known = { Drop, Throw, Trip, Meeting, Night, Sleep, Load, Mask, Flare, BigTime, Silence, Slide, Day, Speed, Jump, Knockout };
 
         internal static string DisplayName(string key)
         {
@@ -147,6 +172,12 @@ namespace BigWalkArchipelago.Core
                     case Drop:
                         DropHeld(player);
                         break;
+                    case Slide:
+                        StartSlide(seconds);
+                        break;
+                    case Silence:
+                        StartSilence(player, seconds);
+                        break;
                     case Flare:
                         BigFlare.Play();
                         break;
@@ -204,6 +235,17 @@ namespace BigWalkArchipelago.Core
 
             TickMovement(now);
 
+            if (_slideUntil >= 0f && now >= _slideUntil)
+                EndSlide();
+
+            if (_silenceUntil >= 0f)
+            {
+                if (now >= _silenceUntil)
+                    EndSilence();
+                else
+                    HoldSilence();
+            }
+
             if (_skyRunning)
                 StepSky();
 
@@ -219,6 +261,8 @@ namespace BigWalkArchipelago.Core
             _speedUntil = _jumpUntil = _sleepUntil = -1f;
             SetAsleep(false);
             RestoreMovement();
+            EndSlide();
+            EndSilence();
             _countdownEnd = -1f;
             _countdownPlayer = null;
 
@@ -303,6 +347,76 @@ namespace BigWalkArchipelago.Core
         // Hands
         // ------------------------------------------------------------------
 
+        private static void StartSilence(PlayerCharacter player, int seconds)
+        {
+            if (_silenceUntil < 0f)
+            {
+                var networking = player.GetComponent<PlayerNetworking>();
+                _silenceWasMuted = networking != null && networking.isMuted;
+                _comms = UnityEngine.Object.FindObjectOfType<Dissonance.DissonanceComms>();
+                _silenceCommsWasMuted = _comms != null && _comms.IsMuted;
+            }
+
+            _silenceUntil = Mathf.Max(_silenceUntil, Time.unscaledTime + seconds);
+            HoldSilence();
+            Plugin.Log.LogInfo($"{Tag} Big Silence: muted for {seconds}s (was muted: {_silenceWasMuted}, mic {_silenceCommsWasMuted}).");
+        }
+
+        private static void HoldSilence()
+        {
+            try
+            {
+                var player = Debug.DebugPlayerLookup.FindLocalPlayer();
+                var networking = player != null ? player.GetComponent<PlayerNetworking>() : null;
+                if (networking != null && !networking.isMuted)
+                    networking.CmdSetMute(true);
+                if (_comms == null)
+                    _comms = UnityEngine.Object.FindObjectOfType<Dissonance.DissonanceComms>();
+                if (_comms != null && !_comms.IsMuted)
+                    _comms.IsMuted = true;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"{Tag} Big Silence: {ex.Message}");
+            }
+        }
+
+        private static void EndSilence()
+        {
+            if (_silenceUntil < 0f)
+                return;
+            _silenceUntil = -1f;
+            try
+            {
+                var player = Debug.DebugPlayerLookup.FindLocalPlayer();
+                var networking = player != null ? player.GetComponent<PlayerNetworking>() : null;
+                if (networking != null && networking.isMuted != _silenceWasMuted)
+                    networking.CmdSetMute(_silenceWasMuted);
+                if (_comms != null)
+                    _comms.IsMuted = _silenceCommsWasMuted;
+                Plugin.Log.LogInfo($"{Tag} Big Silence over.");
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"{Tag} Big Silence end: {ex.Message}");
+            }
+            _comms = null;
+        }
+
+        private static void StartSlide(int seconds)
+        {
+            _slideUntil = Mathf.Max(_slideUntil, Time.unscaledTime + seconds);
+            Plugin.Log.LogInfo($"{Tag} Big Slide: the ground slips for {seconds}s (grip {SlideGrip}).");
+        }
+
+        private static void EndSlide()
+        {
+            if (_slideUntil < 0f)
+                return;
+            _slideUntil = -1f;
+            Plugin.Log.LogInfo($"{Tag} Big Slide over.");
+        }
+
         private static void DropHeld(PlayerCharacter player)
         {
             if (player.hands == null || !player.hands.isHoldingSomething)
@@ -324,7 +438,9 @@ namespace BigWalkArchipelago.Core
             }
 
             _throwWindUpStart = NetworkTime.time;
-            player.decisions.SetWindUpStartTime(_throwWindUpStart);
+            TrapIsThrowing = true;
+            try { player.decisions.SetWindUpStartTime(_throwWindUpStart); }
+            finally { TrapIsThrowing = false; }
             _throwPlayer = player;
             _cancelRefusedLogged = false;
             var windUp = player.tunings != null ? Mathf.Max(0f, player.tunings.maxWindUpDuration) : 1f;
@@ -344,7 +460,9 @@ namespace BigWalkArchipelago.Core
                 if (player.decisions.localWindUpStartTime == _throwWindUpStart)
                     return;
 
-                player.decisions.SetWindUpStartTime(_throwWindUpStart);
+                TrapIsThrowing = true;
+                try { player.decisions.SetWindUpStartTime(_throwWindUpStart); }
+                finally { TrapIsThrowing = false; }
                 if (!_cancelRefusedLogged)
                 {
                     _cancelRefusedLogged = true;
@@ -357,11 +475,16 @@ namespace BigWalkArchipelago.Core
             }
         }
 
+        // Big Throw works whatever lock_abilities says (player, 2026-10-13): the Throwing lock lets the trap's own
+        // wind-up and throw through while this is set (Patches/AbilityLockPatches).
+        internal static bool TrapIsThrowing { get; private set; }
+
         private static void FinishThrow()
         {
             var player = _throwPlayer;
             _throwAt = -1f;
             _throwPlayer = null;
+            TrapIsThrowing = true;
 
             try
             {
@@ -382,6 +505,10 @@ namespace BigWalkArchipelago.Core
             catch (Exception ex)
             {
                 Plugin.Log.LogWarning($"{Tag} Big Throw failed at the end of the wind-up: {ex.Message}");
+            }
+            finally
+            {
+                TrapIsThrowing = false;
             }
         }
 

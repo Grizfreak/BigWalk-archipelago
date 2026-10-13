@@ -23,7 +23,11 @@ namespace BigWalkArchipelago.Patches
                 if (held == null || held.identity == null || held.identity.netId != heldInformation.identity.netId)
                     return;
 
-                PackChecks.OnPickedUp(heldInformation.identity.GetComponent<Prop>());
+                var prop = heldInformation.identity.GetComponent<Prop>();
+                if (ModConfig.DebugModeEnabled.Value && prop != null)
+                    Plugin.Log.LogInfo($"[{nameof(PackPickUpPatch)}] picked up '{prop.gameObject.name}' type={prop.GetIl2CppType().Name} "
+                        + $"guid={prop.savablePropGuid} clone={ReceivedItemSpawner.IsCosmeticClone(prop)} by netId {__instance.netId}");
+                PackChecks.OnPickedUp(prop);
             }
             catch (Exception ex)
             {
