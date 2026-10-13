@@ -170,6 +170,60 @@ prop, a walkie-talkie does nothing for the logic: none is ever needed, it lands 
 receive it, and its copies on the island are removed so one cannot also be found for free. Lower the
 number, or put it at 0 to leave them out, for a pool with fewer of them.
 
+## Added in 0.6
+
+Every option below is **off by default**, except `monument_sanity` (7 checks, on): set it off for a 0.5 YAML's count.
+
+### The players' bodies (`lock_abilities`)
+
+With **`lock_abilities`** set to `handed` or `ambidextrous`, the players' bodies are items, and each one reaches
+**every player of the slot at once**:
+
+- **Legs**: jumping and crouching. The island past the tutorial needs both, so Legs is asked for to leave the
+  starting zone (if the starting zone has no room left for it, you start with it).
+- **Seat**: sitting on a chair, a couch, a bench or a stump, and on the floor. Turnstiles, telescopes, the
+  chairlift, the train and the ending are never locked.
+- **Progressive Arm**: raising the arm, then pointing, then extending it sideways. `handed`: three for the left
+  arm, three for the right; `ambidextrous`: three **Progressive Arms**, both arms at once.
+- **Throwing** and **Carrying** another player. Big Throw still throws while Throwing is locked.
+- **Running**, with **`lock_running`** (useful only: the logic never asks for it).
+
+**`start_with_abilities`** lists those you already have: `legs`, `seat`, `arms`, `throwing`, `carrying` (none by
+default, as `start_with_puzzle_needs` for the puzzles' parts). One not listed is an item to find.
+
+The gesture puzzles ask for what they use: Concert, Indoor Semaphore, Optical Telegraph, Charades Rooms,
+Pointer's Paradise, Dancer and Selector and the Gauntlet's last stage the Seat and both arms extended,
+Invisible Ink both arms raised, the Carousel and Cannonball Commute the Seat; throwing for Fielding, Window
+Labyrinth, Basketball and Kick Up Pits; carrying for High Button, the two obbies and Pointer's Paradise.
+
+### The island's objects and lights
+
+- **`object_sanity`**: the island's gadgets stay on the map, and picking them up sends checks: `first_pickup`, the
+  first of each kind (16 by default); `every`, each one (144 by default), which then leaves the map like a pack.
+  **`object_sanity_kinds`** lists the kinds: walkie_talkie, radio, megaphone, binoculars, laser, torch, scanner,
+  clock, compass, map, cowbell, lamp, paintbrush (the paintbrushes are left out by default and never leave the
+  island). A kind left out leaves the island, except the lamps. **`object_sanity_items`**: `any`, `local` (this
+  world's items that nothing needs) or `junk`.
+- **`light_sanity`**: a check the first time each light is switched on: `lamps` (83: those on the pedestals, in the
+  towers, the tutorial...) or `lamps_and_switches` (with 19 wall switches: the Doof Chamber, the salons, the tutorial,
+  the train and its stops). The puzzles' own lights are not counted. With it on, the lamps are lights, not objects.
+  **`light_sanity_items`**: `any`, `local` or `junk`, as for the objects.
+
+### Monuments and the game's own ways
+
+- **`monument_sanity`** (on by default): a check when each monument is full (**Drawbridge Monument Full** and so on).
+- **`linear_towers`**: each tower's key is its monument full, as in the game (the checks above exist then).
+- **`linear_keys`**: a placed key opens its door, as in the game (each key deposit holds its own door).
+- **`linear_puzzles`**: every puzzle holds a gourd (it still arrives beside you, as an item), except the seven purple
+  ones past the chairlift.
+- **`start_with_map_room_open`**: the Map Room is open from the start.
+- **`include_big_game_puzzles`**: the seven purple gourds' puzzles: `from_start` (as before, shown on the map),
+  `when_unlocked` (in logic once an ending is reached, not on the map) or `disabled` (no checks).
+- **`cut_key_sanity`**: the 25 key cuts: `on` (as before), `junk` or `off`.
+- **`fast_golf`**: the golf ball (the cannonball) is no longer too heavy.
+
+A short line on the overlay now says each check sent: what it was, what it gave, and to whom.
+
 ## Colors
 
 With **`random_colors`** (on by default) the seed draws between five and ten colors from the
@@ -213,6 +267,9 @@ filler is bonuses (`bonus_fill_percentage: 25`).
 | **Big Load** (hard) | every pack worn comes off and what it holds falls out |
 | **Big Mask** (hard) | for `trap_duration` seconds, everyone wears the blindfold puzzles' helmet and nobody can take it off. A player already wearing a puzzle's mask is spared |
 | **Big Flare** | a flare gun shot lands on every player, in the Archipelago colors. Each player can hide it on their own screen, see Gentle effects below |
+| **Big Silence** | for `trap_duration` seconds, every player is muted, and the mute key cannot lift it |
+| **Big Slide** | for `trap_duration` seconds, the ground is slippery: starting, stopping and turning slide |
+| **Big Time** | every player gets a clock to keep, showing the real time of their own computer |
 
 | Bonus | What it does |
 |---|---|
@@ -307,7 +364,8 @@ the Gauntlet), `big_goodbye` (the Gauntlet, the default) or `big_game` (the secr
 Left empty (the default), the goal alone applies, exactly as before, so an older YAML plays as it did.
 
 **`random_objectives`** draws that many at random: among the objectives listed, or, if none are, among all of those
-the other options allow (`big_radio` needs `radio_sanity`, `big_towers` a `tower_mode`). 0 (the default) asks for the
+the other options allow (`big_radio` needs `radio_sanity`, `big_towers` a `tower_mode`, `big_objects`
+`object_sanity`, `big_body` `lock_abilities`). 0 (the default) asks for the
 whole list.
 
 ```yaml
@@ -323,13 +381,17 @@ Big Walk:
 - **big_climb**: stand on the highest point of the island.
 - **big_fiesta** (also read as big_club): the party, on the beach: plug a radio into the big speakers, with a music playing. A
   **Radio** is certain to be in the pool, and with `shuffle_radio_music` the Radio Music items (any one will do) become required.
+- **big_lights**: switch on `lights_required` percent of the lights, each at least once. Without `light_sanity`, the
+  lamps count for it, with no check of their own.
+- **big_objects**: send `objects_required` percent of the object checks (needs `object_sanity`).
+- **big_body**: receive `body_required` percent of the ability items, Running aside (needs `lock_abilities`).
 - **big_towers**: complete `towers_required` towers, a tower being complete when its monument is full, in the
   seed's order (needs `tower_mode` `in_order` or `by_item`).
 
 An ending plays **once per save**, so each objective is remembered when it happens, and the goal goes out
 on the last of them, whatever the order. The objectives are on a **board in the hub**, above the resync
 station's sign, ticked as they are done; **Settings > Archipelago > Objectives on screen** keeps them on the
-overlay too. With **`lock_endings_until_objectives`**, the entry of the ending stays shut on every screen
+overlay too. With **`lock_endings_until_objectives`** (on by default), the entry of the ending stays shut on every screen
 until the other objectives are done: the Gauntlet's last stairway (the door to its bell) and the secret
 room's printer.
 

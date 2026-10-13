@@ -6,6 +6,66 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## 0.6.0 (unreleased)
+
+### Moving from 0.5 to 0.6
+
+- **A 0.5 YAML generates almost as it did:** the new options are off by default, except two:
+  `monument_sanity` is on (7 more checks, the monuments full; set it off for the 0.5 count) and
+  `lock_endings_until_objectives` is on (with objectives, the ending waits for the others; set it off for the 0.5
+  behaviour).
+- **Everyone needs this build:** the host's channel to its guests changed (protocol v18).
+- A 0.5 seed keeps working with the new mod; the new options need a new seed.
+- The joke filler items (Boid, Plumbus, Bouba...) are gone, so those names are free for `gourd_name`.
+- **Removed:** the hidden `lock_arch_doors` of 0.1.1 (use `start_with_arch_doors_open`), and `big_walk` / `big_bell`
+  in `objectives`, which were only accepted to be refused.
+
+### Added
+
+- **`lock_abilities`** (`handed` / `ambidextrous`): the players' bodies are items, received by every player at once.
+  **Legs** (jumping and crouching, needed to leave the starting zone), **Seat** (a chair, the floor), **Progressive
+  Arm** (raising, then pointing, then extending sideways; one per arm with `handed`, both arms with `ambidextrous`),
+  **Throwing** and **Carrying** another player. **`start_with_abilities`** lists those you already have (legs, seat, arms, throwing, carrying; none by
+  default), as `start_with_puzzle_needs` does for the puzzles' parts. **`lock_running`** locks running too (useful, never required). The
+  gesture puzzles ask for what they use (Concert, Indoor Semaphore, Charades, Pointer's Paradise...), and Pointer's
+  Paradise also asks for Carrying. Big Throw still throws while Throwing is locked.
+- **`object_sanity`** (`first_pickup` / `every`): the island's gadgets stay on the map, and picking them up sends
+  checks, the first of each kind or each one (an object then leaves the map, like a pack). **`object_sanity_kinds`**
+  picks the kinds (walkie-talkie, radio, megaphone, binoculars, laser, torch, scanner, clock, compass, map, cowbell,
+  lamp, paintbrush; the paintbrushes are off by default and never leave the island); a kind left out leaves the island.
+  **`object_sanity_items`** (`any` / `local` / `junk`) chooses what those checks may hold.
+- **`light_sanity`** (`lamps` / `lamps_and_switches`): a check the first time each light is switched on, the island's
+  lamps and, if you like, the wall switches of the Doof Chamber, the salons, the tutorial, the train and its stops.
+  With it on, a lamp is a light, not an object. **`light_sanity_items`** (`any` / `local` / `junk`) chooses what those
+  checks may hold.
+- **`monument_sanity`** (on by default): a check when each monument is full. **`linear_towers`** puts each tower's key there, as in the
+  game.
+- **The vanilla behaviours back, as options:** **`linear_keys`** (a placed key opens its door), **`linear_puzzles`**
+  (each puzzle holds a gourd, the seven purple ones aside), **`start_with_map_room_open`**, **`include_big_game_puzzles`** (`from_start` /
+  `when_unlocked` / `disabled`) and **`cut_key_sanity`** (`on` / `junk` / `off`).
+- **Three objectives, each at a share you choose:** **`big_lights`** (`lights_required` %; without `light_sanity` the
+  lamps count for it, with no check), **`big_objects`** (`objects_required` %) and **`big_body`** (`body_required` %,
+  Running aside).
+- The options are regrouped: **Vanilla Behaviours** and **Movement Locking** are groups of their own, every sanity
+  is under Sanity, and `fast_golf` is under Puzzle QoL.
+- **Three traps:** **Big Silence** (every player muted for a while), **Big Slide** (the ground turns slippery) and
+  **Big Time** (a clock in every player's hands, on the real time of their own computer).
+- **`fast_golf`**: the golf ball is no longer too heavy.
+- **A short line on the screen for every check sent:** what it was, what it gave and to whom.
+
+### Changed
+
+- **`lock_endings_until_objectives` is on by default:** with objectives, the ending stays shut until the others are
+  done. A seed without objectives is not touched.
+- The lamps on the red pedestals light up in orange, the colour their sphere always has (the game never lets it change).
+- With `lock_abilities` and no room left in the starting zone for Legs (the tutorial's puzzles holding their gourds
+  and its monument waiting for an item), the player starts with Legs, and the generation log says so.
+
+### Fixed
+
+- Two lights counted as switched on as the world loaded (the salons' main lights): only what players do counts now.
+- With `include_big_game_puzzles` other than `from_start`, the purple gourds could still show on the map.
+
 ## 0.5.0 (unreleased)
 
 ### Moving from 0.4 to 0.5
@@ -189,7 +249,7 @@ Numbered 0.3.0 rather than 0.1.3: a release this size moves the minor number; th
   (in any world), so that a solo seed with the defaults always generates (1 in 23 failed).
 - **Renamed**: `gourd_slot_checks` is now `gourd_sanity`, `radio_checks` is now `radio_sanity`.
   A YAML with the old names falls back to the defaults: rename them.
-- **The towers' keys and checks carry the names the players use** (ROADMAP U9): **Red
+- **The towers' keys and checks carry the names the players use**: **Red
   Funnel Tower Key**, **Green Cup Tower Key**, **Blue Castle Tower Key**, **Yellow Twist
   Tower Key**, **Black Monolith Tower Key** and **Green Dome Tower Key**, with their
   cuts and deposits (**Red Funnel Tower Key Cut 1**, **Red Funnel Tower Key Deposit**).
@@ -266,7 +326,7 @@ Numbered 0.3.0 rather than 0.1.3: a release this size moves the minor number; th
 - Universal Tracker rebuilds a seed with its `gauntlet_stage_items` and `teleport_buttons`, and a
   seed made before progressive Gauntlet doors with one door per stage (it was never in go mode).
 - A save connected to a different seed or slot than it knew no longer sends the checks
-  it reported to the previous one (U5). Its first connection still sends the ones made
+  it reported to the previous one. Its first connection still sends the ones made
   while offline.
 - A big key already put in its plinth stays there when its item arrives later (it was taken
   out to be handed over, and the drawbridge went back up at the end of a run).
@@ -318,7 +378,7 @@ Numbered 0.3.0 rather than 0.1.3: a release this size moves the minor number; th
 
 ### Changed
 
-- **The towers' keys and checks carry the names the players use** (ROADMAP U9): **Red
+- **The towers' keys and checks carry the names the players use**: **Red
   Funnel Tower Key**, **Green Cup Tower Key**, **Blue Castle Tower Key**, **Yellow Twist
   Tower Key**, **Black Monolith Tower Key** and **Green Dome Tower Key**, with their
   cuts and deposits (**Red Funnel Tower Key Cut 1**, **Red Funnel Tower Key Deposit**).

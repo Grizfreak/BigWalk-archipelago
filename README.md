@@ -4,7 +4,7 @@ An [Archipelago](https://archipelago.gg) randomizer for *Big Walk* (House
 House). Checks go out and items come in from inside the game: there is no
 separate client to run while you play.
 
-**Version 0.5.0 — alpha.** Every path has been exercised in game, on two
+**Version 0.6.0 — alpha.** Every path has been exercised in game, on two
 machines as well as one, but no one has yet played a seed from the first check
 to the goal. Expect to find things, and please report them.
 
@@ -38,16 +38,19 @@ host types the Archipelago details — but every player installs the mod
 ## What gets randomized
 
 - **Checks**: the puzzle gourds, cutting and placing the big keys, the radio
-  stations, and depositing gourds into the monuments.
+  stations, and depositing gourds into the monuments; if you like, picking up
+  the island's objects, switching on its lights, and filling each monument.
 - **Items**: gourds, the big keys, the doors they used to open, each station's
   music, the island's own gadgets and, if you turn it on, the parts the
   puzzles are built from (`lock_puzzle_needs`: their buttons, panels,
-  speakers... are not on the map until you are sent them).
+  speakers... are not on the map until you are sent them) and the players'
+  own bodies (`lock_abilities`: jumping, sitting, the arms, throwing,
+  carrying another player).
 - **Goal**: the Gauntlet's bell, the chapel bell, the second ending, a
   number of deposits; and, if you like, **objectives** to do on the way, in
   any order (gourds, big keys, radio stations, towers filled, the island's
-  highest point, a party on the beach), listed or drawn at random, shown on
-  a board in the hub. The towers can open one after the other, in an order the
+  highest point, a party on the beach, a share of the lights, objects or
+  abilities), listed or drawn at random, shown on a board in the hub. The towers can open one after the other, in an order the
   seed draws, or each one on a Progressive Monument.
 
 What each goal asks, what every item does and what the options change are on
