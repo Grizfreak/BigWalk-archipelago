@@ -58,6 +58,8 @@ works out to 6000..6064 above BASE_ID, which sits clear of the puzzles
 """
 
 GOURD_ITEM_NAME = "Gourd"
+GOURD_CARTON_ITEM_NAME = "Gourd Carton"
+"""Renamed after the gourds by `gourd_name`: "<name> Carton"."""
 
 # --------------------------------------------------------------------------
 # Puzzles (SaveablePropName.gourdXxx)

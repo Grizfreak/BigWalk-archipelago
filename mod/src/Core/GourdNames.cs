@@ -129,10 +129,15 @@ namespace BigWalkArchipelago.Core
             _mirrored = null;
         }
 
-        // Matched by id: the server may already send the seed's name.
+        // Matched by id: the server may already send the seed's name. The carton follows the gourds
+        // (a player, 2026-10-14), as the apworld's gourd_name.carton_name does.
         internal static string Display(long itemId, string itemName)
         {
-            return itemId == Net.ApLocationIds.GourdItemId ? Current : itemName;
+            if (itemId == Net.ApLocationIds.GourdItemId)
+                return Current;
+            if (Net.ApLocationIds.TryResolveGadgetItem(itemId, out var kind) && kind == GadgetKind.GourdCarton)
+                return Current + " Carton";
+            return itemName;
         }
 
         // "gourds" in a sentence: the custom name with an s, or the plain word.

@@ -367,6 +367,7 @@ class FlareGunSanity(DefaultOnToggle):
 class GourdName(FreeText):
     """
     Renames the gourds for the run (24 characters max), everywhere: clients, hints, spoiler, overlay.
+    The Gourd Carton follows: "<name> Carton".
     Letters, digits and spaces, with ' - _ . , ! ? & + : ; ( ) @; anything else is dropped.
     All Big Walk slots must use the same name, and it can't be another item's or group's name;
     otherwise it stays "Gourd".

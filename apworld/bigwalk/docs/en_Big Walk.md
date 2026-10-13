@@ -243,8 +243,10 @@ mod's ten (red, orange, yellow, lime, green, cyan, blue, purple, pink, white), a
 
 **`gourd_name`** renames the gourds for the run, up to 24 characters: `gourd_name: Plumbus du
 Destin`. Every game of the multiworld, the Text Client, Universal Tracker, the spoiler log and the
-mod's overlay say that name, and `!hint Plumbus du Destin` finds them (`!hint Gourd` too). Only the
-name changes: the gourds are the same items.
+mod's overlay say that name, and `!hint Plumbus du Destin` finds them (`!hint Gourd` too). The
+Gourd Carton follows them and becomes the **Plumbus du Destin Carton**; `!hint Gourd Carton`,
+`!hint Gourd Carrier` and `!hint Plumbus du Destin Carrier` find it too. Only the names change: the
+items are the same. The locations keep their names (Gourd Deposit 10, Gourd Carton Pickup).
 
 The name belongs to the game, not to a slot: every Big Walk slot of a multiworld has to ask for the
 same one, or they all keep "Gourd". A name that already belongs to another Big Walk item or item
@@ -334,7 +336,7 @@ them, and nothing there is in the YAML.
 | **DeathLink** | the host | On follows the YAML; Off sends and receives none for this session, whatever the YAML says. It reads "On (not in this seed)" when the seed has no DeathLink |
 | **DeathLink amnesty** | the host | "Seed's" keeps the YAML's amnesty; 0 to 10 replaces it |
 | **Gentle effects** | each player | Off by default. On, the flashes of the traps are not shown on that screen (today Big Flare's), for players who find them hard to look at. The others keep theirs, and nothing else changes, the clock included |
-| **Gourd name** | the host | free text, up to 24 characters, applied with Enter or by leaving the field. The item feed and the goal line say it instead of "Gourd" on every player's overlay |
+| **Gourd name** | the host | free text, up to 24 characters, applied with Enter or by leaving the field. The item feed and the goal line say it instead of "Gourd" on every player's overlay, and "<name> Carton" for the Gourd Carton |
 
 On a guest, the host's settings are greyed ("Set by the host") and show the host's value. The
 **gourd name** lives in the mod only: the Archipelago server, the Text Client and the other games of

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from BaseClasses import Item, ItemClassification
 from Options import OptionError
 
-from . import data
+from . import data, gourd_name
 from . import options as bigwalk_options
 
 if TYPE_CHECKING:
@@ -43,7 +43,7 @@ TELEPORT_ITEM_NAMES: tuple[str, ...] = tuple(data.teleport_item_name(name) for _
 GUARANTEED_GEAR: dict[str, str] = {
     "Backpack": "backpacks_in_pool",
     "Belt": "belts_in_pool",
-    "Gourd Carton": "gourd_cartons_in_pool",
+    data.GOURD_CARTON_ITEM_NAME: "gourd_cartons_in_pool",
 }
 
 # Never drawn as filler (player, 2026-10-07): the four flare guns come in with `flare_gun_sanity`
@@ -75,6 +75,8 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Traps": set(TRAP_ITEM_NAMES),
     "Hard Traps": {trap.item_name for trap in data.TRAPS if trap.hard},
     "Bonuses": set(BONUS_ITEM_NAMES),
+    # What players call it (2026-10-14); with gourd_name, "<name> Carrier" as well (gourd_name.py).
+    "Gourd Carrier": {data.GOURD_CARTON_ITEM_NAME},
 }
 
 
@@ -90,13 +92,16 @@ class BigWalkItem(Item):
     game = "Big Walk"
 
     def __repr__(self) -> str:
-        # Spoiler log: show gourd_name, keep item.name for the rules.
+        # Spoiler log: show gourd_name (and the carton after it), keep item.name for the rules.
         text = super().__repr__()
         region = self.location.parent_region if self.location else None
-        if self.name != data.GOURD_ITEM_NAME or region is None or region.multiworld is None:
+        if (self.name not in (data.GOURD_ITEM_NAME, data.GOURD_CARTON_ITEM_NAME)
+                or region is None or region.multiworld is None):
             return text
         world = region.multiworld.worlds.get(self.player)
-        return getattr(world, "gourd_name", self.name) + text[len(self.name):]
+        name = getattr(world, "gourd_name", data.GOURD_ITEM_NAME)
+        shown = name if self.name == data.GOURD_ITEM_NAME else gourd_name.carton_name(name)
+        return shown + text[len(self.name):]
 
 
 def classification_for(name: str, require_arch_doors: bool = False) -> ItemClassification:

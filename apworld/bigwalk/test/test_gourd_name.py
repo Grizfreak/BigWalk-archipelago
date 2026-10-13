@@ -51,6 +51,12 @@ class TestRenamed(BigWalkTestBase):
         self.assertEqual(len(package["item_name_to_id"]), len(before))
         self.assertEqual(package["item_name_groups"][data.GOURD_ITEM_NAME], [NAME])
         self.assertIn(NAME, package["item_name_groups"]["Everything"])
+        # The carton follows, with its aliases.
+        carton = f"{NAME} Carton"
+        self.assertEqual(package["item_name_to_id"][carton], items.ITEM_NAME_TO_ID[data.GOURD_CARTON_ITEM_NAME])
+        self.assertNotIn(data.GOURD_CARTON_ITEM_NAME, package["item_name_to_id"])
+        for alias in (data.GOURD_CARTON_ITEM_NAME, "Gourd Carrier", f"{NAME} Carrier"):
+            self.assertEqual(package["item_name_groups"][alias], [carton], alias)
         self.assertEqual(list(package["item_name_groups"]), sorted(package["item_name_groups"]))
         # archipelago.gg recomputes it on upload.
         unchecked = {key: value for key, value in package.items() if key != "checksum"}
@@ -75,6 +81,10 @@ class TestRenamed(BigWalkTestBase):
         backpack = self.world.create_item("Backpack")
         backpack.location = gourd.location
         self.assertEqual(repr(backpack), "Backpack")
+        carton = self.world.create_item(data.GOURD_CARTON_ITEM_NAME)
+        carton.location = gourd.location
+        self.assertEqual(repr(carton), f"{NAME} Carton")
+        self.assertEqual(carton.name, data.GOURD_CARTON_ITEM_NAME)
 
 
 class TestRefused(BigWalkTestBase):
@@ -102,8 +112,14 @@ class TestCleaning(TestCase):
             self.assertEqual(self.clean(wanted), data.GOURD_ITEM_NAME, wanted)
 
     def test_items_and_groups_are_taken(self) -> None:
-        for wanted in ("Backpack", "traps", "Gourd Carton"):
+        for wanted in ("Backpack", "traps", "Gourd Carton", "Gourd Carrier"):
             self.assertEqual(self.clean(wanted), data.GOURD_ITEM_NAME, wanted)
+
+    def test_the_cartons_names_must_be_free_too(self) -> None:
+        # "Big" gives "Big Carton" and "Big Carrier": both free, so it is kept; a taken one refuses the name.
+        self.assertEqual(gourd_name.clean("Big", ("Big Carton",), "Tester"), data.GOURD_ITEM_NAME)
+        self.assertEqual(gourd_name.clean("Big", ("big carrier",), "Tester"), data.GOURD_ITEM_NAME)
+        self.assertEqual(self.clean("Big"), "Big")
 
     def test_the_community_names_are_free(self) -> None:
         for wanted in ("Boid", "PLUMBUS", "Jelly Baby"):
