@@ -279,9 +279,8 @@ def create_all_items(world: BigWalkWorld) -> None:
     # which is the feature; the tutorial key is just six checks like any
     # other key, and handing it over would be handing over checks.
     # L1 `linear_towers`: a tower's key is its monument full, as in the game (a tower without slots keeps it in the pool).
-    full = {tower.prop_name for tower in world.monuments_full()} if world.options.linear_towers else set()
     for tower in world.towers:
-        if tower.prop_name in full:
+        if world.key_in_its_monument(tower):
             world.get_location(data.monument_full_location_name(tower)).place_locked_item(
                 world.create_item(data.key_item_name(tower)))
         else:
@@ -333,8 +332,18 @@ def create_all_items(world: BigWalkWorld) -> None:
             else:
                 world.push_precollected(world.create_item(ability.item_name))
 
+    # The party (`big_fiesta`) needs a radio: one is certain, counted with what the seed needs rather than taken
+    # from the filler headroom, which the gear may have spent (the fuzzer, 62 seeds without it, 2026-10-13).
+    # The filler gives more up to `island_object_limits`.
+    if party_asked_for(world):
+        pool.append(world.create_item(RADIO_ITEM_NAME))
+
     unfilled = len(world.multiworld.get_unfilled_locations(world.player))
     filler_needed = unfilled - len(pool)
+    # Universal Tracker rebuilds a seed that was generated: it only needs the locations and the rules, and an error
+    # here would leave the player with no tracker at all.
+    if filler_needed < 0 and getattr(world.multiworld, "re_gen_passthrough", None):
+        filler_needed = 0
     if filler_needed < 0:
         raise OptionError(
             f"Big Walk: {world.player_name}'s options need {len(pool)} items for only {unfilled} "
@@ -349,11 +358,6 @@ def create_all_items(world: BigWalkWorld) -> None:
         take = min(getattr(world.options, option).value, filler_needed)
         pool += [world.create_item(name) for _ in range(take)]
         filler_needed -= take
-    # One radio is certain when the party is asked for (the draw above may give none); the filler gives more up
-    # to `island_object_limits`.
-    if party_asked_for(world) and filler_needed > 0:
-        pool.append(world.create_item(RADIO_ITEM_NAME))
-        filler_needed -= 1
     # The flare guns, from the same headroom, as many of each as `island_object_limits` says: the
     # island's four with their checks (`flare_gun_sanity`), and the Rainbow Flare Gun always.
     limits = island_object_limits(world)

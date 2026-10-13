@@ -6,7 +6,7 @@ import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TextIO
 
-from BaseClasses import CollectionState, LocationProgressType, MultiWorld
+from BaseClasses import CollectionState, Item, LocationProgressType, MultiWorld
 from Options import OptionError
 from worlds.AutoWorld import World
 
@@ -16,7 +16,7 @@ from . import options as bigwalk_options
 if TYPE_CHECKING:
     from NetUtils import MultiData
 
-WORLD_VERSION = "0.6.0"
+WORLD_VERSION = "0.6.1"
 """Kept in step with archipelago.json; sent in slot_data so the mod can check it."""
 
 TRACKER_OPTIONS = {
@@ -63,6 +63,12 @@ TRACKER_OPTIONS = {
     "body_required": "body_required",
     "random_colors": "random_colors",
     "trap_link": "trap_link",
+    # The vanilla options place items in locations (L1 to L5), which moves what the pool must hold: a tracker without
+    # them failed to rebuild the seed (the fuzzer's UT check, 2026-10-13).
+    "linear_keys": "linear_keys",
+    "linear_puzzles": "linear_puzzles",
+    "start_with_drawbridge_open": "start_with_drawbridge_open",
+    "start_with_map_room_open": "start_with_map_room_open",
 }
 """
 The slot_data fields that are options, mapped to the option each one comes
@@ -74,9 +80,10 @@ against. Its Choice values are the pre-rename ones too, which the options
 still accept as aliases, so `from_any` reads them back unchanged.
 
 Every other option decides what goes into the pool, not what the graph looks
-like: `start_with_drawbridge_open` moves one item from the pool to the start
-inventory — the server hands it over either way — and `trap_fill_percentage`
-only ever picks between two kinds of filler. Neither can move a location.
+like: `trap_fill_percentage` only ever picks between two kinds of filler, and
+cannot move a location. `start_with_drawbridge_open` used to be one of them, and
+travels since `linear_keys` (L2): with it, the Drawbridge is either handed over
+or locked on the key's deposit.
 
 Kept in step with `fill_slot_data` by a test rather than by care.
 """
@@ -148,6 +155,9 @@ class BigWalkWorld(World):
     gourd_name: str = data.GOURD_ITEM_NAME
     """Display name of the gourds, shared by every Big Walk slot."""
 
+    way_out: tuple[str, ...] = ()
+    """The items asked for early as the way out of the starting zone; empty when nothing needs asking."""
+
     @staticmethod
     def interpret_slot_data(slot_data: Mapping[str, Any]) -> Mapping[str, Any]:
         """
@@ -206,6 +216,7 @@ class BigWalkWorld(World):
         opened = self.options.start_with_arch_doors_open.value
         self.locked_arch_doors = tuple(door for door in data.ARCH_DOORS if door.item_name not in opened)
         self._ask_for_an_early_way_out()
+        self._ask_for_the_first_monument_early()
         self._ask_for_the_far_doors_early()
         self._hint_the_keys()
         self._keep_the_gauntlet_stages_local()
@@ -298,12 +309,26 @@ class BigWalkWorld(World):
         the two, picked at random, is asked for as an early local item; if
         the Drawbridge is handed over at the start there is nothing to ask.
         """
+        self.way_out = ()
         if data.FIRST_ARCH_DOOR not in self.locked_arch_doors or self.options.start_with_drawbridge_open:
             return
 
-        way_out = (data.FIRST_ARCH_DOOR.item_name if self.options.linear_keys
-                   else self.random.choice((data.DRAWBRIDGE_ITEM_NAME, data.FIRST_ARCH_DOOR.item_name)))
-        self.multiworld.local_early_items[self.player][way_out] = 1
+        self.way_out = (data.FIRST_ARCH_DOOR.item_name if self.options.linear_keys
+                        else self.random.choice((data.DRAWBRIDGE_ITEM_NAME, data.FIRST_ARCH_DOOR.item_name)),)
+        for name in self.way_out:
+            self.multiworld.local_early_items[self.player][name] = self.way_out.count(name)
+
+    def _ask_for_the_first_monument_early(self) -> None:
+        """
+        With `by_item` and the first monument closed, every deposit, every monument full and with the vanilla options
+        every key and door wait for the first Progressive Monument: asked for early, in this world, where
+        _make_room_at_the_start can tell whether there is room for it. Left to the fill, it was the last item
+        placed, with nowhere left (the fuzzer, 4 seeds in 4000, 2026-10-13).
+        """
+        if (self.options.tower_mode != bigwalk_options.TowerMode.option_by_item or self.options.first_tower_open
+                or data.PROGRESSIVE_MONUMENT_ITEM_NAME in self.way_out):
+            return
+        self.multiworld.local_early_items[self.player][data.PROGRESSIVE_MONUMENT_ITEM_NAME] = 1
 
     def _ask_for_the_far_doors_early(self) -> None:
         """
@@ -532,29 +557,52 @@ class BigWalkWorld(World):
         # The local items first: they may take the starting zone's places, and Legs must then see what is left.
         self._place_local_items("Objects", self.options.object_sanity_items.value, "object_sanity_items")
         self._place_local_items("Lights", self.options.light_sanity_items.value, "light_sanity_items")
-        self._make_room_for_the_legs()
+        self._make_room_at_the_start()
 
-    def _make_room_for_the_legs(self) -> None:
+    def _make_room_at_the_start(self) -> None:
         """
-        With `lock_abilities`, Legs is the way out of the starting zone, so it must sit in a location reachable without
-        it. With the tutorial's puzzles holding their gourds (`linear_puzzles`) and its monument waiting for an item
-        (`by_item`, first monument closed), none may be left: generation failed 4 seeds in 4 (2026-10-13). Then the
-        player starts with Legs, and the generation log says so.
+        What the exit of the starting zone asks for must lie in it: the way out (_ask_for_an_early_way_out) and, with
+        `lock_abilities`, Legs; and with `by_item` the first monument's item, which nearly everything waits for. All
+        are asked for as early local items, which the early fill places before anything else, in the locations it
+        reaches with nothing. The tutorial's own gourds (`linear_puzzles`), its doors (`linear_keys`) and the local
+        checks (pre_fill) may leave too few of them: the fuzzer failed 1 seed in 200 that way, 4 in 4 with
+        `linear_puzzles` and `by_item` (2026-10-13). Then the far doors stop being asked for early, then the player
+        starts with Legs, then with the first monument's item, then with the way out, and the generation log says so.
         """
-        legs = [item for item in self.multiworld.itempool if item.player == self.player and item.name == data.LEGS_ITEM_NAME]
-        if not legs:
+        local_early = self.multiworld.local_early_items[self.player]
+        mine = [item for item in self.multiworld.itempool if item.player == self.player]
+        if any(item.name == data.LEGS_ITEM_NAME for item in mine):
+            local_early[data.LEGS_ITEM_NAME] = 1
+        # One pool item for each name asked for, given up from the end: Legs first. By identity, since items compare
+        # equal by name and player.
+        needed: list[Item] = []
+        monument = () if data.PROGRESSIVE_MONUMENT_ITEM_NAME in self.way_out else (data.PROGRESSIVE_MONUMENT_ITEM_NAME,)
+        for name in (*self.way_out, *monument, data.LEGS_ITEM_NAME):
+            item = next((item for item in mine if item.name == name and all(item is not n for n in needed)), None)
+            if item is not None and name in local_early:
+                needed.append(item)
+        if not needed:
             return
+
+        # The early fill's own reach: the start items, and the events those open (Fill.distribute_early_items).
         state = CollectionState(self.multiworld)
-        state.sweep_for_advancements(locations=self.multiworld.get_locations(self.player))
-        free = [loc for loc in self.multiworld.get_unfilled_locations(self.player)
-                if loc.progress_type != LocationProgressType.EXCLUDED and loc.can_reach(state)]
-        early = sum(self.multiworld.local_early_items[self.player].values()) + sum(self.multiworld.early_items[self.player].values())
-        if len(free) > early:
-            return
-        logging.warning(f"Big Walk ({self.player_name}): no room in the starting zone for Legs; starting with it.")
-        self.multiworld.itempool[:] = [item for item in self.multiworld.itempool if item is not legs[0]]
-        self.push_precollected(legs[0])
-        self.multiworld.itempool.append(self.create_filler())  # the location it leaves
+        state.sweep_for_advancements(locations=[loc for loc in self.multiworld.get_filled_locations(self.player)
+                                                if loc.address is None])
+        room = sum(1 for loc in self.multiworld.get_unfilled_locations(self.player)
+                   if loc.progress_type != LocationProgressType.EXCLUDED and loc.can_reach(state))
+        if room < sum(local_early.values()):
+            for name in [name for name in local_early if all(item.name != name for item in needed)]:
+                del local_early[name]
+        while len(needed) > room:
+            item = needed.pop()
+            logging.warning(f"Big Walk ({self.player_name}): no room in the starting zone for {item.name}; "
+                            f"starting with it.")
+            local_early[item.name] -= 1
+            if not local_early[item.name]:
+                del local_early[item.name]
+            self.multiworld.itempool[:] = [other for other in self.multiworld.itempool if other is not item]
+            self.push_precollected(item)
+            self.multiworld.itempool.append(self.create_filler())  # the location it leaves
 
     def _place_local_items(self, group: str, contents: int, option: str) -> None:
         """
@@ -593,6 +641,14 @@ class BigWalkWorld(World):
             for trap in data.TRAPS
             if weights.get(trap.item_name, 0) > 0 and (allow_hard or not trap.hard)
         }
+
+    def tutorial_monument_first(self) -> bool:
+        """Whether the tutorial's monument takes the first gourds: every monument open, or it first in the order."""
+        return not self.tower_order or self.tower_order[0] == data.TOWERS[0].prop_name
+
+    def key_in_its_monument(self, tower: data.Tower) -> bool:
+        """L1 `linear_towers`: whether this tower's key is its monument full."""
+        return bool(self.options.linear_towers) and tower in self.monuments_full()
 
     def monuments_full(self) -> list[data.Tower]:
         """The towers whose monument full is a check: with monument_sanity or linear_towers, those that have slots."""
@@ -842,6 +898,9 @@ class BigWalkWorld(World):
             "cut_key_sanity": self.options.cut_key_sanity.current_key,
             "linear_keys": bool(self.options.linear_keys),
             "linear_puzzles": bool(self.options.linear_puzzles),
+            # For the tracker only: the server hands these doors over as start items either way.
+            "start_with_drawbridge_open": bool(self.options.start_with_drawbridge_open),
+            "start_with_map_room_open": bool(self.options.start_with_map_room_open),
             # A check for each monument full (L1): the towers by their big key's prop, in id order
             # (`base + monument_full_id_offset + position in data.TOWERS`); empty when there are none.
             "monument_sanity": bool(self.options.monument_sanity),
