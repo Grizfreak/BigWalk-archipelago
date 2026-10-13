@@ -57,6 +57,21 @@ namespace BigWalkArchipelago.Core
             Vector3.zero,
         };
 
+        // U2 (Core/MapTracker): the towers in this order, each's big key prop and centre (zero where unknown).
+        internal static int TowerCount => Props.Length;
+        internal static string PropOfTower(int tower) => Props[tower];
+        internal static Vector3 CentreOf(int tower) => tower < Centres.Length ? Centres[tower] : Vector3.zero;
+
+        // U2: the four coloured towers' big key props and their centres, for the map's markers (Core/MapTracker).
+        internal static IEnumerable<(string prop, Vector3 centre)> TowerCentres()
+        {
+            for (var tower = 0; tower < Centres.Length; tower++)
+            {
+                if (Centres[tower] != Vector3.zero)
+                    yield return (Props[tower], Centres[tower]);
+            }
+        }
+
         // SavableSystem of each tower's opening button, by the towers above (-1: it has none).
         private static readonly string[] ButtonSystems =
         {

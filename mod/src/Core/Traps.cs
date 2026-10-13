@@ -1422,6 +1422,8 @@ namespace BigWalkArchipelago.Core
                 MonumentOrder.TickFullChecks();
                 FastGolf.Tick();
                 ColourPainter.Tick();
+                HintBoards.Tick();
+                MapTracker.Tick();
                 BigFlare.Tick();
                 Patches.SettingsMenuArchipelagoRows.KeepPlaced();
 

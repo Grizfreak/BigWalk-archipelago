@@ -71,6 +71,9 @@ namespace BigWalkArchipelago.Core.Net
         // The seed's slot data; null until a login has succeeded.
         internal static ApSlotData SlotData => Connection.SlotData;
 
+        // R7: the hint boards read the hints, the items received and the checks done (Core/HintBoards).
+        internal static ApConnection Current => Connection;
+
         internal static bool ShufflesPegTiles =>
             Connection.Status == ApConnection.ConnectionStatus.Connected && Connection.SlotData != null;
 
@@ -871,7 +874,7 @@ namespace BigWalkArchipelago.Core.Net
 
             // After the ledger above, so a save just rebound to a new seed is
             // enforced with the doors that seed has given it: none yet.
-            ArchDoors.Configure(Connection.SlotData.LockedArchDoors);
+            ArchDoors.Configure(Connection.SlotData.LockedArchDoors, Connection.SlotData.LinearArchDoors);
 
             // Same place and same reason: after the ledger, so a rebound save
             // starts with every need locked.
@@ -895,8 +898,9 @@ namespace BigWalkArchipelago.Core.Net
             ResyncStations.Configure(Connection.SlotData.TowerResyncStations, Connection.SlotData.GuestsCanResync);
             CabinFeverWaits.Configure(
                 Connection.SlotData.CabinFeverMode, Connection.SlotData.CabinFeverSeconds, Connection.SlotData.CabinFeverHelp,
+                Connection.SlotData.CabinFeverHideTimer,
                 Connection.SlotData.CabinFeverLongMode, Connection.SlotData.CabinFeverLongSeconds,
-                Connection.SlotData.CabinFeverLongHelp);
+                Connection.SlotData.CabinFeverLongHelp, Connection.SlotData.CabinFeverLongHideTimer);
             TeleportButtons.Configure(
                 Connection.SlotData.TeleportButtons,
                 Connection.SlotData.TeleportIdOffset,

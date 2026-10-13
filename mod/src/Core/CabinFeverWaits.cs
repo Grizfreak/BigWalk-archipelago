@@ -30,6 +30,7 @@ namespace BigWalkArchipelago.Core
             // From the slot (host) or the snapshot (guest): the seconds to set, 0 for the game's.
             internal int Seconds;
             internal bool Help;
+            internal bool HideTimer;
 
             internal PeckEffectTimerNetworked Timer;
             internal float AppliedDuration = -1f;
@@ -57,37 +58,42 @@ namespace BigWalkArchipelago.Core
         // player asked for, but a timer of zero length may not be one the game expects.
         private const float ShortestWait = 1f;
 
-        internal static void Configure(string mode, int seconds, bool help, string longMode, int longSeconds, bool longHelp)
+        internal static void Configure(string mode, int seconds, bool help, bool hide, string longMode, int longSeconds,
+            bool longHelp, bool longHide)
         {
-            Set(Puzzles[0], Resolve(mode, seconds, Puzzles[0].Vanilla), help);
-            Set(Puzzles[1], Resolve(longMode, longSeconds, Puzzles[1].Vanilla), longHelp);
+            Set(Puzzles[0], Resolve(mode, seconds, Puzzles[0].Vanilla), help, hide);
+            Set(Puzzles[1], Resolve(longMode, longSeconds, Puzzles[1].Vanilla), longHelp, longHide);
         }
 
         // On a guest: what the host's slot says, from the snapshot.
-        internal static void ApplyFromHost(int seconds, int longSeconds, bool help, bool longHelp)
+        internal static void ApplyFromHost(int seconds, int longSeconds, bool help, bool longHelp, bool hide, bool longHide)
         {
-            Set(Puzzles[0], seconds, help);
-            Set(Puzzles[1], longSeconds, longHelp);
+            Set(Puzzles[0], seconds, help, hide);
+            Set(Puzzles[1], longSeconds, longHelp, longHide);
         }
 
         internal static void ForgetMirror()
         {
-            Set(Puzzles[0], 0, false);
-            Set(Puzzles[1], 0, false);
+            Set(Puzzles[0], 0, false, false);
+            Set(Puzzles[1], 0, false, false);
         }
 
         // For the snapshot.
         internal static int Seconds(int puzzle) => Puzzles[puzzle].Seconds;
         internal static bool Help(int puzzle) => Puzzles[puzzle].Help;
 
-        private static void Set(Puzzle puzzle, int seconds, bool help)
+        // R6b: the room's dial hidden behind an animation (Core/CabinFeverDial).
+        internal static bool HideTimer(int puzzle) => Puzzles[puzzle].HideTimer;
+
+        private static void Set(Puzzle puzzle, int seconds, bool help, bool hide)
         {
-            if (puzzle.Seconds != seconds || puzzle.Help != help)
+            if (puzzle.Seconds != seconds || puzzle.Help != help || puzzle.HideTimer != hide)
                 Plugin.Log.LogInfo(
-                    $"[{nameof(CabinFeverWaits)}] {puzzle.Key}: wait {(seconds > 0 ? seconds + " s" : "as in the game")}, help button {(help ? "on" : "off")}.");
+                    $"[{nameof(CabinFeverWaits)}] {puzzle.Key}: wait {(seconds > 0 ? seconds + " s" : "as in the game")}, help button {(help ? "on" : "off")}, timer {(hide ? "hidden" : "shown")}.");
 
             puzzle.Seconds = seconds;
             puzzle.Help = help;
+            puzzle.HideTimer = hide;
         }
 
         // `reduced` never makes the wait longer than the game's; `random_between` has been drawn by

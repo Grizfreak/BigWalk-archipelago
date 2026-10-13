@@ -75,6 +75,13 @@ namespace BigWalkArchipelago.Core
             { SaveablePropName.gourdDancerAndSelecter, SaveableHomeName.valetDancerAndSelector },
         };
 
+        // U2: the big keys (Core/MapTracker).
+        internal static IEnumerable<SaveablePropName> BigKeyProps => BigKeyHomesByProp.Keys;
+
+        // U2: a big key's plinth (Core/MapTracker places the key's deposit there).
+        internal static bool TryGetBigKeyHome(SaveablePropName propName, out SaveableHomeName home) =>
+            BigKeyHomesByProp.TryGetValue(propName, out home);
+
         internal static bool TryGetLocationId(SaveablePropName propName, out string locationId)
         {
             return LocationIdsByProp.TryGetValue(propName, out locationId);

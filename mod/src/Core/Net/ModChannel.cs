@@ -64,7 +64,7 @@ namespace BigWalkArchipelago.Core.Net
 
         // Both ends must speak the same version; a mismatch is logged once
         // and ignored rather than half-read.
-        private const byte ProtocolVersion = 18;
+        private const byte ProtocolVersion = 20;
 
         private const byte KindHello = 1;
         private const byte KindSnapshot = 2;
@@ -90,6 +90,9 @@ namespace BigWalkArchipelago.Core.Net
         // A guest tells the host whether a puzzle's mask is on its screen, which Big Trip and Big
         // Meeting read (Core/Traps). The only kind a guest sends besides hello.
         private const byte KindStatus = 7;
+
+        // U2: the host tells the guests the map tracker's state of every check (Core/MapTracker).
+        private const byte KindMap = 8;
 
         private const float SnapshotIntervalSeconds = 1f;
 
@@ -489,7 +492,8 @@ namespace BigWalkArchipelago.Core.Net
                 NetworkWriterExtensions.WriteUShort(writer, (ushort)CabinFeverWaits.Seconds(0));
                 NetworkWriterExtensions.WriteUShort(writer, (ushort)CabinFeverWaits.Seconds(1));
                 writer.WriteByte((byte)((CabinFeverWaits.Help(0) ? 1 : 0) | (CabinFeverWaits.Help(1) ? 2 : 0)
-                                        | (TileThiefHelper.HostMode << 2)));
+                                        | (TileThiefHelper.HostMode << 2)
+                                        | (CabinFeverWaits.HideTimer(0) ? 16 : 0) | (CabinFeverWaits.HideTimer(1) ? 32 : 0)));
                 writer.WriteByte(ResyncStations.HostState());
                 NetworkWriterExtensions.WriteString(writer, GourdNames.Current);
                 writer.WriteByte(PackChecks.HostMode);
@@ -514,6 +518,8 @@ namespace BigWalkArchipelago.Core.Net
                     writer.WriteByte(ApSounds.Counts[kind]);
                 NetworkWriterExtensions.WriteBool(writer, AbilityLocks.Enabled);
                 NetworkWriterExtensions.WriteUShort(writer, AbilityLocks.HostMask());
+                writer.WriteByte(HintBoards.HostFlags());
+                NetworkWriterExtensions.WriteString(writer, HintBoards.HostNames());
 
                 connection.Send(writer.ToArraySegment(), 0);
             }
@@ -598,6 +604,28 @@ namespace BigWalkArchipelago.Core.Net
             {
                 Plugin.Log.LogWarning($"[{nameof(ModChannel)}] Could not tell the host about the mask: {ex.Message}");
                 return false;
+            }
+        }
+
+        internal static void SendMap(string text)
+        {
+            foreach (var connection in NetworkServer.connections.Values)
+            {
+                if (connection == null || !Announced.Contains(connection.connectionId))
+                    continue;
+                try
+                {
+                    var writer = new NetworkWriter();
+                    NetworkWriterExtensions.WriteUShort(writer, MessageId);
+                    writer.WriteByte(KindMap);
+                    writer.WriteByte(ProtocolVersion);
+                    NetworkWriterExtensions.WriteString(writer, text);
+                    connection.Send(writer.ToArraySegment(), 0);
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"[{nameof(ModChannel)}] Could not send the map to guest #{connection.connectionId}: {ex.Message}");
+                }
             }
         }
 
@@ -706,6 +734,8 @@ namespace BigWalkArchipelago.Core.Net
                 TileThiefHelper.ForgetMirror();
                 ResyncStations.ForgetMirror();
                 ObjectiveBoard.ForgetMirror();
+                HintBoards.ForgetMirror();
+                MapTracker.ForgetMirror();
                 MonumentOrder.ForgetMirror();
                 PackChecks.ForgetMirror();
                 Palette.ForgetMirror();
@@ -837,6 +867,13 @@ namespace BigWalkArchipelago.Core.Net
                     return;
                 }
 
+                if (kind == KindMap)
+                {
+                    if (reader.ReadByte() == ProtocolVersion)
+                        MapTracker.ApplyFromHost(NetworkReaderExtensions.ReadString(reader));
+                    return;
+                }
+
                 if (kind == KindNotice)
                 {
                     if (reader.ReadByte() == ProtocolVersion)
@@ -924,6 +961,8 @@ namespace BigWalkArchipelago.Core.Net
                     soundCounts[sound] = reader.ReadByte();
                 var abilitiesEnabled = NetworkReaderExtensions.ReadBool(reader);
                 var abilityMask = NetworkReaderExtensions.ReadUShort(reader);
+                var hintFlags = reader.ReadByte();
+                var hintNames = NetworkReaderExtensions.ReadString(reader);
 
                 var first = _receivedAt < 0f;
 
@@ -957,7 +996,8 @@ namespace BigWalkArchipelago.Core.Net
                 PuzzleNeeds.ApplyFromHost(needsEnabled, lockedNeeds);
                 GauntletStairways.ApplyFromHost(gauntletLocked, gauntletPartsLocked);
                 TeleportButtons.ApplyFromHost(teleportMask);
-                CabinFeverWaits.ApplyFromHost(cabinFever, cabinFeverLong, (cabinFeverHelp & 1) != 0, (cabinFeverHelp & 2) != 0);
+                CabinFeverWaits.ApplyFromHost(cabinFever, cabinFeverLong, (cabinFeverHelp & 1) != 0, (cabinFeverHelp & 2) != 0,
+                    (cabinFeverHelp & 16) != 0, (cabinFeverHelp & 32) != 0);
                 TileThiefHelper.ApplyFromHost((cabinFeverHelp >> 2) & 3);
                 ResyncStations.ApplyFromHost(resyncStations);
                 PackChecks.ApplyFromHost(packMode, objectMode, objectKinds, collectedPacks);
@@ -967,6 +1007,7 @@ namespace BigWalkArchipelago.Core.Net
                 ObjectiveBoard.ApplyFromHost(boardText, endingLocks);
                 MonumentOrder.ApplyFromHost(monumentMask);
                 AbilityLocks.ApplyFromHost(abilitiesEnabled, abilityMask);
+                HintBoards.ApplyFromHost(hintFlags, hintNames);
             }
             catch (Exception ex)
             {

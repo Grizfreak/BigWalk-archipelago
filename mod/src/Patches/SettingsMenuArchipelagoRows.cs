@@ -67,6 +67,7 @@ namespace BigWalkArchipelago.Patches
                     _arrayRows.Clear();
                     BuildSizeRow(template, rows);
                     BuildDeathLinkRows(template, rows);
+                    BuildHintRow(template, rows);
                     BuildFlareRow(template, rows);
                     BuildMessagesRows(template, rows);
                     _rows = rows;
@@ -680,6 +681,18 @@ namespace BigWalkArchipelago.Patches
                     if (wasOn != ModConfig.DeathLinkEnabled.Value)
                         Core.Net.ApRuntime.ApplyDeathLinkSetting();
                     Plugin.Log.LogInfo($"{Tag} DeathLink: {(next == 0 ? "off" : ModConfig.DeathLinkAmnesty.Value < 0 ? "on, the seed's amnesty" : $"on, amnesty {ModConfig.DeathLinkAmnesty.Value}")}.");
+                });
+        }
+
+        // R7 (player, 2026-10-13): whether the guests may ask for a hint at the hub's hint board, the host's choice.
+        private static void BuildHintRow(SettingsRow template, Transform parent)
+        {
+            BuildArrayRow(template, parent, "Guests ask hints", "GUESTS ASK HINTS :", hostOnly: true,
+                () => ModConfig.GuestsCanAskHints.Value ? "Yes" : "No",
+                _ =>
+                {
+                    ModConfig.GuestsCanAskHints.Value = !ModConfig.GuestsCanAskHints.Value;
+                    Plugin.Log.LogInfo($"{Tag} Guests can ask hints: {ModConfig.GuestsCanAskHints.Value}.");
                 });
         }
 

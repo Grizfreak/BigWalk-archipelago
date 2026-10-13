@@ -237,6 +237,7 @@ namespace BigWalkArchipelago.Core
         {
             var mask = Mask();
             ObjectiveBoard.Sync();
+            HintBoards.Sync();
             TowerReach.Tick();
             MonumentOrder.Tick();
             ObjectiveSpots.Tick();

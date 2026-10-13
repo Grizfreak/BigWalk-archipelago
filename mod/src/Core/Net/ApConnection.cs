@@ -48,6 +48,18 @@ namespace BigWalkArchipelago.Core.Net
         // forever.
         private volatile ConcurrentQueue<ItemInfo> _incomingItems = new();
 
+        // R7: how many of each item this slot has received, by name, for the logic of the next-check board
+        // (Core/ApLogic). Counted on the socket's thread as items come in, under its own lock; a new one per connection,
+        // like the queue.
+        private volatile Dictionary<string, int> _receivedByName = new();
+
+        // R7: the hints the server knows that concern this slot, as it last sent them (the hint board).
+        private volatile Hint[] _hints = Array.Empty<Hint>();
+
+        // R7: the locations of this slot that hold a progression item, for anyone (scouted once at login, no hint
+        // made): the next-check board puts them first.
+        private volatile HashSet<long> _progressionHere = new();
+
         private ArchipelagoSession _session;
 
         // The DeathLink service of the current session, made with it, and what it has received:
@@ -173,12 +185,16 @@ namespace BigWalkArchipelago.Core.Net
 
                 var queue = new ConcurrentQueue<ItemInfo>();
                 _incomingItems = queue;
+                var received = new Dictionary<string, int>();
+                _receivedByName = received;
+                _hints = Array.Empty<Hint>();
+                _progressionHere = new HashSet<long>();
 
                 // Subscribed BEFORE logging in, on purpose: the server sends
                 // every item the slot has ever received as soon as the
                 // connection is established, and a handler attached after
                 // that would miss the entire backlog.
-                session.Items.ItemReceived += (ReceivedItemsHelper helper) => OnItemReceived(helper, queue);
+                session.Items.ItemReceived += (ReceivedItemsHelper helper) => OnItemReceived(helper, queue, received);
                 session.Socket.SocketClosed += OnSocketClosed;
                 session.Socket.ErrorReceived += OnErrorReceived;
 
@@ -227,7 +243,20 @@ namespace BigWalkArchipelago.Core.Net
                 {
                     try
                     {
+                        // R7: the server's answer to a hint asked at the hub's sign, a line on the overlay for a short
+                        // while after the question: the hint itself, or a refusal, which comes as a plain message
+                        // ("Nothing found for recognized item name ...", seen 2026-10-13) or a command's result.
+                        if (DateTime.UtcNow < _hintAnswerUntil
+                            && (message is Archipelago.MultiClient.Net.MessageLog.Messages.HintItemSendLogMessage
+                                || message is Archipelago.MultiClient.Net.MessageLog.Messages.CommandResultLogMessage
+                                || message.GetType() == typeof(Archipelago.MultiClient.Net.MessageLog.Messages.LogMessage)))
+                        {
+                            ApNotices.PostFromSocket($"Hint: {message}");
+                        }
+
+                        // A hint is an ItemSendLogMessage too: it is no check.
                         if (message is Archipelago.MultiClient.Net.MessageLog.Messages.ItemSendLogMessage sent
+                            && message is not Archipelago.MultiClient.Net.MessageLog.Messages.HintItemSendLogMessage
                             && sent.IsSenderTheActivePlayer && sent.Item != null)
                         {
                             // Always who it went to, this slot included (player, 2026-10-13).
@@ -239,6 +268,28 @@ namespace BigWalkArchipelago.Core.Net
                         // A message the library cannot describe is no reason to touch the connection.
                     }
                 };
+
+                // R7: the hints of this slot, now and as they change (the hint board reads them on the main thread).
+                try
+                {
+                    session.DataStorage.TrackHints(hints => _hints = hints ?? Array.Empty<Hint>(), true);
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"[{nameof(ApConnection)}] Could not follow the hints: {ex.Message}");
+                }
+
+                // R7: what every location of this slot holds, quietly (HintCreationPolicy.None): only whether it is
+                // progression is kept, for the next-check board's order.
+                try
+                {
+                    var ids = new List<long>(session.Locations.AllLocations).ToArray();
+                    session.Locations.ScoutLocationsAsync(HintCreationPolicy.None, ids).ContinueWith(OnScouted);
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"[{nameof(ApConnection)}] Could not scout the slot's locations: {ex.Message}");
+                }
 
                 _session = session;
                 _deathLink = deathLink;
@@ -310,12 +361,19 @@ namespace BigWalkArchipelago.Core.Net
             }
         }
 
-        private static void OnItemReceived(ReceivedItemsHelper helper, ConcurrentQueue<ItemInfo> queue)
+        private static void OnItemReceived(ReceivedItemsHelper helper, ConcurrentQueue<ItemInfo> queue,
+            Dictionary<string, int> received)
         {
             // Managed types only — see the threading note at the top.
             try
             {
-                queue.Enqueue(helper.DequeueItem());
+                var item = helper.DequeueItem();
+                queue.Enqueue(item);
+                if (item != null && !string.IsNullOrEmpty(item.ItemName))
+                {
+                    lock (received)
+                        received[item.ItemName] = received.TryGetValue(item.ItemName, out var count) ? count + 1 : 1;
+                }
             }
             catch (Exception ex)
             {
@@ -560,6 +618,147 @@ namespace BigWalkArchipelago.Core.Net
         internal bool TryDequeueDeathLink(out string cause)
         {
             return _deathLinksReceived.TryDequeue(out cause);
+        }
+
+        // R7: until when an answer of the server is taken as the answer to a hint asked at the sign.
+        private DateTime _hintAnswerUntil = DateTime.MinValue;
+
+        // R7: a hint asked at the hub's sign, as the Text Client's `!hint`: it costs the slot's hint points.
+        internal void AskHint(string text)
+        {
+            if (_session == null || _status != ConnectionStatus.Connected || string.IsNullOrWhiteSpace(text))
+                return;
+            try
+            {
+                _hintAnswerUntil = DateTime.UtcNow.AddSeconds(10);
+                _session.Say("!hint " + text.Trim());
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(ApConnection)}] Could not ask for a hint: {ex.Message}");
+            }
+        }
+
+        // R7: the slot's hint points and what a hint costs (-1, -1 when unknown).
+        internal (int points, int cost) HintBudget()
+        {
+            try
+            {
+                return _session != null ? (_session.RoomState.HintPoints, _session.RoomState.HintCost) : (-1, -1);
+            }
+            catch (Exception)
+            {
+                return (-1, -1);
+            }
+        }
+
+        // R7: what this slot has received, by item name (a copy, safe on the main thread).
+        internal Dictionary<string, int> ReceivedByName()
+        {
+            var received = _receivedByName;
+            lock (received)
+                return new Dictionary<string, int>(received);
+        }
+
+        // R7: the locations of this slot the server knows as checked (a copy; empty when not connected).
+        internal HashSet<long> CheckedLocations()
+        {
+            try
+            {
+                return _session != null ? new HashSet<long>(_session.Locations.AllLocationsChecked) : new HashSet<long>();
+            }
+            catch (Exception)
+            {
+                // The socket's thread was adding one: the next look will have it.
+                return new HashSet<long>();
+            }
+        }
+
+        // R7: the answer to the quiet scout of every location (a method, not a lambda: the interop build has no
+        // NullableAttribute for one over these generic types).
+        private void OnScouted(Task<Dictionary<long, ScoutedItemInfo>> task)
+        {
+            if (task.IsFaulted || task.Result == null)
+                return;
+            var progression = new HashSet<long>();
+            foreach (var pair in task.Result)
+            {
+                if (pair.Value != null && (pair.Value.Flags & ItemFlags.Advancement) != 0)
+                    progression.Add(pair.Key);
+            }
+            _progressionHere = progression;
+            Plugin.Log.LogInfo($"[{nameof(ApConnection)}] Scouted the slot: {progression.Count} location(s) hold a progression item.");
+        }
+
+        // R7: how many of this slot's locations are not checked yet.
+        internal int UncheckedCount(HashSet<long> checkedIds)
+        {
+            var count = 0;
+            foreach (var id in _slotLocations)
+            {
+                if (!checkedIds.Contains(id))
+                    count++;
+            }
+            return count;
+        }
+
+        // R7: whether a location of this slot holds a progression item (scouted at login).
+        internal bool HoldsProgression(long locationId) => _progressionHere.Contains(locationId);
+
+        // R7: the locations of this slot that open hints point to (anyone's item, not found yet).
+        internal HashSet<long> HintedLocations()
+        {
+            var result = new HashSet<long>();
+            var session = _session;
+            if (session == null)
+                return result;
+            try
+            {
+                var me = session.ConnectionInfo.Slot;
+                foreach (var hint in _hints)
+                {
+                    if (hint != null && !hint.Found && hint.FindingPlayer == me)
+                        result.Add(hint.LocationId);
+                }
+            }
+            catch (Exception)
+            {
+                // Read again at the next count.
+            }
+            return result;
+        }
+
+        // R7: the hints this slot asked for that are still open: an item for this slot, not found yet, newest last
+        // (player, 2026-10-13: "nothing if the player did not ask"). Each as "item: location (finder)".
+        internal List<string> OpenHintLines()
+        {
+            var lines = new List<string>();
+            var session = _session;
+            if (session == null)
+                return lines;
+
+            try
+            {
+                var me = session.ConnectionInfo.Slot;
+                foreach (var hint in _hints)
+                {
+                    if (hint == null || hint.Found || hint.ReceivingPlayer != me)
+                        continue;
+                    var finder = session.Players.GetPlayerInfo(hint.FindingPlayer);
+                    var receiver = session.Players.GetPlayerInfo(hint.ReceivingPlayer);
+                    var item = session.Items.GetItemName(hint.ItemId, receiver?.Game) ?? hint.ItemId.ToString();
+                    var location = session.Locations.GetLocationNameFromId(hint.LocationId, finder?.Game) ?? hint.LocationId.ToString();
+                    // The slot it is in, even this one (player, 2026-10-13).
+                    var where = finder == null ? location : $"{location} ({finder.Name})";
+                    lines.Add($"{item}: {where}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(ApConnection)}] Could not read the hints: {ex.Message}");
+            }
+
+            return lines;
         }
 
         internal void Reset()

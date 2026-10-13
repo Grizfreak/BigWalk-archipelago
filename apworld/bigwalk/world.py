@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TextIO
 
-from BaseClasses import CollectionState, LocationProgressType, MultiWorld
+from BaseClasses import CollectionState, Entrance, Location, LocationProgressType, MultiWorld
 from Options import OptionError
+from rule_builder.rules import Rule
 from worlds.AutoWorld import World
 
-from . import data, gourd_name, items, locations, regions, rules, web_world
+from . import data, gourd_name, items, locations, logic_export, regions, rules, web_world
 from . import options as bigwalk_options
 
 if TYPE_CHECKING:
@@ -163,7 +165,7 @@ class BigWalkWorld(World):
     def _cabin_fever_waits(self) -> dict[str, dict[str, object]]:
         """
         What the mod does to the waits of the two Cabin Fever puzzles, by puzzle: the mode, the
-        seconds, and whether the hidden help button is there. One number each since 0.4 (players,
+        seconds, whether the hidden help button is there, and whether the dial hides the time (R6b). One number each since 0.4 (players,
         2026-10-06): the game's own wait is `vanilla` (seconds 0), any other `fixed`; a random wait
         is Archipelago's `random-range`, drawn once when the options are read.
         """
@@ -175,6 +177,7 @@ class BigWalkWorld(World):
                 "mode": mode,
                 "seconds": 0 if mode == "vanilla" else seconds,
                 "help": bool(getattr(self.options, f"{key}_help")),
+                "hide_timer": bool(getattr(self.options, f"{key}_hide_timer")),
             }
         return waits
 
@@ -204,7 +207,9 @@ class BigWalkWorld(World):
         self._pick_a_random_puzzle_need()
         self._ask_for_buttons_early()
         opened = self.options.start_with_arch_doors_open.value
-        self.locked_arch_doors = tuple(door for door in data.ARCH_DOORS if door.item_name not in opened)
+        # L6 `linear_arch_doors`: no door is an item; the game's buttons open them.
+        self.locked_arch_doors = () if self.options.linear_arch_doors else tuple(
+            door for door in data.ARCH_DOORS if door.item_name not in opened)
         self._ask_for_an_early_way_out()
         self._ask_for_the_far_doors_early()
         self._hint_the_keys()
@@ -298,7 +303,13 @@ class BigWalkWorld(World):
         the two, picked at random, is asked for as an early local item; if
         the Drawbridge is handed over at the start there is nothing to ask.
         """
-        if data.FIRST_ARCH_DOOR not in self.locked_arch_doors or self.options.start_with_drawbridge_open:
+        if self.options.start_with_drawbridge_open:
+            return
+        # With the game's own doors, the First Arch Door's button is outside: the Drawbridge is the way out.
+        if self.options.linear_arch_doors:
+            self.multiworld.local_early_items[self.player][data.DRAWBRIDGE_ITEM_NAME] = 1
+            return
+        if data.FIRST_ARCH_DOOR not in self.locked_arch_doors:
             return
 
         way_out = (data.FIRST_ARCH_DOOR.item_name if self.options.linear_keys
@@ -528,6 +539,37 @@ class BigWalkWorld(World):
     def set_rules(self) -> None:
         rules.set_all_rules(self)
 
+    def set_rule(self, spot: Location | Entrance, rule: Any) -> None:
+        """
+        As Archipelago's, and remembers the rule as it was built, by the resolved rule it becomes: the logic travels
+        to the mod as data (logic_export, R7), and a rule copied from one location to another (big_objects' events)
+        is found by its resolved self.
+        """
+        super().set_rule(spot, rule)
+        if isinstance(rule, Rule):
+            if not hasattr(self, "_built_rules"):
+                self._built_rules: dict[int, tuple[Any, Rule]] = {}
+            self._built_rules[id(spot.access_rule)] = (spot.access_rule, rule)
+
+    def _hint_items(self) -> dict[str, int]:
+        """
+        This slot's items by name and count, in the pool or already placed: what `!hint` can find. Not the items given
+        at the start (the server finds nothing for them, seen 2026-10-13 with the Drawbridge open from the start).
+        """
+        placed = [location.item for location in self.multiworld.get_locations() if location.item is not None]
+        counts = Counter(item.name for item in {id(item): item for item in [*self.multiworld.itempool, *placed]}.values()
+                         if item.player == self.player and item.code is not None)
+        return dict(sorted(counts.items()))
+
+    def exported_rule(self, access_rule: Any) -> Rule | None:
+        """The built rule behind a resolved one; None for a location or entrance that has none (always open)."""
+        found = getattr(self, "_built_rules", {}).get(id(access_rule))
+        if found is not None and found[0] is access_rule:
+            return found[1]
+        if access_rule is Location.access_rule or access_rule is Entrance.access_rule:
+            return None
+        raise TypeError("Big Walk: a rule set without the rule builder cannot travel to the mod")
+
     def pre_fill(self) -> None:
         # The local items first: they may take the starting zone's places, and Legs must then see what is left.
         self._place_local_items("Objects", self.options.object_sanity_items.value, "object_sanity_items")
@@ -745,9 +787,19 @@ class BigWalkWorld(World):
 
             # The resync stations (mod only): those of the towers, and whether guests may use them.
             "tower_resync_stations": bool(self.options.tower_resync_stations),
+
+            # R7: the hub's board of the checks in logic, and the logic it needs (logic_export).
+            "tracker_board": bool(self.options.tracker_board),
+            "hint_board": bool(self.options.hint_board),
+            # This slot's items and how many of each, for the hint sign's suggestions while a player writes on it
+            # (those not all received yet).
+            "hint_items": self._hint_items(),
+            # U2: the Map Room's map as a tracker; it needs the logic too.
+            "map_tracker": self.options.map_tracker.current_key,
+            **({"logic": logic_export.export(self)} if self.options.tracker_board or self.options.map_tracker else {}),
             "guests_can_resync": bool(self.options.guests_can_resync),
 
-            # The waits of the two Cabin Fever puzzles (mod only), flat: mode, seconds, help.
+            # The waits of the two Cabin Fever puzzles (mod only), flat: mode, seconds, help, hide_timer.
             **{
                 f"{puzzle}_{field}": value
                 for puzzle, wait in self.cabin_fever.items()
@@ -841,6 +893,7 @@ class BigWalkWorld(World):
             "include_big_game_puzzles": self.options.include_big_game_puzzles.current_key,
             "cut_key_sanity": self.options.cut_key_sanity.current_key,
             "linear_keys": bool(self.options.linear_keys),
+            "linear_arch_doors": bool(self.options.linear_arch_doors),
             "linear_puzzles": bool(self.options.linear_puzzles),
             # A check for each monument full (L1): the towers by their big key's prop, in id order
             # (`base + monument_full_id_offset + position in data.TOWERS`); empty when there are none.

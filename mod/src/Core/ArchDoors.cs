@@ -45,8 +45,12 @@ namespace BigWalkArchipelago.Core
             return Array.IndexOf(All, system) >= 0;
         }
 
-        internal static void Configure(IEnumerable<string> lockedSystemNames)
+        // L6 `linear_arch_doors`: the doors are the game's, opened by their buttons; the mod neither opens nor holds any.
+        internal static bool Vanilla { get; private set; }
+
+        internal static void Configure(IEnumerable<string> lockedSystemNames, bool vanilla = false)
         {
+            Vanilla = vanilla;
             Locked.Clear();
             foreach (var name in lockedSystemNames ?? Array.Empty<string>())
             {
@@ -57,9 +61,10 @@ namespace BigWalkArchipelago.Core
             }
 
             Configured = true;
-            Plugin.Log.LogInfo(
-                $"[{nameof(ArchDoors)}] Held closed until their item arrives: "
-                + (Locked.Count == 0 ? "none." : string.Join(", ", Locked) + "."));
+            Plugin.Log.LogInfo(vanilla
+                ? $"[{nameof(ArchDoors)}] The arch doors are the game's: their buttons open them."
+                : $"[{nameof(ArchDoors)}] Held closed until their item arrives: "
+                  + (Locked.Count == 0 ? "none." : string.Join(", ", Locked) + "."));
 
             Enforce();
         }
@@ -67,6 +72,7 @@ namespace BigWalkArchipelago.Core
         // Without Archipelago there is no list to wait for: every door opens.
         internal static void ConfigureWithoutArchipelago()
         {
+            Vanilla = false;
             Locked.Clear();
             Configured = true;
         }
@@ -114,7 +120,7 @@ namespace BigWalkArchipelago.Core
         // ready, since either can come first.
         internal static void Enforce()
         {
-            if (!Configured || !NetworkServer.active || !WorldManager.isReadyForEffects)
+            if (!Configured || Vanilla || !NetworkServer.active || !WorldManager.isReadyForEffects)
                 return;
 
             foreach (var system in All)

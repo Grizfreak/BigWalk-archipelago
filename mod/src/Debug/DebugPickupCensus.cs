@@ -348,7 +348,7 @@ namespace BigWalkArchipelago.Debug
                 PathOf(transform));
         }
 
-        private static string ColoursOf(GameObject root)
+        internal static string ColoursOf(GameObject root)
         {
             var parts = new List<string>();
             foreach (var helper in root.GetComponentsInChildren<PropertyBlockHelper>(true))

@@ -18,6 +18,17 @@ namespace BigWalkArchipelago.Core
     //              island guns take the first four colours of the seed's draw, by kind (base,
     //              Blue, Green, Yellow, as the apworld's items); a received one, its kind's.
     //   rainbow    a white body; its shot's colour follows Palette.RainbowNow, set every frame.
+    //   a gadget   (C2, 0.7, player 2026-10-13: "the gadgets that are relevant") every renderer of the
+    //              house shader (hhVertexColors, which multiplies its painted vertex colours by _TintColor,
+    //              as the buoy) through a property block; one colour per kind for the seed. Left alone:
+    //              the paintbrush and the kettles (puzzles), the folding map (paper, another shader), an
+    //              emissive part (the laser's tip). The walkie-talkies' blue and yellow mean nothing (player,
+    //              2026-10-13): their colour is a PropertyBlockHelper's (_TintColor, _Tint), written too.
+    //   a firework the launcher's model (_TintColor) and its explosion (HangingSpark's _EmissionColor and
+    //              start colour, the sparks' start colour); the smoke stays black (its start colour,
+    //              tinted, did not show in game, 2026-10-13; the player let it go), through their PropertyBlockHelpers; never the four
+    //              of the towers (player, 2026-10-13), whose colours are the towers' own. A colour per
+    //              launcher, from its landmark.
     //
     // All of it holds once written (a property block, a helper's setting, a light's colour, a
     // particle system's start colour stay put when the gun is picked up and its kernel moves to
@@ -30,6 +41,18 @@ namespace BigWalkArchipelago.Core
 
         private static readonly string[] BuoyNames = { "BuoyLight", "BuoyProp", "BuoyRedProp" };
         private static readonly string[] GunNames = { "FlareGunPropBlue", "FlareGunPropGreen", "FlareGunPropYellow", "FlareGunProp" };
+
+        // C2: the gadgets painted, by kind; a kind's place in the seed's draw is 4 + its row (the four flare guns take
+        // the first four), the three cowbells sharing one.
+        private static readonly string[][] GadgetKinds =
+        {
+            new[] { "BinocularsProp" }, new[] { "ClockProp" }, new[] { "CompassProp" },
+            new[] { "CowBellLargeProp", "CowBellMediumProp", "CowBellSmallProp" }, new[] { "FmRadioProp" },
+            new[] { "LaserProp" }, new[] { "MegaphoneProp" }, new[] { "TorchProp" }, new[] { "XrayGogglesProp" },
+            new[] { "WalkieTalkieProp" },
+        };
+        private const int FirstGadgetSlot = 4;
+        private const string LauncherName = "FireworkLauncher";
 
         private static bool _dirty = true;
         private static bool _wasReady;
@@ -132,7 +155,7 @@ namespace BigWalkArchipelago.Core
 
         private static void PaintWorld()
         {
-            int buoys = 0, guns = 0;
+            int buoys = 0, guns = 0, gadgets = 0;
             foreach (var prop in UnityEngine.Object.FindObjectsByType<Prop>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
                 if (prop == null)
@@ -143,6 +166,8 @@ namespace BigWalkArchipelago.Core
                         buoys++;
                     else if (PaintIfGun(prop.gameObject))
                         guns++;
+                    else if (PaintIfGadget(prop.gameObject))
+                        gadgets++;
                 }
                 catch (Exception ex)
                 {
@@ -150,8 +175,10 @@ namespace BigWalkArchipelago.Core
                 }
             }
 
+            var fireworks = PaintFireworks();
+
             if (Palette.Active || RainbowShots.Count > 0)
-                Plugin.Log.LogInfo($"{Tag} Painted {buoys} buoy(s) and {guns} flare gun(s){(Palette.Active ? string.Empty : " (rainbow only)")}.");
+                Plugin.Log.LogInfo($"{Tag} Painted {buoys} buoy(s), {guns} flare gun(s), {gadgets} gadget(s) and {fireworks} firework launcher(s){(Palette.Active ? string.Empty : " (rainbow only)")}.");
         }
 
         // A clone just built (GadgetItemSpawner), on every machine.
@@ -169,8 +196,8 @@ namespace BigWalkArchipelago.Core
                 var prop = clone.GetComponent<Prop>();
                 if (kind == GadgetKind.Lamp)
                     PaintIfBuoy(clone, prop != null ? prop.savablePropGuid : clone.name);
-                else
-                    PaintIfGun(clone);
+                else if (!PaintIfGun(clone))
+                    PaintIfGadget(clone);
             }
             catch (Exception ex)
             {
@@ -258,6 +285,147 @@ namespace BigWalkArchipelago.Core
                     return true;
             }
             return false;
+        }
+
+        // ------------------------------------------------------------------
+        // Gadgets (C2)
+        // ------------------------------------------------------------------
+
+        private static bool PaintIfGadget(GameObject root)
+        {
+            var row = Array.FindIndex(GadgetKinds, names => StartsWithAny(root.name, names));
+            if (row < 0)
+                return false;
+            if (!Palette.Active)
+                return true;
+
+            var colour = Palette.At(FirstGadgetSlot + row).body;
+            foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
+            {
+                var material = renderer != null ? renderer.sharedMaterial : null;
+                if (material == null || !material.name.StartsWith("hhVertexColors", StringComparison.Ordinal)
+                    || material.name.StartsWith("hhVertexColorsEmissive", StringComparison.Ordinal))
+                    continue;
+                var block = new MaterialPropertyBlock();
+                renderer.GetPropertyBlock(block);
+                block.SetColor("_TintColor", colour);
+                renderer.SetPropertyBlock(block);
+            }
+
+            // A helper would write its own block over ours (the walkie-talkie's WalkieColour): its tints too.
+            foreach (var helper in root.GetComponentsInChildren<PropertyBlockHelper>(true))
+            {
+                var settings = helper != null ? helper.colorSettings : null;
+                if (settings == null)
+                    continue;
+                var changed = false;
+                for (var i = 0; i < settings.Length; i++)
+                {
+                    // An element of an IL2CPP struct array comes back as a copy (ReceivedItemSpawner).
+                    var setting = settings[i];
+                    if (setting.propertyName != "_TintColor" && setting.propertyName != "_Tint")
+                        continue;
+                    setting.color = colour;
+                    settings[i] = setting;
+                    changed = true;
+                }
+                if (changed)
+                    helper.Refresh();
+            }
+            return true;
+        }
+
+        // ------------------------------------------------------------------
+        // Firework launchers (C2)
+        // ------------------------------------------------------------------
+
+        // The towers' launchers keep their own red, yellow, blue and green: the other four never take those (player,
+        // 2026-10-13), but another of the seed's colours, or of the whole palette if the seed has none other.
+        private static readonly string[] TowerColours = { "Red", "Yellow", "Blue", "Green" };
+
+        private static (string name, Color body, Color halo) FireworkColour(string landmark)
+        {
+            var free = new List<(string name, Color body, Color halo)>();
+            foreach (var index in Palette.Current)
+            {
+                if (Array.IndexOf(TowerColours, Palette.Colours[index].name) < 0)
+                    free.Add(Palette.Colours[index]);
+            }
+            if (free.Count == 0)
+            {
+                foreach (var entry in Palette.Colours)
+                {
+                    if (Array.IndexOf(TowerColours, entry.name) < 0)
+                        free.Add(entry);
+                }
+            }
+
+            unchecked
+            {
+                var hash = 2166136261u;
+                foreach (var c in "firework " + landmark)
+                    hash = (hash ^ c) * 16777619u;
+                return free[(int)(hash % (uint)free.Count)];
+            }
+        }
+
+        private static int PaintFireworks()
+        {
+            if (!Palette.Active)
+                return 0;
+
+            var count = 0;
+            foreach (var launcher in UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (launcher == null || !launcher.name.StartsWith(LauncherName, StringComparison.Ordinal))
+                    continue;
+                var landmark = PackChecks.LandmarkOf(launcher);
+                if (string.IsNullOrEmpty(landmark) || landmark.StartsWith("Lookout_", StringComparison.Ordinal))
+                    continue;
+
+                try
+                {
+                    var colour = FireworkColour(landmark);
+                    foreach (var helper in launcher.GetComponentsInChildren<PropertyBlockHelper>(true))
+                    {
+                        if (helper == null || helper.colorSettings == null)
+                            continue;
+                        var property = helper.gameObject.name switch
+                        {
+                            "fireworkLauncherModel" => "_TintColor",
+                            "HangingSpark" => "_EmissionColor",
+                            _ => null,
+                        };
+                        if (property == null)
+                            continue;
+                        var settings = helper.colorSettings;
+                        for (var i = 0; i < settings.Length; i++)
+                        {
+                            // An element of an IL2CPP struct array comes back as a copy (ReceivedItemSpawner).
+                            var setting = settings[i];
+                            if (setting.propertyName != property)
+                                continue;
+                            setting.color = property == "_TintColor" ? colour.body : colour.halo;
+                            settings[i] = setting;
+                        }
+                        helper.Refresh();
+                    }
+
+                    foreach (var system in launcher.GetComponentsInChildren<ParticleSystem>(true))
+                    {
+                        if (system.name != "HangingSpark" && system.name != "SparkParticleSystem")
+                            continue;
+                        var main = system.main;
+                        main.startColor = new ParticleSystem.MinMaxGradient(colour.halo);
+                    }
+                    count++;
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"{Tag} Could not paint the firework in {landmark}: {ex.Message}");
+                }
+            }
+            return count;
         }
 
         // ------------------------------------------------------------------

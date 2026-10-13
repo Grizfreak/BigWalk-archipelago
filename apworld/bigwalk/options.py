@@ -457,9 +457,11 @@ class HintDiscoveredDepositBoxes(Toggle):
 
 class RandomColors(DefaultOnToggle):
     """
-    The island's buoys (their body, halo and light) and flare guns (and their shots) take colors
-    drawn for the seed, between five and ten of them, the same on every player's screen. It paints
-    objects of the map only: never the players, the gourds or the keys. Off: the game's own colors.
+    The island's buoys (their body, halo and light), flare guns (and their shots), gadgets (one color
+    per kind: binoculars, clocks, compasses, cowbells, radios, lasers, megaphones, torches, scanners,
+    walkie-talkies) and the firework launchers away from the towers (and their bursts) take colors
+    drawn for the seed, between five and ten of them, the same on every player's screen. It paints objects of the map only:
+    never the players, the gourds, the keys, or what a puzzle needs. Off: the game's own colors.
     The Rainbow Flare Gun, whose shots run through every color, is not affected by it.
     """
 
@@ -511,6 +513,17 @@ class LinearKeys(Toggle):
     """
 
     display_name = "Linear Keys"
+
+
+class LinearArchDoors(Toggle):
+    """
+    If on, the hub's three arch doors are as in the game: no items, each opened by its push button on its far side
+    (the First Arch Door's outside the hub; the Left one coming from the train or the Green Dome, the Right one from
+    the tunnels). The way out of the starting zone is then the Drawbridge. Start With Arch Doors Open and Require
+    Arch Doors have nothing to do.
+    """
+
+    display_name = "Linear Arch Doors"
 
 
 class MonumentSanity(DefaultOnToggle):
@@ -799,6 +812,42 @@ class TeleportBackToHub(Toggle):
     display_name = "Teleport Back to Hub"
 
 
+class TrackerBoard(Toggle):
+    """
+    The right sign of the hub's notice board counts the checks you can do now, in logic, against those not done
+    yet, and names a few of them: those a hint points to first, then those that hold a progression item. Mod only.
+    """
+
+    display_name = "Tracker Board"
+
+
+class MapTracker(Choice):
+    """
+    The big map of the Map Room tracks the seed: every check stands on it (puzzles, objects, lamps, switches,
+    fireworks, radio stations, towers...), a small copy of its object on a pin, and leaves it once done. Mod only.
+
+    - off: the game's map.
+    - in_logic: only the checks you can do now.
+    - all: every check not done, those out of logic greyed.
+    """
+
+    display_name = "Map Tracker"
+    option_off = 0
+    option_in_logic = 1
+    option_all = 2
+    default = 0
+
+
+class HintBoard(DefaultOnToggle):
+    """
+    The centre sign of the hub's notice board shows your hint points and the cost of a hint, and lists the hints you
+    asked for that are not found yet. Write an item's name on it to ask for a hint (it costs points, as `!hint`).
+    Mod only.
+    """
+
+    display_name = "Hint Board"
+
+
 class TowerResyncStations(Toggle):
     """
     A resync station in each of the five towers: a button that brings your gourds, keys and
@@ -864,6 +913,15 @@ class CabinFeverHelp(Toggle):
     display_name = "Cabin Fever Help Button"
 
 
+class CabinFeverHideTimer(Toggle):
+    """
+    The Cabin Fever room's dial hides the time left: "??:??" while the wait runs, with now and then a digit
+    flashing. The game's sound still plays over the last ten seconds. Mod only.
+    """
+
+    display_name = "Cabin Fever Hide Timer"
+
+
 class CabinFeverLongSeconds(Range):
     """
     The wait of the Cabin Fever Long puzzle, in seconds; 1800 (30 minutes) is the game's own. Mod
@@ -883,6 +941,15 @@ class CabinFeverLongHelp(Toggle):
     """
 
     display_name = "Cabin Fever Long Help Button"
+
+
+class CabinFeverLongHideTimer(Toggle):
+    """
+    The Cabin Fever Long room's dial hides the time left: "??:??" while the wait runs, with now and then a
+    digit flashing. The game's sound still plays over the last ten seconds. Mod only.
+    """
+
+    display_name = "Cabin Fever Long Hide Timer"
 
 
 class TileThief(Choice):
@@ -1222,6 +1289,7 @@ class BigWalkOptions(PerGameCommonOptions):
     lock_abilities: LockAbilities
     start_with_map_room_open: StartWithMapRoomOpen
     linear_keys: LinearKeys
+    linear_arch_doors: LinearArchDoors
     monument_sanity: MonumentSanity
     linear_towers: LinearTowers
     linear_puzzles: LinearPuzzles
@@ -1233,6 +1301,9 @@ class BigWalkOptions(PerGameCommonOptions):
     hint_keys: HintKeys
     open_black_tower: OpenBlackTower
     tower_resync_stations: TowerResyncStations
+    tracker_board: TrackerBoard
+    hint_board: HintBoard
+    map_tracker: MapTracker
     guests_can_resync: GuestsCanResync
     teleport_buttons: TeleportButtons
     teleport_back_to_hub: TeleportBackToHub
@@ -1240,6 +1311,8 @@ class BigWalkOptions(PerGameCommonOptions):
     cabin_fever_help: CabinFeverHelp
     cabin_fever_long_seconds: CabinFeverLongSeconds
     cabin_fever_long_help: CabinFeverLongHelp
+    cabin_fever_hide_timer: CabinFeverHideTimer
+    cabin_fever_long_hide_timer: CabinFeverLongHideTimer
     tile_thief: TileThief
     gauntlet_mode: GauntletMode
     gauntlet_puzzles_required: GauntletPuzzlesRequired
@@ -1303,7 +1376,7 @@ option_groups = [
         LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed, IncludeBigGamePuzzles,
         GauntletMode, GauntletStageItems, GauntletPuzzlesRequired, LockGauntletNeeds, GauntletStagesLocal,
     ]),
-    OptionGroup("Vanilla Behaviours", [LinearKeys, LinearTowers, LinearPuzzles]),
+    OptionGroup("Vanilla Behaviours", [LinearKeys, LinearArchDoors, LinearTowers, LinearPuzzles]),
     OptionGroup("Movement Locking", [LockAbilities, StartWithAbilities, LockRunning]),
     OptionGroup("Item Pool", [BackpacksInPool, BeltsInPool, GourdCartonsInPool, IslandObjectLimits]),
     OptionGroup("Colors and Names", [RandomColors, GourdName]),
@@ -1316,11 +1389,12 @@ option_groups = [
         DeathLinkRouletteHardTraps, DeathLinkTrapOnSend, DeathLinkTarget,
     ]),
     OptionGroup("QoL", [
-        HintKeys, HintDiscoveredKeyLocations, HintDiscoveredDepositBoxes,
+        HintKeys, HintDiscoveredKeyLocations, HintDiscoveredDepositBoxes, HintBoard, TrackerBoard, MapTracker,
         TeleportButtons, TeleportBackToHub, TowerResyncStations, GuestsCanResync,
     ]),
     OptionGroup("Puzzle QoL", [
-        FastGolf, CabinFeverSeconds, CabinFeverHelp, CabinFeverLongSeconds, CabinFeverLongHelp, TileThief,
+        FastGolf, CabinFeverSeconds, CabinFeverHelp, CabinFeverHideTimer, CabinFeverLongSeconds, CabinFeverLongHelp,
+        CabinFeverLongHideTimer, TileThief,
     ]),
 ]
 

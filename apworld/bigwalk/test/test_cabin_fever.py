@@ -1,4 +1,5 @@
-"""The waits of the two Cabin Fever puzzles: one number each, the game's own by default, and a help button."""
+"""The waits of the two Cabin Fever puzzles: one number each, the game's own by default, a help button,
+and the dial's time hidden."""
 
 from .bases import BigWalkTestBase
 
@@ -38,6 +39,16 @@ class TestLongerAndHelp(BigWalkTestBase):
         slot_data = self.world.fill_slot_data()
         self.assertEqual(wait(slot_data, "cabin_fever"), {"mode": "fixed", "seconds": 3000, "help": True})
         self.assertEqual(wait(slot_data, "cabin_fever_long"), {"mode": "vanilla", "seconds": 0, "help": True})
+
+
+class TestHideTimer(BigWalkTestBase):
+    options = {"cabin_fever_long_hide_timer": True}
+    run_default_tests = False
+
+    def test_off_by_default_and_per_puzzle(self) -> None:
+        slot_data = self.world.fill_slot_data()
+        self.assertFalse(slot_data["cabin_fever_hide_timer"])
+        self.assertTrue(slot_data["cabin_fever_long_hide_timer"])
 
 
 class TestOpenBlackTower(BigWalkTestBase):

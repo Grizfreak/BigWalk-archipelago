@@ -94,6 +94,7 @@ namespace BigWalkArchipelago
                 AddComponent<Debug.DebugPuzzleMapDump>();
                 AddComponent<Debug.DebugPuzzleNeedsDump>();
                 AddComponent<Debug.DebugPuzzleTour>();
+                AddComponent<Debug.DebugRecon07>();
                 Log.LogInfo($"[Debug] Debug module active (key: {ModConfig.ToggleFlightKey.Value}).");
             }
 

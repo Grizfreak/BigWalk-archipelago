@@ -70,6 +70,7 @@ namespace BigWalkArchipelago.Core.Net
         // Empty by default: an apworld too old to send it has no door items
         // in its pool, so holding a door for it would keep it shut for good.
         internal string[] LockedArchDoors { get; private set; } = Array.Empty<string>();
+        internal bool LinearArchDoors { get; private set; }
 
         internal long LocationIdBase { get; private set; } = ApLocationIds.DefaultBase;
         internal long RadioIdOffset { get; private set; } = ApLocationIds.DefaultRadioOffset;
@@ -117,6 +118,19 @@ namespace BigWalkArchipelago.Core.Net
         internal string CabinFeverLongMode { get; private set; } = "vanilla";
         internal int CabinFeverLongSeconds { get; private set; }
         internal bool CabinFeverLongHelp { get; private set; }
+        internal bool CabinFeverHideTimer { get; private set; }
+
+        // R7: the tracker board, and the world's logic it evaluates (apworld logic_export; null without the board).
+        internal bool TrackerBoard { get; private set; }
+        internal bool HintBoard { get; private set; } = true;
+        // U2: "off", "in_logic" or "all".
+        internal string MapTrackerMode { get; private set; } = "off";
+        internal bool MapTracker => MapTrackerMode != "off";
+        internal ApLogic Logic { get; private set; }
+
+        // R7: this slot's items and how many of each, for the hint sign's suggestions.
+        internal Dictionary<string, int> HintItems { get; private set; } = new();
+        internal bool CabinFeverLongHideTimer { get; private set; }
 
         // FALSE and empty by default, like the others that take something
         // away: an apworld too old to send them has no need items in its
@@ -245,6 +259,7 @@ namespace BigWalkArchipelago.Core.Net
             data.TotalMonumentSlots = GetInt(raw, "total_monument_slots", data.TotalMonumentSlots);
             data.DepositLocationAmounts = GetIntArray(raw, "deposit_location_amounts");
             data.LockedArchDoors = GetStringArray(raw, "locked_arch_doors");
+            data.LinearArchDoors = GetBool(raw, "linear_arch_doors", false);
             data.LockPuzzleNeeds = GetBool(raw, "lock_puzzle_needs", data.LockPuzzleNeeds);
             data.PuzzleNeedKeys = GetStringArray(raw, "puzzle_need_keys");
             data.LockAbilities = GetString(raw, "lock_abilities", data.LockAbilities);
@@ -289,6 +304,15 @@ namespace BigWalkArchipelago.Core.Net
             data.CabinFeverLongMode = GetString(raw, "cabin_fever_long_mode", data.CabinFeverLongMode);
             data.CabinFeverLongSeconds = GetInt(raw, "cabin_fever_long_seconds", 0);
             data.CabinFeverLongHelp = GetBool(raw, "cabin_fever_long_help", false);
+            data.CabinFeverHideTimer = GetBool(raw, "cabin_fever_hide_timer", false);
+            data.TrackerBoard = GetBool(raw, "tracker_board", false);
+            data.HintBoard = GetBool(raw, "hint_board", true);
+            data.MapTrackerMode = GetString(raw, "map_tracker", "off");
+            foreach (var pair in GetMap(raw, "hint_items"))
+                data.HintItems[pair.Key] = pair.Value.Number;
+            if ((data.TrackerBoard || data.MapTracker) && raw.TryGetValue("logic", out var logic) && logic is Newtonsoft.Json.Linq.JObject logicObject)
+                data.Logic = ApLogic.From(logicObject);
+            data.CabinFeverLongHideTimer = GetBool(raw, "cabin_fever_long_hide_timer", false);
 
             foreach (var pair in GetMap(raw, "effect_items"))
             {
@@ -351,8 +375,8 @@ namespace BigWalkArchipelago.Core.Net
                    + $", gauntlet {GauntletMode}{(GauntletMode == "locked_stages" && !GauntletPuzzlesRequired ? " (puzzles optional)" : string.Empty)}"
                    + $", teleport buttons {TeleportButtons}"
                    + $", black tower {(OpenBlackTower ? "open" : "vanilla")}"
-                   + $", cabin fever {CabinFeverMode} {CabinFeverSeconds}s{(CabinFeverHelp ? " +help" : string.Empty)}"
-                   + $", cabin fever long {CabinFeverLongMode} {CabinFeverLongSeconds}s{(CabinFeverLongHelp ? " +help" : string.Empty)}"
+                   + $", cabin fever {CabinFeverMode} {CabinFeverSeconds}s{(CabinFeverHelp ? " +help" : string.Empty)}{(CabinFeverHideTimer ? " +hidden" : string.Empty)}"
+                   + $", cabin fever long {CabinFeverLongMode} {CabinFeverLongSeconds}s{(CabinFeverLongHelp ? " +help" : string.Empty)}{(CabinFeverLongHideTimer ? " +hidden" : string.Empty)}"
                    + $", packs {PackSanity}, fireworks {(FireworkSanity ? FireworkKeys.Length.ToString() : "off")}"
                    + $", flare guns {(FlareGunSanity ? FlareGunGuids.Length.ToString() : "off")}, colours {(RandomColours ? ColourPalette.Length.ToString() : "off")}"
                    + $", {EffectItems.Count} trap/bonus item(s), {TrapDuration}s"

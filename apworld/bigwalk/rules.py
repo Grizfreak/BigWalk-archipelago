@@ -431,7 +431,10 @@ def set_entrance_rules(world: BigWalkWorld) -> None:
     # is held closed: then it is the drawbridge or that door. Otherwise the
     # mod opens the door on the first session and the exit is free.
     exit_rule: Rule | None = None
-    if data.FIRST_ARCH_DOOR in world.locked_arch_doors:
+    if world.options.linear_arch_doors:
+        # L6: the First Arch Door's button is outside, so the way out is the drawbridge.
+        exit_rule = Has(data.DRAWBRIDGE_ITEM_NAME)
+    elif data.FIRST_ARCH_DOOR in world.locked_arch_doors:
         exit_rule = Has(data.DRAWBRIDGE_ITEM_NAME) | Has(data.FIRST_ARCH_DOOR.item_name)
     # With `lock_abilities`, the legs as well: the island past the tutorial needs jumping and crouching.
     if abilities_locked(world):

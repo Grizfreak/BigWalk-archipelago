@@ -22,6 +22,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<bool> ShowConnectionStatus;
         internal static ConfigEntry<int> StatusFontSize;
         internal static ConfigEntry<bool> ShowItemFeed;
+        internal static ConfigEntry<bool> GuestsCanAskHints;
         internal static ConfigEntry<bool> ApSounds;
         internal static ConfigEntry<bool> ShowObjectives;
         internal static ConfigEntry<bool> ShowTowerOrder;
@@ -199,6 +200,12 @@ namespace BigWalkArchipelago
                 "StatusFontSize",
                 22,
                 "Size of the Archipelago status line, in points. It sits over whatever the game is rendering, so it is drawn with a shadow rather than a panel; raise this if it is hard to read at your resolution. The feed and the hint under it are drawn slightly smaller than this, proportionally.");
+
+            GuestsCanAskHints = file.Bind(
+                "Archipelago",
+                "GuestsCanAskHints",
+                false,
+                "On the host: whether the guests may ask for a hint at the hub's hint board (they then get the item names' suggestions too). Also in the game's Settings > Archipelago. Off, the board stays on its hook for them and only the host asks; a hint costs the slot's points either way.");
 
             ShowItemFeed = file.Bind(
                 "Archipelago",

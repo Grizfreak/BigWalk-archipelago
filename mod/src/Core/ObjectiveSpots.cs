@@ -52,6 +52,9 @@ namespace BigWalkArchipelago.Core
             return new Spot { Centre = new Vector3(numbers[0], numbers[1], numbers[2]), Radius = Mathf.Max(1f, numbers[3]) };
         }
 
+        // U2 (Core/MapTracker): where big_climb is.
+        internal static Vector3? ClimbCentre() => Of("big_climb")?.Centre;
+
         // Whether this build knows where the place is.
         internal static bool Known(string key) => key == "big_fiesta" || Of(key) != null;
 

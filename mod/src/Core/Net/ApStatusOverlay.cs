@@ -99,6 +99,14 @@ namespace BigWalkArchipelago.Core.Net
 
             y = DrawLine(message, statusIsWarning ? WarningColor : InfoColor, fontSize, y);
 
+            // R7: while the hint sign is written on, the item names that match (Tab takes the first).
+            if (HintBoards.Suggestions.Count > 0)
+            {
+                y = DrawLine("Hint for (Tab):", InfoColor, fontSize, y);
+                foreach (var suggestion in HintBoards.Suggestions)
+                    y = DrawLine("  " + suggestion, ProgressColor, fontSize, y);
+            }
+
             // Full size, next to the status rather than down in the feed.
             // What the slot is playing for belongs with whether it is
             // connected: both are session-long facts, and neither is worth
