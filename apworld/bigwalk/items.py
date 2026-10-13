@@ -30,14 +30,12 @@ ITEM_NAME_TO_ID: dict[str, int] = {
     **{name: data.BASE_ID + offset for name, offset in data.FILLER_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.TRAP_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.BONUS_ITEMS},
-    **{name: data.BASE_ID + offset for name, offset in data.JOKE_ITEMS},
     **{data.teleport_item_name(name): data.teleport_item_id(i) for i, (_, name) in enumerate(data.TELEPORT_DESTINATIONS)},
 }
 
 FILLER_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.FILLER_ITEMS)
 TRAP_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.TRAP_ITEMS)
 BONUS_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.BONUS_ITEMS)
-JOKE_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.JOKE_ITEMS)
 TELEPORT_ITEM_NAMES: tuple[str, ...] = tuple(data.teleport_item_name(name) for _, name in data.TELEPORT_DESTINATIONS)
 
 # The gear the pool always holds, and the option that sets how many of each.
@@ -71,7 +69,6 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Gauntlet Doors": set(GAUNTLET_ITEM_NAMES) | {data.PROGRESSIVE_GAUNTLET_ITEM_NAME},
     "Monuments": {data.PROGRESSIVE_MONUMENT_ITEM_NAME},
     "Filler": set(FILLER_ITEM_NAMES),
-    "Joke Filler": set(JOKE_ITEM_NAMES),
     "Teleporters": set(TELEPORT_ITEM_NAMES),
     "Traps": set(TRAP_ITEM_NAMES),
     "Hard Traps": {trap.item_name for trap in data.TRAPS if trap.hard},
@@ -197,8 +194,6 @@ def get_random_filler_item_name(world: BigWalkWorld) -> str:
         bonus = pick_bonus(world)
         if bonus is not None:
             return bonus
-    if world.random.randint(1, 100) <= world.options.joke_filler_percentage:
-        return world.random.choice(JOKE_ITEM_NAMES)
     return pick_island_object(world)
 
 

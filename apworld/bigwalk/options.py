@@ -707,24 +707,6 @@ class GourdCartonsInPool(Range):
     default = 1
 
 
-class JokeFillerPercentage(Range):
-    """
-    Share of the filler items that are jokes: the community's thirteen wrong names for a
-    Gourd (Baby, Boid, Bouba, Plumbus, Thing...). They do nothing beyond a line in the
-    item feed.
-
-    - 0: none.
-    - 100: every filler item that is not a prop of the island is one.
-    """
-
-    display_name = "Joke Filler Percentage"
-    range_start = 0
-    range_end = 100
-    default = 0
-    # Back with the traps and the bonuses (0.1.4): hidden and off until then (player, 2026-10-05).
-    visibility = Visibility.none
-
-
 class TrapFillPercentage(Range):
     """
     Percentage of filler items replaced by traps. A trap hits every player of the session, for
@@ -1007,7 +989,6 @@ class BigWalkOptions(PerGameCommonOptions):
     start_with_puzzle_needs: StartWithPuzzleNeeds
     start_with_random_puzzle_need: StartWithRandomPuzzleNeed
     hint_keys: HintKeys
-    joke_filler_percentage: JokeFillerPercentage
     open_black_tower: OpenBlackTower
     tower_resync_stations: TowerResyncStations
     guests_can_resync: GuestsCanResync

@@ -194,7 +194,7 @@ name changes: the gourds are the same items.
 
 The name belongs to the game, not to a slot: every Big Walk slot of a multiworld has to ask for the
 same one, or they all keep "Gourd". A name that already belongs to another Big Walk item or item
-group (Backpack, Plumbus, Traps...) keeps "Gourd" too.
+group (Backpack, Traps...) keeps "Gourd" too.
 
 ## Traps and bonuses
 

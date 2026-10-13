@@ -55,6 +55,8 @@ unwinnable, which is why every player of a session should run the same build.
 - **X-Ray Goggles** are called **Scanner** (same item id; `island_object_limits` still reads the old name).
 - The Eggs need is shown as **Terrain Pegs** (the YAML key stays `eggs`).
 - **DeathLink** and its amnesty are one row in Settings > Archipelago.
+- **The joke filler items are gone** (Baby, Boid, Plumbus... and the hidden `joke_filler_percentage`): their names are
+  free for `gourd_name`.
 
 ### Fixed
 

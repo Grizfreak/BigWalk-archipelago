@@ -102,8 +102,12 @@ class TestCleaning(TestCase):
             self.assertEqual(self.clean(wanted), data.GOURD_ITEM_NAME, wanted)
 
     def test_items_and_groups_are_taken(self) -> None:
-        for wanted in ("Backpack", "PLUMBUS", "traps", "Gourd Carton"):
+        for wanted in ("Backpack", "traps", "Gourd Carton"):
             self.assertEqual(self.clean(wanted), data.GOURD_ITEM_NAME, wanted)
+
+    def test_the_community_names_are_free(self) -> None:
+        for wanted in ("Boid", "PLUMBUS", "Jelly Baby"):
+            self.assertEqual(self.clean(wanted), wanted)
 
 
 class TestShared(TestCase):
