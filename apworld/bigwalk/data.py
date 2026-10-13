@@ -1445,6 +1445,30 @@ TRAPS: tuple[Effect, ...] = (
     Effect("Big Silence", 9_112, "silence"),
     # The ground turns slippery for the trap's duration: starting and stopping take a long while (0.6).
     Effect("Big Slide", 9_113, "slide"),
+    # Every player white for the trap's duration, as in the Silent Gauntlet: the colour, not the silence (R9, 0.7).
+    Effect("Big Ghost", 9_114, "ghost"),
+    # The players swap colours for the trap's duration (two swap, more go round; T5's colour chaos, 0.7).
+    Effect("Big Paint", 9_115, "paint"),
+    # A timed tomato, then up in the air (a player's idea, 0.7).
+    Effect("Big Air", 9_116, "air"),
+    # The field of view narrowed for the trap's duration (0.7).
+    Effect("Big Goggles", 9_117, "goggles"),
+    # The island in big square pixels for the trap's duration (0.7).
+    Effect("Big Pixels", 9_118, "pixels"),
+    # The players' heads grow for the trap's duration (0.7).
+    Effect("Big Head", 9_119, "head"),
+    # The players' heads become a glowing lamp for the trap's duration (0.7).
+    Effect("Big Brain", 9_120, "brain"),
+    # The players' hands grow for the trap's duration (0.7).
+    Effect("Big Arms", 9_121, "arms"),
+    # Every player gives off a green gas and the players are pushed apart (0.7).
+    Effect("Big Smell", 9_122, "smell"),
+    # Every player becomes small for the trap's duration (0.7).
+    Effect("Big Brother", 9_123, "brother"),
+    # The nearest puzzle still holding its gourd starts again (0.7).
+    Effect("Big Reset", 9_124, "reset"),
+    # A folding chair for every player, who is sat on it (0.7).
+    Effect("Big Break", 9_125, "break"),
 )
 """
 Every trap is "Big" + one word (player, 2026-10-05) and hits every player of the session. Only

@@ -47,6 +47,9 @@ namespace BigWalkArchipelago.Core
         // Not an item: the clock Big Time hands every player (Core/Traps), cloned from the train stops'
         // ClockProp, its hands on the real time (Patches/BigTimeClockPatch). Last, as the tomato.
         Clock,
+
+        // Not an item: the folding chair Big Break sits every player on (Core/Traps), cloned from the island's.
+        Chair,
     }
 
     // Generic sibling of ReceivedItemSpawner for the island's own hand props
@@ -122,6 +125,7 @@ namespace BigWalkArchipelago.Core
             { GadgetKind.RainbowFlareGun, "FlareGunProp" },
             { GadgetKind.Blindfold, "BlindfoldProp" },
             { GadgetKind.Clock, "ClockProp" },
+            { GadgetKind.Chair, "foldingChair" },
         };
 
         // Kinds whose vanilla instances stay in the world instead of being
@@ -179,6 +183,9 @@ namespace BigWalkArchipelago.Core
 
             // The train stops' clocks, as in the game (Big Time clones them; object_sanity has its own say).
             GadgetKind.Clock,
+
+            // The island's folding chairs (Big Break clones them).
+            GadgetKind.Chair,
         };
 
         // A trap's tomato pops this many seconds after it is set going (player, 2026-10-06).
@@ -629,7 +636,7 @@ namespace BigWalkArchipelago.Core
         // numbers when it is switched on rather than the template's.
         //
         // The rank is the component's position in a fixed walk — homes, then
-        // switches, then tracked states, each in hierarchy order — which is
+        // switches, then tracked states, then seats, each in hierarchy order — which is
         // the same on every machine because every clone of a kind is a copy
         // of the same prefab. Components carrying ticket 0 are skipped here
         // exactly as TicketsOf skips them, so both count the same things.
@@ -674,6 +681,24 @@ namespace BigWalkArchipelago.Core
                 rank++;
             }
 
+            // The seats too (Big Break's chair, 2026-10-14: with the template's ticket, sitting on the island's chair
+            // took the player to the clone).
+            foreach (var pose in clone.GetComponentsInChildren<PlayerPose>(true))
+            {
+                if (pose == null || pose.ticket == 0)
+                    continue;
+
+                if (rank < MaxTicketsPerClone)
+                {
+                    pose.ticket = ExtraTicket(kind, index, rank);
+                    // The reference the network carries (CmdEnterPose) holds a ticket of its own: the template's, else.
+                    pose.shellReference = new(pose.ticket);
+                }
+                else
+                    skipped++;
+                rank++;
+            }
+
             var why = LendsNoTickets(kind)
                 ? "a kind whose vanilla instances keep their tickets, so it never borrows one"
                 : $"past the {VanillaCount(kind)} vanilla instance(s)";
@@ -709,6 +734,12 @@ namespace BigWalkArchipelago.Core
             {
                 if (state != null && state.ticket != 0)
                     tickets.Add(state.ticket);
+            }
+
+            foreach (var pose in root.GetComponentsInChildren<PlayerPose>(true))
+            {
+                if (pose != null && pose.ticket != 0)
+                    tickets.Add(pose.ticket);
             }
 
             return tickets;
@@ -1256,6 +1287,52 @@ namespace BigWalkArchipelago.Core
 
         // Host: one of `kind` for a given player, in their hands if they are empty, else on the
         // ground in front of them (a trap's tomato, Core/Traps). Null if it could not be built.
+        // Host: one of `kind` set down at a given place, upright (Big Break's chair). Null if it could not be built.
+        internal static Prop SpawnAt(GadgetKind kind, Vector3 position, Quaternion rotation)
+        {
+            if (!NetworkServer.active)
+                return null;
+
+            try
+            {
+                if (GetTemplate(kind) == null)
+                    TryCaptureLate(kind);
+
+                var index = ChooseInstance(kind);
+                var prop = BuildNeutralizedClone(kind, position, rotation, index);
+                if (prop == null)
+                    return null;
+
+                // Its lowest point on the spot, not its pivot (2026-10-14: the chairs sat half in the ground). Read from
+                // the meshes, which still answer while the clone is inactive.
+                var lowest = float.MaxValue;
+                foreach (var filter in prop.GetComponentsInChildren<MeshFilter>(true))
+                {
+                    var mesh = filter != null ? filter.sharedMesh : null;
+                    if (mesh == null)
+                        continue;
+                    var bounds = mesh.bounds;
+                    for (var i = 0; i < 8; i++)
+                    {
+                        var corner = bounds.center + Vector3.Scale(bounds.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                        lowest = Mathf.Min(lowest, filter.transform.TransformPoint(corner).y);
+                    }
+                }
+                if (lowest < float.MaxValue)
+                    prop.transform.position += Vector3.up * (position.y - lowest + 0.02f);
+
+                NetworkServer.Spawn(prop.gameObject, AssetIdFor(kind, index));
+                prop.SetLoose();
+                PublishLooseStates(prop.gameObject);
+                return prop;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(GadgetItemSpawner)}] Could not set down a {kind}: {ex.Message}");
+                return null;
+            }
+        }
+
         internal static Prop SpawnFor(GadgetKind kind, PlayerCharacter player, bool toHands = true)
         {
             if (!NetworkServer.active || player == null)

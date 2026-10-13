@@ -118,6 +118,8 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> LoopbackFocusKey;
         internal static ConfigEntry<KeyboardShortcut> LoopbackSummonKey;
         internal static ConfigEntry<KeyboardShortcut> LoopbackVanillaGuestKey;
+        internal static ConfigEntry<string> AutoHostSave;
+        internal static ConfigEntry<bool> AutoHostGuest;
 
         internal static void Bind(ConfigFile file)
         {
@@ -758,6 +760,18 @@ namespace BigWalkArchipelago
                 "LoopbackVanillaGuestKey",
                 new KeyboardShortcut(KeyCode.Y, KeyCode.LeftControl),
                 "On the host: like LoopbackJoinKey, but the second instance runs without the mod — it only joins, and meets the host's items, messages and objects as a PlayStation or Xbox player would. For testing that players without the mod are never blocked (only has an effect if Debug.Enabled is active).");
+
+            AutoHostSave = file.Bind(
+                "Debug",
+                "AutoHostSave",
+                "",
+                "For testing: the name of an existing save to host as soon as the game is up, through the menus a player would use (its Archipelago slot is its own name, the server HostPort above). Empty: the title menu as usual (only has an effect if Debug.Enabled is active).");
+
+            AutoHostGuest = file.Bind(
+                "Debug",
+                "AutoHostGuest",
+                false,
+                "With AutoHostSave: also start the loopback guest once the world is up, as Ctrl+L does (only has an effect if Debug.Enabled is active).");
         }
     }
 }

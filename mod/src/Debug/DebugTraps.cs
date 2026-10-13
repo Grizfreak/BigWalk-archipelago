@@ -15,6 +15,8 @@ namespace BigWalkArchipelago.Debug
 
         private static readonly string[] Order =
         {
+            // The newest first, to try it at once.
+            TrapEffects.Break, TrapEffects.Reset, TrapEffects.Brother, TrapEffects.Smell, TrapEffects.Arms, TrapEffects.Brain, TrapEffects.Head, TrapEffects.Mask, TrapEffects.Pixels, TrapEffects.Goggles, TrapEffects.Air, TrapEffects.Paint, TrapEffects.Ghost, TrapEffects.Silence, TrapEffects.Slide,
             TrapEffects.Drop, TrapEffects.Throw, TrapEffects.Trip, TrapEffects.Meeting,
             TrapEffects.Night, TrapEffects.Sleep, TrapEffects.Load, TrapEffects.Mask, TrapEffects.Flare, TrapEffects.Day, TrapEffects.Speed, TrapEffects.Jump,
         };
@@ -33,7 +35,10 @@ namespace BigWalkArchipelago.Debug
             _next++;
             Plugin.Log.LogInfo($"{Tag} Firing {TrapEffects.DisplayName(key)} by hand.");
             Core.Net.ApNotices.Post($"Debug: {TrapEffects.DisplayName(key)}");
+            // By hand, Big Mask spares the host so it can watch the guest wear it (player, 2026-10-13).
+            Traps.DebugMaskSparesHost = key == TrapEffects.Mask;
             Traps.Fire(key);
+            Traps.DebugMaskSparesHost = false;
         }
 
         internal static void LogState()

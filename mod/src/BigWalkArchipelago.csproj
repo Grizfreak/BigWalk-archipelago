@@ -83,6 +83,15 @@
       <HintPath>..\lib\UnityEngine.PhysicsModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- Big Pixels (0.7): the render scale and upscaling filter of the game's URP asset. -->
+    <Reference Include="Unity.RenderPipelines.Universal.Runtime">
+      <HintPath>..\lib\Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.Core.Runtime">
+      <HintPath>..\lib\Unity.RenderPipelines.Core.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <!-- KcpTransport, MultiplexTransport, EosTransport: the game's transports,
          for the loopback guest (cf. Debug/DebugNetworkLookup.cs). -->
     <Reference Include="Mirror.Transports">

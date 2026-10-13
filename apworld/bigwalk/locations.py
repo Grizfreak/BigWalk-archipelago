@@ -207,9 +207,15 @@ def create_all_locations(world: BigWalkWorld) -> None:
         region.add_event(data.light_event_name(light), data.LIGHT_EVENT_ITEM_NAME,
                          location_type=BigWalkLocation, item_type=BigWalkItem)
 
-    # A monument full sits beside its monument: the overworld, the safe side (the drawbridge's is in the tutorial,
-    # but with the monuments in order it may not be the first).
-    place([data.monument_full_location_name(tower) for tower in world.monuments_full()])
+    # A monument full sits beside its monument: the overworld, but the drawbridge's in the tutorial when its monument
+    # takes the first gourds (all open, or first in the order), as its deposits do. Kept in the overworld, the game's
+    # own way out (the four tutorial gourds, then the key, then the drawbridge) was out of logic, and with
+    # `linear_arch_doors`, `linear_keys` and `linear_towers` no seed could be made (the fuzzer, 2026-10-13).
+    for tower in world.monuments_full():
+        name = data.monument_full_location_name(tower)
+        in_tutorial = tower is data.TOWERS[0] and world.tutorial_monument_first()
+        region = regions.STARTING_ZONE if in_tutorial else regions.OVERWORLD
+        world.get_region(region).add_locations({name: LOCATION_NAME_TO_ID[name]}, BigWalkLocation)
 
     place(world.object_location_names())
     # big_objects counts them through an event beside each (the logic cannot count reachable locations).

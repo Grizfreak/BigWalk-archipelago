@@ -80,3 +80,6 @@ Copy the DLLs out of the game's `BepInEx/` folder **after** launching the
 game at least once with BepInEx installed — that first launch is what
 generates `BepInEx/interop/` through Il2CppInterop. A different game version
 can change a method signature, so rebuild after a game update.
+
+For Big Pixels (0.7), from `<game>\BepInEx\interop\`: `Unity.RenderPipelines.Universal.Runtime.dll` and
+`Unity.RenderPipelines.Core.Runtime.dll` (the URP asset's render scale and upscaling filter).

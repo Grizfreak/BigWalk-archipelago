@@ -332,6 +332,10 @@ namespace BigWalkArchipelago.Core
         // Host, every frame. `settled`: the session's startup burst is through (ApRuntime).
         internal static void TickHost(bool settled)
         {
+            if (DoorsToReopen.Count > 0)
+                TickDoors();
+            if (BreakSeats.Count > 0)
+                TickBreakSeats();
             if (TomatoStarts.Count > 0)
                 StartDueTomatoes();
             if (Tomatoes.Count > 0)
@@ -442,6 +446,39 @@ namespace BigWalkArchipelago.Core
                 case TrapEffects.Mask:
                     FireMask();
                     break;
+                case TrapEffects.Reset:
+                    FireReset();
+                    break;
+                case TrapEffects.Break:
+                    // A folding chair before each player, then each machine sits its own player on it
+                    // (TrapEffects.SitOnChair).
+                    foreach (var walker in Walkers())
+                    {
+                        // On the ground where the player stands, upright and facing the way they look (2026-10-14:
+                        // dropped before them from chest height, the chairs fell over).
+                        var body = walker.Player.GetComponentInChildren<Rigidbody>();
+                        var at = body != null ? body.position : walker.Position;
+                        var yaw = body != null ? body.rotation.eulerAngles.y : walker.Yaw;
+                        var ground = float.MaxValue;
+                        var from = at + Vector3.up * 1f;
+                        foreach (var hit in Physics.RaycastAll(from, Vector3.down, 6f))
+                        {
+                            if (hit.collider == null || hit.collider.isTrigger || hit.collider.transform.IsChildOf(walker.Player.transform)
+                                || hit.distance >= ground)
+                                continue;
+                            ground = hit.distance;
+                            at = hit.point;
+                        }
+                        var chair = GadgetItemSpawner.SpawnAt(GadgetKind.Chair, at, Quaternion.Euler(0f, yaw, 0f));
+                        if (chair == null)
+                        {
+                            Plugin.Log.LogInfo($"{Tag} Big Break: no chair for {walker.Player.gameObject.name}.");
+                            continue;
+                        }
+                        Send(walker, key, chair.transform.position, 0f);
+                        BreakSeats.Add((walker.Player, chair, Time.unscaledTime + BreakServerDelay));
+                    }
+                    break;
                 case TrapEffects.BigTime:
                     // A clock for everyone, to keep (player, 2026-10-13): it goes to the hands, or at their
                     // feet when they hold something.
@@ -461,6 +498,16 @@ namespace BigWalkArchipelago.Core
                     BigFlare.FireOn(walkers.ConvertAll(w => w.Player));
                     break;
                 }
+                case TrapEffects.Air:
+                    // A tomato for everyone, then up in the air on every machine; the falls that follow are the mod's
+                    // and send no DeathLink.
+                    _knockoutUntil = Time.unscaledTime + GadgetItemSpawner.TomatoSeconds + AirQuiet;
+                    foreach (var walker in Walkers())
+                    {
+                        GiveTomato(walker);
+                        Send(walker, key, null, 0f);
+                    }
+                    break;
                 case TrapEffects.Knockout:
                     // The packs off on the host, then each machine drops and dazes its player. The
                     // falls that follow are the mod's: none of them sends a DeathLink back.
@@ -475,6 +522,162 @@ namespace BigWalkArchipelago.Core
                     if (Array.IndexOf(Lasting, key) >= 0 && _onlyPlayer == null)
                         ActiveUntil[key] = Time.unscaledTime + _duration;
                     break;
+            }
+        }
+
+        // Big Reset: the players in groups (each within ResetGroup of another of the group), and for each group the
+        // puzzle still holding its gourd nearest to it starts again: its room's door shut and opened (CycleDoor). Putting
+        // every state near back to its first value (tried first, 2026-10-14) let the gourds go, through their vices.
+        private const float ResetGroup = 25f;
+        private const float ResetRadius = 40f;
+
+        // The puzzle's door (player, 2026-10-14: open and shut the puzzle rooms' doors): the LobbyDoor nearest the
+        // gourd, within ResetRadius, shut through its state (every machine follows, the game's own reset with it), then
+        // put back as it was ResetShutSeconds later; never the gourd's vice.
+        // Shut and opened again quickly (player, 2026-10-14: the state changed twice in a row).
+        private const float ResetShutSeconds = 0.4f;
+
+        private static bool UnderGourdHolder(Transform t)
+        {
+            for (; t != null; t = t.parent)
+            {
+                if (t.name.IndexOf("GourdVice", StringComparison.Ordinal) >= 0 || t.name.IndexOf("GourdValet", StringComparison.Ordinal) >= 0)
+                    return true;
+            }
+            return false;
+        }
+        private static readonly List<(TrackedPeckState state, int was, float at)> DoorsToReopen = new();
+
+        private static void CycleDoor(string puzzle, Vector3 gourd, float best, int players)
+        {
+            LobbyDoor door = null;
+            var nearest = ResetRadius;
+            foreach (var candidate in UnityEngine.Object.FindObjectsByType<LobbyDoor>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            {
+                // The gourd's vice is a LobbyDoor too (its victory switch: shut, it lets the gourd go, 2026-10-14).
+                if (candidate == null || candidate.peckSystem.peckSystem == null || UnderGourdHolder(candidate.transform))
+                    continue;
+                var distance = Vector3.Distance(candidate.transform.position, gourd);
+                if (distance < nearest)
+                {
+                    nearest = distance;
+                    door = candidate;
+                }
+            }
+            if (door == null)
+            {
+                Plugin.Log.LogInfo($"{Tag} Big Reset: {puzzle} ({best:F0} m from {players} player(s)) has no door within {ResetRadius:F0} m.");
+                return;
+            }
+            var state = door.peckSystem.peckSystem.TryCast<TrackedPeckState>();
+            if (state == null)
+            {
+                Plugin.Log.LogInfo($"{Tag} Big Reset: {puzzle}'s door {door.name} has no state of its own.");
+                return;
+            }
+            var was = state.currentPeckContext.state;
+            var shut = door.peckAndDoorStatesAreInverse ? 1 : 0;
+            Plugin.Log.LogInfo($"{Tag} Big Reset: {puzzle} ({best:F0} m from {players} player(s)), door {door.name} at {nearest:F0} m, state {was}, shut at {shut}.");
+            state.SetState(shut);
+            DoorsToReopen.Add((state, was, Time.unscaledTime + ResetShutSeconds));
+        }
+
+        private static void TickDoors()
+        {
+            for (var i = DoorsToReopen.Count - 1; i >= 0; i--)
+            {
+                var (state, was, at) = DoorsToReopen[i];
+                if (Time.unscaledTime < at)
+                    continue;
+                DoorsToReopen.RemoveAt(i);
+                if (state != null && state.currentPeckContext.state != was)
+                    state.SetState(was);
+            }
+        }
+
+        private static void FireReset()
+        {
+            var gourds = new List<(Vector3 at, string name)>();
+            foreach (var gourd in UnityEngine.Object.FindObjectsByType<RewardGourd>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            {
+                var prop = gourd != null ? gourd.prop : null;
+                if (prop == null || !GourdRegistry.TryGetLocationId(prop.saveablePropName, out var location) || CheckTracker.IsReported(location))
+                    continue;
+                gourds.Add((gourd.transform.position, prop.saveablePropName.ToString()));
+            }
+            if (gourds.Count == 0)
+            {
+                Plugin.Log.LogInfo($"{Tag} Big Reset: no puzzle still holds its gourd.");
+                return;
+            }
+
+            var left = Walkers().ConvertAll(w => w.Position);
+            var done = new HashSet<string>();
+            while (left.Count > 0)
+            {
+                var group = new List<Vector3> { left[0] };
+                left.RemoveAt(0);
+                for (var grew = true; grew;)
+                {
+                    grew = false;
+                    for (var i = left.Count - 1; i >= 0; i--)
+                    {
+                        if (!group.Exists(p => Vector3.Distance(p, left[i]) < ResetGroup))
+                            continue;
+                        group.Add(left[i]);
+                        left.RemoveAt(i);
+                        grew = true;
+                    }
+                }
+
+                var nearest = gourds[0];
+                var best = float.MaxValue;
+                foreach (var gourd in gourds)
+                {
+                    foreach (var player in group)
+                    {
+                        var distance = Vector3.Distance(player, gourd.at);
+                        if (distance < best)
+                        {
+                            best = distance;
+                            nearest = gourd;
+                        }
+                    }
+                }
+                if (!done.Add(nearest.name))
+                    continue;
+
+                CycleDoor(nearest.name, nearest.at, best, group.Count);
+            }
+        }
+
+        // Big Break, host side: a moment after its chair is spawned, each player is sat on it by the server
+        // (PlayerNetworking.ServerEnterPoseAuto, whose pose every machine follows; 2026-10-14: the player's own action
+        // sat it on its own machine only).
+        private const float BreakServerDelay = 0.6f;
+        private static readonly List<(PlayerCharacter player, Prop chair, float at)> BreakSeats = new();
+
+        private static void TickBreakSeats()
+        {
+            for (var i = BreakSeats.Count - 1; i >= 0; i--)
+            {
+                var (player, chair, at) = BreakSeats[i];
+                if (Time.unscaledTime < at)
+                    continue;
+                BreakSeats.RemoveAt(i);
+                try
+                {
+                    var pose = chair != null ? chair.GetComponentInChildren<PlayerPose>() : null;
+                    var networking = player != null ? player.playerNetworking : null;
+                    if (pose == null || networking == null)
+                        continue;
+                    networking.ServerEnterPoseAuto(pose.shellReference);
+                    Plugin.Log.LogInfo($"{Tag} Big Break: {player.gameObject.name} sat by the server (ticket {pose.ticket}).");
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"{Tag} Big Break: {ex.Message}");
+                }
             }
         }
 
@@ -831,10 +1034,15 @@ namespace BigWalkArchipelago.Core
         private const float HelmetLinger = 1.5f;
         private static readonly List<(Prop helmet, float at)> RetiringHelmets = new();
 
+        // Debug (DebugTraps): Big Mask fired by hand spares the host, who can then watch the guest wear it.
+        internal static bool DebugMaskSparesHost;
+
         private static void FireMask()
         {
             foreach (var walker in Walkers())
             {
+                if (DebugMaskSparesHost && walker.Local)
+                    continue;
                 if (IsMasked(walker))
                 {
                     Plugin.Log.LogInfo($"{Tag} Big Mask spares {walker.Player.gameObject.name}: a mask is already on their screen.");
@@ -1014,6 +1222,7 @@ namespace BigWalkArchipelago.Core
         // A knock-out the mod gave is not a fall: none counts for a few seconds after one.
         private const float FallCooldown = 5f;
         private const float KnockoutQuiet = 8f;
+        private const float AirQuiet = 15f;
         private static readonly Dictionary<int, float> LastFall = new();
         private static float _knockoutUntil = -100f;
 
@@ -1401,6 +1610,19 @@ namespace BigWalkArchipelago.Core
         private static bool _worldWasReady;
         private static float _nextStatus;
         private static bool _lastMaskedSent;
+
+        // After the animation has placed the bodies for the frame: what must win over it (Big Head's lift).
+        private void LateUpdate()
+        {
+            try
+            {
+                TrapEffects.LateTick();
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(TrapRunner)}] {ex.Message}");
+            }
+        }
 
         private void Update()
         {
