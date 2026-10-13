@@ -1452,7 +1452,7 @@ TRAPS: tuple[Effect, ...] = (
     # The players swap colours for the trap's duration (two swap, more go round; T5's colour chaos, 0.7).
     Effect("Big Paint", 9_115, "paint"),
     # A timed tomato, then up in the air (a player's idea, 0.7).
-    Effect("Big Air", 9_116, "air"),
+    Effect("Big Air", 9_116, "air", hard=True),
     # The field of view narrowed for the trap's duration (0.7).
     Effect("Big Goggles", 9_117, "goggles"),
     # The island in big square pixels for the trap's duration (0.7).
@@ -1468,7 +1468,7 @@ TRAPS: tuple[Effect, ...] = (
     # Every player becomes small for the trap's duration (0.7).
     Effect("Big Brother", 9_123, "brother"),
     # The nearest puzzle still holding its gourd starts again (0.7).
-    Effect("Big Reset", 9_124, "reset"),
+    Effect("Big Reset", 9_124, "reset", hard=True),
     # A folding chair for every player, who is sat on it (0.7).
     Effect("Big Break", 9_125, "break"),
 )

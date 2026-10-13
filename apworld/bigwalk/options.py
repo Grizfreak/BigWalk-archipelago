@@ -1062,7 +1062,7 @@ class TrapLink(Toggle):
 class HardTraps(DefaultOnToggle):
     """
     Lets the hard traps into the pool: those that cost time or progress (Big Throw, Big Trip,
-    Big Meeting, Big Sleep, Big Load, Big Mask). Off keeps only the standard ones.
+    Big Meeting, Big Sleep, Big Load, Big Mask, Big Air, Big Reset). Off keeps only the standard ones.
     """
 
     display_name = "Hard Traps"
@@ -1262,7 +1262,10 @@ class DeathLinkTrapOnSend(Toggle):
 
 
 class DeathLinkRouletteHardTraps(DefaultOnToggle):
-    """Lets the roulette draw the hard traps (Big Throw, Big Trip, Big Meeting, Big Sleep, Big Load, Big Mask). Off keeps them out of it."""
+    """
+    Lets the roulette draw the hard traps (Big Throw, Big Trip, Big Meeting, Big Sleep, Big Load, Big Mask, Big Air,
+    Big Reset). Off keeps them out of it.
+    """
 
     display_name = "DeathLink Roulette Hard Traps"
 
@@ -1291,6 +1294,7 @@ class BigWalkOptions(PerGameCommonOptions):
     start_with_map_room_open: StartWithMapRoomOpen
     linear_keys: LinearKeys
     linear_arch_doors: LinearArchDoors
+    tower_sanity: TowerSanity
     monument_sanity: MonumentSanity
     linear_towers: LinearTowers
     linear_puzzles: LinearPuzzles
@@ -1354,7 +1358,6 @@ class BigWalkOptions(PerGameCommonOptions):
     first_tower_open: FirstTowerOpen
     everyone_gathers: EveryoneGathers
     towers_required: TowersRequired
-    tower_sanity: TowerSanity
     hint_discovered_key_locations: HintDiscoveredKeyLocations
     hint_discovered_deposit_boxes: HintDiscoveredDepositBoxes
     gourd_name: GourdName

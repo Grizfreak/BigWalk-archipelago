@@ -238,7 +238,7 @@ gone. Pick a host at the start and stay with them.
 
 The host's screen carries a line in the corner: the Archipelago connection,
 for the whole session, with the last few checks sent and items received
-underneath it and the resync shortcut below that. It is off for everyone
+underneath it. It is off for everyone
 else, who never connects. `ShowConnectionStatus` turns the whole thing off,
 `StatusFontSize` resizes it, and `ShowItemFeed` keeps the status line while
 dropping the feed.
@@ -254,12 +254,12 @@ sent, or what anyone else is doing. Keep Archipelago's **Text Client** open
 beside the game for that; everything the mod does is also in
 `BepInEx/LogOutput.log`.
 
-**Ctrl+R** (host only) sweeps up everything Archipelago has given you that is
-loose — gourds, big keys, filler props, including whatever is in someone's
-hands — and puts back exactly what the server says you have received. It is
-for when one has ended up somewhere you cannot reach it: stranded in a sealed
-puzzle room, say. Deposited gourds and placed keys are never touched, so
-nothing Archipelago counts can be lost by pressing it.
+The **resync station** in the hub (and in each tower with
+`tower_resync_stations`) is a button that brings everything Archipelago has
+given you that is loose — gourds, big keys, gadgets — back in front of it. It
+is for when one has ended up somewhere you cannot reach it: stranded in a
+sealed puzzle room, say. Deposited gourds and placed keys are never touched.
+Only the host can press it, unless `guests_can_resync` is on.
 
 If the Archipelago server dies, the Big Walk session does not. The host gets
 a notice on screen, and the mod reconnects.
@@ -294,7 +294,8 @@ On a guest, the host's settings are greyed ("Set by the host").
 ## Mod settings
 
 The mod writes `BepInEx/config/com.grizfreak.bigwalk.archipelago.cfg` on its
-first launch. Everything in it has a comment; the ones worth knowing are in
+first launch (the debug tools, off for players, keep theirs in a `.debug.cfg`
+beside it, written only when `Debug.Enabled` is on). Everything in it has a comment; the ones worth knowing are in
 the `[Archipelago]` section:
 
 - `Enabled` — turn the connection off entirely. The mod's other features stay
@@ -302,7 +303,7 @@ the `[Archipelago]` section:
   with the shortcuts open.
 - `HostPort` — the address remembered from the hosting screen.
 - `ShowConnectionStatus` — the whole corner display; `StatusFontSize`,
-  `ShowItemFeed`, `NoticeSeconds` and `ShowResyncHint` tune what it contains.
+  `ShowItemFeed` and `NoticeSeconds` tune what it contains.
 - `SpawnGourdAtPlayer`, `PutGourdInHands` — who a gourd or gadget received
   mid-game goes to, and whether it lands in their hands or at their feet. It
   goes to a player with free hands, the one given the fewest items this
@@ -311,7 +312,6 @@ the `[Archipelago]` section:
 - `ColorBigKeys` — whether received keys are tinted so they stand out from
   the ones sitting at their towers. Received gourds always come in one of six
   colors.
-- `ResyncGourdsKey` — the Ctrl+R shortcut above.
 
 - `GentleEffects`, `DeathLinkEnabled`, `DeathLinkAmnesty`, `GourdName` — what Settings >
   Archipelago above writes; they can be edited by hand with the game closed.

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 namespace BigWalkArchipelago.Core
 {
     // Logic shared between the debug hotkey (Debug/DebugVariantGourdReveal)
@@ -31,30 +32,28 @@ namespace BigWalkArchipelago.Core
             if (flags == null || flags.Length == 0)
                 return 0;
 
-            var variantProps = UnityEngine.Object.FindObjectsByType<RewardGourd>(UnityEngine.FindObjectsSortMode.None);
-            if (variantProps == null || variantProps.Length == 0)
-                return 0;
-
-            var count = 0;
+            // The hidden flags first: most polls find none, and then the gourds are not searched at all (Q6, 2026-10-14:
+            // the gourds searched for every flag cost a 20 ms stall every two seconds).
+            var hidden = new List<GourdFlag>();
             foreach (var flag in flags)
             {
-                if (flag == null || flag.gourdState != GourdFlag.GourdState.Hidden)
-                    continue;
+                if (flag != null && flag.gourdState == GourdFlag.GourdState.Hidden)
+                    hidden.Add(flag);
+            }
+            if (hidden.Count == 0)
+                return 0;
 
-                var isVariant = false;
-                foreach (var gourd in variantProps)
-                {
-                    if (gourd == null || gourd.prop == null)
-                        continue;
+            var variants = new HashSet<SaveablePropName>();
+            foreach (var gourd in UnityEngine.Object.FindObjectsByType<RewardGourd>(UnityEngine.FindObjectsSortMode.None))
+            {
+                if (gourd != null && gourd.isVariantChallenge && gourd.prop != null)
+                    variants.Add(gourd.prop.saveablePropName);
+            }
 
-                    if (gourd.prop.saveablePropName == flag.saveablePropName && gourd.isVariantChallenge)
-                    {
-                        isVariant = true;
-                        break;
-                    }
-                }
-
-                if (!isVariant)
+            var count = 0;
+            foreach (var flag in hidden)
+            {
+                if (!variants.Contains(flag.saveablePropName))
                     continue;
 
                 flag.SetState(GourdFlag.GourdState.Locked);

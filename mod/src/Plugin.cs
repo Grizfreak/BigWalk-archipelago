@@ -21,7 +21,7 @@ namespace BigWalkArchipelago
         // lost to a fresh file — rename the old one by hand if that happens.
         public const string PluginGuid = "com.grizfreak.bigwalk.archipelago";
         public const string PluginName = "Big Walk Archipelago";
-        public const string PluginVersion = "0.6.0";
+        public const string PluginVersion = "0.7.0";
 
         // BasePlugin.Log is an INSTANCE property (confirmed via reflection on
         // BepInEx.Unity.IL2CPP.dll): we deliberately shadow it (`new`) with a
@@ -60,6 +60,7 @@ namespace BigWalkArchipelago
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll();
             Patches.PlayerCountProceedLog.TryApply(_harmony);
+            Debug.PerfProbe.TryApply(_harmony);
 
             AddComponent<Core.Net.ApRuntime>();
             AddComponent<Core.Net.ApStatusOverlay>();

@@ -224,6 +224,45 @@ Labyrinth, Basketball and Kick Up Pits; carrying for High Button, the two obbies
 
 A short line on the overlay now says each check sent: what it was, what it gave, and to whom.
 
+## Added in 0.7
+
+Every option below is **off by default**, except `hint_board` (on). None of them changes the checks: a 0.6 YAML
+generates the same seed's count.
+
+- **`hint_board`** (on): the centre sign of the hub's notice board shows your hint points and a hint's cost, and lists
+  the hints you asked for that are not found yet. Write an item's name on it to ask for a hint (it costs points, as
+  `!hint`).
+- **`tracker_board`**: the right sign of the notice board counts the checks you can do now, in logic, against those not
+  done yet, and names a few: those a hint points to first, then those holding a progression item.
+- **`map_tracker`**: the big map of the Map Room tracks the seed. Every check stands on it, a small copy of its object
+  on a pin, and leaves it once done: `in_logic` shows only what you can do now, `all` every check not done, those out
+  of logic greyed.
+- **`linear_arch_doors`**: the hub's three arch doors are as in the game, opened by their push buttons on their far
+  side; no item. You then leave the starting zone through the Drawbridge.
+- **`cabin_fever_hide_timer`** and **`cabin_fever_long_hide_timer`**: the Cabin Fever rooms' dial reads "??:??" while
+  the wait runs, now and then flashing one digit. The game's sound still plays over the last ten seconds.
+- **Twelve new traps** (see Traps and bonuses below), and the Gourd Carton follows `gourd_name`.
+
+## Other options
+
+- **`start_with_drawbridge_open`**: the Drawbridge is open from the start (its key deposit stays a check).
+- **`open_black_tower`** (on): the Black Tower's door is open from the start, instead of waiting for the five
+  monuments.
+- **`hint_keys`**: `from_start` hints the seven big keys at the start, as if they were in your Start Hints.
+- **`tower_resync_stations`**: a resync station in each of the five towers (a button that brings your gourds, keys
+  and gadgets lying around back in front of it; the hub's is always there). **`guests_can_resync`** lets the guests
+  use them too.
+- **`teleport_buttons`**: buttons in the hub to the five towers and the Silent Gauntlet: `free`, `with_towers` (once
+  the place was opened on foot) or `items` (each also needs its Teleporter item). **`teleport_back_to_hub`** adds a
+  button back in each destination.
+- **`cabin_fever_seconds`** (300) and **`cabin_fever_long_seconds`** (1800): the two Cabin Fever waits, in seconds.
+  **`cabin_fever_help`** and **`cabin_fever_long_help`** hide a button in each room that takes ten seconds off.
+- **`tile_thief`**: a button beside the Tile Thief puzzle that makes peg tiles: `easy` (the tiles it expects) or
+  `chaos` (one of every kind it draws from).
+- **`gauntlet_stage_items`**, with `gauntlet_mode: locked_stages`: `progressive` (seven Progressive Gauntlet Doors)
+  or `individual` (one door item per stage, in any order).
+- **`death_link_roulette_hard_traps`** (on): the DeathLink roulette may draw the hard traps; off keeps them out.
+
 ## Colors
 
 With **`random_colors`** (on by default) the seed draws between five and ten colors from the
@@ -272,6 +311,18 @@ filler is bonuses (`bonus_fill_percentage: 25`).
 | **Big Silence** | for `trap_duration` seconds, every player is muted, and the mute key cannot lift it |
 | **Big Slide** | for `trap_duration` seconds, the ground is slippery: starting, stopping and turning slide |
 | **Big Time** | every player gets a clock to keep, showing the real time of their own computer |
+| **Big Ghost** | for `trap_duration` seconds, every player is white, as in the Silent Gauntlet (the color, not the silence) |
+| **Big Paint** | for `trap_duration` seconds, the players swap colors (two swap, more go round) |
+| **Big Air** (hard) | a timed tomato ticks in every player's hands, then everyone shoots up into the air (stopping under a ceiling) |
+| **Big Goggles** | for `trap_duration` seconds, the field of view narrows |
+| **Big Pixels** | for `trap_duration` seconds, the island turns to big square pixels |
+| **Big Head** | for `trap_duration` seconds, the other players' heads grow |
+| **Big Brain** | for `trap_duration` seconds, the other players' heads are a lit lamp |
+| **Big Arms** | for `trap_duration` seconds, the players' hands grow (seen on the others) |
+| **Big Smell** | for `trap_duration` seconds, every player gives off a green gas and the players are pushed apart |
+| **Big Brother** | for `trap_duration` seconds, every player is small: body, view and collisions |
+| **Big Reset** (hard) | the puzzle still holding its gourd nearest to each group of players starts again (its room's door shuts and opens) |
+| **Big Break** | a folding chair appears under every player, who is sat on it |
 
 | Bonus | What it does |
 |---|---|
@@ -335,7 +386,7 @@ them, and nothing there is in the YAML.
 | **Archipelago text** | each player | the size of the overlay's text, top left: Small (16), Medium (22), Large (28), Huge (36) |
 | **DeathLink** | the host | On follows the YAML; Off sends and receives none for this session, whatever the YAML says. It reads "On (not in this seed)" when the seed has no DeathLink |
 | **DeathLink amnesty** | the host | "Seed's" keeps the YAML's amnesty; 0 to 10 replaces it |
-| **Gentle effects** | each player | Off by default. On, the flashes of the traps are not shown on that screen (today Big Flare's), for players who find them hard to look at. The others keep theirs, and nothing else changes, the clock included |
+| **Gentle effects** | each player | Off by default. On, the traps that are hard to look at are softened on that screen (no Big Flare, Big Goggles or Big Pixels, Big Smell without its gas, Big Brain's lamps without their light), for players who find them hard to look at. The others keep theirs, and nothing else changes, the clock included |
 | **Gourd name** | the host | free text, up to 24 characters, applied with Enter or by leaving the field. The item feed and the goal line say it instead of "Gourd" on every player's overlay, and "<name> Carton" for the Gourd Carton |
 
 On a guest, the host's settings are greyed ("Set by the host") and show the host's value. The

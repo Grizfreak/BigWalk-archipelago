@@ -4,8 +4,8 @@ An [Archipelago](https://archipelago.gg) randomizer for *Big Walk* (House
 House). Checks go out and items come in from inside the game: there is no
 separate client to run while you play.
 
-**Version 0.6.0 — alpha.** Every path has been exercised in game, on two
-machines as well as one, but no one has yet played a seed from the first check
+**Version 0.7.0 — alpha.** Every path has been exercised in game (0.7's on
+one machine, with a second instance as the guest), but no one has yet played a seed from the first check
 to the goal. Expect to find things, and please report them.
 
 ## Download

@@ -142,6 +142,8 @@ namespace BigWalkArchipelago.Core
 
         private static void StartPixels(int seconds)
         {
+            if (Gentle(Pixels))
+                return;
             var asset = UrpAsset();
             if (asset == null)
             {
@@ -402,11 +404,15 @@ namespace BigWalkArchipelago.Core
             var size = Mathf.Max(extent.x, Mathf.Max(extent.y, extent.z));
             model.transform.localScale = Vector3.one * (size > 0.0001f ? BrainSize / size : 1f);
 
-            var light = lamp.AddComponent<Light>();
-            light.type = LightType.Point;
-            light.range = 6f;
-            light.intensity = 2f;
-            light.color = BrainGlow;
+            // Gentle effects (ModConfig.GentleEffects, player 2026-10-14): the lamp without its light on this screen.
+            if (!ModConfig.GentleEffects.Value)
+            {
+                var light = lamp.AddComponent<Light>();
+                light.type = LightType.Point;
+                light.range = 6f;
+                light.intensity = 2f;
+                light.color = BrainGlow;
+            }
 
             lamp.transform.SetParent(bone, false);
             lamp.transform.position = bone.position + Vector3.up * BrainLift;
@@ -690,6 +696,9 @@ namespace BigWalkArchipelago.Core
                 if (player.isLocalPlayer)
                     own = player;
                 var id = player.GetInstanceID();
+                // Gentle effects: no gas on this screen, the push stays.
+                if (ModConfig.GentleEffects.Value)
+                    continue;
                 if (!Clouds.TryGetValue(id, out var cloud) || cloud == null)
                     Clouds[id] = cloud = MakeCloud(player);
                 AnimateCloud(cloud, now);
@@ -901,6 +910,8 @@ namespace BigWalkArchipelago.Core
 
         private static void StartGoggles(int seconds)
         {
+            if (Gentle(Goggles))
+                return;
             var now = Time.unscaledTime;
             if (_gogglesUntil < 0f)
             {
@@ -1046,6 +1057,16 @@ namespace BigWalkArchipelago.Core
 
         // Every effect this build plays, so a key from a newer apworld is refused by name.
         internal static readonly string[] Known = { Drop, Throw, Trip, Meeting, Night, Sleep, Load, Mask, Flare, BigTime, Silence, Slide, Ghost, Paint, Air, Goggles, Pixels, Head, Brain, Arms, Smell, Brother, Reset, Break, Day, Speed, Jump, Knockout };
+
+        // Gentle effects (ModConfig.GentleEffects, the accessibility setting; player 2026-10-14): the traps that are hard
+        // to look at (Big Goggles' narrowing view, Big Pixels) are not shown on this machine's screen.
+        private static bool Gentle(string key)
+        {
+            if (!ModConfig.GentleEffects.Value)
+                return false;
+            Plugin.Log.LogInfo($"{Tag} Gentle effects on this machine: {DisplayName(key)} is not shown.");
+            return true;
+        }
 
         internal static string DisplayName(string key)
         {
