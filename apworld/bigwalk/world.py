@@ -610,6 +610,75 @@ class BigWalkWorld(World):
         self._place_local_items("Objects", self.options.object_sanity_items.value, "object_sanity_items")
         self._place_local_items("Lights", self.options.light_sanity_items.value, "light_sanity_items")
         self._make_room_at_the_start()
+        self._open_the_way_one_step_at_a_time()
+
+    def _open_the_way_one_step_at_a_time(self) -> None:
+        """
+        The fill places one item at a time, each where the items not yet placed can reach: a step that needs two
+        items at once, with a single free location before it, cannot be filled. With `linear_keys` and `linear_towers`
+        the starting zone can come to that: one free location (Hub Fireworks) before Legs and Carrying together (the
+        fuzzer, 2026-10-14: 2 option sets of 7 failed every seed). So the way is opened here as the fill would, with
+        this world's progression: one item per free location; where no single item opens anything but two together
+        do, and only one location is free, the player starts with one of the two (the generation log says which).
+        Steps that only count gourds are left to the fill.
+        """
+        mine = [item for item in self.multiworld.itempool if item.player == self.player and item.advancement]
+        if not mine:
+            return
+        state = CollectionState(self.multiworld)
+        state.sweep_for_advancements()
+        used = 0
+
+        def reach(with_state: CollectionState) -> set[str]:
+            return {loc.name for loc in self.multiworld.get_unfilled_locations(self.player)
+                    if loc.progress_type != LocationProgressType.EXCLUDED and loc.can_reach(with_state)}
+
+        def opens(names: tuple[str, ...], now: set[str]) -> int:
+            trial = state.copy()
+            for name in names:
+                trial.collect(self.create_item(name), True)
+            trial.sweep_for_advancements()
+            return len(reach(trial) - now)
+
+        for _ in range(len(mine)):
+            now = reach(state)
+            free = len(now) - used
+            names = sorted({item.name for item in mine})
+            if not names:
+                return
+            singles = [(opens((name,), now), name) for name in names]
+            best = max(singles)
+            if best[0] > 0:
+                chosen: tuple[str, ...] = (best[1],)
+            else:
+                pairs = [(opens((a, b), now), (a, b)) for i, a in enumerate(names) for b in names[i:]
+                         if a != b or sum(1 for item in mine if item.name == a) > 1]
+                pairs = [pair for pair in pairs if pair[0] > 0]
+                if not pairs:
+                    return
+                chosen = max(pairs)[1]
+            if free < len(chosen):
+                item = next(item for item in mine if item.name == chosen[0])
+                logging.warning(f"Big Walk ({self.player_name}): {' and '.join(chosen)} needed with room for "
+                                f"{max(free, 0)}; starting with {item.name}.")
+                mine.remove(item)
+                self.multiworld.itempool[:] = [other for other in self.multiworld.itempool if other is not item]
+                local_early = self.multiworld.local_early_items[self.player]
+                if local_early.get(item.name):
+                    local_early[item.name] -= 1
+                    if not local_early[item.name]:
+                        del local_early[item.name]
+                self.push_precollected(item)
+                self.multiworld.itempool.append(self.create_filler())
+                state.collect(item, True)
+                state.sweep_for_advancements()
+                continue
+            for name in chosen:
+                item = next(item for item in mine if item.name == name)
+                mine.remove(item)
+                state.collect(item, True)
+                used += 1
+            state.sweep_for_advancements()
 
     def _make_room_at_the_start(self) -> None:
         """
