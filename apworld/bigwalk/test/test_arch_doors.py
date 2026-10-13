@@ -102,34 +102,3 @@ class TestOnlyTheFirstArchDoorLocked(BigWalkTestBase):
         self.assertEqual(self.world.fill_slot_data()["locked_arch_doors"], [data.FIRST_ARCH_DOOR.system_name])
 
 
-class TestA011YamlStillLocksItsDoors(BigWalkTestBase):
-    """`lock_arch_doors` from 0.1.1 is read into the option that replaced it."""
-
-    options = {"lock_arch_doors": "far_left"}
-    run_default_tests = False
-
-    def test_the_old_value_lands_on_the_new_option(self) -> None:
-        self.assertEqual(
-            self.world.options.start_with_arch_doors_open.value,
-            {data.FIRST_ARCH_DOOR.item_name, data.RIGHT_ARCH_DOOR.item_name})
-        self.assertEqual(self.world.locked_arch_doors, (data.LEFT_ARCH_DOOR,))
-
-    def test_slot_data_carries_the_new_option(self) -> None:
-        slot_data = self.world.fill_slot_data()
-        self.assertNotIn("lock_arch_doors", slot_data)
-        self.assertEqual(
-            slot_data["start_with_arch_doors_open"], sorted([data.FIRST_ARCH_DOOR.item_name, data.RIGHT_ARCH_DOOR.item_name]))
-
-
-class TestTheTrackerRebuildsA011Seed(BigWalkTestBase):
-    """A 0.1.1 seed's slot_data has `lock_arch_doors` and no `start_with_arch_doors_open`."""
-
-    options = {"lock_arch_doors": "all"}
-    run_default_tests = False
-
-    def test_it_lands_on_that_seed(self) -> None:
-        slot_data = dict(self.world.fill_slot_data())
-        del slot_data["start_with_arch_doors_open"]
-        slot_data["lock_arch_doors"] = "all"
-        tracked = build_like_universal_tracker({}, slot_data)
-        self.assertEqual(world_shape(tracked), world_shape(self.multiworld))

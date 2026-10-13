@@ -24,19 +24,11 @@ class TestTheGauntletAndTheGourds(BigWalkTestBase):
         self.assertFalse(self.can_reach_location("Victory"))
 
 
-class TestTheWalkIsGone(unittest.TestCase):
-    """big_walk was dropped from the objectives (the player, 2026-10-12): a YAML that still lists it is told so."""
-
-    def test_big_walk_is_an_error(self) -> None:
-        with self.assertRaises(OptionError):
-            build_like_universal_tracker({"goal": "big_game", "objectives": ["big_walk"]})
-
-
 class TestAnEndingIsNotAnObjective(unittest.TestCase):
     """The ending is the goal (the player, 2026-10-12): listed among the objectives, it is refused with a clear word."""
 
     def test_an_ending_in_the_list_is_an_error(self) -> None:
-        for ending in ("big_wall", "big_goodbye", "big_game", "big_bell"):
+        for ending in ("big_wall", "big_goodbye", "big_game"):
             with self.assertRaises(OptionError):
                 build_like_universal_tracker({"objectives": [ending, "big_collection"]})
 
@@ -89,7 +81,8 @@ class TestRandomObjectivesFromAll(BigWalkTestBase):
     run_default_tests = False
 
     def test_what_cannot_be_asked_is_not_drawn(self) -> None:
-        self.assertEqual({"big_collection", "big_keys", "big_climb", "big_fiesta"}, set(self.world.objectives))
+        # big_lights counts the lamps without light_sanity, so it can be drawn too (0.6).
+        self.assertEqual({"big_collection", "big_keys", "big_climb", "big_fiesta", "big_lights"}, set(self.world.objectives))
 
 
 class TestTheSlotDataOfAList(BigWalkTestBase):

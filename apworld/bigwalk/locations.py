@@ -8,7 +8,7 @@ from BaseClasses import Location
 
 from . import data, regions
 from .items import BigWalkItem
-from .options import GauntletMode, Goal
+from .options import CutKeySanity, GauntletMode, Goal, ObjectSanity
 
 if TYPE_CHECKING:
     from .world import BigWalkWorld
@@ -31,6 +31,10 @@ LOCATION_NAME_TO_ID: dict[str, int] = {
     **{firework.location_name: data.firework_location_id(i) for i, firework in enumerate(data.FIREWORKS)},
     **{pickup.location_name: data.flare_gun_location_id(i) for i, pickup in enumerate(data.FLARE_GUN_PICKUPS)},
     **{data.tower_reached_location_name(tower): data.tower_reached_location_id(tower) for tower in data.reached_towers()},
+    **{obj.location_name: data.object_location_id(obj) for obj in data.ISLAND_OBJECTS},
+    **{data.monument_full_location_name(tower): data.monument_full_location_id(tower) for tower in data.TOWERS},
+    **{light.location_name: data.light_location_id(light) for light in data.LIGHTS},
+    **{data.object_kind_location_name(label): data.object_kind_location_id(i) for i, (_, label) in enumerate(data.OBJECT_KINDS)},
 }
 
 LOCATION_NAME_GROUPS: dict[str, set[str]] = {
@@ -46,7 +50,18 @@ LOCATION_NAME_GROUPS: dict[str, set[str]] = {
     "Fireworks": {firework.location_name for firework in data.FIREWORKS},
     "Flare Guns": {pickup.location_name for pickup in data.FLARE_GUN_PICKUPS},
     "Towers Reached": {data.tower_reached_location_name(tower) for tower in data.reached_towers()},
+    "Lights": {light.location_name for light in data.LIGHTS},
+    "Monuments Full": {data.monument_full_location_name(tower) for tower in data.TOWERS},
+    "Objects": {obj.location_name for obj in data.ISLAND_OBJECTS}
+               | {data.object_kind_location_name(label) for _, label in data.OBJECT_KINDS},
 }
+
+OBJECT_ZONE_REGIONS: dict[str, str] = {
+    "start": regions.STARTING_ZONE,
+    "chairlift": regions.CHAIRLIFT_ZONE,
+    "tunnels": regions.TUNNEL_ZONE,
+}
+"""An island object's region by its zone; the rest (overworld, map_room, tower:...) are in the overworld."""
 
 VICTORY_EVENT_NAME = "Victory"
 
@@ -72,6 +87,13 @@ def gated_regions() -> dict[str, str]:
     mapping.update({pickup.location_name: regions.TUNNEL_ZONE for pickup in data.PICKUPS if pickup.past_tunnels})
     mapping.update({firework.location_name: regions.CHAIRLIFT_ZONE
                     for firework in data.FIREWORKS if firework.past_chairlift})
+    mapping.update({obj.location_name: OBJECT_ZONE_REGIONS[obj.zone]
+                    for obj in data.ISLAND_OBJECTS if obj.zone in OBJECT_ZONE_REGIONS})
+    # A kind with one in the tutorial is a starting-zone check (the cowbells); every other kind has one
+    # in the overworld or behind an item there (rules.set_object_rules).
+    mapping.update({data.object_kind_location_name(label): regions.STARTING_ZONE
+                    for kind, label in data.OBJECT_KINDS
+                    if any(obj.kind == kind and obj.zone == "start" for obj in data.ISLAND_OBJECTS)})
     mapping.update({firework.location_name: regions.STARTING_ZONE
                     for firework in data.FIREWORKS if firework.in_starting_zone})
     return mapping
@@ -131,7 +153,7 @@ def create_all_locations(world: BigWalkWorld) -> None:
             region = world.get_region(gated.get(name, regions.OVERWORLD))
             region.add_locations({name: LOCATION_NAME_TO_ID[name]}, BigWalkLocation)
 
-    place([puzzle.location_name for puzzle in data.PUZZLES])
+    place([puzzle.location_name for puzzle in world.puzzles()])
 
     # A key deposit sits at the foot of its own tower, all of which are open
     # from the start: nothing in the game locks a tower's entrance, and the mod
@@ -152,7 +174,8 @@ def create_all_locations(world: BigWalkWorld) -> None:
     # both this question and the chairlift one were settled: stand in the
     # gated zone, read the distances, then stand somewhere plainly open and
     # read them again. This is the line that would change.
-    place([name for tower in world.towers for name in data.cut_locations(tower)])
+    if world.options.cut_key_sanity != CutKeySanity.option_off:
+        place([name for tower in world.towers for name in data.cut_locations(tower)])
 
     if world.options.radio_sanity:
         place([station.location_name for station in data.RADIO_STATIONS])
@@ -173,6 +196,27 @@ def create_all_locations(world: BigWalkWorld) -> None:
 
     if world.options.tower_sanity:
         place([data.tower_reached_location_name(tower) for tower in data.reached_towers()])
+
+    # The lights (player, 2026-10-13): a check each with light_sanity, and an event the logic counts for big_lights
+    # (also without light_sanity, when the lamps count for the objective only).
+    checks = {light.key for light in world.lights()}
+    for light in world.lights_counted():
+        region = world.get_region(OBJECT_ZONE_REGIONS.get(light.zone, regions.OVERWORLD))
+        if light.key in checks:
+            region.add_locations({light.location_name: LOCATION_NAME_TO_ID[light.location_name]}, BigWalkLocation)
+        region.add_event(data.light_event_name(light), data.LIGHT_EVENT_ITEM_NAME,
+                         location_type=BigWalkLocation, item_type=BigWalkItem)
+
+    # A monument full sits beside its monument: the overworld, the safe side (the drawbridge's is in the tutorial,
+    # but with the monuments in order it may not be the first).
+    place([data.monument_full_location_name(tower) for tower in world.monuments_full()])
+
+    place(world.object_location_names())
+    # big_objects counts them through an event beside each (the logic cannot count reachable locations).
+    if "big_objects" in world.objectives:
+        for name in world.object_location_names():
+            world.get_location(name).parent_region.add_event(
+                data.object_event_name(name), data.OBJECT_EVENT_ITEM_NAME, location_type=BigWalkLocation, item_type=BigWalkItem)
 
     create_victory_event(world)
 

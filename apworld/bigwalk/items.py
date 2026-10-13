@@ -27,6 +27,7 @@ ITEM_NAME_TO_ID: dict[str, int] = {
     **{stage.item_name: data.gauntlet_stage_id(stage) for stage in data.GAUNTLET_STAGES},
     data.PROGRESSIVE_GAUNTLET_ITEM_NAME: data.progressive_gauntlet_id(),
     data.PROGRESSIVE_MONUMENT_ITEM_NAME: data.progressive_monument_id(),
+    **{ability.item_name: data.ability_item_id(ability) for ability in data.ABILITIES},
     **{name: data.BASE_ID + offset for name, offset in data.FILLER_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.TRAP_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.BONUS_ITEMS},
@@ -68,6 +69,7 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Puzzle Needs": set(PUZZLE_NEED_ITEM_NAMES),
     "Gauntlet Doors": set(GAUNTLET_ITEM_NAMES) | {data.PROGRESSIVE_GAUNTLET_ITEM_NAME},
     "Monuments": {data.PROGRESSIVE_MONUMENT_ITEM_NAME},
+    "Abilities": {ability.item_name for ability in data.ABILITIES},
     "Filler": set(FILLER_ITEM_NAMES),
     "Teleporters": set(TELEPORT_ITEM_NAMES),
     "Traps": set(TRAP_ITEM_NAMES),
@@ -131,6 +133,13 @@ def classification_for(name: str, require_arch_doors: bool = False) -> ItemClass
     if name in ITEM_NAME_GROUPS["Puzzle Needs"]:
         # Only ever created when lock_puzzle_needs is on, where each one is
         # required by every puzzle built from it.
+        return ItemClassification.progression
+    if name == data.RUNNING_ITEM_NAME:
+        # Nothing asks for it: the island is only slower to cross without it.
+        return ItemClassification.useful
+    if name in ITEM_NAME_GROUPS["Abilities"]:
+        # Only ever created with `lock_abilities`: Legs is the way out of the starting zone, the rest is asked
+        # for by the puzzles that need it (data.ABILITY_PUZZLES).
         return ItemClassification.progression
     if name in TRAP_ITEM_NAMES:
         return ItemClassification.trap
@@ -220,10 +229,41 @@ def pick_island_object(world: BigWalkWorld) -> str:
     return name
 
 
+def abilities_in_pool(world: BigWalkWorld) -> tuple[data.Ability, ...]:
+    """The ability items `lock_abilities` puts in the pool (each `copies` times): the arms one by one, or both together."""
+    mode = world.options.lock_abilities
+    if mode == bigwalk_options.LockAbilities.option_handed:
+        chosen = tuple(a for a in data.ABILITIES if a.handed)
+    elif mode == bigwalk_options.LockAbilities.option_ambidextrous:
+        chosen = tuple(a for a in data.ABILITIES if a.ambidextrous)
+    else:
+        return ()
+    if not world.options.lock_running:
+        chosen = tuple(a for a in chosen if a.item_name != data.RUNNING_ITEM_NAME)
+    return chosen
+
+
 def create_all_items(world: BigWalkWorld) -> None:
-    pool: list[Item] = [world.create_item(data.GOURD_ITEM_NAME) for _ in range(world.gourd_count)]
+    gourds = world.gourd_count
+    # `linear_puzzles`: each puzzle holds a gourd, as in the game; those gourds leave the pool. Not the seven purple
+    # ones past the chairlift (post-game in the game): with the keys and the towers linear too, a gourd behind the
+    # chairlift could be needed to open the chairlift, and no seed could be made (random campaign, 2026-10-13).
+    if world.options.linear_puzzles:
+        for puzzle in [p for p in world.puzzles() if p.prop_name not in data.CHAIRLIFT_PUZZLES][:gourds]:
+            world.get_location(puzzle.location_name).place_locked_item(world.create_item(data.GOURD_ITEM_NAME))
+            gourds -= 1
+    pool: list[Item] = [world.create_item(data.GOURD_ITEM_NAME) for _ in range(gourds)]
 
     for tower in world.towers:
+        if tower.item_name == data.MAP_ROOM_ITEM_NAME and world.options.start_with_map_room_open:
+            # L3: handed over at the start, like the drawbridge.
+            world.push_precollected(world.create_item(tower.item_name))
+            continue
+        if world.options.linear_keys and not (
+                tower.item_name == data.DRAWBRIDGE_ITEM_NAME and world.options.start_with_drawbridge_open):
+            # L2: the key placed opens its door, as in the game: the door sits on the key's deposit.
+            world.get_location(tower.location_name).place_locked_item(world.create_item(tower.item_name))
+            continue
         if tower.item_name == data.DRAWBRIDGE_ITEM_NAME and world.options.start_with_drawbridge_open:
             # Handed over up front rather than shuffled, so it never enters the
             # pool. Unlike before, this costs the player nothing and grants
@@ -238,7 +278,14 @@ def create_all_items(world: BigWalkWorld) -> None:
     # with the drawbridge open is about being able to LEAVE the tutorial,
     # which is the feature; the tutorial key is just six checks like any
     # other key, and handing it over would be handing over checks.
-    pool += [world.create_item(data.key_item_name(tower)) for tower in world.towers]
+    # L1 `linear_towers`: a tower's key is its monument full, as in the game (a tower without slots keeps it in the pool).
+    full = {tower.prop_name for tower in world.monuments_full()} if world.options.linear_towers else set()
+    for tower in world.towers:
+        if tower.prop_name in full:
+            world.get_location(data.monument_full_location_name(tower)).place_locked_item(
+                world.create_item(data.key_item_name(tower)))
+        else:
+            pool.append(world.create_item(data.key_item_name(tower)))
 
     # Seven Radio Music items displace seven filler rather than adding to the
     # pool: the count below is what balances it, so nothing special is needed.
@@ -275,6 +322,16 @@ def create_all_items(world: BigWalkWorld) -> None:
                 world.push_precollected(world.create_item(need.item_name))
             else:
                 pool.append(world.create_item(need.item_name))
+
+    # The body's abilities, displacing filler like the rest.
+    # An ability listed in `start_with_abilities` is the player's from the start: its items are handed over at once.
+    for ability in abilities_in_pool(world):
+        locked = data.ABILITY_LOCK_KEYS.get(ability.key) not in world.options.start_with_abilities.value
+        for _ in range(ability.copies):
+            if locked:
+                pool.append(world.create_item(ability.item_name))
+            else:
+                world.push_precollected(world.create_item(ability.item_name))
 
     unfilled = len(world.multiworld.get_unfilled_locations(world.player))
     filler_needed = unfilled - len(pool)

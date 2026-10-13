@@ -6,7 +6,7 @@ import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TextIO
 
-from BaseClasses import MultiWorld
+from BaseClasses import CollectionState, LocationProgressType, MultiWorld
 from Options import OptionError
 from worlds.AutoWorld import World
 
@@ -16,13 +16,13 @@ from . import options as bigwalk_options
 if TYPE_CHECKING:
     from NetUtils import MultiData
 
-WORLD_VERSION = "0.5.0"
+WORLD_VERSION = "0.6.0"
 """Kept in step with archipelago.json; sent in slot_data so the mod can check it."""
 
 TRACKER_OPTIONS = {
     "goal": "goal",
     "objectives": "objectives",
-    "lock_endings": "lock_endings_until_objectives",
+    "lock_endings_until_objectives": "lock_endings_until_objectives",
     "keys_required": "keys_required",
     "tower_sanity": "tower_sanity",
     "tower_mode": "tower_mode",
@@ -44,9 +44,23 @@ TRACKER_OPTIONS = {
     "lock_puzzle_needs": "lock_puzzle_needs",
     "start_with_puzzle_needs": "start_with_puzzle_needs",
     "start_with_random_puzzle_need": "start_with_random_puzzle_need",
+    "lock_abilities": "lock_abilities",
+    "start_with_abilities": "start_with_abilities",
+    "include_big_game_puzzles": "include_big_game_puzzles",
+    "monument_sanity": "monument_sanity",
+    "linear_towers": "linear_towers",
+    "cut_key_sanity": "cut_key_sanity",
+    "lock_running": "lock_running",
     "pack_sanity": "pack_sanity",
     "firework_sanity": "firework_sanity",
     "flare_gun_sanity": "flare_gun_sanity",
+    "object_sanity": "object_sanity",
+    "object_sanity_kind_keys": "object_sanity_kinds",
+    "light_sanity": "light_sanity",
+    "fast_golf": "fast_golf",
+    "lights_required": "lights_required",
+    "objects_required": "objects_required",
+    "body_required": "body_required",
     "random_colors": "random_colors",
     "trap_link": "trap_link",
 }
@@ -66,16 +80,6 @@ only ever picks between two kinds of filler. Neither can move a location.
 
 Kept in step with `fill_slot_data` by a test rather than by care.
 """
-
-LEGACY_TRACKER_OPTIONS = {
-    "lock_arch_doors": "lock_arch_doors",
-}
-"""
-Fields only an older seed's slot_data carries: `lock_arch_doors` until
-0.1.1, before `start_with_arch_doors_open` replaced it. Read like the ones
-above so the tracker still rebuilds those seeds.
-"""
-
 
 class BigWalkWorld(World):
     """
@@ -199,7 +203,6 @@ class BigWalkWorld(World):
 
         self._pick_a_random_puzzle_need()
         self._ask_for_buttons_early()
-        self._read_the_old_arch_door_option()
         opened = self.options.start_with_arch_doors_open.value
         self.locked_arch_doors = tuple(door for door in data.ARCH_DOORS if door.item_name not in opened)
         self._ask_for_an_early_way_out()
@@ -287,23 +290,6 @@ class BigWalkWorld(World):
             if need.key not in self.options.start_with_puzzle_needs.value:
                 self.multiworld.early_items[self.player][need.item_name] = 1
 
-    def _read_the_old_arch_door_option(self) -> None:
-        """
-        Turn a `lock_arch_doors` from a 0.1.1 YAML or seed into the
-        `start_with_arch_doors_open` that replaced it, which then decides
-        alone — slot_data included, so the tracker sees the new option.
-        """
-        old = self.options.lock_arch_doors
-        if old == bigwalk_options.LockArchDoors.option_unset:
-            return
-
-        logging.warning(
-            f"Big Walk: {self.player_name}'s lock_arch_doors is replaced by start_with_arch_doors_open; "
-            f"reading {old.current_key} as the doors it left open.")
-        locked = bigwalk_options.LOCKED_ARCH_DOORS[old.current_key]
-        self.options.start_with_arch_doors_open = bigwalk_options.StartWithArchDoorsOpen(
-            [door.item_name for door in data.ARCH_DOORS if door not in locked])
-
     def _ask_for_an_early_way_out(self) -> None:
         """
         With the first arch door locked, the starting zone holds only a
@@ -315,7 +301,8 @@ class BigWalkWorld(World):
         if data.FIRST_ARCH_DOOR not in self.locked_arch_doors or self.options.start_with_drawbridge_open:
             return
 
-        way_out = self.random.choice((data.DRAWBRIDGE_ITEM_NAME, data.FIRST_ARCH_DOOR.item_name))
+        way_out = (data.FIRST_ARCH_DOOR.item_name if self.options.linear_keys
+                   else self.random.choice((data.DRAWBRIDGE_ITEM_NAME, data.FIRST_ARCH_DOOR.item_name)))
         self.multiworld.local_early_items[self.player][way_out] = 1
 
     def _ask_for_the_far_doors_early(self) -> None:
@@ -356,15 +343,10 @@ class BigWalkWorld(World):
         if not slot_data:
             return
 
-        for field, name in {**TRACKER_OPTIONS, **LEGACY_TRACKER_OPTIONS}.items():
+        for field, name in TRACKER_OPTIONS.items():
             if field in slot_data:
                 option = getattr(self.options, name)
                 setattr(self.options, name, option.from_any(slot_data[field]))
-
-        # A newer seed has no `lock_arch_doors`: one left in the tracking
-        # player's YAML must not override the seed's doors.
-        if "lock_arch_doors" not in slot_data:
-            self.options.lock_arch_doors = bigwalk_options.LockArchDoors(bigwalk_options.LockArchDoors.option_unset)
 
         # A seed from before `gauntlet_stage_items` (0.3.0) has one item per stage: the
         # progressive default would ask the tracker for doors that seed never had, and the
@@ -388,18 +370,14 @@ class BigWalkWorld(World):
                 and self.options.gauntlet_mode == bigwalk_options.GauntletMode.option_locked_stages):
             raise OptionError(
                 f"Big Walk ({self.player_name}): the goal big_wall ends the run at the chapel, before the Silent "
-                f"Gauntlet, whose locked stages would then hold checks for nothing (the player, 2026-10-12). Set "
+                f"Gauntlet, whose locked stages would then hold checks for nothing. Set "
                 f"gauntlet_mode to vanilla, or the goal to big_goodbye or big_game.")
 
         listed = set(self.options.objectives.value)
-        if "big_walk" in listed:
-            raise OptionError(
-                f"Big Walk ({self.player_name}): big_walk is no longer an objective (0.5.0): the drawbridge's key is one "
-                f"of big_keys. For a short seed, set the goal to big_wall or big_game.")
         if "big_club" in listed:
             listed.discard("big_club")
             listed.add("big_fiesta")
-        endings = sorted(listed & (set(bigwalk_options.OBJECTIVE_ENDINGS) | {"big_bell"}))
+        endings = sorted(listed & set(bigwalk_options.OBJECTIVE_ENDINGS))
         if endings:
             raise OptionError(
                 f"Big Walk ({self.player_name}): {', '.join(endings)} is an ending: it is the goal, not an objective. "
@@ -415,6 +393,14 @@ class BigWalkWorld(World):
                 count = len(pool)
             listed = set(self.random.sample(sorted(pool), count))
 
+        if "big_objects" in listed and self.options.object_sanity == bigwalk_options.ObjectSanity.option_off:
+            raise OptionError(
+                f"Big Walk ({self.player_name}): the Objectives hold big_objects, whose objects are the Object Sanity "
+                f"checks. Set Object Sanity to first_pickup or every.")
+        if "big_body" in listed and self.options.lock_abilities == bigwalk_options.LockAbilities.option_disabled:
+            raise OptionError(
+                f"Big Walk ({self.player_name}): the Objectives hold big_body, whose abilities are the Lock Abilities "
+                f"items. Set Lock Abilities to handed or ambidextrous.")
         if "big_radio" in listed and not self.options.radio_sanity:
             raise OptionError(
                 f"Big Walk ({self.player_name}): the Objectives hold big_radio, whose stations are the "
@@ -425,6 +411,10 @@ class BigWalkWorld(World):
         """Whether the other options let this objective be drawn."""
         if key == "big_radio":
             return bool(self.options.radio_sanity)
+        if key == "big_objects":
+            return self.options.object_sanity != bigwalk_options.ObjectSanity.option_off
+        if key == "big_body":
+            return self.options.lock_abilities != bigwalk_options.LockAbilities.option_disabled
         if key == "big_towers":
             return self.options.tower_mode != bigwalk_options.TowerMode.option_all_open
         return True
@@ -438,7 +428,8 @@ class BigWalkWorld(World):
         for tower in data.TOWERS:
             ids: list[int] = []
             if self.options.hint_discovered_key_locations:
-                ids += [data.cut_location_id(tower, i) for i in range(tower.segments)]
+                if self.options.cut_key_sanity != bigwalk_options.CutKeySanity.option_off:
+                    ids += [data.cut_location_id(tower, i) for i in range(tower.segments)]
                 ids.append(data.key_deposit_location_id(tower))
             if self.options.hint_discovered_deposit_boxes and self.tower_order:
                 ids += self._deposit_ids_of(tower)
@@ -537,6 +528,57 @@ class BigWalkWorld(World):
     def set_rules(self) -> None:
         rules.set_all_rules(self)
 
+    def pre_fill(self) -> None:
+        # The local items first: they may take the starting zone's places, and Legs must then see what is left.
+        self._place_local_items("Objects", self.options.object_sanity_items.value, "object_sanity_items")
+        self._place_local_items("Lights", self.options.light_sanity_items.value, "light_sanity_items")
+        self._make_room_for_the_legs()
+
+    def _make_room_for_the_legs(self) -> None:
+        """
+        With `lock_abilities`, Legs is the way out of the starting zone, so it must sit in a location reachable without
+        it. With the tutorial's puzzles holding their gourds (`linear_puzzles`) and its monument waiting for an item
+        (`by_item`, first monument closed), none may be left: generation failed 4 seeds in 4 (2026-10-13). Then the
+        player starts with Legs, and the generation log says so.
+        """
+        legs = [item for item in self.multiworld.itempool if item.player == self.player and item.name == data.LEGS_ITEM_NAME]
+        if not legs:
+            return
+        state = CollectionState(self.multiworld)
+        state.sweep_for_advancements(locations=self.multiworld.get_locations(self.player))
+        free = [loc for loc in self.multiworld.get_unfilled_locations(self.player)
+                if loc.progress_type != LocationProgressType.EXCLUDED and loc.can_reach(state)]
+        early = sum(self.multiworld.local_early_items[self.player].values()) + sum(self.multiworld.early_items[self.player].values())
+        if len(free) > early:
+            return
+        logging.warning(f"Big Walk ({self.player_name}): no room in the starting zone for Legs; starting with it.")
+        self.multiworld.itempool[:] = [item for item in self.multiworld.itempool if item is not legs[0]]
+        self.push_precollected(legs[0])
+        self.multiworld.itempool.append(self.create_filler())  # the location it leaves
+
+    def _place_local_items(self, group: str, contents: int, option: str) -> None:
+        """
+        `object_sanity_items` / `light_sanity_items` `local`: those checks take this world's own items that nothing
+        needs (filler, traps, useful), placed before the fill. An item rule asking for "this world's items" on dozens of
+        locations failed 1 seed in 4 at the end of a two-slot fill (2026-10-13); placing them first cannot. A world
+        short of such items leaves the rest to the fill, with a warning.
+        """
+        if contents != bigwalk_options.ObjectSanityItems.option_local:
+            return
+        names = locations.LOCATION_NAME_GROUPS[group]
+        spots = [loc for loc in self.multiworld.get_unfilled_locations(self.player) if loc.name in names]
+        own = [item for item in self.multiworld.itempool if item.player == self.player and not item.advancement]
+        self.random.shuffle(own)
+        if len(own) < len(spots):
+            logging.warning(f"Big Walk ({self.player_name}): {option} local: only {len(own)} items of this "
+                            f"world for {len(spots)} checks; the others may hold anything.")
+        placed = set()
+        for location, item in zip(spots, own):
+            location.place_locked_item(item)
+            placed.add(id(item))
+        # By identity: items compare equal by name and player, so list.remove would take another copy.
+        self.multiworld.itempool[:] = [item for item in self.multiworld.itempool if id(item) not in placed]
+
     def create_item(self, name: str) -> items.BigWalkItem:
         return items.create_item(self, name)
 
@@ -551,6 +593,76 @@ class BigWalkWorld(World):
             for trap in data.TRAPS
             if weights.get(trap.item_name, 0) > 0 and (allow_hard or not trap.hard)
         }
+
+    def monuments_full(self) -> list[data.Tower]:
+        """The towers whose monument full is a check: with monument_sanity or linear_towers, those that have slots."""
+        if not (self.options.monument_sanity or self.options.linear_towers):
+            return []
+        return [tower for tower in data.TOWERS if self.tower_slots(tower) > 0]
+
+    def puzzles(self) -> list[data.Puzzle]:
+        """The puzzles that are checks: all of them, less the purple ones with `include_big_game_puzzles: disabled`."""
+        puzzles = list(data.PUZZLES)
+        if self.options.include_big_game_puzzles == bigwalk_options.IncludeBigGamePuzzles.option_disabled:
+            puzzles = [p for p in puzzles if p.prop_name not in data.CHAIRLIFT_PUZZLES]
+        return puzzles
+
+    def lights(self) -> list[data.Light]:
+        """The lights that are checks (`light_sanity`)."""
+        if self.options.light_sanity == bigwalk_options.LightSanity.option_off:
+            return []
+        return self.lights_counted()
+
+    def lights_counted(self) -> list[data.Light]:
+        """
+        The lights `big_lights` counts: those of `light_sanity`, or, with it off, the lamps, which then count for the
+        objective only, with no check (player, 2026-10-13). Empty when neither asks.
+        """
+        mode = self.options.light_sanity
+        if mode == bigwalk_options.LightSanity.option_off and "big_lights" not in self.objectives:
+            return []
+        return [light for light in data.LIGHTS
+                if not light.switch or mode == bigwalk_options.LightSanity.option_lamps_and_switches]
+
+    def object_location_names(self) -> list[str]:
+        """Object Sanity's checks: every object counted, or every kind counted."""
+        if self.options.object_sanity == bigwalk_options.ObjectSanity.option_every:
+            return [obj.location_name for obj in data.ISLAND_OBJECTS if self.object_kind_counted(obj.kind)]
+        if self.options.object_sanity == bigwalk_options.ObjectSanity.option_first_pickup:
+            return [data.object_kind_location_name(label) for kind, label in data.OBJECT_KINDS if self.object_kind_counted(kind)]
+        return []
+
+    def objects_target(self) -> int:
+        """How many objects `big_objects` asks for: `objects_required` percent, rounded up, at least one."""
+        count = len(self.object_location_names())
+        return max(1, -(-count * self.options.objects_required.value // 100)) if count else 0
+
+    def ability_item_names(self) -> list[str]:
+        """
+        Every ability item of the pool that the logic counts, a progressive arm once per copy. Not Running: it stays
+        useful (player, 2026-10-13), so the logic never holds it, and the mod does not count it either.
+        """
+        return [ability.item_name for ability in items.abilities_in_pool(self) for _ in range(ability.copies)
+                if ability.item_name != data.RUNNING_ITEM_NAME]
+
+    def body_target(self) -> int:
+        """How many ability items `big_body` asks for: `body_required` percent, rounded up, at least one."""
+        count = len(self.ability_item_names())
+        return max(1, -(-count * self.options.body_required.value // 100)) if count else 0
+
+    def lights_target(self) -> int:
+        """How many lights `big_lights` asks for: `lights_required` percent of them, rounded up, at least one."""
+        lights = len(self.lights_counted())
+        return max(1, -(-lights * self.options.lights_required.value // 100)) if lights else 0
+
+    def object_kind_counted(self, kind: str) -> bool:
+        """
+        Whether `object_sanity_kinds` keeps this kind (the game's name for it). With `light_sanity` the lamps are
+        counted by their light, not by being picked up (player, 2026-10-13): no lamp is an object then.
+        """
+        if kind in data.LAMP_KINDS and self.options.light_sanity != bigwalk_options.LightSanity.option_off:
+            return False
+        return data.OBJECT_KIND_KEYS[kind] in self.options.object_sanity_kinds.value
 
     def fill_slot_data(self) -> Mapping[str, Any]:
         """
@@ -571,6 +683,8 @@ class BigWalkWorld(World):
             # the mod then plays as before. `lock_endings` only means something with a list.
             "objectives": list(self.objective_keys()) if self.objectives else [],
             "lock_endings": bool(self.objectives and self.options.lock_endings_until_objectives),
+            # The option itself, for Universal Tracker (lock_endings above is false without objectives).
+            "lock_endings_until_objectives": bool(self.options.lock_endings_until_objectives),
             "keys_required": self.options.keys_required.value,
             # Reaching a tower (ROADMAP S8, H3, 0.5): the check, and what to hint when a tower is reached
             # (the ids of this slot's own locations, which a client can scout as hints).
@@ -652,6 +766,31 @@ class BigWalkWorld(World):
             "flare_gun_sanity": bool(self.options.flare_gun_sanity),
             "flare_gun_guids": [pickup.guid for pickup in data.FLARE_GUN_PICKUPS],
             "flare_gun_id_offset": data.FLARE_GUN_ID_OFFSET,
+            # The island's gadgets as checks (ROADMAP S7): `off`, `first_pickup` (the kinds, by the game's
+            # name) or `every` (by guid); with either, the mod leaves them on the map.
+            "object_sanity": self.options.object_sanity.current_key,
+            "object_guids": [obj.guid for obj in data.ISLAND_OBJECTS],
+            "object_id_offset": data.OBJECT_ID_OFFSET,
+            "object_kinds": [kind for kind, _ in data.OBJECT_KINDS],
+            "object_kind_id_offset": data.OBJECT_KIND_ID_OFFSET,
+            # The kinds counted, by the game's name; the mod hides the others while object_sanity is on.
+            "object_sanity_kinds": [kind for kind, _ in data.OBJECT_KINDS if self.object_kind_counted(kind)],
+            "object_sanity_kind_keys": sorted(self.options.object_sanity_kinds.value),
+            # The lights (player, 2026-10-13): every light's key in id order (`base + light_id_offset + position`; a
+            # lamp by guid, a switch by its state's path), the mode, and how many `big_lights` asks for.
+            "light_sanity": self.options.light_sanity.current_key,
+            "light_keys": [light.key for light in data.LIGHTS],
+            "light_id_offset": data.LIGHT_ID_OFFSET,
+            "lights_required": self.options.lights_required.value,
+            "lights_required_count": self.lights_target(),
+            "lights_counted": [light.key for light in self.lights_counted()],
+            # fast_golf (R6): the mod takes the golf ball's (the cannonball's) "too heavy" off.
+            "fast_golf": bool(self.options.fast_golf),
+            # big_objects and big_body: how many object checks, and how many ability items, they ask for.
+            "objects_required": self.options.objects_required.value,
+            "objects_required_count": self.objects_target(),
+            "body_required": self.options.body_required.value,
+            "body_required_count": self.body_target(),
 
             # The seed's colors (mod only): indices into the mod's palette, buoys and flare
             # guns painted from them; empty keeps the game's own.
@@ -688,6 +827,27 @@ class BigWalkWorld(World):
             # position), which is how the mod turns an id into a need.
             "puzzle_need_keys": [need.key for need in data.PUZZLE_NEEDS],
             "puzzle_need_id_offset": data.PUZZLE_NEED_ID_OFFSET,
+
+            # `lock_abilities` (ROADMAP R3): the mode, and every ability item's key in id order. The mod
+            # blocks each ability on every player's machine until its item arrives.
+            "lock_abilities": self.options.lock_abilities.current_key,
+            "ability_keys": [ability.key for ability in data.ABILITIES],
+            "ability_id_offset": data.ABILITY_ID_OFFSET,
+            "lock_running": bool(self.options.lock_running),
+            "start_with_abilities": sorted(self.options.start_with_abilities.value),
+
+            # The vanilla behaviours back (ROADMAP L2 to L8, 0.6). Only the purple puzzles change what the mod does:
+            # it shows them on the map with `from_start` alone.
+            "include_big_game_puzzles": self.options.include_big_game_puzzles.current_key,
+            "cut_key_sanity": self.options.cut_key_sanity.current_key,
+            "linear_keys": bool(self.options.linear_keys),
+            "linear_puzzles": bool(self.options.linear_puzzles),
+            # A check for each monument full (L1): the towers by their big key's prop, in id order
+            # (`base + monument_full_id_offset + position in data.TOWERS`); empty when there are none.
+            "monument_sanity": bool(self.options.monument_sanity),
+            "linear_towers": bool(self.options.linear_towers),
+            "monument_full_keys": [tower.prop_name for tower in self.monuments_full()],
+            "monument_full_id_offset": data.MONUMENT_FULL_ID_OFFSET,
 
             # Not an option: it is the model this world is built on. The mod
             # stops a placed key from opening its door only while this is

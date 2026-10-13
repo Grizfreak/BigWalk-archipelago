@@ -70,7 +70,7 @@ EXCLUSIVE_ENDINGS = ("big_goodbye", "big_game")
 
 OBJECTIVE_KEYS = (
     "big_wall", "big_goodbye", "big_game", "big_collection", "big_keys", "big_radio", "big_towers",
-    "big_climb", "big_fiesta",
+    "big_climb", "big_fiesta", "big_lights", "big_objects", "big_body",
 )
 """Every objective, in the order the slot data lists them. Frozen: the mod reads these strings."""
 
@@ -84,6 +84,10 @@ class Objectives(OptionSet):
     - big_keys: place a number of big keys in their plinths, the drawbridge's included (see Keys Required).
     - big_radio: switch on a number of radio stations (see Radio Stations Required; needs Radio Sanity).
     - big_towers: complete a number of towers (see Towers Required; needs Tower Mode in_order or by_item).
+    - big_lights: switch on a share of the island's lights, each at least once (see Lights Required). Without Light
+      Sanity the lamps count, with no check of their own.
+    - big_objects: pick up a share of the island's objects (see Objects Required; needs Object Sanity).
+    - big_body: get back a share of the body's abilities (see Body Required; needs Lock Abilities).
     - big_climb: stand on the highest point of the island.
     - big_fiesta (also read as big_club): the party on the beach, a radio plugged into the big speakers with a music
       playing. Needs a Radio, and with Shuffle Radio Music one of the stations, which become progression.
@@ -92,8 +96,9 @@ class Objectives(OptionSet):
     """
 
     display_name = "Objectives"
-    # The endings and the dropped big_walk are accepted only to be refused with a clear word (world._check_the_objectives).
-    valid_keys = frozenset(OBJECTIVE_KEYS) | {"big_bell", "big_club", "big_walk"}
+    # The endings are accepted only to be refused with a clear word (world._check_the_objectives); big_club is
+    # another name of big_fiesta.
+    valid_keys = frozenset(OBJECTIVE_KEYS) | {"big_club"}
     default = frozenset()
 
 
@@ -109,11 +114,11 @@ class RandomObjectives(Range):
     default = 0
 
 
-class LockEndingsUntilObjectives(Toggle):
+class LockEndingsUntilObjectives(DefaultOnToggle):
     """
     With Objectives: the ending's entry point (the chapel's bell, the Gauntlet's bell door, the secret room's
     printer) stays shut on every screen until the other objectives are done, so an ending,
-    which plays once per save, is never played too early. Off: nothing is shut, and the ending
+    which plays once per save, is never played too early. On by default (0.6). Off: nothing is shut, and the ending
     can be played in any order.
     """
 
@@ -131,6 +136,48 @@ class KeysRequired(Range):
     range_start = 1
     range_end = len(data.TOWERS)
     default = len(data.TOWERS)
+
+
+class LightsRequired(Range):
+    """
+    Only relevant if the Objectives hold "big_lights".
+
+    The share of the island's lights (those Light Sanity counts, or the lamps without it) that must have been
+    switched on at least once, in percent.
+    """
+
+    display_name = "Lights Required"
+    range_start = 1
+    range_end = 100
+    default = 50
+
+
+class ObjectsRequired(Range):
+    """
+    Only relevant if the Objectives hold "big_objects".
+
+    The share of Object Sanity's checks (each object with every, each kind with first_pickup) that must be sent, in
+    percent.
+    """
+
+    display_name = "Objects Required"
+    range_start = 1
+    range_end = 100
+    default = 50
+
+
+class BodyRequired(Range):
+    """
+    Only relevant if the Objectives hold "big_body".
+
+    The share of the ability items (Legs, Seat, the arms, Throwing, Carrying; not Running) that must have been
+    received, in percent.
+    """
+
+    display_name = "Body Required"
+    range_start = 1
+    range_end = 100
+    default = 100
 
 
 class RadioStationsRequired(Range):
@@ -221,6 +268,89 @@ class FireworkSanity(DefaultOnToggle):
     """
 
     display_name = "Firework Sanity"
+
+
+class ObjectSanity(Choice):
+    """
+    The island's gadgets (walkie-talkies, radios, megaphones, binoculars, lasers, torches, scanners, clocks, the
+    compass, the map, the cowbells) stay on the map, and picking them up sends checks.
+
+    - off: no check, and the gadgets the pool holds are taken off the map as before.
+    - first_pickup: the first one of each kind picked up (16 checks by default); the objects stay.
+    - every: each one, the first time it is picked up (144 checks by default); it then leaves the map, like a pack.
+    """
+
+    display_name = "Object Sanity"
+    option_off = 0
+    option_first_pickup = 1
+    option_every = 2
+    default = option_off
+
+
+class ObjectSanityKinds(OptionSet):
+    """
+    Which kinds of gadget Object Sanity counts. A kind left out is no check, and it leaves the island while
+    Object Sanity is on.
+
+    Kinds: walkie_talkie, radio, megaphone, binoculars, laser, torch, scanner, clock, compass, map, cowbell,
+    lamp, paintbrush. The paintbrushes are left out by default, and they never leave the island (the Salon needs
+    them). A lamp left out stays where it is (puzzles use them). With Light Sanity on, the lamps are never counted
+    here: switching them on is their check.
+    """
+
+    display_name = "Object Sanity Kinds"
+    valid_keys = frozenset(data.OBJECT_KIND_KEYS.values())
+    default = frozenset(data.OBJECT_KIND_KEYS.values()) - data.OBJECT_KINDS_LEFT_OUT_BY_DEFAULT
+
+
+class ObjectSanityItems(Choice):
+    """
+    What Object Sanity's checks may hold.
+
+    - any: anything, from any world.
+    - local: only this world's own items, of those nothing needs (filler, traps, useful ones).
+    - junk: only filler, never anything a world needs.
+    """
+
+    display_name = "Object Sanity Items"
+    option_any = 0
+    option_local = 1
+    option_junk = 2
+    default = option_any
+
+
+class LightSanity(Choice):
+    """
+    A check the first time each light of the island is switched on. The puzzles'
+    own lights are not counted.
+
+    - off: no check.
+    - lamps: the lamps (the ones Object Sanity knows, on their pedestals, in the towers, in the tutorial).
+    - lamps_and_switches: the lamps, and the wall switches of the Doof Chamber, the salons, the tutorial, the
+      train and its stops.
+    """
+
+    display_name = "Light Sanity"
+    option_off = 0
+    option_lamps = 1
+    option_lamps_and_switches = 2
+    default = option_off
+
+
+class LightSanityItems(Choice):
+    """
+    What Light Sanity's checks may hold.
+
+    - any: anything, from any world.
+    - local: only this world's own items, of those nothing needs (filler, traps, useful ones).
+    - junk: only filler, never anything a world needs.
+    """
+
+    display_name = "Light Sanity Items"
+    option_any = 0
+    option_local = 1
+    option_junk = 2
+    default = option_any
 
 
 class FlareGunSanity(DefaultOnToggle):
@@ -364,6 +494,86 @@ class StartWithDrawbridgeOpen(Toggle):
     display_name = "Start With Drawbridge Open"
 
 
+class StartWithMapRoomOpen(Toggle):
+    """
+    If on, you start with the Map Room open instead of finding it in the multiworld. The Red Funnel
+    Tower Key Deposit stays a check either way.
+    """
+
+    display_name = "Start With Map Room Open"
+
+
+class LinearKeys(Toggle):
+    """
+    If on, a big key placed in its tower opens what it opens in the game (the drawbridge, the Map Room, the
+    chairlift, the train, the tunnels, the Big Wall Door, the Spawn Secret Door) instead of that being an item to
+    find. The key deposits stay checks; each one holds its own door.
+    """
+
+    display_name = "Linear Keys"
+
+
+class MonumentSanity(DefaultOnToggle):
+    """
+    A check for each monument filled to its last slot: the Drawbridge's, the five towers' and the Green Dome's.
+    Linear Towers puts each tower's key there. On by default.
+    """
+
+    display_name = "Monument Sanity"
+
+
+class LinearTowers(Toggle):
+    """
+    If on, filling a tower's monument gives its key, as in the game, instead of the key being an item to find.
+    The key still arrives as an item, beside the player, the moment the monument is full. The
+    "Monument Full" checks exist with it, Monument Sanity or not.
+    """
+
+    display_name = "Linear Towers"
+
+
+class LinearPuzzles(Toggle):
+    """
+    If on, every puzzle holds a gourd, as in the game, instead of anything from the multiworld (not the seven purple
+    ones past the chairlift, which stay checks like any other). The
+    gourd still arrives as an item, beside the player.
+    """
+
+    display_name = "Linear Puzzles"
+
+
+class IncludeBigGamePuzzles(Choice):
+    """
+    The seven purple gourds' puzzles, past the chairlift.
+
+    - from_start: checks, and shown on the map from the start.
+    - when_unlocked: checks, but as in the game: not on the map, and in logic only once the ending is reached.
+    - disabled: not checks at all.
+    """
+
+    display_name = "Include Big Game Puzzles"
+    option_from_start = 0
+    option_when_unlocked = 1
+    option_disabled = 2
+    default = option_from_start
+
+
+class CutKeySanity(Choice):
+    """
+    The 25 cuts of the big keys.
+
+    - on: each cut is a check.
+    - junk: each cut is a check that holds only filler.
+    - off: no check for the cuts.
+    """
+
+    display_name = "Cut Key Sanity"
+    option_on = 0
+    option_junk = 1
+    option_off = 2
+    default = option_on
+
+
 # From the proposed options of the first alpha's players (2026-09-25), less
 # its mention of `lock_map_room`, which this world does not have. The first
 # door is the starting zone's other way out besides the drawbridge; the two
@@ -398,34 +608,6 @@ class RequireArchDoors(DefaultOnToggle):
     """
 
     display_name = "Require Arch Doors"
-
-
-# The Choice that `StartWithArchDoorsOpen` replaced, as released in 0.1.1.
-# Hidden and kept only so a YAML that sets it, or a 0.1.1 seed's slot_data in
-# Universal Tracker, still gets the doors it asked for: an unknown option is
-# only a warning to Archipelago, and would silently fall back to the default.
-class LockArchDoors(Choice):
-    """Replaced by Start With Arch Doors Open."""
-
-    display_name = "Lock Arch Doors"
-    option_all = 0
-    option_far = 1
-    option_far_left = 2
-    option_far_right = 3
-    option_disabled = 4
-    option_unset = 5
-    default = option_unset
-    visibility = Visibility.none
-
-
-LOCKED_ARCH_DOORS = {
-    "all": data.ARCH_DOORS,
-    "far": (data.LEFT_ARCH_DOOR, data.RIGHT_ARCH_DOOR),
-    "far_left": (data.LEFT_ARCH_DOOR,),
-    "far_right": (data.RIGHT_ARCH_DOOR,),
-    "disabled": (),
-}
-"""The doors each value of the old `lock_arch_doors` held closed until their item arrived."""
 
 
 class LockPuzzleNeeds(DefaultOnToggle):
@@ -465,6 +647,56 @@ class StartWithRandomPuzzleNeed(DefaultOnToggle):
     """
 
     display_name = "Start With Random Puzzle Need"
+
+
+class LockAbilities(Choice):
+    """
+    The players' bodies behind items, received by every player at once. Legs: jumping and crouching,
+    needed to leave the starting zone. Seat: sitting on a chair or on the floor. A Progressive Arm:
+    raising it, then pointing, then extending it sideways. The gesture puzzles ask for them.
+
+    Throwing and Carrying (another player) are items too, and Running with Lock Running.
+
+    - disabled: every ability from the start.
+    - handed: three Progressive Left Arm and three Progressive Right Arm.
+    - ambidextrous: three Progressive Arms, both arms at once.
+    """
+
+    display_name = "Lock Abilities"
+    option_disabled = 0
+    option_handed = 1
+    option_ambidextrous = 2
+    default = option_disabled
+
+
+class FastGolf(Toggle):
+    """
+    The golf ball (the cannonball of the golf puzzles) is no longer too heavy, and is carried like any object.
+    """
+
+    display_name = "Fast Golf"
+
+
+class StartWithAbilities(OptionSet):
+    """
+    Which abilities you already have when Lock Abilities is on: their items are handed over at once, and leave the
+    pool. Every ability not listed is an item to find.
+
+    Abilities: legs, seat, arms, throwing, carrying. Running has its own option, Lock Running.
+    """
+
+    display_name = "Start With Abilities"
+    valid_keys = frozenset({"legs", "seat", "arms", "throwing", "carrying"})
+    default = frozenset()
+
+
+class LockRunning(Toggle):
+    """
+    With Lock Abilities on, running is an item too (Running). No place asks for it: the island is only slower
+    to cross until it arrives.
+    """
+
+    display_name = "Lock Running"
 
 
 class HintKeys(Choice):
@@ -984,10 +1216,20 @@ class BigWalkOptions(PerGameCommonOptions):
     start_with_drawbridge_open: StartWithDrawbridgeOpen
     start_with_arch_doors_open: StartWithArchDoorsOpen
     require_arch_doors: RequireArchDoors
-    lock_arch_doors: LockArchDoors
     lock_puzzle_needs: LockPuzzleNeeds
     start_with_puzzle_needs: StartWithPuzzleNeeds
     start_with_random_puzzle_need: StartWithRandomPuzzleNeed
+    lock_abilities: LockAbilities
+    start_with_map_room_open: StartWithMapRoomOpen
+    linear_keys: LinearKeys
+    monument_sanity: MonumentSanity
+    linear_towers: LinearTowers
+    linear_puzzles: LinearPuzzles
+    include_big_game_puzzles: IncludeBigGamePuzzles
+    cut_key_sanity: CutKeySanity
+    start_with_abilities: StartWithAbilities
+    lock_running: LockRunning
+    fast_golf: FastGolf
     hint_keys: HintKeys
     open_black_tower: OpenBlackTower
     tower_resync_stations: TowerResyncStations
@@ -1025,6 +1267,14 @@ class BigWalkOptions(PerGameCommonOptions):
     belts_in_pool: BeltsInPool
     gourd_cartons_in_pool: GourdCartonsInPool
     flare_gun_sanity: FlareGunSanity
+    object_sanity: ObjectSanity
+    object_sanity_kinds: ObjectSanityKinds
+    object_sanity_items: ObjectSanityItems
+    light_sanity: LightSanity
+    light_sanity_items: LightSanityItems
+    lights_required: LightsRequired
+    objects_required: ObjectsRequired
+    body_required: BodyRequired
     random_colors: RandomColors
     tower_mode: TowerMode
     first_tower_open: FirstTowerOpen
@@ -1039,16 +1289,22 @@ class BigWalkOptions(PerGameCommonOptions):
 
 option_groups = [
     OptionGroup("Goal", [
-        Goal, Objectives, RandomObjectives, LockEndingsUntilObjectives, GourdsRequired, KeysRequired, RadioStationsRequired,
-        TowersRequired, EveryoneGathers,
+        Goal, Objectives, RandomObjectives, EveryoneGathers, LockEndingsUntilObjectives,
+        GourdsRequired, KeysRequired, RadioStationsRequired, TowersRequired, LightsRequired, ObjectsRequired, BodyRequired,
     ]),
     OptionGroup("Towers", [TowerMode, FirstTowerOpen]),
-    OptionGroup("Sanity", [GourdSanity, RadioSanity, ShuffleRadioMusic, PackSanity, FireworkSanity, FlareGunSanity]),
-    OptionGroup("Logic", [
-        StartWithDrawbridgeOpen, OpenBlackTower, StartWithArchDoorsOpen, RequireArchDoors,
-        GauntletMode, GauntletStageItems, GauntletPuzzlesRequired, LockGauntletNeeds, GauntletStagesLocal,
-        LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed,
+    OptionGroup("Sanity", [
+        GourdSanity, RadioSanity, ShuffleRadioMusic, PackSanity, FireworkSanity, FlareGunSanity, TowerSanity,
+        MonumentSanity, CutKeySanity,
+        ObjectSanity, ObjectSanityKinds, ObjectSanityItems, LightSanity, LightSanityItems,
     ]),
+    OptionGroup("Logic", [
+        StartWithDrawbridgeOpen, StartWithMapRoomOpen, StartWithArchDoorsOpen, RequireArchDoors, OpenBlackTower,
+        LockPuzzleNeeds, StartWithPuzzleNeeds, StartWithRandomPuzzleNeed, IncludeBigGamePuzzles,
+        GauntletMode, GauntletStageItems, GauntletPuzzlesRequired, LockGauntletNeeds, GauntletStagesLocal,
+    ]),
+    OptionGroup("Vanilla Behaviours", [LinearKeys, LinearTowers, LinearPuzzles]),
+    OptionGroup("Movement Locking", [LockAbilities, StartWithAbilities, LockRunning]),
     OptionGroup("Item Pool", [BackpacksInPool, BeltsInPool, GourdCartonsInPool, IslandObjectLimits]),
     OptionGroup("Colors and Names", [RandomColors, GourdName]),
     OptionGroup("Traps and Bonuses", [
@@ -1059,9 +1315,12 @@ option_groups = [
         BigWalkDeathLink, DeathLinkTriggers, DeathLinkAmnesty, DeathLinkEffect, DeathLinkTrapWeights,
         DeathLinkRouletteHardTraps, DeathLinkTrapOnSend, DeathLinkTarget,
     ]),
-    OptionGroup("QoL", [HintKeys, HintDiscoveredKeyLocations, HintDiscoveredDepositBoxes, TowerSanity, TeleportButtons, TeleportBackToHub, TowerResyncStations, GuestsCanResync]),
+    OptionGroup("QoL", [
+        HintKeys, HintDiscoveredKeyLocations, HintDiscoveredDepositBoxes,
+        TeleportButtons, TeleportBackToHub, TowerResyncStations, GuestsCanResync,
+    ]),
     OptionGroup("Puzzle QoL", [
-        CabinFeverSeconds, CabinFeverHelp, CabinFeverLongSeconds, CabinFeverLongHelp, TileThief,
+        FastGolf, CabinFeverSeconds, CabinFeverHelp, CabinFeverLongSeconds, CabinFeverLongHelp, TileThief,
     ]),
 ]
 
