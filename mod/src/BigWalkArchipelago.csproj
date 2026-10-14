@@ -11,6 +11,7 @@
          fait échouer la compilation (CS0656) dès que Nullable est actif et
          qu'une de ces DLL est référencée. -->
     <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>BigWalkArchipelago</AssemblyName>
     <RootNamespace>BigWalkArchipelago</RootNamespace>
     <!-- À garder aligné sur Plugin.PluginVersion : c'est ce numéro que lit

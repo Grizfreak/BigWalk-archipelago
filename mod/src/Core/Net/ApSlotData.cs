@@ -155,6 +155,9 @@ namespace BigWalkArchipelago.Core.Net
         internal int LightsRequiredCount { get; private set; }
         // The lights big_lights counts: light_sanity's, or the lamps without it (counted, no check).
         internal string[] LightsCounted { get; private set; } = Array.Empty<string>();
+        // Zone locks (R12, 0.7.1): the gadgets each zone item keeps off the map until it arrives, by item id.
+        internal bool ZoneLocks { get; private set; }
+        internal Dictionary<long, string[]> ZoneLockedGadgets { get; } = new();
         internal int ObjectsRequiredCount { get; private set; }
         // fast_golf (R6, 0.6): the golf ball no longer too heavy.
         internal bool FastGolf { get; private set; }
@@ -274,6 +277,21 @@ namespace BigWalkArchipelago.Core.Net
             data.LightIdOffset = GetInt(raw, "light_id_offset", data.LightIdOffset);
             data.LightsRequiredCount = GetInt(raw, "lights_required_count", 0);
             data.LightsCounted = GetStringArray(raw, "lights_counted");
+            data.ZoneLocks = GetBool(raw, "zone_locks", false);
+            foreach (var pair in GetMap(raw, "zone_locked_gadgets"))
+            {
+                try
+                {
+                    var guids = new List<string>();
+                    foreach (var guid in Newtonsoft.Json.Linq.JArray.Parse(pair.Value.Text))
+                        guids.Add(guid.ToObject<string>());
+                    data.ZoneLockedGadgets[long.Parse(pair.Key)] = guids.ToArray();
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"[{nameof(ApSlotData)}] slot_data['zone_locked_gadgets'][{pair.Key}] is unreadable: {ex.Message}");
+                }
+            }
             data.ObjectsRequiredCount = GetInt(raw, "objects_required_count", 0);
             data.FastGolf = GetBool(raw, "fast_golf", false);
             data.BodyRequiredCount = GetInt(raw, "body_required_count", 0);

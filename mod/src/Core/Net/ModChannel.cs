@@ -64,7 +64,7 @@ namespace BigWalkArchipelago.Core.Net
 
         // Both ends must speak the same version; a mismatch is logged once
         // and ignored rather than half-read.
-        private const byte ProtocolVersion = 20;
+        private const byte ProtocolVersion = 21;
 
         private const byte KindHello = 1;
         private const byte KindSnapshot = 2;
@@ -520,6 +520,10 @@ namespace BigWalkArchipelago.Core.Net
                 NetworkWriterExtensions.WriteUShort(writer, AbilityLocks.HostMask());
                 writer.WriteByte(HintBoards.HostFlags());
                 NetworkWriterExtensions.WriteString(writer, HintBoards.HostNames());
+                var zoneLocked = new List<string>(ZoneLocks.HostLocked);
+                writer.WriteByte((byte)Math.Min(zoneLocked.Count, byte.MaxValue));
+                for (var i = 0; i < zoneLocked.Count && i < byte.MaxValue; i++)
+                    NetworkWriterExtensions.WriteString(writer, zoneLocked[i]);
 
                 connection.Send(writer.ToArraySegment(), 0);
             }
@@ -726,6 +730,7 @@ namespace BigWalkArchipelago.Core.Net
             {
                 RadioStations.ForgetMirror();
                 PuzzleNeeds.ForgetMirror();
+                ZoneLocks.ForgetMirror();
                 AbilityLocks.ForgetMirror();
                 FastGolf.ForgetMirror();
                 GauntletStairways.ForgetMirror();
@@ -963,6 +968,10 @@ namespace BigWalkArchipelago.Core.Net
                 var abilityMask = NetworkReaderExtensions.ReadUShort(reader);
                 var hintFlags = reader.ReadByte();
                 var hintNames = NetworkReaderExtensions.ReadString(reader);
+                var zoneLocked = new List<string>();
+                var zoneLockedCount = reader.ReadByte();
+                for (var i = 0; i < zoneLockedCount; i++)
+                    zoneLocked.Add(NetworkReaderExtensions.ReadString(reader));
 
                 var first = _receivedAt < 0f;
 
@@ -1008,6 +1017,7 @@ namespace BigWalkArchipelago.Core.Net
                 MonumentOrder.ApplyFromHost(monumentMask);
                 AbilityLocks.ApplyFromHost(abilitiesEnabled, abilityMask);
                 HintBoards.ApplyFromHost(hintFlags, hintNames);
+                ZoneLocks.ApplyFromHost(zoneLocked);
             }
             catch (Exception ex)
             {

@@ -241,7 +241,7 @@ namespace BigWalkArchipelago
                 "Archipelago",
                 "ShowObjectives",
                 false,
-                "Keeps the seed's objectives on the overlay at all times, ticked or not. Off: they are on the board in the hub and at each ending's entry point only. Only a seed that lists objectives has any.");
+                "Keeps the seed's objectives on the overlay at all times, ticked or not. Off: they are on the board in the hub and at each ending's entry point only. A seed with a goal alone shows that goal as its one objective.");
 
             ShowTowerOrder = file.Bind(
                 "Archipelago",

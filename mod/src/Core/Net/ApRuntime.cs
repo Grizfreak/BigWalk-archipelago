@@ -864,6 +864,7 @@ namespace BigWalkArchipelago.Core.Net
                 KeyFeatures.ClearLedger();
                 KeyCustody.ClearLedger();
                 PuzzleNeeds.ClearLedger();
+                ZoneLocks.ClearLedger();
                 AbilityLocks.ClearLedger();
                 PackChecks.ClearLightLedger();
                 GauntletStairways.ClearLedger();
@@ -882,6 +883,7 @@ namespace BigWalkArchipelago.Core.Net
                 Connection.SlotData.LockPuzzleNeeds,
                 Connection.SlotData.PuzzleNeedKeys,
                 ApLocationIds.Base + Connection.SlotData.PuzzleNeedIdOffset);
+            ZoneLocks.Configure(Connection.SlotData.ZoneLocks, Connection.SlotData.ZoneLockedGadgets);
             AbilityLocks.Configure(
                 Connection.SlotData.LockAbilities,
                 Connection.SlotData.LockRunning,
@@ -1353,6 +1355,9 @@ namespace BigWalkArchipelago.Core.Net
 
             if (PuzzleNeeds.TryResolveItem(itemId, out var need))
                 return PuzzleNeeds.Grant(need);
+
+            if (ZoneLocks.IsItem(itemId))
+                return ZoneLocks.Grant(itemId);
 
             if (AbilityLocks.TryResolveItem(itemId, out var ability))
                 return AbilityLocks.Grant(ability);

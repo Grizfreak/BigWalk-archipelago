@@ -195,6 +195,9 @@ namespace BigWalkArchipelago.Core
 
         internal static IEnumerable<string> HostCollected => Collected;
 
+        // Whether this pack or gadget was picked up for its check (on a guest, as the host says).
+        internal static bool IsCollected(string guid) => Collected.Contains(guid);
+
         internal static void ApplyFromHost(byte mode, byte objectMode, List<string> kinds, List<string> collected)
         {
             _mirrored = true;

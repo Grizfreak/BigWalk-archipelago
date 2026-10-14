@@ -1641,6 +1641,7 @@ namespace BigWalkArchipelago.Core
                 _worldWasReady = ready;
                 TrapEffects.Tick();
                 PackChecks.Tick();
+                ZoneLocks.Tick();
                 MonumentOrder.TickFullChecks();
                 FastGolf.Tick();
                 ColourPainter.Tick();

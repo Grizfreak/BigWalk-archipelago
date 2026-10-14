@@ -757,6 +757,10 @@ namespace BigWalkArchipelago.Core
         internal const string Brother = "brother";
         private const float BrotherFactor = 0.4f;
         private const float BrotherEase = 2f;
+        // The voices pitched up as the bodies shrink (player, 2026-10-14), through the game's own voice pitch
+        // (Patches/BigBrotherVoicePatch).
+        private const float BrotherVoiceRaise = 1.5f;
+        internal static float BrotherVoicePitch { get; private set; } = 1f;
         private static float _brotherStart = -1f;
         private static float _brotherUntil = -1f;
         private static readonly Dictionary<int, (Transform body, Vector3 own)> Brothers = new();
@@ -784,7 +788,9 @@ namespace BigWalkArchipelago.Core
                 EndBrother();
                 return;
             }
-            var factor = Mathf.Lerp(1f, BrotherFactor, Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(amount)));
+            var eased = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(amount));
+            var factor = Mathf.Lerp(1f, BrotherFactor, eased);
+            BrotherVoicePitch = Mathf.Lerp(1f, BrotherVoiceRaise, eased);
             foreach (var player in UnityEngine.Object.FindObjectsByType<PlayerCharacter>(FindObjectsSortMode.None))
             {
                 if (player == null)
@@ -808,6 +814,7 @@ namespace BigWalkArchipelago.Core
                 return;
             _brotherUntil = -1f;
             _brotherStart = -1f;
+            BrotherVoicePitch = 1f;
             foreach (var brother in Brothers.Values)
             {
                 if (brother.body != null)

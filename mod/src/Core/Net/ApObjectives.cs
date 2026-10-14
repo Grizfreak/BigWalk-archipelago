@@ -13,8 +13,8 @@ namespace BigWalkArchipelago.Core.Net
     //   big_game        the secret ending behind the Spawn Secret Door; an ending
     //   big_collection  deposit_goal_amount gourds in the towers' slots
     //
-    // A seed with no list keeps the single `goal` and every line of ApRuntime that reads it:
-    // Active is false and nothing here is asked.
+    // A seed with no list (only a `goal`) is played as the list of that goal alone (player, 2026-10-14: the overlay's
+    // objectives line and the hub's board for every seed); each ending is told done here as ApRuntime told it before.
     internal static class ApObjectives
     {
         private static readonly string[] Known =
@@ -27,8 +27,33 @@ namespace BigWalkArchipelago.Core.Net
         // Set by the debug key (DebugApFeed.NextObjectives), to see the board and the overlay without a server.
         internal static string[] DebugKeys;
 
-        internal static IReadOnlyList<string> Keys =>
-            DebugKeys ?? (ApRuntime.SlotData != null ? ApRuntime.SlotData.Objectives : Array.Empty<string>());
+        internal static IReadOnlyList<string> Keys => DebugKeys ?? FromSlot();
+
+        private static ApSlotData _keysOf;
+        private static string[] _keys = Array.Empty<string>();
+
+        // The seed's list, or its goal alone.
+        private static string[] FromSlot()
+        {
+            var slot = ApRuntime.SlotData;
+            if (slot == null)
+                return Array.Empty<string>();
+            if (!ReferenceEquals(slot, _keysOf))
+            {
+                _keysOf = slot;
+                var goal = slot.Goal switch
+                {
+                    "gauntlet" => "big_goodbye",
+                    "ending" => "big_wall",
+                    "second_ending" => "big_game",
+                    "deposits" => "big_collection",
+                    _ => null,
+                };
+                _keys = slot.Objectives is { Length: > 0 } listed ? listed : goal != null ? new[] { goal } : Array.Empty<string>();
+            }
+
+            return _keys;
+        }
 
         internal static bool Active => Keys.Count > 0;
 
