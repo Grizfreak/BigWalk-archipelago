@@ -67,7 +67,10 @@ namespace BigWalkArchipelago.Debug
 
                 // Logged before reading any fields: if the rest crashes, we
                 // at least know which GameObject was being inspected.
-                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorLookup)}] {combinator.gameObject.name} (PeckCombinator) — starting inspection.");
+                // The whole path and the distance (2026-10-14): four `NHoldLogic 2` side by side in the Gauntlet's
+                // top could not be told apart by name.
+                Plugin.Log.LogInfo($"[{nameof(DebugPeckCombinatorLookup)}] {combinator.gameObject.name} (PeckCombinator) at "
+                                   + $"{Mathf.Sqrt(sqrDistance):0.0}m — {PathOf(combinator.transform)} — starting inspection.");
 
                 try
                 {
@@ -142,8 +145,8 @@ namespace BigWalkArchipelago.Debug
                 var currentValue = SaveManager.GetIntValue(key, -12345, false);
 
                 Plugin.Log.LogInfo(
-                    $"[{nameof(DebugPeckCombinatorLookup)}] {label}={state.gameObject.name} — savableSystem={savableSystem} — " +
-                    $"saveGuid={saveGuid} — actual key='{key}' — SaveManager[{key}]={currentValue}");
+                    $"[{nameof(DebugPeckCombinatorLookup)}] {label}={state.gameObject.name} — live state={state.currentPeckContext.compressedState} — "
+                    + $"savableSystem={savableSystem} — saveGuid={saveGuid} — actual key='{key}' — SaveManager[{key}]={currentValue}");
             }
             catch (Exception ex)
             {
@@ -189,8 +192,10 @@ namespace BigWalkArchipelago.Debug
                     return;
                 }
 
+                var tracked = sw.trackedStateSystem;
                 Plugin.Log.LogInfo(
-                    $"[{nameof(DebugPeckCombinatorLookup)}] {label}={sw.gameObject.name} (PeckSwitch, specificState={sw.specificState})");
+                    $"[{nameof(DebugPeckCombinatorLookup)}] {label}={sw.gameObject.name} (PeckSwitch, specificState={sw.specificState}"
+                    + (tracked != null ? $", its state's live value={tracked.currentPeckContext.compressedState}" : "") + ")");
             }
             catch (Exception ex)
             {
@@ -199,6 +204,14 @@ namespace BigWalkArchipelago.Debug
             }
 
             DescribeTrackedPeckState($"{label}.trackedStateSystem", sw.trackedStateSystem);
+        }
+
+        private static string PathOf(Transform t)
+        {
+            var path = t.name;
+            for (var p = t.parent; p != null; p = p.parent)
+                path = p.name + "/" + path;
+            return path;
         }
     }
 }
