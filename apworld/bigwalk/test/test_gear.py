@@ -44,11 +44,17 @@ class TestIslandObjectLimits(BigWalkTestBase):
     options = {"gourd_sanity": "every_gourd", "radio_sanity": True, "lock_puzzle_needs": False,
                "bonus_fill_percentage": 0}
 
-    def test_no_object_past_its_limit(self) -> None:
+    def test_limits_drawn_first(self) -> None:
+        # Past every limit the objects go on, fewest first (player, 2026-10-14): none goes past its limit while
+        # another is under its own, and those past it stay within one of each other.
         names = Counter(item.name for item in self.multiworld.itempool if item.player == self.player)
-        limits = self.world.options.island_object_limits.value
-        for name, limit in limits.items():
-            self.assertLessEqual(names[name], limit, name)
+        limits = {name: limit for name, limit in self.world.options.island_object_limits.value.items()
+                  if limit > 0 and name not in items.FLARE_GUN_NAMES}
+        past = [name for name, limit in limits.items() if names[name] > limit]
+        if past:
+            for name, limit in limits.items():
+                self.assertGreaterEqual(names[name], limit, name)
+            self.assertLessEqual(max(names[n] for n in past) - min(names[n] for n in past), 1)
         self.assertEqual(names["Flare Gun"] + names["Blue Flare Gun"]
                          + names["Green Flare Gun"] + names["Yellow Flare Gun"] <= 4, True)
 
@@ -71,3 +77,15 @@ class TestPastEveryLimitBonuses(BigWalkTestBase):
         objects = [n for n in items.FILLER_ITEM_NAMES if n not in items.GUARANTEED_GEAR and n not in items.FLARE_GUN_NAMES]
         self.assertFalse(any(names[n] for n in objects))
         self.assertTrue(any(names[n] for n in items.BONUS_ITEM_NAMES))
+
+
+class TestPastEveryLimitObjects(BigWalkTestBase):
+    """A big pool goes on with the objects, not with bonuses (player, 2026-10-14)."""
+
+    options = {"object_sanity": "every", "light_sanity": "lamps_and_switches", "bonus_fill_percentage": 0}
+    run_default_tests = False
+
+    def test_objects_past_their_limits(self) -> None:
+        names = Counter(item.name for item in self.multiworld.itempool if item.player == self.player)
+        self.assertGreater(names["Lamp"], 2)
+        self.assertFalse(any(names[n] for n in items.BONUS_ITEM_NAMES))

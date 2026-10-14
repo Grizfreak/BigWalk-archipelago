@@ -1384,6 +1384,166 @@ LIGHTS: tuple[Light, ...] = (
 """Every light of `light_sanity`, in id order: the island's lamps (those of object_sanity), then the wall switches."""
 
 
+# --------------------------------------------------------------------------
+# Zone locks (ROADMAP R12, player 2026-10-14): the island's lamps and gadgets, by the zone of the nearest coloured
+# tower, each zone's lamps and gadgets an item. The Map Room's, the chairlift's, the tunnels', the tutorial's and the
+# train's keep the lock they have.
+
+ZONE_LOCK_ID_OFFSET = 14_300
+"""`BASE_ID + 14_300 + position` in ZONE_LOCKS (the lights end below 14_200)."""
+
+
+class ZoneLock(NamedTuple):
+    key: str
+    """The option value (`start_with_zone_locks`): `red_lamps`, `red_gadgets`..."""
+    item_name: str
+    zone: str
+    """The tower's colour, as in OVERWORLD_ZONES."""
+    lamps: bool
+    """The lamps and the light switches; False: the other gadgets."""
+
+
+ZONE_COLOURS: tuple[tuple[str, str], ...] = (
+    ("red", "bigKeyRedZone"), ("green", "bigKeyGreenZone"), ("blue", "bigKeyBlueZone"), ("yellow", "bigKeyYellowZone"),
+)
+"""The four coloured towers, by colour and big key prop."""
+
+ZONE_LOCKS: tuple[ZoneLock, ...] = tuple(
+    ZoneLock(f"{colour}_{kind}", f"{colour.title()} Zone {kind.title()}", colour, kind == "lamps")
+    for colour, _ in ZONE_COLOURS for kind in ("lamps", "gadgets"))
+
+ZONE_LOCK_KEYS: frozenset[str] = frozenset(lock.key for lock in ZONE_LOCKS)
+
+# Each overworld lamp, gadget and light switch to the nearest of the four towers' centres (x/z), from BepInEx's
+# object-census.tsv (2026-10-13) and light-switches.tsv, the centres being the mod's MonumentOrder.Centres
+# (2026-10-14). Keyed as IslandObject.guid / Light.key. Close calls (under 40 m between the two nearest): the Green
+# Diffuser and Upper Hub train stops, Radio (Greensteps), Binoculars (Carousel), the lamps near Invisible Ink (4 m),
+# Optical Telegraph, Observation Room 2 and Breadcrumb Loop 2; set one by hand here if it sits on the wrong side.
+OVERWORLD_ZONES: dict[str, str] = {
+    "ed2f8967-b4c1-43d9-91b5-11679be10bc6": "blue",  # Binoculars (Peak Marker)
+    "24d2f9a5-5376-4a7c-b08c-17e9c060855b": "blue",  # Lamp (Diffuser Peak)
+    "12a7f64b-8175-4857-a371-77dc2989cd68": "blue",  # Lamp (near Cannonball 2)
+    "59a73457-6368-4639-8ec7-335902797343": "blue",  # Lamp (near Coordinates)
+    "LandmarksNonChallenge/DoofChamber/Positioner/FXControls/BasicLightSwitchHouse/LightSwitchPeckLogic": "blue",  # Light Switch (Doof Chamber, House) On
+    "LandmarksNonChallenge/DoofChamber/Positioner/FXControls/ColouredSpotSwitches/BasicLightSwitchPurple/LightSwitchPeckLogic": "blue",  # Light Switch (Doof Chamber, Purple) On
+    "LandmarksNonChallenge/DoofChamber/Positioner/FXControls/ColouredSpotSwitches/BasicLightSwitchReds/LightSwitchPeckLogic": "blue",  # Light Switch (Doof Chamber, Reds) On
+    "LandmarksNonChallenge/DoofChamber/Positioner/FXControls/BasicLightSwitchRing/LightSwitchPeckLogic": "blue",  # Light Switch (Doof Chamber, Ring) On
+    "LandmarksNonChallenge/DoofChamber/Positioner/FXControls/ColouredSpotSwitches/BasicLightSwitchWhiteSpots/LightSwitchPeckLogic": "blue",  # Light Switch (Doof Chamber, White Spots) On
+    "dab5cfc8-f4d9-44f2-abb0-90bc42b3cade": "blue",  # Pedestal Lamp (Diffuser Peak)
+    "52b0dfcb-4588-4ce7-a78c-bdb9cb800fe6": "blue",  # Pedestal Lamp (Peak Marker 1)
+    "f84cb1c7-1702-4fa1-9ddb-f4c334041237": "blue",  # Pedestal Lamp (Peak Marker 2)
+    "cd88c773-6375-42c7-9475-76b288bd1c91": "blue",  # Pedestal Lamp (Peak Marker 3)
+    "b2f9b7af-39f5-431c-9908-c2ebf6d6453b": "blue",  # Pedestal Lamp (near Breadcrumb Loop 1)
+    "accb5df0-1452-4b84-8607-9f01bd517103": "blue",  # Pedestal Lamp (near Observation Room 3)
+    "a552b903-066f-45a8-8550-4cbf5652de74": "blue",  # Pedestal Lamp (near Poet and Priest)
+    "21ab205e-db90-452b-b620-8f64ebcabd63": "blue",  # Radio (Doof Chamber)
+    "ec17f547-5b1f-4fcf-828e-f2932dc2f620": "blue",  # Radio (Factory Music Garden)
+    "ea8c71ac-810f-4426-84a1-17e0e3b0b81d": "blue",  # Radio (Peak Marker)
+    "cee6114c-2dc0-4d02-a393-5686a2f2e9b8": "blue",  # Walkie-Talkie (Back Beach Hill, Yellow)
+    "6efb6db4-76c1-4ffa-b249-8badc6d4bf82": "blue",  # Walkie-Talkie (Peak, Blue)
+    "a5992995-191a-45b7-aa23-e9a64a4fede7": "blue",  # Walkie-Talkie (Peak, Yellow)
+    "44015a0e-20ca-441a-b6e9-bbd28657b5f3": "green",  # Clock (Ring Room Train Stop)
+    "e56da5eb-bac5-4c5e-b489-a8de3d204e7c": "green",  # Clock (South Valley Beach Train Stop)
+    "f468d4dc-594e-4c62-80d4-3a85d9e25b3e": "green",  # Clock (Trap Room Train Stop)
+    "087f1e73-309b-4db2-8e39-dee6c926ad59": "green",  # Lamp (near Invisible Ink)
+    "f4819494-6b1d-48ef-823b-4b26d2ceda53": "green",  # Lamp (near Memory Bombs)
+    "13956d25-97a1-4b5c-9992-00c187092476": "green",  # Lamp (near Musical Holiday)
+    "982f4dbf-22bb-4553-aa9c-dd6588c19fda": "green",  # Lamp (near Optical Telegraph)
+    "632fc258-f424-4b88-930a-a62c45044965": "green",  # Lamp (near Trap Room)
+    "TrainSystem/TrainStop - Ring Room/Lighting/BasicLightSwitch/LightSwitchPeckLogic": "green",  # Light Switch (Ring Room Train Stop) On
+    "TrainSystem/TrainStop - South Valley Beach/Lighting/BasicLightSwitch/LightSwitchPeckLogic": "green",  # Light Switch (South Valley Beach Train Stop) On
+    "TrainSystem/TrainStop - Trap Room/Lighting/BasicLightSwitch/LightSwitchPeckLogic": "green",  # Light Switch (Trap Room Train Stop) On
+    "7e2f3ba8-2124-4fe9-8707-1621be5a0926": "green",  # Megaphone (Pyramid Holder)
+    "16990dcc-ebb8-453e-88fc-6478e3980728": "green",  # Pedestal Lamp (near Breadcrumb Loop 2)
+    "b46c590f-7038-4033-b84d-e3fb664e095c": "green",  # Pedestal Lamp (near Musical Holiday 1)
+    "d069a848-37f5-40e0-ac18-64516951f481": "green",  # Pedestal Lamp (near Musical Holiday 2)
+    "c7141d1b-96bf-4c2c-8c05-3d2067e64a93": "green",  # Pedestal Lamp (near Musical Holiday 3)
+    "0e8faaf2-b5fd-4906-aaab-788f8ccbf603": "green",  # Pedestal Lamp (near Perspective Counting)
+    "7017169d-96f6-4578-8c1f-eb65f3549e32": "green",  # Pedestal Lamp (near Ring Room)
+    "d2b218b4-279c-4e3e-9751-53a8cbfade87": "green",  # Pedestal Lamp (near Trap Room)
+    "87dbbb84-5c58-43a4-96ba-e43c1c7308b9": "green",  # Radio (Greensteps Music Garden)
+    "070cf8f2-6824-413e-9c2a-43a1027c24c5": "green",  # Radio (Musical Holiday)
+    "00d7ed74-a4d9-4969-b8e2-bf8d4975ac8a": "green",  # Walkie-Talkie (Ocean Treasure, Blue)
+    "cd159c6e-88aa-4158-a11f-2790cf581052": "green",  # Walkie-Talkie (Ocean Treasure, Yellow)
+    "88942e8e-6fae-4d71-93f0-8500741a82d1": "red",  # Binoculars (Carousel)
+    "209a7dc3-9dcb-425e-86c5-3a84aa9bd0ec": "red",  # Clock (Sports Valley Train Stop)
+    "a08daa18-2fef-4a49-a062-2baafdf48686": "red",  # Clock (Upper Hub Train Stop)
+    "5d10fec3-7a2d-4bfd-be0e-6196152d88f5": "red",  # Lamp (near Cannonball 1)
+    "f7f2e9ed-14fd-4a54-a918-fc06b444a39e": "red",  # Lamp (near Easy Simultaneous Press)
+    "cec1412b-4727-48c4-b6a1-5a5e7989af18": "red",  # Lamp (near High Button 1)
+    "94876c24-50ba-41cb-8fdd-9bd026f3be32": "red",  # Lamp (near High Button 2)
+    "df814b39-e550-4e17-ad44-e32028ab3c47": "red",  # Lamp (near Kick Up Pits)
+    "17e22f02-4f01-4aa4-83fb-d2871acd97cd": "red",  # Lamp (near Pointer's Paradise)
+    "d3e57e13-a91d-492c-bd46-2c59da8bef9e": "red",  # Lamp (near Telescope to Box)
+    "5ee8fa69-8937-4841-b9a7-ee8a10c3a933": "red",  # Lamp (near Teller Window 1)
+    "4b9cad35-ab44-4dfe-9e4b-390cb165aca5": "red",  # Lamp (near Teller Window 2)
+    "LandmarksNonChallenge/Salon/Positioner/SalonBuilding/BasicLightSwitch - Salon Main/LightSwitchPeckLogic": "red",  # Light Switch (Salon, Main) On
+    "LandmarksNonChallenge/Salon/Positioner/SalonBuilding/BasicLightSwitch - Mirror/LightSwitchPeckLogic": "red",  # Light Switch (Salon, Mirror) On
+    "TrainSystem/TrainStop - Sports Valley/Lighting/BasicLightSwitch/LightSwitchPeckLogic": "red",  # Light Switch (Sports Valley Train Stop) On
+    "TrainSystem/TrainStop - Upper Hub/Lighting/BasicLightSwitch/LightSwitchPeckLogic": "red",  # Light Switch (Upper Hub Train Stop) On
+    "52fedcd9-caa6-4ec6-a285-f73e6ff40f50": "red",  # Paintbrush (Salon)
+    "60412245-4b6c-47eb-a4e7-67eec146bf20": "red",  # Pedestal Lamp (near Basketball)
+    "d0a1c556-d62f-42df-a36e-019636da7679": "red",  # Pedestal Lamp (near Fielding)
+    "5efbf72b-9dff-4251-a536-f625ba8ff315": "red",  # Pedestal Lamp (near High Button 1)
+    "fee806b8-8617-49f8-99af-bdea0c148ed0": "red",  # Pedestal Lamp (near High Button 2)
+    "4ec6aca0-9961-4550-9c26-7cacb9917566": "red",  # Pedestal Lamp (near High Button 3)
+    "38722a78-da82-4d6e-80c4-efd70e1be90f": "red",  # Pedestal Lamp (near Pointer's Paradise 1)
+    "d368b4c7-8389-4f63-a20f-ba88ef17f0a5": "red",  # Pedestal Lamp (near Pointer's Paradise 2)
+    "007a1599-17ad-426f-a68b-37718423e9f7": "red",  # Pedestal Lamp (near Telescope to Box 1)
+    "99d8a99a-89eb-4ad0-8736-104aafe1fdd7": "red",  # Pedestal Lamp (near Telescope to Box 2)
+    "fa653354-bdfa-431d-aa19-7453e5730e80": "red",  # Pedestal Lamp (near Telescope to Box 3)
+    "942347f0-cd23-445f-8019-d296e5c92ead": "red",  # Pedestal Lamp (near Telescope to Box 4)
+    "0abc8402-398d-4f0d-bf5e-fb3051a16e21": "red",  # Pedestal Lamp (near Telescope to Box 5)
+    "c2756ad3-4f4a-45e5-93a3-4c10e892ebdc": "red",  # Pedestal Lamp (near Teller Window 1)
+    "226bdfbc-c2ad-4bda-b9ec-2d72c09f1502": "red",  # Pedestal Lamp (near Teller Window 2)
+    "d467b790-8968-46b1-9be9-e36eac9ebe52": "red",  # Pedestal Lamp (near Teller Window 3)
+    "2cb8963f-ac2f-4f2a-b720-11a701bc4b08": "red",  # Pedestal Lamp (near Teller Window 4)
+    "41e7b481-2e10-4d62-9136-5e6e0ba9fa7d": "red",  # Radio (Lighthouse Music Garden)
+    "ebdec567-58c0-48c7-a62a-bbd843bef36f": "red",  # Radio (Upper Hub)
+    "044daaf7-fb90-4f73-a9bb-00b8a3df9c60": "red",  # Scanner (Fireworks Platform)
+    "28cf2386-5e54-4b7e-99ba-283298aa3816": "red",  # Scanner (Upper Hub)
+    "ac52bd4b-990f-4908-999d-5badeb8b6eda": "red",  # Torch (Tutorial Exit)
+    "185e3864-0dcb-498b-baee-6da1a4b21a8e": "red",  # Walkie-Talkie (Red Cone Hill, Yellow)
+    "f29614f5-0c70-4ed8-b152-9e57b371f20d": "red",  # Walkie-Talkie (Red Cone Valley, Blue)
+    "1c9f8bc9-5850-4085-80f6-05c2821b505d": "yellow",  # Clock (Green Diffuser Train Stop)
+    "b95078fd-d8f2-4fd9-b2aa-ecf8b84fdad7": "yellow",  # Lamp (near Centurion Song)
+    "80e38f3e-d054-4187-9675-66d6e70c8356": "yellow",  # Lamp (near Egg Hunt)
+    "6a673617-992d-49ca-87f9-223aef4c9fe4": "yellow",  # Lamp (near Scout Bombs)
+    "6beb48a3-60de-41e8-a9f6-d39772bcdfa4": "yellow",  # Lamp (near Singer and Selector)
+    "TrainSystem/TrainStop - Green Diffuser/Lighting/BasicLightSwitch/LightSwitchPeckLogic": "yellow",  # Light Switch (Green Diffuser Train Stop) On
+    "c6259d07-2499-4063-b033-b72cddd951c2": "yellow",  # Megaphone (Ramp Holder)
+    "cf2e3191-4c77-4ce9-8c56-f43a73d6e531": "yellow",  # Pedestal Lamp (near Centurion Song)
+    "080554bb-bc16-41cd-bc96-4765cec96beb": "yellow",  # Pedestal Lamp (near Egg Hunt)
+    "11c1d018-3dbf-46d4-b1de-f9aba4d29fc2": "yellow",  # Pedestal Lamp (near Observation Room 1)
+    "bef6d32e-57a9-4ba1-b984-05fdec08800c": "yellow",  # Pedestal Lamp (near Observation Room 2)
+    "4ee18fc7-2a43-44e0-9a2b-4508e9d2705d": "yellow",  # Pedestal Lamp (near Singer and Selector 1)
+    "c716c86d-81a7-40cc-873f-0405821dbd72": "yellow",  # Pedestal Lamp (near Singer and Selector 2)
+    "cef7ae31-a105-491d-8d0d-daab0253909c": "yellow",  # Pedestal Lamp (near Singer and Selector 3)
+    "d8e70c55-9800-498e-af4e-7054093950e4": "yellow",  # Radio (Floorplan Music Garden)
+    "56a7313e-9e55-485b-ac52-fcc6f8030133": "yellow",  # Walkie-Talkie (Beach, Blue)
+}
+
+
+def zone_of(key: str, zone: str) -> str | None:
+    """The zone colour of a lamp, gadget or switch (its key, its IslandObject/Light zone); None: no zone lock."""
+    if zone.startswith("tower:"):
+        return next((colour for colour, prop in ZONE_COLOURS if zone == f"tower:{prop}"), None)
+    if zone == "overworld":
+        return OVERWORLD_ZONES.get(key)
+    return None
+
+
+def zone_lock_for(key: str, zone: str, lamps: bool) -> ZoneLock | None:
+    colour = zone_of(key, zone)
+    if colour is None:
+        return None
+    return next(lock for lock in ZONE_LOCKS if lock.zone == colour and lock.lamps == lamps)
+
+
+def zone_lock_item_id(lock: ZoneLock) -> int:
+    return BASE_ID + ZONE_LOCK_ID_OFFSET + ZONE_LOCKS.index(lock)
+
+
 def light_event_name(light: Light) -> str:
     return f"{light.location_name} (event)"
 

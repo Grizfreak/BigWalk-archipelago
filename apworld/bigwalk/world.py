@@ -59,6 +59,7 @@ TRACKER_OPTIONS = {
     "object_sanity": "object_sanity",
     "object_sanity_kind_keys": "object_sanity_kinds",
     "light_sanity": "light_sanity",
+    "zone_locks": "zone_locks",
     "fast_golf": "fast_golf",
     "lights_required": "lights_required",
     "objects_required": "objects_required",
@@ -226,6 +227,8 @@ class BigWalkWorld(World):
         self._ask_for_the_far_doors_early()
         self._hint_the_keys()
         self._keep_the_gauntlet_stages_local()
+        if self.options.zone_locks_local:
+            self.options.local_items.value |= {lock.item_name for lock in self.zone_locks()}
 
     @classmethod
     def stage_generate_early(cls, multiworld: MultiWorld) -> None:
@@ -840,6 +843,20 @@ class BigWalkWorld(World):
         lights = len(self.lights_counted())
         return max(1, -(-lights * self.options.lights_required.value // 100)) if lights else 0
 
+    def zone_locks(self) -> list[data.ZoneLock]:
+        """
+        `zone_locks` (R12): the zone items of this seed. The lamps' with Light Sanity, or with Object Sanity counting
+        the lamps; the gadgets' with Object Sanity counting another kind.
+        """
+        if not self.options.zone_locks:
+            return []
+        objects = self.options.object_sanity != bigwalk_options.ObjectSanity.option_off
+        lamps = self.options.light_sanity != bigwalk_options.LightSanity.option_off or objects and any(
+            self.object_kind_counted(kind) for kind in data.LAMP_KINDS)
+        gadgets = objects and any(self.object_kind_counted(kind) for kind, _ in data.OBJECT_KINDS
+                                  if kind not in data.LAMP_KINDS)
+        return [lock for lock in data.ZONE_LOCKS if (lamps if lock.lamps else gadgets)]
+
     def object_kind_counted(self, kind: str) -> bool:
         """
         Whether `object_sanity_kinds` keeps this kind (the game's name for it). With `light_sanity` the lamps are
@@ -979,6 +996,15 @@ class BigWalkWorld(World):
             "lights_required": self.options.lights_required.value,
             "lights_required_count": self.lights_target(),
             "lights_counted": [light.key for light in self.lights_counted()],
+            # Zone locks (R12): the gadgets each zone item keeps off the map until it arrives, by item id; the lamps
+            # and switches are only out of logic, so the mod is told nothing of them.
+            "zone_locks": bool(self.options.zone_locks),
+            "zone_locked_gadgets": {
+                str(data.zone_lock_item_id(lock)): [
+                    obj.guid for obj in data.ISLAND_OBJECTS
+                    if obj.kind not in data.LAMP_KINDS and self.object_kind_counted(obj.kind)
+                    and data.zone_lock_for(obj.guid, obj.zone, False) == lock]
+                for lock in self.zone_locks() if not lock.lamps},
             # fast_golf (R6): the mod takes the golf ball's (the cannonball's) "too heavy" off.
             "fast_golf": bool(self.options.fast_golf),
             # big_objects and big_body: how many object checks, and how many ability items, they ask for.

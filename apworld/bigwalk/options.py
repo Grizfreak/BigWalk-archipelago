@@ -307,7 +307,7 @@ class ObjectSanityItems(Choice):
     """
     What Object Sanity's checks may hold.
 
-    - any: anything, from any world.
+    - any: anything, from any world, except the share `object_sanity_junk_percentage` keeps for junk.
     - local: only this world's own items, of those nothing needs (filler, traps, useful ones).
     - junk: only filler, never anything a world needs.
     """
@@ -341,7 +341,7 @@ class LightSanityItems(Choice):
     """
     What Light Sanity's checks may hold.
 
-    - any: anything, from any world.
+    - any: anything, from any world, except the share `light_sanity_junk_percentage` keeps for junk.
     - local: only this world's own items, of those nothing needs (filler, traps, useful ones).
     - junk: only filler, never anything a world needs.
     """
@@ -351,6 +351,67 @@ class LightSanityItems(Choice):
     option_local = 1
     option_junk = 2
     default = option_any
+
+
+class ObjectSanityJunkPercentage(Range):
+    """
+    With `object_sanity_items: any`, the share of Object Sanity's checks, drawn at random, that hold only junk
+    (filler or a trap). The rest may hold anything. 100 is `junk`; 0 lets every check hold anything.
+    """
+
+    display_name = "Object Sanity Junk Percentage"
+    range_start = 0
+    range_end = 100
+    default = 75
+
+
+class LightSanityJunkPercentage(Range):
+    """
+    With `light_sanity_items: any`, the share of Light Sanity's checks, drawn at random, that hold only junk
+    (filler or a trap). The rest may hold anything. 100 is `junk`; 0 lets every check hold anything.
+    """
+
+    display_name = "Light Sanity Junk Percentage"
+    range_start = 0
+    range_end = 100
+    default = 75
+
+
+class ZoneLocks(Toggle):
+    """
+    The island's lamps and gadgets locked by zone, the zone of the nearest of the four coloured towers: 8 items,
+    `Red Zone Lamps`, `Red Zone Gadgets` and so on for green, blue and yellow. Only with Object Sanity or Light
+    Sanity on, for what they count.
+
+    - Gadgets: a zone's gadgets are off the map until its item arrives.
+    - Lamps and light switches: they stay usable, but they are out of logic until the item arrives (lighting one
+      early still sends its check).
+
+    The tutorial's, the Map Room's, the chairlift's, the tunnels' and the train's keep the lock they have.
+    """
+
+    display_name = "Zone Locks"
+
+
+class StartWithZoneLocks(OptionSet):
+    """
+    With Zone Locks on, the zones you already have.
+
+    Keys: red_lamps, red_gadgets, green_lamps, green_gadgets, blue_lamps, blue_gadgets, yellow_lamps,
+    yellow_gadgets.
+    """
+
+    display_name = "Start With Zone Locks"
+    valid_keys = data.ZONE_LOCK_KEYS
+    default = frozenset()
+
+
+class ZoneLocksLocal(Toggle):
+    """
+    With Zone Locks on, keep the zone items in your own world.
+    """
+
+    display_name = "Zone Locks Local"
 
 
 class FlareGunSanity(DefaultOnToggle):
@@ -1035,6 +1096,27 @@ class TrapWeights(OptionCounter):
       blindfold puzzles, and nobody can take it off; a player already wearing a mask is spared.
     - Big Flare: a flare gun shot lands on every player, in the Archipelago colors.
       Each player can hide it on their own screen (Settings > Archipelago > Gentle effects).
+    - Big Time: every player gets a clock to keep, showing the real time of their own computer.
+    - Big Silence: for `trap_duration` seconds, every player is muted, and the mute key cannot lift it.
+    - Big Slide: for `trap_duration` seconds, the ground is slippery: starting, stopping and turning
+      slide.
+    - Big Ghost: for `trap_duration` seconds, every player is white, as in the Silent Gauntlet (the
+      color, not the silence).
+    - Big Paint: for `trap_duration` seconds, the players swap colors (two swap, more go round).
+    - Big Air (hard): a timed tomato ticks in every player's hands, then everyone shoots up into the
+      air (stopping under a ceiling).
+    - Big Goggles: for `trap_duration` seconds, the field of view narrows.
+    - Big Pixels: for `trap_duration` seconds, the island turns to big square pixels.
+    - Big Head: for `trap_duration` seconds, the other players' heads grow.
+    - Big Brain: for `trap_duration` seconds, the other players' heads are a lit lamp.
+    - Big Arms: for `trap_duration` seconds, the players' hands grow (seen on the others).
+    - Big Smell: for `trap_duration` seconds, every player gives off a green gas and the players are
+      pushed apart.
+    - Big Brother: for `trap_duration` seconds, every player is small: body, view and collisions.
+    - Big Reset (hard): the puzzle still holding its gourd nearest to each group of players starts
+      again (its room's door shuts and opens).
+    - Big Break: a folding chair appears under every player, who is sat on it.
+    Gentle effects also spares Big Goggles, Big Pixels, Big Smell's gas and Big Brain's light.
     """
 
     display_name = "Trap Weights"
@@ -1098,15 +1180,14 @@ class BonusWeights(OptionCounter):
 
 class IslandObjectLimits(OptionCounter):
     """
-    The most of each of the island's objects the pool holds; 0 leaves one out. Once every object
-    is at its limit, the rest of the filler is bonuses (`bonus_weights`).
+    How many of each of the island's objects the filler draws first; 0 leaves one out. Once every
+    object is at its limit, the rest of the filler goes on with the objects not left out, the one
+    the pool holds fewest of each time (a big pool, with Object or Light Sanity, has room for many).
 
     - Most objects are random filler, drawn up to their limit. They are props the item feed names and
       that land beside you, with no effect and nothing in logic: none is ever needed.
-    - The Walkie-Talkie is one of them, and 8 is not a lot to ask of the pool: 8 is how many the
-      island itself has, so it is the most the filler can ever hold of them, and a seed that does
-      not draw them all just makes more bonuses (traps and bonuses replace part of the filler as
-      well). Lower it, or take it to 0, for a pool with fewer of them.
+    - The Walkie-Talkie is one of them, and 8 is how many the island itself has. Lower it, or take
+      it to 0, for a pool with fewer of them.
     - The four flare guns (`Flare Gun`, `Blue Flare Gun`, `Green Flare Gun`, `Yellow Flare Gun`) are
       not random filler: with `flare_gun_sanity` the pool holds exactly this many of each, and
       without it none. The `Rainbow Flare Gun` is always in the pool, this many times (0 leaves
@@ -1348,8 +1429,13 @@ class BigWalkOptions(PerGameCommonOptions):
     object_sanity: ObjectSanity
     object_sanity_kinds: ObjectSanityKinds
     object_sanity_items: ObjectSanityItems
+    object_sanity_junk_percentage: ObjectSanityJunkPercentage
     light_sanity: LightSanity
     light_sanity_items: LightSanityItems
+    light_sanity_junk_percentage: LightSanityJunkPercentage
+    zone_locks: ZoneLocks
+    start_with_zone_locks: StartWithZoneLocks
+    zone_locks_local: ZoneLocksLocal
     lights_required: LightsRequired
     objects_required: ObjectsRequired
     body_required: BodyRequired
@@ -1373,7 +1459,8 @@ option_groups = [
     OptionGroup("Sanity", [
         GourdSanity, RadioSanity, ShuffleRadioMusic, PackSanity, FireworkSanity, FlareGunSanity, TowerSanity,
         MonumentSanity, CutKeySanity,
-        ObjectSanity, ObjectSanityKinds, ObjectSanityItems, LightSanity, LightSanityItems,
+        ObjectSanity, ObjectSanityKinds, ObjectSanityItems, ObjectSanityJunkPercentage, LightSanity, LightSanityItems,
+        LightSanityJunkPercentage, ZoneLocks, StartWithZoneLocks, ZoneLocksLocal,
     ]),
     OptionGroup("Logic", [
         StartWithDrawbridgeOpen, StartWithMapRoomOpen, StartWithArchDoorsOpen, RequireArchDoors, OpenBlackTower,

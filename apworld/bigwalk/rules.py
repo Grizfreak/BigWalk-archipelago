@@ -230,24 +230,39 @@ def gauntlet_body_through(world: BigWalkWorld, count: int) -> Rule | None:
 def object_rule(world: BigWalkWorld, obj: data.IslandObject) -> Rule | None:
     """
     What an island object asks for beyond its region (locations.OBJECT_ZONE_REGIONS): the Map Room's
-    item for the Map Room's bench, a tower's far door for its roof and stairs (as reaching the tower).
+    item for the Map Room's bench, a tower's far door for its roof and stairs (as reaching the tower);
+    with `zone_locks`, its zone's item too.
     """
-    if obj.zone == "map_room":
+    return with_zone(world, place_rule(world, obj.zone), obj.guid, obj.zone, obj.kind in data.LAMP_KINDS)
+
+
+def place_rule(world: BigWalkWorld, zone: str) -> Rule | None:
+    """What a place of the island asks for beyond its region, as object_rule says."""
+    if zone == "map_room":
         return Has(data.tower_by_prop("bigKeyRedZone").item_name)
-    if obj.zone.startswith("tower:"):
-        door = data.TOWER_FAR_DOOR.get(obj.zone[len("tower:"):])
+    if zone.startswith("tower:"):
+        door = data.TOWER_FAR_DOOR.get(zone[len("tower:"):])
         if door is not None and world.options.require_arch_doors and door in world.locked_arch_doors:
             return Has(door.item_name)
     return None
 
 
+def with_zone(world: BigWalkWorld, rule: Rule | None, key: str, zone: str, lamps: bool) -> Rule | None:
+    """`zone_locks` (R12): the rule, and the item of the zone this lamp or gadget lies in, when the seed has it."""
+    lock = data.zone_lock_for(key, zone, lamps)
+    if lock is None or lock not in world.zone_locks():
+        return rule
+    return Has(lock.item_name) if rule is None else rule & Has(lock.item_name)
+
+
 def light_rule(world: BigWalkWorld, light: data.Light) -> Rule | None:
-    """What a light asks for beyond its region: a lamp as its object does, the train's headlights the Train."""
+    """
+    What a light asks for beyond its region: a lamp as its object does, the train's headlights the Train; with
+    `zone_locks`, its zone's lamps item too.
+    """
     if light.zone == "train":
         return Has(data.tower_by_prop("bigKeyBlueZone").item_name)
-    if light.zone == "map_room" or light.zone.startswith("tower:"):
-        return object_rule(world, data.IslandObject("", "", "", light.zone))
-    return None
+    return with_zone(world, place_rule(world, light.zone), light.key, light.zone, True)
 
 
 def set_light_rules(world: BigWalkWorld) -> None:
@@ -290,14 +305,20 @@ def set_object_event_rules(world: BigWalkWorld) -> None:
 def restrict_object_items(world: BigWalkWorld) -> None:
     """
     `object_sanity_items` and `light_sanity_items` (player, 2026-10-13): those checks hold only junk, or only this
-    world's items (placed before the fill, world.pre_fill).
+    world's items (placed before the fill, world.pre_fill). With `any`, `*_junk_percentage` of them, drawn at
+    random, hold only junk (player, 2026-10-14: not nine useful items in ten).
     """
-    for group, contents, option in (("Objects", world.options.object_sanity_items.value, "object_sanity_items"),
-                                    ("Lights", world.options.light_sanity_items.value, "light_sanity_items")):
-        if contents != bigwalk_options.ObjectSanityItems.option_junk:
+    for group, contents, percentage, option in (
+            ("Objects", world.options.object_sanity_items.value, world.options.object_sanity_junk_percentage.value,
+             "object_sanity_items"),
+            ("Lights", world.options.light_sanity_items.value, world.options.light_sanity_junk_percentage.value,
+             "light_sanity_items")):
+        if contents == bigwalk_options.ObjectSanityItems.option_local:
             continue
         names = locations.LOCATION_NAME_GROUPS[group]
         chosen = [location for location in world.multiworld.get_locations(world.player) if location.name in names]
+        if contents == bigwalk_options.ObjectSanityItems.option_any:
+            chosen = world.random.sample(chosen, round(len(chosen) * percentage / 100))
         exclude_as_junk(world, chosen, f"{option} junk")
 
 

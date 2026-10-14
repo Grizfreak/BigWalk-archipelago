@@ -162,10 +162,11 @@ shots flicker through every color. `island_object_limits` says how many of each 
 
 ### The walkie-talkies in `island_object_limits`
 
-`island_object_limits` caps how many of each of the island's objects the filler holds, and the
-walkie-talkie's default of **8** can look like a lot to ask. It is not: the island itself has 8, so
-that is the most the filler can ever draw of them, and the pool only draws as many as it has room for
-(traps and bonuses, the gear above and the flare guns take their share first). Like every other filler
+`island_object_limits` says how many of each of the island's objects the filler draws first; the
+walkie-talkie's default of **8** is how many the island itself has. The pool only draws as many as it
+has room for (traps and bonuses, the gear above and the flare guns take their share first). A big pool
+(Object or Light Sanity) goes past the limits once every object has reached its own, the object the
+pool holds fewest of each time; an object at 0 stays out. Like every other filler
 prop, a walkie-talkie does nothing for the logic: none is ever needed, it lands beside you when you
 receive it, and its copies on the island are removed so one cannot also be found for free. Lower the
 number, or put it at 0 to leave them out, for a pool with fewer of them.
@@ -203,11 +204,18 @@ Labyrinth, Basketball and Kick Up Pits; carrying for High Button, the two obbies
   **`object_sanity_kinds`** lists the kinds: walkie_talkie, radio, megaphone, binoculars, laser, torch, scanner,
   clock, compass, map, cowbell, lamp, paintbrush (the paintbrushes are left out by default and never leave the
   island). A kind left out leaves the island, except the lamps. **`object_sanity_items`**: `any`, `local` (this
-  world's items that nothing needs) or `junk`.
+  world's items that nothing needs) or `junk`. With `any`, **`object_sanity_junk_percentage`** (75 by default)
+  of the checks, drawn at random, still hold only junk.
 - **`light_sanity`**: a check the first time each light is switched on: `lamps` (83: those on the pedestals, in the
   towers, the tutorial...) or `lamps_and_switches` (with 19 wall switches: the Doof Chamber, the salons, the tutorial,
   the train and its stops). The puzzles' own lights are not counted. With it on, the lamps are lights, not objects.
-  **`light_sanity_items`**: `any`, `local` or `junk`, as for the objects.
+  **`light_sanity_items`**: `any`, `local` or `junk`, and **`light_sanity_junk_percentage`**, as for the objects.
+- **`zone_locks`**: with Object or Light Sanity, the island's lamps and gadgets locked by zone, the zone of the
+  nearest coloured tower: 8 items (`Red Zone Lamps`, `Red Zone Gadgets`, and the same for green, blue and yellow). A
+  zone's gadgets are off the map until its item arrives; its lamps and light switches stay usable but are out of logic
+  until then. The tutorial's, the Map Room's, the chairlift's, the tunnels' and the train's keep the lock they have.
+  **`start_with_zone_locks`** lists the zones you start with (`red_lamps`, `blue_gadgets`...), and
+  **`zone_locks_local`** keeps the 8 items in your own world.
 
 ### Monuments and the game's own ways
 
@@ -527,7 +535,7 @@ Items:
   and the **Rainbow Flare Gun** (`island_object_limits`).
 - Filler: a megaphone, a walkie-talkie, a laser, binoculars, a compass, a folding
   map, a portable radio, a torch or a scanner — the island's own hand props
-  (the most of each is `island_object_limits`), dropped near you when you
+  (how many of each: `island_object_limits`), dropped near you when you
   receive one. They are cosmetic only, and their vanilla copies are removed
   from the map so they can't also be found lying around for free.
 - **Traps and bonuses**, in place of part of the filler: see "Traps and bonuses".

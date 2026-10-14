@@ -3,6 +3,7 @@
 light is switched on, and a share of them as an objective.
 """
 
+from BaseClasses import LocationProgressType
 from Options import OptionError
 
 from .. import data, locations
@@ -66,6 +67,30 @@ class TestBigLightsWithoutLightSanity(BigWalkTestBase):
 class TestLightItemsJunkAndLocal(BigWalkTestBase):
     options = {"light_sanity": "lamps", "light_sanity_items": "junk", "object_sanity": "every",
                "object_sanity_items": "local"}
+
+
+class TestJunkPercentage(BigWalkTestBase):
+    """`*_sanity_items: any` keeps `*_junk_percentage` of the checks for junk (player, 2026-10-14)."""
+
+    options = {"light_sanity": "lamps_and_switches", "light_sanity_junk_percentage": 75, "object_sanity": "every",
+               "object_sanity_junk_percentage": 40}
+
+    def test_share_excluded(self) -> None:
+        for group, percentage in (("Lights", 75), ("Objects", 40)):
+            spots = [loc for loc in self.multiworld.get_locations(self.player)
+                     if loc.name in locations.LOCATION_NAME_GROUPS[group]]
+            excluded = [loc for loc in spots if loc.progress_type == LocationProgressType.EXCLUDED]
+            self.assertEqual(len(excluded), round(len(spots) * percentage / 100), group)
+
+
+class TestNoJunkPercentage(BigWalkTestBase):
+    options = {"light_sanity": "lamps", "light_sanity_junk_percentage": 0}
+    run_default_tests = False
+
+    def test_nothing_excluded(self) -> None:
+        self.assertFalse(any(loc.progress_type == LocationProgressType.EXCLUDED
+                             for loc in self.multiworld.get_locations(self.player)
+                             if loc.name in locations.LOCATION_NAME_GROUPS["Lights"]))
 
 
 class TestLightData(BigWalkTestBase):

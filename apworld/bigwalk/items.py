@@ -32,6 +32,7 @@ ITEM_NAME_TO_ID: dict[str, int] = {
     **{name: data.BASE_ID + offset for name, offset in data.TRAP_ITEMS},
     **{name: data.BASE_ID + offset for name, offset in data.BONUS_ITEMS},
     **{data.teleport_item_name(name): data.teleport_item_id(i) for i, (_, name) in enumerate(data.TELEPORT_DESTINATIONS)},
+    **{lock.item_name: data.zone_lock_item_id(lock) for lock in data.ZONE_LOCKS},
 }
 
 FILLER_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.FILLER_ITEMS)
@@ -70,6 +71,7 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Gauntlet Doors": set(GAUNTLET_ITEM_NAMES) | {data.PROGRESSIVE_GAUNTLET_ITEM_NAME},
     "Monuments": {data.PROGRESSIVE_MONUMENT_ITEM_NAME},
     "Abilities": {ability.item_name for ability in data.ABILITIES},
+    "Zone Locks": {lock.item_name for lock in data.ZONE_LOCKS},
     "Filler": set(FILLER_ITEM_NAMES),
     "Teleporters": set(TELEPORT_ITEM_NAMES),
     "Traps": set(TRAP_ITEM_NAMES),
@@ -134,6 +136,9 @@ def classification_for(name: str, require_arch_doors: bool = False) -> ItemClass
         return ItemClassification.progression
     if name in ITEM_NAME_GROUPS["Monuments"]:
         # Only ever created with `tower_mode: by_item`, where the k-th one opens the k-th tower after the first.
+        return ItemClassification.progression
+    if name in ITEM_NAME_GROUPS["Zone Locks"]:
+        # Only ever created with `zone_locks`, for the checks it locks.
         return ItemClassification.progression
     if name in ITEM_NAME_GROUPS["Puzzle Needs"]:
         # Only ever created when lock_puzzle_needs is on, where each one is
@@ -213,18 +218,23 @@ def get_random_filler_item_name(world: BigWalkWorld) -> str:
 
 def pick_island_object(world: BigWalkWorld) -> str:
     """
-    One of the island's objects, none past its `island_object_limits` count. Gear comes from
-    the guaranteed block in create_all_items, so a top-up filler (create_filler is also called
-    later by the generator) skips it. Once every object is at its limit, a bonus takes the place
-    (by `bonus_weights`); with no bonus left either, the object the pool holds fewest of.
+    One of the island's objects, drawn among those under their `island_object_limits` count. Once
+    every object is at its limit, the objects not left out (limit above 0) go on past it, the one the
+    pool holds fewest of each time (player, 2026-10-14: junk for the big sanities, not a pool of
+    bonuses); with every object left out, a bonus (by `bonus_weights`), else the fewest of all. Gear
+    comes from the guaranteed block in create_all_items, so a top-up filler (create_filler is also
+    called later by the generator) skips it.
     """
     # Made on first use: an item link's group world never runs generate_early.
     counts = world.__dict__.setdefault("island_objects_made", Counter())
     limits = island_object_limits(world)
     objects = [n for n in FILLER_ITEM_NAMES if n not in GUARANTEED_GEAR and n not in FLARE_GUN_NAMES]
     open_ = [n for n in objects if counts[n] < limits.get(n, 0)]
+    kept = [n for n in objects if limits.get(n, 0) > 0]
     if open_:
         name = world.random.choice(open_)
+    elif kept:
+        name = min(kept, key=lambda n: (counts[n], world.random.random()))
     else:
         bonus = pick_bonus(world)
         if bonus is not None:
@@ -326,6 +336,13 @@ def create_all_items(world: BigWalkWorld) -> None:
                 world.push_precollected(world.create_item(need.item_name))
             else:
                 pool.append(world.create_item(need.item_name))
+
+    # The zones' lamps and gadgets (`zone_locks`, R12), displacing filler; those the player starts with handed over.
+    for lock in world.zone_locks():
+        if lock.key in world.options.start_with_zone_locks.value:
+            world.push_precollected(world.create_item(lock.item_name))
+        else:
+            pool.append(world.create_item(lock.item_name))
 
     # The body's abilities, displacing filler like the rest.
     # An ability listed in `start_with_abilities` is the player's from the start: its items are handed over at once.
