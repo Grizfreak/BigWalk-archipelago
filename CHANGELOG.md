@@ -6,6 +6,35 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## 0.7.1
+
+### Moving from 0.7.0 to 0.7.1
+
+- **Everyone needs this build:** the host's channel to its guests changed (protocol v21).
+- **A 0.7.0 YAML generates almost as it did**, with two changes when `object_sanity` or `light_sanity` is on: their
+  checks now hold junk for 75% of them with `*_items: any` (`object_sanity_junk_percentage`,
+  `light_sanity_junk_percentage`; set them to 0 for the 0.7.0 behaviour), and a big pool fills with the island's
+  gadgets past `island_object_limits` instead of bonuses.
+- A seed with only a `goal` now shows it as its one objective, on the overlay and on the hub's board.
+
+### Added
+
+- **`zone_locks`**: with Object or Light Sanity, the island's lamps and gadgets locked by the zone of the nearest
+  coloured tower, eight items (`Red Zone Lamps`, `Red Zone Gadgets`, and the same for green, blue and yellow). A
+  zone's gadgets are off the map until its item arrives; its lamps and light switches stay usable but are out of logic
+  until then. **`start_with_zone_locks`** and **`zone_locks_local`**. The tutorial's, the Map Room's, the
+  chairlift's, the tunnels' and the train's keep their lock.
+- **`object_sanity_junk_percentage`** and **`light_sanity_junk_percentage`** (75): the share of those checks that
+  holds only junk with `*_items: any`.
+- **Big Brother** pitches the voices up while everyone is small.
+
+### Fixed
+
+- `junk` for Object or Light Sanity could not be kept in a big pool (the filler past the gadgets' limits was all
+  bonuses, which are useful items).
+- The YAML template described only the first traps; it describes all 24.
+- The rare FillError with `linear_keys` and `linear_towers` together is rarer.
+
 ## 0.6.0 (unreleased)
 
 ### Moving from 0.5 to 0.6
