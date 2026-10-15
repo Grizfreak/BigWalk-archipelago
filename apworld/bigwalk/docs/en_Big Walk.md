@@ -71,530 +71,524 @@ the starting area through the Drawbridge or the First Arch Door, and one of the
 two is always found early. With it open, most of the island is reachable right
 away.
 
-### The Silent Gauntlet
 
-`gauntlet_mode` is `vanilla` by default: the Gauntlet is as the game has it, and
-has no checks. With `locked_stages` each of its seven stages is a check, and
+### Silent Gauntlet
+
+`gauntlet_mode` is `vanilla` by default, so the Gauntlet works as in the game
+and has no checks. With `locked_stages`, each of its seven stages is a check and
 each way up is an item.
 
-In the game, a stage has two doors: its puzzle opens a wall inside the stage,
-and the stairway to the next stage opens when every player holds its buttons
-together. With `locked_stages` those buttons are gone. Solving a stage's puzzle
-is still its check, but the wall and the stairway both stay shut until that
-stage's item, **Gauntlet Stage 1 Door** to **Gauntlet Stage 7 Door**, has
-arrived: nothing opens that does not lead on. The `big_goodbye` goal needs all
-seven.
+In the game, each stage has two doors. Its puzzle opens a wall inside the stage,
+and the stairway to the next stage opens when every player holds its buttons at
+the same time. With `locked_stages` those buttons are gone. The puzzle is still
+the stage's check, but the wall and the stairway stay shut until the stage's
+item arrives (**Gauntlet Stage 1 Door** to **Gauntlet Stage 7 Door**).
 
-- It applies to every goal. With **Big Goodbye** the seven items are needed to
-  win. With another goal the Gauntlet is extra: its checks are behind the
-  chapel, so with the usual accessibility the Black Monolith Key and the seven
-  items are always findable, but the goal does not ask for them.
-- `gauntlet_puzzles_required` (on by default): the puzzle is still needed to
-  open the wall; with the item, the wall opens as soon as the puzzle is solved,
-  or at once if it already was. Turn it off and the item opens the wall too: you
-  can do the puzzles in any order, or none, and walk straight to the top with the
-  seven items. The puzzles stay checks.
-- `lock_gauntlet_needs` (on by default, in `vanilla` too): with `lock_puzzle_needs`
-  on as well, the parts inside the Gauntlet's stages (their buttons, panels and so
-  on) are items as everywhere else, and the Big Goodbye goal asks for them, since
-  finishing the Gauntlet means solving its stages. With `locked_stages` the stages'
-  checks ask for them too. Turn it off to leave the Gauntlet's parts on the map and
-  ask for none.
+- With the **Big Goodbye** goal you need all seven items to win. With another
+  goal the Gauntlet is optional: its checks are behind the chapel, so with the
+  usual accessibility the Black Monolith Key and the seven items can always be
+  found, but the goal doesn't need them.
+- `gauntlet_stage_items`: `progressive` (seven Progressive Gauntlet Doors) or
+  `individual` (one door item per stage, found in any order).
+- `gauntlet_puzzles_required` (on by default): the wall only opens once the
+  puzzle is solved and the item has arrived. Turn it off and the item opens the
+  wall by itself, so you can skip the puzzles and walk to the top with the seven
+  items. The puzzles are still checks.
+- `lock_gauntlet_needs` (on by default, even in `vanilla`): when
+  `lock_puzzle_needs` is on, the parts inside the Gauntlet (buttons, panels...)
+  are items like everywhere else, and Big Goodbye needs them. With
+  `locked_stages` the stage checks need them too. Turn it off to leave the
+  Gauntlet's parts on the map.
 - `gauntlet_stages_local` (on by default): the seven items stay in your own
-  world, so a stage is never held up by another game's item.
+  world, so another game never holds up a stage.
 
 Everyone needs the same build of the mod.
 
 ### Puzzle parts
 
-Off by default. With `lock_puzzle_needs` on, what a puzzle is built from stops
-being scenery and becomes an item: its buttons, its panels, its speakers, its
-timer. A puzzle is never behind an item of its own, and nothing stops you
-walking in; it is simply missing the parts you have not been sent yet. They
-are not on the map until their item arrives, and then they appear, for
-everybody, wherever they are.
+With `lock_puzzle_needs` (on by default), the things puzzles are built from
+become items: buttons, panels, speakers, timers and so on. A puzzle never has an
+item of its own and you can always walk in. It's just missing the parts you
+haven't received yet. A part isn't on the map until its item arrives, then it
+appears everywhere, for everyone.
 
 There are 17: **Buttons**, **Synchronized Buttons**, **Icon Panels**,
 **Drawing Panels**, **Pose Panels**, **Sound Panels**, **Point Panels**,
 **Speakers**, **Lights**, **Teapots**, **Timed Tomato**, **Golf Ball**,
 **Big Head Mask**, **Ink Viewer**, **Counter**, **Coordinates Computer** and
-**Terrain Pegs**. A part is global: Buttons turns on every puzzle button on the
-island, for every player. The generator only counts on a puzzle once you
-hold every part it needs, so a puzzle may be possible earlier than the logic
-expects (you found a way round) but never the other way.
+**Terrain Pegs**. Each one covers the whole island: Buttons turns on every
+puzzle button, for every player. The logic only expects a puzzle once you have
+all its parts. Sometimes you can solve one earlier, never later.
 
-The tutorial's puzzles need parts too. So that you are never left with nothing
-to do, you start with one of them, picked at random among the ones a tutorial
-puzzle can be solved with (`start_with_random_puzzle_need`, on by default);
-`start_with_puzzle_needs` lists parts you want from the start as well.
+The tutorial's puzzles need parts too, so you start with one, picked at random
+among the parts that solve a tutorial puzzle (`start_with_random_puzzle_need`,
+on by default). Add more with `start_with_puzzle_needs`.
 
-Left alone on purpose: door handles, the train's controls, the hub gates, the
-lookouts, the radio stations, the Silent Gauntlet and everything at the end of
-the game. Putting a puzzle's parts back is shown in the corner of the screen:
+Never locked: door handles, the train's controls, the hub gates, the lookouts,
+the radio stations, the Silent Gauntlet and everything at the end of the game.
+When you're at a puzzle with missing parts, the corner of the screen tells you:
 `Puzzle parts missing (12): buttons, icon panels, ...`.
 
-**Everyone in a co-op group must run the same build of the mod** for this: the
-host tells each guest what is still missing, and a guest on another build
-sees every part and can use it.
-
-## Checks and items added in 0.4
-
-Three things on the island can now be checks, each with its own option, **on by default**:
-
-- **`pack_sanity`**: the island's 6 backpacks, 5 belts and its gourd carton stay on the map, and
-  the first time one is picked up it is a check (12 locations); the pack then disappears from the
-  map for everybody. Named by color (**Sky Blue Backpack**, **Purple Belt**, ...), the carton
-  **Gourd Carton Pickup**. The backpacks, belts and cartons you can wear or use are still items of
-  the pool (`backpacks_in_pool`, `belts_in_pool`, `gourd_cartons_in_pool`). Off, they are on the map as
-  in the game, free to take, and no check. `junk`: the same 12 checks, holding only filler or a trap. `vanilla`: each of the 12 checks gives the pack
-  itself, which stays in the hands of whoever picked it up; no other location gives a pack, and the `*_in_pool`
-  options do nothing.
-- **`firework_sanity`**: firing each of the 8 firework launchers, with the button at its foot, for
-  the first time is a check (8 locations): **Hub Fireworks**, **Peak Fireworks**, and so on.
-- **`flare_gun_sanity`**: picking up each of the island's 4 flare guns is a check (4 locations,
-  **Red**, **Green**, **Yellow** and **Blue Flare Gun Pickup**). The four guns come back as items of
-  the pool, as many of each as `island_object_limits` says (1 by default). Off, the guns stay on the
-  island as in the game and none is an item. `junk`: the same 4 checks, holding only filler or a trap.
-
-The **Rainbow Flare Gun** is an item of the pool, once, in every seed: a white flare gun whose
-shots flicker through every color. `island_object_limits` says how many of each flare gun the pool holds
-(1 each by default; 0 leaves the Rainbow out); they are never random filler.
-
-### The walkie-talkies in `island_object_limits`
-
-`island_object_limits` says how many of each of the island's objects the filler draws first; the
-walkie-talkie's default of **8** is how many the island itself has. The pool only draws as many as it
-has room for (traps and bonuses, the gear above and the flare guns take their share first). A big pool
-(Object or Light Sanity) goes past the limits once every object has reached its own, the object the
-pool holds fewest of each time; an object at 0 stays out. Like every other filler
-prop, a walkie-talkie does nothing for the logic: none is ever needed, it lands beside you when you
-receive it, and its copies on the island are removed so one cannot also be found for free. Lower the
-number, or put it at 0 to leave them out, for a pool with fewer of them.
-
-## Added in 0.6
-
-Every option below is **off by default**, except `monument_sanity` (7 checks, on): set it off for a 0.5 YAML's count.
-
-### The players' bodies (`lock_abilities`)
-
-With **`lock_abilities`** set to `handed` or `ambidextrous`, the players' bodies are items, and each one reaches
-**every player of the slot at once**:
-
-- **Legs**: jumping and crouching. The island past the tutorial needs both, so Legs is asked for to leave the
-  starting zone (if the starting zone has no room left for it, you start with it).
-- **Seat**: sitting on a chair, a couch, a bench or a stump, and on the floor. Turnstiles, telescopes, the
-  chairlift, the train and the ending are never locked.
-- **Progressive Arm**: raising the arm, then pointing, then extending it sideways. `handed`: three for the left
-  arm, three for the right; `ambidextrous`: three **Progressive Arms**, both arms at once.
-- **Throwing** and **Carrying** another player. Big Throw still throws while Throwing is locked.
-- **Running**, with **`lock_running`** (useful only: the logic never asks for it).
-
-**`start_with_abilities`** lists those you already have: `legs`, `seat`, `arms`, `throwing`, `carrying` (none by
-default, as `start_with_puzzle_needs` for the puzzles' parts). One not listed is an item to find.
-
-The gesture puzzles ask for what they use: Concert, Indoor Semaphore, Optical Telegraph, Charades Rooms,
-Pointer's Paradise, Dancer and Selector and the Gauntlet's last stage the Seat and both arms extended,
-Invisible Ink both arms raised, the Carousel and Cannonball Commute the Seat; throwing for Fielding, Window
-Labyrinth, Basketball and Kick Up Pits; carrying for High Button, the two obbies and Pointer's Paradise.
-
-### The island's objects and lights
-
-- **`object_sanity`**: the island's gadgets stay on the map, and picking them up sends checks: `first_pickup`, the
-  first of each kind (16 by default); `every`, each one (144 by default), which then leaves the map like a pack.
-  **`object_sanity_kinds`** lists the kinds: walkie_talkie, radio, megaphone, binoculars, laser, torch, scanner,
-  clock, compass, map, cowbell, lamp, paintbrush (the paintbrushes are left out by default and never leave the
-  island). A kind left out leaves the island, except the lamps. **`object_sanity_items`**: `any`, `local` (this
-  world's items that nothing needs) or `junk`. With `any`, **`object_sanity_junk_percentage`** (75 by default)
-  of the checks, drawn at random, still hold only junk.
-- **`light_sanity`**: a check the first time each light is switched on: `lamps` (83: those on the pedestals, in the
-  towers, the tutorial...) or `lamps_and_switches` (with 19 wall switches: the Doof Chamber, the salons, the tutorial,
-  the train and its stops). The puzzles' own lights are not counted. With it on, the lamps are lights, not objects.
-  **`light_sanity_items`**: `any`, `local` or `junk`, and **`light_sanity_junk_percentage`**, as for the objects.
-- **`zone_locks`**: with Object or Light Sanity, the island's lamps and gadgets locked by zone, the zone of the
-  nearest coloured tower: 8 items (`Red Zone Lamps`, `Red Zone Gadgets`, and the same for green, blue and yellow). A
-  zone's gadgets are off the map until its item arrives; its lamps and light switches stay usable but are out of logic
-  until then. The tutorial's, the Map Room's, the chairlift's, the tunnels' and the train's keep the lock they have.
-  **`start_with_zone_locks`** lists the zones you start with (`red_lamps`, `blue_gadgets`...), and
-  **`zone_locks_local`** keeps the 8 items in your own world.
-
-### Monuments and the game's own ways
-
-- **`monument_sanity`** (on by default): a check when each monument is full (**Drawbridge Monument Full** and so on).
-- **`linear_towers`**: each tower's key comes from its monument, as in the game. `all_deposit_boxes`: when the
-  monument is full (the checks above exist then). `one_deposit_box`: once the monument holds a number of gourds
-  drawn for each tower, between one and full (**Drawbridge Monument Key** and so on, which always hold the key).
-- **`linear_keys`**: a placed key opens its door, as in the game (each key deposit holds its own door).
-- **`linear_puzzles`**: every puzzle holds a gourd (it still arrives beside you, as an item), except the seven purple
-  ones past the chairlift.
-- **`start_with_map_room_open`**: the Map Room is open from the start.
-- **`include_big_game_puzzles`**: the seven purple gourds' puzzles: `from_start` (as before, shown on the map),
-  `when_unlocked` (in logic once an ending is reached, not on the map) or `disabled` (no checks).
-- **`cut_key_sanity`**: the 25 key cuts: `on` (as before), `junk` or `off`.
-- **`fast_golf`**: the golf ball (the cannonball) is no longer too heavy.
-
-A short line on the overlay now says each check sent: what it was, what it gave, and to whom.
-
-## Added in 0.7
-
-Every option below is **off by default**, except `hint_board` (on). None of them changes the checks: a 0.6 YAML
-generates the same seed's count.
-
-- **`hint_board`** (on): the centre sign of the hub's notice board shows your hint points and a hint's cost, and lists
-  the hints you asked for that are not found yet. Write an item's name on it to ask for a hint (it costs points, as
-  `!hint`).
-- **`tracker_board`**: the right sign of the notice board counts the checks you can do now, in logic, against those not
-  done yet, and names a few: those a hint points to first, then those holding a progression item.
-- **`map_tracker`**: the big map of the Map Room tracks the seed. Every check stands on it, a small copy of its object
-  on a pin, and leaves it once done: `in_logic` shows only what you can do now, `all` every check not done, those out
-  of logic greyed.
-- **`linear_arch_doors`**: the hub's three arch doors are as in the game, opened by their push buttons on their far
-  side; no item. You then leave the starting zone through the Drawbridge.
-- **`cabin_fever_hide_timer`** and **`cabin_fever_long_hide_timer`**: the Cabin Fever rooms' dial reads "??:??" while
-  the wait runs, now and then flashing one digit. The game's sound still plays over the last ten seconds.
-- **Twelve new traps** (see Traps and bonuses below), and the Gourd Carton follows `gourd_name`.
-
-## Added in 1.0
-
-Every option below is **off by default**, except `custom_tiles` (`matching_games`), and none changes a 0.7 YAML's
-checks.
-
-- **`custom_tiles`**, **`custom_tile_choices`**, **`custom_tile_weights`**, **`custom_drawings`**: the puzzles' basic
-  tiles shown as the community's drawings (see Custom tiles below).
-- **`pack_sanity: junk`** and **`flare_gun_sanity: junk`**: the same checks, holding only filler or a trap.
-  **`pack_sanity: vanilla`**: each pack's check gives the pack itself.
-- **`linear_towers: one_deposit_box`**: a tower's key comes at a gourd drawn for it, at its **Monument Key** check.
-
-## Other options
-
-- **`start_with_drawbridge_open`**: the Drawbridge is open from the start (its key deposit stays a check).
-- **`open_black_tower`** (on): the Black Tower's door is open from the start, instead of waiting for the five
-  monuments.
-- **`hint_keys`**: `from_start` hints the seven big keys at the start, as if they were in your Start Hints.
-- **`tower_resync_stations`**: a resync station in each of the five towers (a button that brings your gourds, keys
-  and gadgets lying around back in front of it; the hub's is always there). **`guests_can_resync`** lets the guests
-  use them too.
-- **`teleport_buttons`**: buttons in the hub to the five towers and the Silent Gauntlet: `free`, `with_towers` (once
-  the place was opened on foot) or `items` (each also needs its Teleporter item). **`teleport_back_to_hub`** adds a
-  button back in each destination.
-- **`cabin_fever_seconds`** (300) and **`cabin_fever_long_seconds`** (1800): the two Cabin Fever waits, in seconds.
-  **`cabin_fever_help`** and **`cabin_fever_long_help`** hide a button in each room that takes ten seconds off.
-- **`tile_thief`**: a button beside the Tile Thief puzzle that makes peg tiles: `easy` (the tiles it expects) or
-  `chaos` (one of every kind it draws from).
-- **`gauntlet_stage_items`**, with `gauntlet_mode: locked_stages`: `progressive` (seven Progressive Gauntlet Doors)
-  or `individual` (one door item per stage, in any order).
-- **`death_link_roulette_hard_traps`** (on): the DeathLink roulette may draw the hard traps; off keeps them out.
-
-## Colors
-
-With **`random_colors`** (on by default) the seed draws between five and ten colors from the
-mod's ten (red, orange, yellow, lime, green, cyan, blue, purple, pink, white), and the island's
-**buoys** and **flare guns** are painted with them:
-
-- a buoy: its body, its halo and the light it throws, one color per buoy, the same on every
-  player's screen;
-- a flare gun: its body and barrel, and its shot (the flare, its light and its smoke). The four
-  island guns take the first four colors of the draw, and a gun you receive is painted like its
-  kind. The item feed names a flare gun by its color: "Received: Pink Flare Gun".
-
-**Only objects of the map are painted.** The players, the gourds and the keys are not touched. Turn
-`random_colors` off to keep the game's own colors.
-
-## Custom tiles
-
-The nine basic peg tiles (the triangle, the asterisk, the diagonal line, the G, the dot and line, the three dots,
-the S, the spiral and the e) can show other drawings for the seed. A tile only changes what it shows: every peg
-tile, split-flap and display of that kind follows, on every player's screen, and the puzzles ask for the same tiles.
-
-- **`custom_tiles: matching_games`** (the default): the drawings of the games in the multiworld, and pelly
-  (Archipelago's own, in every multiworld), join the nine basic tiles, and nine are drawn among them; nothing is
-  forced.
-- **`matching_first`**: the same drawings, every one of them shown (nine drawn among them if there are more); the
-  game's tiles keep the places left.
-- **`all`**: nine drawn among every tile. **`custom_only`**: nine drawn among the drawings alone, none of the game's
-  tiles stays. **`off`**: the game's tiles.
-- **`custom_tile_choices`**: the tiles you want for sure (nine at most), whatever the mode and the weights:
-  `custom_tile_choices: [pokeball, heart, cat]`.
-- **`custom_tile_weights`**: how often each tile is drawn (0 leaves it out).
-- **`custom_drawings`** (off): the community's scribbles for the drawing panels (the Poet's and the Pontiff's
-  puzzles), each one in the place of one of the game's 45, drawn for the seed. None are in this version yet.
-
-The drawings and the games that bring them: pelly (every multiworld), jack (The Witness), strawberry (Celeste),
-triforce (Zelda, Link to the Past, Links Awakening, Ocarina of Time, Majora's Mask, Wind Waker, Minish Cap, Twilight
-Princess, Skyward Sword, SMZ3), semibot (R.E.P.O.), star (Mario, Luigi, Yoshi), smile (Lingo), five (Dice), arrow
-(Grapple Dog), sword_in_stone (Dark Souls), lodo (StarCraft), stones_above_banner (RuneScape), pokeball (Pokémon),
-tree (Terraria), creeper (Minecraft), sigil (Blasphemous), chicken (Stardew Valley), planets (Risk of Rain), monster
-(Slay the Spire), joker (Balatro), rune (DOOM), knight (Hollow Knight), blob_with_legs (Animal Well), gear (Factorio),
-hat (A Hat in Time), heart (Undertale, Deltarune), tunic (Tunic), portal (Portal), cat (Rain World). A game matches
-when its name holds one of these, whatever the capitals (`Super Mario 64`, `Manual_SuperMarioBros3_Someone`). The
-spoiler log lists the seed's tiles.
-
-The drawings are by **Jack5**, **Don Chalant**, **GameFraek** and **Kensufox**, under
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); who drew which one is in the mod's repository,
-`mod/assets/tiles/LICENSE.md`. They are fan art: the games belong to their owners. To propose a tile of your own:
-`mod/assets/tiles/README.md` in the mod's repository.
-
-## The gourds' name
-
-**`gourd_name`** renames the gourds for the run, up to 24 characters: `gourd_name: Plumbus du
-Destin`. Every game of the multiworld, the Text Client, Universal Tracker, the spoiler log and the
-mod's overlay say that name, and `!hint Plumbus du Destin` finds them (`!hint Gourd` too). The
-Gourd Carton follows them and becomes the **Plumbus du Destin Carton**; `!hint Gourd Carton`,
-`!hint Gourd Carrier` and `!hint Plumbus du Destin Carrier` find it too. Only the names change: the
-items are the same. The locations keep their names (Gourd Deposit 10, Gourd Carton Pickup).
-
-The name belongs to the game, not to a slot: every Big Walk slot of a multiworld has to ask for the
-same one, or they all keep "Gourd". A name that already belongs to another Big Walk item or item
-group (Backpack, Traps...) keeps "Gourd" too.
-
-## Traps and bonuses
-
-Traps and bonuses are items that hit **every player of the session**, and they replace part of the
-filler. By default **no trap** is in the pool (`trap_fill_percentage: 0`) and a quarter of the
-filler is bonuses (`bonus_fill_percentage: 25`).
-
-| Trap | What it does |
-|---|---|
-| **Big Drop** | everyone drops what they hold |
-| **Big Throw** (hard) | everyone winds up, then throws what they hold; it cannot be cancelled |
-| **Big Trip** (hard) | everyone is sent somewhere else on the map, each to a different place the logic has opened: the hub, a tower, a radio station, a solved puzzle, a launcher fired, a pack picked up. A timed tomato ticks, then pops as you go |
-| **Big Meeting** (hard) | everyone is sent around one player drawn at random, in a ring, facing them |
-| **Big Night** | the clock fast-forwards to midnight, the same hour for everyone, and runs on from there |
-| **Big Sleep** (hard) | for `trap_duration` seconds, everyone falls asleep where they stand for two seconds out of seven |
-| **Big Load** (hard) | every pack worn comes off and what it holds falls out |
-| **Big Mask** (hard) | for `trap_duration` seconds, everyone wears the blindfold puzzles' helmet and nobody can take it off. A player already wearing a puzzle's mask is spared |
-| **Big Flare** | a flare gun shot lands on every player, in the Archipelago colors. Each player can hide it on their own screen, see Gentle effects below |
-| **Big Silence** | for `trap_duration` seconds, every player is muted, and the mute key cannot lift it |
-| **Big Slide** | for `trap_duration` seconds, the ground is slippery: starting, stopping and turning slide |
-| **Big Time** | every player gets a clock to keep, showing the real time of their own computer |
-| **Big Ghost** | for `trap_duration` seconds, every player is white, as in the Silent Gauntlet (the color, not the silence) |
-| **Big Paint** | for `trap_duration` seconds, the players swap colors (two swap, more go round) |
-| **Big Air** (hard) | a timed tomato ticks in every player's hands, then everyone shoots up into the air (stopping under a ceiling) |
-| **Big Goggles** | for `trap_duration` seconds, the field of view narrows |
-| **Big Pixels** | for `trap_duration` seconds, the island turns to big square pixels |
-| **Big Head** | for `trap_duration` seconds, the other players' heads grow |
-| **Big Brain** | for `trap_duration` seconds, the other players' heads are a lit lamp |
-| **Big Arms** | for `trap_duration` seconds, the players' hands grow (seen on the others) |
-| **Big Smell** | for `trap_duration` seconds, every player gives off a green gas and the players are pushed apart |
-| **Big Brother** | for `trap_duration` seconds, every player is small: body, view and collisions |
-| **Big Reset** (hard) | the puzzle still holding its gourd nearest to each group of players starts again (its room's door shuts and opens) |
-| **Big Break** | a folding chair appears under every player, who is sat on it |
-
-| Bonus | What it does |
-|---|---|
-| **Big Speed** | everyone walks and runs faster for `trap_duration` seconds |
-| **Big Jump** | everyone jumps higher for `trap_duration` seconds |
-| **Big Day** | the clock fast-forwards to noon, and runs on from there |
-
-`trap_weights` and `bonus_weights` set how often each comes (0 takes one out), `hard_traps` off keeps
-only the standard traps, `trap_duration` sets how long the lasting ones last (20 seconds by default), and
-`traps_spare_the_gauntlet` (on) keeps Big Trip and Big Meeting away from players inside the Silent
-Gauntlet.
-
-They reach you through the host. They go off one after another, about four seconds apart; one still
-waiting when the game closes is kept in the save; a player who joins during a lasting one gets it for
-the time that is left; and for 20 seconds after a world is ready or a player joins, Big Trip and Big
-Meeting are let go, so nobody is moved while the others are still arriving.
-
-## DeathLink
-
-`death_link` is `off` by default; `send`, `receive` and `both` turn it on.
-
-- **What sends one** (`death_link_triggers`): by default `puzzle_failed` — a wrong tile validated,
-  buttons pressed out of order, a count gone wrong, a synchronised button let go, a dispenser's timed
-  tomato run out, 29 puzzles in all. Add `big_fall` for a fall that leaves a player dazed. The message
-  the other games read says what happened: "*slot* failed the Blindfold Catwalk Puzzle (buttons
-  pressed out of order)". `death_link_amnesty` forgives that many triggers before one is sent.
-- **What one does when it arrives** (`death_link_effect`): `knockout` by default, everyone drops what
-  they hold, takes off their backpacks and belts (what they hold falls out) and is dazed as after a big
-  fall; `drop` only drops; `roulette` plays a trap drawn from `death_link_trap_weights`.
-- **Who it hits** (`death_link_target`): `everyone` by default, or `one_player`, the player who has
-  been hit the fewest times so far this session (ties at random). With `one_player` and the roulette,
-  the traps that need several players or hit the whole session are left out of the draw: **Big
-  Meeting** (it gathers everyone around one player) and **Big Night** (the clock is the same for
-  everyone). The others play on the one player: Big Drop, Big Throw, Big Trip, Big Sleep, Big Load,
-  Big Mask and Big Flare.
-- **`death_link_trap_on_send`**: with `death_link` on `send` or `both`, when Big Walk sends a DeathLink
-  its own players take the effect of a death too (`death_link_effect`, on `death_link_target`).
-  Normally a game only receives the link of the others' deaths; this makes the one who dies pay for it
-  as well.
-
-A knock-out the mod gives is not counted as a fall: it never sends a DeathLink back.
-
-### TrapLink
-
-`trap_link` (off by default) joins the TrapLink of the multiworld: the traps of the pool that reach you
-are sent to every other game that has it on, and theirs play here. A trap another game sends plays as
-the Big Walk trap of the same name when it is one, otherwise as the nearest by its name (a freeze is
-**Big Sleep**, a banana is **Big Throw**, a bomb is **Big Flare**, a teleport is **Big Trip**, ...), and
-as one drawn from the DeathLink roulette (`death_link_trap_weights`) when none comes near. Bonuses are
-never sent. A trap that came from a DeathLink or from another game's TrapLink is not sent on, so
-none loops, and a trap you send is not played again on your own screen.
-
-## In-game settings
-
-The mod adds a category to the game's own Settings, last in the list: **Settings > Archipelago**,
-from the main menu or the pause menu. They are kept in the mod's `.cfg` on the machine that sets
-them, and nothing there is in the YAML.
-
-| Setting | Who | What it does |
-|---|---|---|
-| **Archipelago text** | each player | the size of the overlay's text, top left: Small (16), Medium (22), Large (28), Huge (36) |
-| **DeathLink** | the host | On follows the YAML; Off sends and receives none for this session, whatever the YAML says. It reads "On (not in this seed)" when the seed has no DeathLink |
-| **DeathLink amnesty** | the host | "Seed's" keeps the YAML's amnesty; 0 to 10 replaces it |
-| **Gentle effects** | each player | Off by default. On, the traps that are hard to look at are softened on that screen (no Big Flare, Big Goggles or Big Pixels, Big Smell without its gas, Big Brain's lamps without their light), for players who find them hard to look at. The others keep theirs, and nothing else changes, the clock included |
-| **Gourd name** | the host | free text, up to 24 characters, applied with Enter or by leaving the field. The item feed and the goal line say it instead of "Gourd" on every player's overlay, and "<name> Carton" for the Gourd Carton |
-
-On a guest, the host's settings are greyed ("Set by the host") and show the host's value. The
-**gourd name** lives in the mod only: the Archipelago server, the Text Client and the other games of
-a multiworld still say "Gourd", because an item's name is fixed in the apworld.
+**Everyone in a co-op group needs the same build of the mod** for this. The
+host tells each guest what's missing, and a guest on another build sees every
+part and can use it.
 
 ## What is the goal of Big Walk when randomized?
 
-Either one goal, or a list of **objectives** (below). The single goals, whichever you picked in your YAML:
+Pick one goal in your YAML:
 
-- **Big Wall** — break the bell inside the Big Wall.
-- **Big Goodbye** (default) — pass behind the Big Wall and complete the
-  Silent Gauntlet. Saying farewell afterwards is up to you.
-- **Big Game** — reach the secret ending, behind the Spawn Secret Door.
-  Nothing else is in the way: the vanilla game seals that path until you
-  have finished it once, and the mod removes the seal from your first
-  session.
-- **Big Collection** — place a set number of gourds in the towers' slots.
+- **Big Wall**: break the bell inside the Big Wall.
+- **Big Goodbye** (default): go behind the Big Wall and complete the Silent
+  Gauntlet. Saying farewell afterwards is up to you.
+- **Big Game**: reach the secret ending behind the Spawn Secret Door. In the
+  vanilla game that path is sealed until you've finished once. The mod removes
+  the seal.
+- **Big Collection**: place a set number of gourds in the towers' slots.
 
-Whichever you picked, the corner of the screen names it for the whole session,
-under the connection line, with the running count for **Big Collection**.
+The corner of the screen shows your goal all session, with a running count for
+Big Collection.
 
 ### Objectives
 
-**`objectives`** adds things to do besides the `goal`, in any order: the game is won once the goal **and every
-objective listed** are done. The goal is then the run's **ending**: `big_wall` (the chapel bell, a short seed without
-the Gauntlet), `big_goodbye` (the Gauntlet, the default) or `big_game` (the secret ending); `big_collection` works too.
-Left empty (the default), the goal alone applies, exactly as before, so an older YAML plays as it did.
+`objectives` adds things to do on top of the goal, in any order. You win once
+the goal and every listed objective are done. The goal then acts as the run's
+ending: `big_wall` (the chapel bell, a short seed without the Gauntlet),
+`big_goodbye` (the Gauntlet) or `big_game` (the secret ending). `big_collection`
+works too. Empty by default.
 
-**`random_objectives`** draws that many at random: among the objectives listed, or, if none are, among all of those
-the other options allow (`big_radio` needs `radio_sanity`, `big_towers` a `tower_mode`, `big_objects`
-`object_sanity`, `big_body` `lock_abilities`). 0 (the default) asks for the
-whole list.
+`random_objectives` picks that many at random, from your list, or from every
+objective your other options allow if the list is empty. 0 (the default) means
+the whole list.
 
 ```yaml
 Big Walk:
   goal: big_wall
   objectives: [big_keys, big_radio, big_climb, big_fiesta]
-  random_objectives: 2   # two of these four, drawn per seed
+  random_objectives: 2   # two of these four, picked per seed
 ```
 
 - **big_collection**: place `gourds_required` gourds.
 - **big_keys**: place `keys_required` big keys, the drawbridge's included.
-- **big_radio**: switch on `radio_stations_required` radio stations (needs `radio_sanity`).
+- **big_radio**: switch on `radio_stations_required` radio stations. Needs
+  `radio_sanity`.
 - **big_climb**: stand on the highest point of the island.
-- **big_fiesta** (also read as big_club): the party, on the beach: plug a radio into the big speakers, with a music playing. A
-  **Radio** is certain to be in the pool, and with `shuffle_radio_music` the Radio Music items (any one will do) become required.
-- **big_lights**: switch on `lights_required` percent of the lights, each at least once. Without `light_sanity`, the
-  lamps count for it, with no check of their own.
-- **big_objects**: send `objects_required` percent of the object checks (needs `object_sanity`).
-- **big_body**: receive `body_required` percent of the ability items, Running aside (needs `lock_abilities`).
-- **big_towers**: complete `towers_required` towers, a tower being complete when its monument is full, in the
-  seed's order (needs `tower_mode` `in_order` or `by_item`).
+- **big_fiesta** (or big_club): throw the party on the beach by plugging a
+  radio into the big speakers with music playing. A **Radio** is always in the
+  pool, and with `shuffle_radio_music` you'll need one of the Radio Music items.
+- **big_lights**: switch on `lights_required` percent of the lights at least
+  once. Without `light_sanity` the lamps still count, they just aren't checks.
+- **big_objects**: send `objects_required` percent of the object checks. Needs
+  `object_sanity`.
+- **big_body**: receive `body_required` percent of the ability items, Running
+  aside. Needs `lock_abilities`.
+- **big_towers**: complete `towers_required` towers in the seed's order. A
+  tower is complete when its monument is full. Needs `tower_mode` set to
+  `in_order` or `by_item`.
 
-An ending plays **once per save**, so each objective is remembered when it happens, and the goal goes out
-on the last of them, whatever the order. The objectives are on a **board in the hub**, above the resync
-station's sign, ticked as they are done; **Settings > Archipelago > Objectives on screen** keeps them on the
-overlay too. With **`lock_endings_until_objectives`** (on by default), the entry of the ending stays shut on every screen
-until the other objectives are done: the Gauntlet's last stairway (the door to its bell) and the secret
-room's printer.
+An ending only plays once per save, so each objective is saved as soon as you
+do it, and the goal is sent with the last one. The objectives are on a board in
+the hub, above the resync station's sign, ticked off as you go. Turn on
+**Settings > Archipelago > Objectives on screen** to also see them on the
+overlay. With `lock_endings_until_objectives` (on by default), the way into the
+ending stays shut until the other objectives are done: the Gauntlet's last
+stairway, and the printer in the secret room.
 
-### The towers, one after the other
+`everyone_gathers` (on by default): Big Climb and Big Fiesta only count their
+ten seconds while every player is there. Turn it off and one player is enough.
 
-**`tower_mode`** decides how the monuments take gourds:
+### Towers in order
 
-- **all_open** (the default): every monument takes gourds from the start, in any order.
-- **in_order**: **one monument at a time**, in an order the seed draws from all seven towers (the drawbridge
-  and the Green Dome included). The next opens once the one before is full. A monument that is not the
-  next refuses a gourd, and the button that opens its tower stays still.
-- **by_item**: the same order, and the next monument also waits for a **Progressive Monument**, an item of
-  the pool: the first monument is open from the start, and the k-th item opens the monument at position k + 1.
+`tower_mode` sets how the monuments accept gourds:
 
-**`first_tower_open`** (on by default), with `by_item`: off, and the first monument waits for a Progressive Monument too, so the
-seed starts with no monument open (seven items instead of six).
+- **all_open** (default): every monument takes gourds from the start.
+- **in_order**: one monument at a time, in an order the seed draws from all
+  seven towers (drawbridge and Green Dome included). The next one opens when the
+  previous one is full. Until then it refuses gourds, and the button that opens
+  its tower doesn't move.
+- **by_item**: same order, but each next monument also waits for a
+  **Progressive Monument** item. The first monument is open from the start.
+  Turn `first_tower_open` off and the first one needs an item too (seven items
+  instead of six).
 
-**`everyone_gathers`** (on by default): Big Climb and Big Fiesta count their ten seconds only while every player is there (at the
-highest point; near the big speakers on the beach). Off, one player is enough.
+The logic follows the order exactly. The board in the hub shows the order and
+whether each tower is full, open or waiting.
 
-With one monument at a time, the logic is exact: a gourd placed costs the doors of the towers before it and,
-with `by_item`, their items. The monuments in the order, with each tower full, open or waiting, are on the
-same board in the hub.
+### Playing with friends
 
-**`tower_sanity`** (on by default) adds **a check for reaching each of the seven towers**: made when the
-tower's opening button is pressed (the two buttons at the top of the Black Tower held together), and for the
-drawbridge and the Green Dome, which have none, when a player gets there.
-**`hint_discovered_key_locations`** hints, at that moment, what sits at the tower's five key cuts and its key
-deposit. **`hint_discovered_deposit_boxes`**, with `tower_mode`, hints the gourd deposits that sit in
-its monument.
-
-Both bells need two players hitting two buttons at once, and placing a gourd
-in a tower's slot is a two-player action too. This world is not playable
-solo, and a whole co-op group shares one slot — see the setup guide.
+Both bells need two players pressing two buttons at once, and putting a gourd in
+a tower's slot takes two players too. Big Walk can't be played solo, and a whole
+co-op group shares one slot. See the setup guide.
 
 ## What items and locations can get shuffled?
 
-Locations, 131 of them on the default options:
+### Locations
 
-- Each of the 45 puzzles, when you solve it.
-- Each of the 25 key segments, as you cut it (`cut_key_sanity`). Five each on the drawbridge and
-  the four colored towers; the Black Tower and Green Dome keys come
-  already finished and have none.
-- Each of the 7 big keys, when it goes into its plinth.
-- Each of the 7 radio stations, when you turn it on (`radio_sanity`).
-- Placing gourds in the towers' slots — every gourd, every fifth one, or
-  none (`gourd_sanity`). Gourds are counted across all towers together,
-  so it never matters which tower you walk to.
-- Each of the 7 towers, when you reach it (`tower_sanity`), and each monument, when it is full
-  (`monument_sanity`); with `linear_towers: one_deposit_box`, each tower's **Monument Key** too, which always
-  holds its key.
-- Each of the 12 packs, when first picked up (`pack_sanity`), each of the 8 firework launchers,
-  when first fired (`firework_sanity`), and each of the 4 flare guns, when first picked up
-  (`flare_gun_sanity`): see "Checks and items added in 0.4".
-- Off by default: the island's gadgets (`object_sanity`), its lights (`light_sanity`), and the
-  Silent Gauntlet's seven stages (`gauntlet_mode: locked_stages`).
+On the default options:
 
-Items:
+- Each of the 45 puzzles, when you solve it. For the seven purple gourds'
+  puzzles, `include_big_game_puzzles` can be `from_start` (default, shown on the
+  map), `when_unlocked` (in logic once an ending is reached, not on the map) or
+  `disabled` (no checks).
+- Each of the 25 key segments, when you cut it (`cut_key_sanity`, which can
+  also be `junk` or `off`). Five on the drawbridge's key and each of the four
+  colored towers' keys. The Black Monolith and Green Dome keys come already
+  finished.
+- Each of the 7 big keys, when you place it.
+- Each of the 7 radio stations, when you switch it on (`radio_sanity`).
+- Gourd deposits in the towers' slots: every gourd, every fifth one, or none
+  (`gourd_sanity`). Gourds are counted across all towers, so it doesn't matter
+  which tower you fill.
+- Each of the 7 towers, when you reach it (`tower_sanity`), and each monument,
+  when it's full (`monument_sanity`). With `linear_towers: one_deposit_box`,
+  each tower's **Monument Key** as well.
+- Each of the 12 packs (6 backpacks, 5 belts and the gourd carton) the first
+  time it's picked up (`pack_sanity`). The pack then leaves the map for
+  everyone. `junk` keeps the checks but fills them with junk. `vanilla` makes
+  each check give the pack itself.
+- Each of the 8 firework launchers, the first time you fire it with the button
+  at its foot (`firework_sanity`).
+- Each of the 4 flare guns, when picked up (`flare_gun_sanity`, or `junk`).
 
-- **Gourd** — fits any slot of any tower. There are exactly as many as
-  there are slots: 45.
-- The 7 features a big key used to open: **Drawbridge**, **Map Room**,
+`tower_sanity` counts a tower as reached when its opening button is pressed (the
+two buttons at the top of the Black Tower, held together). The drawbridge and
+the Green Dome have no button, so it's when a player gets there.
+`hint_discovered_key_locations` then hints what's on that tower's key cuts and
+key deposit, and `hint_discovered_deposit_boxes` (with `tower_mode`) hints the
+gourd deposits in its monument.
+
+Off by default:
+
+- **`object_sanity`**: picking up the island's gadgets. `first_pickup` is the
+  first of each kind (16 by default), `every` is each one (144 by default),
+  which then leaves the map. `object_sanity_kinds` lists the kinds:
+  walkie_talkie, radio, megaphone, binoculars, laser, torch, scanner, clock,
+  compass, map, cowbell, lamp and paintbrush (left out by default; the brushes
+  never leave the island). Kinds left out are removed from the island, except
+  lamps.
+- **`light_sanity`**: switching on each light for the first time. `lamps` is the
+  83 lamps (pedestals, towers, tutorial...), `lamps_and_switches` adds 19 wall
+  switches (Doof Chamber, salons, tutorial, train and its stops). Puzzle lights
+  don't count. With it on, lamps are lights rather than objects.
+- The Silent Gauntlet's seven stages (`gauntlet_mode: locked_stages`).
+
+For both sanities, `object_sanity_items` and `light_sanity_items` can be `any`,
+`local` (items from your world that nothing needs) or `junk`. With `any`,
+`object_sanity_junk_percentage` and `light_sanity_junk_percentage` (75 by
+default) still fill that share of the checks with junk.
+
+`zone_locks`, with Object or Light Sanity, locks lamps and gadgets by zone (the
+nearest colored tower): 8 items, `Red Zone Lamps`, `Red Zone Gadgets` and the
+same for green, blue and yellow. A zone's gadgets aren't on the map until its
+item arrives. Its lamps and switches still work but are out of logic until then.
+The tutorial, Map Room, chairlift, tunnels and train keep their usual locks.
+`start_with_zone_locks` lists the zones you start with (`red_lamps`,
+`blue_gadgets`...), and `zone_locks_local` keeps the 8 items in your world.
+
+### Items
+
+- **Gourd**: fits any slot of any tower. There are 45, one per slot.
+- The 7 things big keys used to open: **Drawbridge**, **Map Room**,
   **Chairlift**, **Train**, **Tunnels**, **Big Wall Door** and **Spawn Secret
-  Door**. These are what actually open the island.
-- The 7 big keys themselves — **Drawbridge Key**, **Red Funnel Tower Key**,
-  **Green Cup Tower Key**, **Blue Castle Tower Key**, **Yellow Twist Tower Key**,
-  **Black Monolith Tower Key** and **Green Dome Tower Key**, each named after the
-  tower it belongs to, as the players call them, like its checks (**Red Funnel
-  Tower Key Cut 1**, **Red Funnel Tower Key Deposit**). A key opens nothing; it is
-  worth six checks, and it is the only way to reach them.
-- The 7 Radio Music items, each of which starts one station playing
-  (optional). They are named after the music itself, which the game never
-  names anywhere, and numbered by the station's light on the dial.
-- **First Arch Door**, **Left Arch Door** and **Right Arch Door**, each of
-  which opens that door of the hub, for the doors `start_with_arch_doors_open`
-  does not list.
-- With `gauntlet_mode: locked_stages`, **Gauntlet Stage 1 Door** to **Gauntlet
-  Stage 7 Door** (optional), one per stairway of the Silent Gauntlet.
-- With `lock_puzzle_needs`, the 17 **puzzle parts** above (optional). Each is
-  named after the part with "Unlock": **Buttons Unlock**, **Icon Panels
-  Unlock**, and so on.
-- Gear, set apart from the filler: **Backpack**, **Belt** and **Gourd Carton**
-  (`backpacks_in_pool`, `belts_in_pool`, `gourd_cartons_in_pool`; with `pack_sanity: vanilla`, only the
-  island's own, each on its own check), and the island's four flare guns
-  (**Flare Gun**, **Blue Flare Gun**, **Green Flare Gun**, **Yellow Flare Gun**, with `flare_gun_sanity`)
-  and the **Rainbow Flare Gun** (`island_object_limits`).
-- Filler: a megaphone, a walkie-talkie, a laser, binoculars, a compass, a folding
-  map, a portable radio, a torch or a scanner — the island's own hand props
-  (how many of each: `island_object_limits`), dropped near you when you
-  receive one. They are cosmetic only, and their vanilla copies are removed
-  from the map so they can't also be found lying around for free.
-- **Traps and bonuses**, in place of part of the filler: see "Traps and bonuses".
-- **Lamp**, which is a marine buoy light. Same as above, except its vanilla
-  copies stay in the world — this one is common enough scenery that removing
-  it would be missed.
+  Door**.
+- The 7 big keys: **Drawbridge Key**, **Red Funnel Tower Key**, **Green Cup
+  Tower Key**, **Blue Castle Tower Key**, **Yellow Twist Tower Key**, **Black
+  Monolith Tower Key** and **Green Dome Tower Key**. Their checks use the same
+  names (**Red Funnel Tower Key Cut 1**, **Red Funnel Tower Key Deposit**). A key
+  opens nothing, but it's the only way to get its checks.
+- The 7 Radio Music items, each one making a station play. They're named after
+  the song, which the game never shows, and numbered by the station's light.
+- **First Arch Door**, **Left Arch Door** and **Right Arch Door**, for the doors
+  that don't start open.
+- With `gauntlet_mode: locked_stages`, the Gauntlet's stage doors.
+- With `lock_puzzle_needs`, the 17 puzzle parts, named with "Unlock":
+  **Buttons Unlock**, **Icon Panels Unlock** and so on.
+- With `lock_abilities`, the body parts (see below). With `tower_mode: by_item`,
+  the Progressive Monuments.
+- Gear, separate from the filler: **Backpack**, **Belt** and **Gourd Carton**
+  (`backpacks_in_pool`, `belts_in_pool`, `gourd_cartons_in_pool`; with
+  `pack_sanity: vanilla`, only the island's own). With `flare_gun_sanity`, the
+  four flare guns (**Flare Gun**, **Blue Flare Gun**, **Green Flare Gun**,
+  **Yellow Flare Gun**). And in every seed, the **Rainbow Flare Gun**, a white
+  flare gun whose shots cycle through every color.
+- Filler: the island's hand props (megaphone, walkie-talkie, laser, binoculars,
+  compass, folding map, portable radio, torch, scanner, lamp...). They do nothing
+  for the logic. Each lands next to you, and its copies on the island are
+  removed so you can't pick them up for free. Lamps (marine buoy lights) are the
+  exception: they're common scenery, so they stay.
+- Traps and bonuses, which replace part of the filler (see below).
+
+`island_object_limits` sets how many of each object the filler takes first, and
+how many of each flare gun are in the pool (1 each by default, 0 leaves the
+Rainbow out). The walkie-talkie's default is 8, as many as the island has. If
+the pool has more room once every object reaches its limit (with Object or Light
+Sanity, say), it keeps adding whichever object it has fewest of. An object set
+to 0 stays out.
+
+## Your bodies
+
+With `lock_abilities` set to `handed` or `ambidextrous`, what the players' bodies
+can do becomes items. Each one applies to every player of the slot at once.
+
+- **Legs**: jumping and crouching. You need both to get past the tutorial, so
+  the logic asks for Legs to leave the starting zone. If the zone has no room
+  for it, you start with it.
+- **Seat**: sitting on chairs, couches, benches, stumps and the floor.
+  Turnstiles, telescopes, the chairlift, the train and the ending are never
+  locked.
+- **Progressive Arm**: raising the arm, then pointing, then extending it
+  sideways. `handed` has three for each arm, `ambidextrous` has three that work
+  on both.
+- **Throwing** and **Carrying** another player. Big Throw still works without
+  Throwing.
+- **Running**, with `lock_running`. The logic never needs it.
+
+`start_with_abilities` lists the ones you start with: `legs`, `seat`, `arms`,
+`throwing`, `carrying`. None by default.
+
+Puzzles that need gestures ask for them in logic. The Seat and both arms
+extended: Concert, Indoor Semaphore, Optical Telegraph, Charades Rooms,
+Pointer's Paradise, Dancer and Selector, and the Gauntlet's last stage. Both
+arms raised: Invisible Ink. The Seat: the Carousel and Cannonball Commute.
+Throwing: Fielding, Window Labyrinth, Basketball and Kick Up Pits. Carrying:
+High Button, the two obbies and Pointer's Paradise.
+
+## Closer to the vanilla game
+
+All off by default.
+
+- `linear_towers`: each tower's key comes from its monument, as in the game.
+  `all_deposit_boxes` when the monument is full, `one_deposit_box` after a
+  random number of gourds per tower, at its **Monument Key** check.
+- `linear_keys`: a placed key opens its door, as in the game.
+- `linear_puzzles`: every puzzle gives a gourd (next to you, as an item), except
+  the seven purple ones past the chairlift.
+- `linear_arch_doors`: the hub's arch doors work as in the game, opened by the
+  push buttons on their far side. You then leave the starting zone through the
+  Drawbridge.
+
+## Making things easier
+
+- `start_with_map_room_open`, `start_with_drawbridge_open`: open from the start.
+  The drawbridge's key deposit is still a check.
+- `open_black_tower` (on): the Black Tower's door is open from the start instead
+  of waiting for five monuments.
+- `hint_keys: from_start`: the seven big keys are hinted from the start.
+- `fast_golf`: the golf ball (the cannonball) is no longer too heavy.
+- `tower_resync_stations`: a resync station in each of the five towers. It's a
+  button that brings your gourds, keys and gadgets lying around back in front
+  of it. The hub always has one. `guests_can_resync` lets guests use them.
+- `teleport_buttons`: buttons in the hub that take you to the five towers and
+  the Silent Gauntlet. `free`, `with_towers` (once you've opened the place on
+  foot) or `items` (each also needs its Teleporter item).
+  `teleport_back_to_hub` adds a button back at each destination.
+- `cabin_fever_seconds` (300) and `cabin_fever_long_seconds` (1800): how long
+  the two Cabin Fever waits last. `cabin_fever_help` and `cabin_fever_long_help`
+  hide a button in each room that takes ten seconds off. `cabin_fever_hide_timer`
+  and `cabin_fever_long_hide_timer` do the opposite: the dial shows "??:??",
+  flashing a digit now and then. The game's sound still plays for the last ten
+  seconds.
+- `tile_thief`: a button next to the Tile Thief puzzle that makes peg tiles.
+  `easy` gives the tiles it expects, `chaos` one of each kind it uses.
+
+## Trackers in the game
+
+- `hint_board` (on): the middle sign of the hub's notice board shows your hint
+  points, what a hint costs, and the hints you asked for that aren't found yet.
+  Write an item's name on it to ask for a hint (it costs points, like `!hint`).
+- `tracker_board`: the right sign counts the checks you can do now against those
+  left, and names a few, hinted ones first, then those with progression items.
+- `map_tracker`: the big map in the Map Room shows the seed. Each check is a
+  little copy of its object on a pin, gone once done. `in_logic` shows only what
+  you can do now, `all` shows every check left, out of logic ones in grey.
+
+Each check you send also shows a short line on the overlay: what it was, what
+it gave, and to whom.
+
+## Traps and bonuses
+
+Traps and bonuses hit every player of the session, and replace part of the
+filler. By default there are no traps (`trap_fill_percentage: 0`) and a quarter
+of the filler is bonuses (`bonus_fill_percentage: 25`).
+
+| Trap | What it does |
+|---|---|
+| **Big Drop** | everyone drops what they're holding |
+| **Big Throw** (hard) | everyone winds up, then throws what they're holding. It can't be cancelled |
+| **Big Trip** (hard) | everyone is sent to a different place the logic has opened: the hub, a tower, a radio station, a solved puzzle, a launcher fired, a pack picked up. A timed tomato ticks, then pops as you go |
+| **Big Meeting** (hard) | everyone is sent around a random player, in a ring, facing them |
+| **Big Night** | the clock jumps to midnight for everyone and runs on from there |
+| **Big Sleep** (hard) | everyone falls asleep where they stand, two seconds out of seven |
+| **Big Load** (hard) | every pack comes off and its contents fall out |
+| **Big Mask** (hard) | everyone wears the blindfold puzzles' helmet and can't take it off. Anyone already wearing a puzzle's mask is spared |
+| **Big Flare** | a flare shot in the Archipelago colors lands on every player. Each player can hide it on their screen with Gentle effects (see In-game settings) |
+| **Big Silence** | everyone is muted, and the mute key can't undo it |
+| **Big Slide** | the ground is slippery: starting, stopping and turning slide |
+| **Big Time** | every player gets a clock to keep, showing their own computer's time |
+| **Big Ghost** | every player turns white, like in the Silent Gauntlet (the color, not the silence) |
+| **Big Paint** | players swap colors (two swap, more rotate) |
+| **Big Air** (hard) | a timed tomato ticks in everyone's hands, then everyone shoots up into the air (stopping under a ceiling) |
+| **Big Goggles** | the field of view narrows |
+| **Big Pixels** | the island turns into big square pixels |
+| **Big Head** | the other players' heads grow |
+| **Big Brain** | the other players' heads become lit lamps |
+| **Big Arms** | the players' hands grow (you see it on the others) |
+| **Big Smell** | everyone gives off a green gas, and players are pushed apart |
+| **Big Brother** | everyone shrinks: body, view and collisions |
+| **Big Reset** (hard) | the nearest puzzle that still has its gourd restarts for each group of players (its door shuts and opens) |
+| **Big Break** | a folding chair appears under every player, who sits on it |
+
+| Bonus | What it does |
+|---|---|
+| **Big Speed** | everyone walks and runs faster |
+| **Big Jump** | everyone jumps higher |
+| **Big Day** | the clock jumps to noon and runs on from there |
+
+Effects that last (Big Sleep, Big Mask, Big Silence, Big Slide, Big Ghost, Big
+Paint, Big Goggles, Big Pixels, Big Head, Big Brain, Big Arms, Big Smell, Big
+Brother and the bonuses Big Speed and Big Jump) last `trap_duration` seconds, 20
+by default.
+
+- `trap_weights` and `bonus_weights`: how often each one comes. 0 removes it.
+- `hard_traps` off: only the standard traps.
+- `traps_spare_the_gauntlet` (on): Big Trip and Big Meeting leave players inside
+  the Silent Gauntlet alone.
+
+Traps arrive through the host, one at a time, about four seconds apart. One that
+hasn't played when the game closes is kept in the save. A player who joins
+during a lasting effect gets it for the time left. For 20 seconds after a world
+loads or a player joins, Big Trip and Big Meeting are skipped, so nobody gets
+moved while others are still arriving.
+
+## DeathLink
+
+`death_link` is `off` by default. `send`, `receive` and `both` turn it on.
+
+- **What sends one** (`death_link_triggers`): by default `puzzle_failed`, which
+  covers 29 puzzles: a wrong tile validated, buttons pressed in the wrong order,
+  a wrong count, a synchronized button let go, a dispenser's timed tomato
+  running out. Add `big_fall` to also send one when a fall leaves a player
+  dazed. The other games see what happened: "*slot* failed the Blindfold
+  Catwalk Puzzle (buttons pressed out of order)". `death_link_amnesty` forgives
+  that many before sending one.
+- **What happens when one arrives** (`death_link_effect`): `knockout` by
+  default. Everyone drops what they hold, takes off their backpacks and belts
+  (their contents fall out) and is dazed like after a big fall. `drop` only
+  drops. `roulette` plays a trap picked from `death_link_trap_weights`.
+  `death_link_roulette_hard_traps` (on) lets the roulette pick hard traps.
+- **Who it hits** (`death_link_target`): `everyone` by default, or `one_player`,
+  the player hit least so far this session (ties at random). With `one_player`
+  and the roulette, Big Meeting and Big Night are left out since they need the
+  whole session. Big Drop, Big Throw, Big Trip, Big Sleep, Big Load, Big Mask and
+  Big Flare play on that one player.
+- **`death_link_trap_on_send`**: when Big Walk sends a DeathLink, its own players
+  also get the death effect. Normally only the other games pay for your death.
+
+A knockout from the mod never counts as a fall, so it can't send a DeathLink
+back.
+
+### TrapLink
+
+`trap_link` (off by default) joins the multiworld's TrapLink. Traps from your
+pool are also sent to every game that has it on, and theirs play here. A trap
+from another game plays as the Big Walk trap with the same name, or the closest
+one by name (a freeze is **Big Sleep**, a banana is **Big Throw**, a bomb is
+**Big Flare**, a teleport is **Big Trip**...), or as a random pick from the
+DeathLink roulette if nothing comes close. Bonuses are never sent. Traps that
+came from a DeathLink or another game's TrapLink aren't sent back out, so
+nothing loops, and a trap you send doesn't play on your own screen.
+
+## Cosmetics
+
+### Colors
+
+With `random_colors` (on by default), the seed picks five to ten of the mod's
+ten colors (red, orange, yellow, lime, green, cyan, blue, purple, pink, white)
+and paints the island's **buoys** and **flare guns** with them:
+
+- Buoys: body, halo and the light they cast, one color per buoy, the same on
+  every screen.
+- Flare guns: body, barrel and shot (flare, light and smoke). The four island
+  guns take the first four colors, and a gun you receive matches its kind. The
+  item feed names a flare gun by its color: "Received: Pink Flare Gun".
+
+Only map objects are painted, never the players, gourds or keys. Turn
+`random_colors` off to keep the game's colors.
+
+### Custom tiles
+
+The nine basic peg tiles (triangle, asterisk, diagonal line, G, dot and line,
+three dots, S, spiral and e) can show other drawings. Only the picture changes:
+every peg tile, split-flap and display of that kind follows, on every screen,
+and the puzzles ask for the same tiles.
+
+- **`custom_tiles: matching_games`** (default): the drawings of the games in
+  your multiworld, plus pelly (in every multiworld), are added to the nine basic
+  tiles, and nine are picked at random.
+- **`matching_first`**: the same drawings, but all of them are shown (nine
+  picked at random if there are more). The basic tiles fill the remaining
+  slots.
+- **`all`**: nine picked from every tile. **`custom_only`**: nine picked from
+  the drawings only, no basic tile left. **`off`**: the game's tiles.
+- **`custom_tile_choices`**: tiles you want for sure (nine at most), whatever
+  the mode and weights: `custom_tile_choices: [pokeball, heart, cat]`.
+- **`custom_tile_weights`**: how often each tile is picked. 0 leaves it out.
+- **`custom_drawings`** (off): community scribbles for the drawing panels (the
+  Poet's and the Pontiff's puzzles), each replacing one of the game's 45. None
+  yet.
+
+The drawings and the games that bring them: pelly (every multiworld), jack (The
+Witness), strawberry (Celeste), triforce (Zelda, Link to the Past, Links
+Awakening, Ocarina of Time, Majora's Mask, Wind Waker, Minish Cap, Twilight
+Princess, Skyward Sword, SMZ3), semibot (R.E.P.O.), star (Mario, Luigi, Yoshi),
+smile (Lingo), five (Dice), arrow (Grapple Dog), sword_in_stone (Dark Souls),
+lodo (StarCraft), stones_above_banner (RuneScape), pokeball (Pokémon), tree
+(Terraria), creeper (Minecraft), sigil (Blasphemous), chicken (Stardew Valley),
+planets (Risk of Rain), monster (Slay the Spire), joker (Balatro), rune (DOOM),
+knight (Hollow Knight), blob_with_legs (Animal Well), gear (Factorio), hat (A Hat
+in Time), heart (Undertale, Deltarune), tunic (Tunic), portal (Portal), cat (Rain
+World). A game matches if its name contains one of these, whatever the
+capitals (`Super Mario 64`, `Manual_SuperMarioBros3_Someone`). The spoiler log
+lists the seed's tiles.
+
+The drawings are by **Jack5**, **Don Chalant**, **GameFraek** and **Kensufox**,
+under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Who drew which
+is in the mod's repository, in `mod/assets/tiles/LICENSE.md`. They're fan art,
+and the games belong to their owners. Want to add your own? See
+`mod/assets/tiles/README.md`.
+
+### Gourd name
+
+`gourd_name` renames the gourds for the run, up to 24 characters:
+`gourd_name: Plumbus du Destin`. Every game in the multiworld, the Text Client,
+Universal Tracker, the spoiler log and the overlay use that name, and
+`!hint Plumbus du Destin` finds them (`!hint Gourd` still works). The Gourd
+Carton becomes the **Plumbus du Destin Carton**, and `!hint Gourd Carton`,
+`!hint Gourd Carrier` and `!hint Plumbus du Destin Carrier` find it. Only the
+names change. Locations keep theirs (Gourd Deposit 10, Gourd Carton Pickup).
+
+The name applies to the whole game, not one slot. Every Big Walk slot in the
+multiworld has to ask for the same name, or they all keep "Gourd". A name
+already used by another Big Walk item or item group (Backpack, Traps...) also
+falls back to "Gourd".
+
+## In-game settings
+
+The mod adds **Settings > Archipelago** to the game's settings, at the bottom of
+the list, from the main menu or the pause menu. These are saved in the mod's
+`.cfg` on each machine, not in the YAML.
+
+| Setting | Who | What it does |
+|---|---|---|
+| **Archipelago text** | each player | size of the overlay text, top left: Small (16), Medium (22), Large (28), Huge (36) |
+| **DeathLink** | host | On follows the YAML. Off turns DeathLink off for this session. Shows "On (not in this seed)" if the seed has no DeathLink |
+| **DeathLink amnesty** | host | "Seed's" keeps the YAML's value, 0 to 10 replaces it |
+| **Gentle effects** | each player | Off by default. On softens the traps that are hard to look at, on that screen only: no Big Flare, Big Goggles or Big Pixels, Big Smell without its gas, Big Brain's lamps without their light. Nothing else changes |
+| **Gourd name** | host | free text, up to 24 characters, applied with Enter or when you leave the field. The overlay says it instead of "Gourd" for every player, and "<name> Carton" for the Gourd Carton |
+
+Guests see the host's settings greyed out ("Set by the host") with the host's
+values. This gourd name only exists in the mod. The server, the Text Client and
+other games still say "Gourd", because item names are fixed in the apworld. Use
+the `gourd_name` option to rename them everywhere.
 
 ## Which items can be in another player's world?
 
@@ -602,30 +596,26 @@ Any of them.
 
 ## What does another world's item look like in Big Walk?
 
-Nothing, in the world itself. Big Walk has no way to show you someone else's
-item. The host's screen names the check as it goes out — "Check: Cabin
-Fever" — but not what was inside it or who it went to; for that you need a
-text client kept open beside the game, or the BepInEx log.
+There's nothing to see in the world. The host's screen names each check as it's
+sent ("Check: Cabin Fever"), and the overlay line says what it gave and to whom.
+Keep a text client open next to the game for the full log.
 
 ## When the player receives an item, what happens?
 
-A gourd drops at the hub as a physical prop you can pick up and carry — or
-straight into your hands, if you are already playing and they are free — and
-so does a big key, uncut and tinted to tell it from the others. Whose hands
-it goes to is decided the same way for both: a player whose hands are free first,
-and if nobody's are, someone who then puts down what they hold. A feature
-opens on the spot, wherever you are and whatever the matching key is doing:
-the chairlift simply starts running. A Radio Music item starts its station
-playing, and it stays available for the rest of the run. A filler prop lands
-beside you; a trap or a bonus plays on every player at once. A puzzle part puts its objects back on the map, everywhere at
-once. Everything else is silent.
+A gourd drops at the hub as a prop you can pick up, or straight into your hands
+if you're playing and they're free. A big key does the same, uncut and tinted.
+It goes to a player with free hands first, or else to someone who then puts down
+what they're holding.
 
-`Ctrl+R` brings back anything of yours that has ended up somewhere you
-cannot reach — gourds, keys and filler props alike, including whatever is in
-someone's hands at the time. A key already placed in its receptacle and a
-gourd already deposited are left where they are, because those checks have
-already been sent.
+A door, ride or other unlock works right away, wherever you are. The chairlift
+just starts running. A Radio Music item starts its station for the rest of the
+run. A filler prop lands next to you. A trap or bonus plays on every player at
+once. A puzzle part puts its objects back on the map everywhere.
 
-Both the features and the radio are re-applied every time you load the world,
-because the game has nowhere of its own to record them. If a door you own is
-shut for a moment after a load, give it a second.
+`Ctrl+R` brings back anything of yours that got stuck somewhere you can't reach:
+gourds, keys and filler props, even ones in someone's hands. Placed keys and
+deposited gourds stay put, since their checks are already sent.
+
+Unlocks and radio music are applied again each time you load the world, because
+the game can't save them itself. If a door you own is shut for a moment after
+loading, give it a second.
