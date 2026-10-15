@@ -34,6 +34,7 @@ namespace BigWalkArchipelago.Debug
         private void Update()
         {
             DebugNetworkLookup.DumpPrefabsOnce();
+            DebugPegTileDump.DumpOnRequest();
 
             if (_lastCosmeticPickupCheckTime >= 0f && Time.time >= _lastCosmeticPickupCheckTime)
             {

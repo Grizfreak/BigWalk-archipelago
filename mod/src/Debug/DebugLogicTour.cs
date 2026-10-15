@@ -279,6 +279,7 @@ namespace BigWalkArchipelago.Debug
                             stop.Position = gourd.position;
                         break;
                     case "monument":
+                    case "monumentkey":
                     {
                         // The tower's centre: its monument stands inside.
                         var tower = MonumentOrder.TowerIndexOf(rest);

@@ -86,6 +86,7 @@ def keys_by_location(full: bool, data=None) -> dict[str, tuple[str, str]]:
         for tower in data.TOWERS:
             keys[tower.location_name] = ("deposit", "deposit:" + tower.prop_name)
             keys[data.monument_full_location_name(tower)] = ("monument", "monument:" + tower.prop_name)
+            keys[data.monument_key_location_name(tower)] = ("monument", "monumentkey:" + tower.prop_name)
             for index in range(tower.segments):
                 keys[data.cut_location_name(tower, index)] = ("cut", f"cut:{tower.prop_name}:{index}")
         for stage in data.GAUNTLET_STAGES:
