@@ -148,13 +148,15 @@ Three things on the island can now be checks, each with its own option, **on by 
   map for everybody. Named by color (**Sky Blue Backpack**, **Purple Belt**, ...), the carton
   **Gourd Carton Pickup**. The backpacks, belts and cartons you can wear or use are still items of
   the pool (`backpacks_in_pool`, `belts_in_pool`, `gourd_cartons_in_pool`). Off, they are on the map as
-  in the game, free to take, and no check.
+  in the game, free to take, and no check. `junk`: the same 12 checks, holding only filler or a trap. `vanilla`: each of the 12 checks gives the pack
+  itself, which stays in the hands of whoever picked it up; no other location gives a pack, and the `*_in_pool`
+  options do nothing.
 - **`firework_sanity`**: firing each of the 8 firework launchers, with the button at its foot, for
   the first time is a check (8 locations): **Hub Fireworks**, **Peak Fireworks**, and so on.
 - **`flare_gun_sanity`**: picking up each of the island's 4 flare guns is a check (4 locations,
   **Red**, **Green**, **Yellow** and **Blue Flare Gun Pickup**). The four guns come back as items of
   the pool, as many of each as `island_object_limits` says (1 by default). Off, the guns stay on the
-  island as in the game and none is an item.
+  island as in the game and none is an item. `junk`: the same 4 checks, holding only filler or a trap.
 
 The **Rainbow Flare Gun** is an item of the pool, once, in every seed: a white flare gun whose
 shots flicker through every color. `island_object_limits` says how many of each flare gun the pool holds
@@ -220,7 +222,9 @@ Labyrinth, Basketball and Kick Up Pits; carrying for High Button, the two obbies
 ### Monuments and the game's own ways
 
 - **`monument_sanity`** (on by default): a check when each monument is full (**Drawbridge Monument Full** and so on).
-- **`linear_towers`**: each tower's key is its monument full, as in the game (the checks above exist then).
+- **`linear_towers`**: each tower's key comes from its monument, as in the game. `all_deposit_boxes`: when the
+  monument is full (the checks above exist then). `one_deposit_box`: once the monument holds a number of gourds
+  drawn for each tower, between one and full (**Drawbridge Monument Key** and so on, which always hold the key).
 - **`linear_keys`**: a placed key opens its door, as in the game (each key deposit holds its own door).
 - **`linear_puzzles`**: every puzzle holds a gourd (it still arrives beside you, as an item), except the seven purple
   ones past the chairlift.
@@ -285,6 +289,35 @@ mod's ten (red, orange, yellow, lime, green, cyan, blue, purple, pink, white), a
 
 **Only objects of the map are painted.** The players, the gourds and the keys are not touched. Turn
 `random_colors` off to keep the game's own colors.
+
+## Custom tiles
+
+The nine basic peg tiles (the triangle, the asterisk, the diagonal line, the G, the dot and line, the three dots,
+the S, the spiral and the e) can show other drawings for the seed. A tile only changes what it shows: every peg
+tile, split-flap and display of that kind follows, on every player's screen, and the puzzles ask for the same tiles.
+
+- **`custom_tiles: matching_games`** (the default): the drawings of the games in the multiworld join the nine basic
+  tiles, and nine are drawn among them; nothing is forced. Without such a game, the game's tiles stay.
+- **`all`**: nine drawn among every tile. **`custom_only`**: nine drawn among the drawings alone, none of the game's
+  tiles stays. **`off`**: the game's tiles.
+- **`custom_tile_choices`**: the tiles you want for sure (nine at most), whatever the mode and the weights:
+  `custom_tile_choices: [pokeball, heart, cat]`.
+- **`custom_tile_weights`**: how often each tile is drawn (0 leaves it out).
+- **`custom_drawings`** (off): the community's scribbles for the drawing panels (the Poet's and the Pontiff's
+  puzzles), each one in the place of one of the game's 45, drawn for the seed. None are in this version yet.
+
+The drawings and the games that bring them: pelly (AP, Archipelago), jack (The Witness), strawberry (Celeste),
+triforce (Zelda), semibot (R.E.P.O.), star (Mario), smile (Lingo), five (Dice), arrow (Grapple Dog), sword_in_stone
+(Dark Souls), lodo (StarCraft), stones_above_banner (RuneScape), pokeball (Pokémon), tree (Terraria), creeper
+(Minecraft), sigil (Blasphemous), chicken (Stardew Valley), planets (Risk of Rain), monster (Slay the Spire), joker
+(Balatro), rune (DOOM), knight (Hollow Knight), blob_with_legs (Animal Well), gear (Factorio), hat (A Hat in Time),
+heart (Undertale, Deltarune), tunic (Tunic), portal (Portal), cat (Rain World). A game matches when its name holds
+one of these, with the same capitals. The spoiler log lists the seed's tiles.
+
+The drawings are by **Jack5**, **Don Chalant**, **GameFraek** and **Kensufox**, under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); who drew which one is in the mod's repository,
+`mod/assets/tiles/LICENSE.md`. They are fan art: the games belong to their owners. To propose a tile of your own:
+`mod/assets/tiles/README.md` in the mod's repository.
 
 ## The gourds' name
 
@@ -490,20 +523,25 @@ solo, and a whole co-op group shares one slot — see the setup guide.
 
 ## What items and locations can get shuffled?
 
-Locations, 117 of them on the default options:
+Locations, 131 of them on the default options:
 
 - Each of the 45 puzzles, when you solve it.
-- Each of the 25 key segments, as you cut it. Five each on the drawbridge and
+- Each of the 25 key segments, as you cut it (`cut_key_sanity`). Five each on the drawbridge and
   the four colored towers; the Black Tower and Green Dome keys come
   already finished and have none.
 - Each of the 7 big keys, when it goes into its plinth.
-- Each of the 7 radio stations, when you turn it on (optional).
+- Each of the 7 radio stations, when you turn it on (`radio_sanity`).
 - Placing gourds in the towers' slots — every gourd, every fifth one, or
   none (`gourd_sanity`). Gourds are counted across all towers together,
   so it never matters which tower you walk to.
+- Each of the 7 towers, when you reach it (`tower_sanity`), and each monument, when it is full
+  (`monument_sanity`); with `linear_towers: one_deposit_box`, each tower's **Monument Key** too, which always
+  holds its key.
 - Each of the 12 packs, when first picked up (`pack_sanity`), each of the 8 firework launchers,
   when first fired (`firework_sanity`), and each of the 4 flare guns, when first picked up
   (`flare_gun_sanity`): see "Checks and items added in 0.4".
+- Off by default: the island's gadgets (`object_sanity`), its lights (`light_sanity`), and the
+  Silent Gauntlet's seven stages (`gauntlet_mode: locked_stages`).
 
 Items:
 
@@ -530,7 +568,8 @@ Items:
   named after the part with "Unlock": **Buttons Unlock**, **Icon Panels
   Unlock**, and so on.
 - Gear, set apart from the filler: **Backpack**, **Belt** and **Gourd Carton**
-  (`backpacks_in_pool`, `belts_in_pool`, `gourd_cartons_in_pool`), and the island's four flare guns
+  (`backpacks_in_pool`, `belts_in_pool`, `gourd_cartons_in_pool`; with `pack_sanity: vanilla`, only the
+  island's own, each on its own check), and the island's four flare guns
   (**Flare Gun**, **Blue Flare Gun**, **Green Flare Gun**, **Yellow Flare Gun**, with `flare_gun_sanity`)
   and the **Rainbow Flare Gun** (`island_object_limits`).
 - Filler: a megaphone, a walkie-talkie, a laser, binoculars, a compass, a folding

@@ -33,6 +33,7 @@ LOCATION_NAME_TO_ID: dict[str, int] = {
     **{data.tower_reached_location_name(tower): data.tower_reached_location_id(tower) for tower in data.reached_towers()},
     **{obj.location_name: data.object_location_id(obj) for obj in data.ISLAND_OBJECTS},
     **{data.monument_full_location_name(tower): data.monument_full_location_id(tower) for tower in data.TOWERS},
+    **{data.monument_key_location_name(tower): data.monument_key_location_id(tower) for tower in data.TOWERS},
     **{light.location_name: data.light_location_id(light) for light in data.LIGHTS},
     **{data.object_kind_location_name(label): data.object_kind_location_id(i) for i, (_, label) in enumerate(data.OBJECT_KINDS)},
 }
@@ -52,6 +53,7 @@ LOCATION_NAME_GROUPS: dict[str, set[str]] = {
     "Towers Reached": {data.tower_reached_location_name(tower) for tower in data.reached_towers()},
     "Lights": {light.location_name for light in data.LIGHTS},
     "Monuments Full": {data.monument_full_location_name(tower) for tower in data.TOWERS},
+    "Monument Keys": {data.monument_key_location_name(tower) for tower in data.TOWERS},
     "Objects": {obj.location_name for obj in data.ISLAND_OBJECTS}
                | {data.object_kind_location_name(label) for _, label in data.OBJECT_KINDS},
 }
@@ -211,8 +213,9 @@ def create_all_locations(world: BigWalkWorld) -> None:
     # takes the first gourds (all open, or first in the order), as its deposits do. Kept in the overworld, the game's
     # own way out (the four tutorial gourds, then the key, then the drawbridge) was out of logic, and with
     # `linear_arch_doors`, `linear_keys` and `linear_towers` no seed could be made (the fuzzer, 2026-10-13).
-    for tower in world.monuments_full():
-        name = data.monument_full_location_name(tower)
+    # A monument key (`linear_towers: one_deposit_box`) beside its monument the same way.
+    for name, tower in [*((data.monument_full_location_name(tower), tower) for tower in world.monuments_full()),
+                        *((data.monument_key_location_name(tower), tower) for tower in world.monument_keys())]:
         in_tutorial = tower is data.TOWERS[0] and world.tutorial_monument_first()
         region = regions.STARTING_ZONE if in_tutorial else regions.OVERWORLD
         world.get_region(region).add_locations({name: LOCATION_NAME_TO_ID[name]}, BigWalkLocation)

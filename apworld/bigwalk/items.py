@@ -258,6 +258,19 @@ def abilities_in_pool(world: BigWalkWorld) -> tuple[data.Ability, ...]:
     return chosen
 
 
+def packs_give_themselves(world: BigWalkWorld) -> bool:
+    return world.options.pack_sanity == bigwalk_options.PackSanity.option_vanilla
+
+
+def pack_item_name(pickup: data.Pickup) -> str:
+    """The item a pack of the island is: by the end of its location's name (Sky Blue Backpack, Gourd Carton Pickup)."""
+    if pickup.location_name.endswith("Backpack"):
+        return "Backpack"
+    if pickup.location_name.endswith("Belt"):
+        return "Belt"
+    return data.GOURD_CARTON_ITEM_NAME
+
+
 def create_all_items(world: BigWalkWorld) -> None:
     gourds = world.gourd_count
     # `linear_puzzles`: each puzzle holds a gourd, as in the game; those gourds leave the pool. Not the seven purple
@@ -268,6 +281,12 @@ def create_all_items(world: BigWalkWorld) -> None:
             world.get_location(puzzle.location_name).place_locked_item(world.create_item(data.GOURD_ITEM_NAME))
             gourds -= 1
     pool: list[Item] = [world.create_item(data.GOURD_ITEM_NAME) for _ in range(gourds)]
+
+    # S1 `pack_sanity: vanilla`: each pack's check holds the pack itself (the mod leaves it in the player's hands), and
+    # the pool holds no other.
+    if packs_give_themselves(world):
+        for pickup in data.PICKUPS:
+            world.get_location(pickup.location_name).place_locked_item(world.create_item(pack_item_name(pickup)))
 
     for tower in world.towers:
         if tower.item_name == data.MAP_ROOM_ITEM_NAME and world.options.start_with_map_room_open:
@@ -293,10 +312,11 @@ def create_all_items(world: BigWalkWorld) -> None:
     # with the drawbridge open is about being able to LEAVE the tutorial,
     # which is the feature; the tutorial key is just six checks like any
     # other key, and handing it over would be handing over checks.
-    # L1 `linear_towers`: a tower's key is its monument full, as in the game (a tower without slots keeps it in the pool).
+    # L1 `linear_towers`: a tower's key is its monument full, as in the game, or with one_deposit_box the gourd drawn
+    # for it (a tower without slots keeps it in the pool).
     for tower in world.towers:
         if world.key_in_its_monument(tower):
-            world.get_location(data.monument_full_location_name(tower)).place_locked_item(
+            world.get_location(world.key_location_name(tower)).place_locked_item(
                 world.create_item(data.key_item_name(tower)))
         else:
             pool.append(world.create_item(data.key_item_name(tower)))
@@ -377,7 +397,7 @@ def create_all_items(world: BigWalkWorld) -> None:
     # are guaranteed instead (how many: the *_in_pool options), carved out of the filler
     # headroom and never past it — a tight pool loses them before it errors.
     for name, option in GUARANTEED_GEAR.items():
-        take = min(getattr(world.options, option).value, filler_needed)
+        take = 0 if packs_give_themselves(world) else min(getattr(world.options, option).value, filler_needed)
         pool += [world.create_item(name) for _ in range(take)]
         filler_needed -= take
     # The flare guns, from the same headroom, as many of each as `island_object_limits` says: the

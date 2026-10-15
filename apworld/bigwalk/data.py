@@ -978,6 +978,21 @@ def monument_full_location_id(tower: Tower) -> int:
     return BASE_ID + MONUMENT_FULL_ID_OFFSET + TOWERS.index(tower)
 
 
+MONUMENT_KEY_ID_OFFSET = 13_850
+"""
+`BASE_ID + 13_850 + the tower's position in TOWERS`: with `linear_towers: one_deposit_box`, the gourd that frees the
+tower's key (the community document's "a random one of its deposit boxes"), drawn per seed. Always holds the key.
+"""
+
+
+def monument_key_location_name(tower: Tower) -> str:
+    return f"{tower.key_name} Monument Key"
+
+
+def monument_key_location_id(tower: Tower) -> int:
+    return BASE_ID + MONUMENT_KEY_ID_OFFSET + TOWERS.index(tower)
+
+
 def tower_reached_location_id(tower: Tower) -> int:
     return BASE_ID + TOWER_REACHED_ID_OFFSET + reached_towers().index(tower)
 

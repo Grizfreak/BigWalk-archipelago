@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import random
 from collections import Counter
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, TextIO
@@ -12,7 +13,7 @@ from Options import OptionError
 from rule_builder.rules import Rule
 from worlds.AutoWorld import World
 
-from . import data, gourd_name, items, locations, logic_export, regions, rules, web_world
+from . import data, gourd_name, items, locations, logic_export, regions, rules, tiles, web_world
 from . import options as bigwalk_options
 
 if TYPE_CHECKING:
@@ -210,11 +211,17 @@ class BigWalkWorld(World):
         self.towers = data.TOWERS
         self.gourd_count = data.MAX_MONUMENT_SLOTS
 
+        self.peg_tiles = self._draw_the_tiles()
+        self.peg_drawings: dict[str, str] = {}
+        if self.options.custom_drawings:
+            own = random.Random(f"{self.multiworld.seed}-{self.player}-drawings")
+            self.peg_drawings = tiles.draw_drawings(own, [drawing.key for drawing in tiles.CUSTOM_DRAWINGS])
         self.deposit_amounts = self._pick_deposit_amounts(self.gourd_count)
         self.cabin_fever = self._cabin_fever_waits()
         self.deposit_goal = self.options.gourds_required.value
         self._check_the_objectives()
         self._draw_the_tower_order()
+        self._draw_the_monument_keys()
 
         self._pick_a_random_puzzle_need()
         self._ask_for_buttons_early()
@@ -254,6 +261,27 @@ class BigWalkWorld(World):
             spoiler_handle.write(f"{'Gourds called:':33}{self.gourd_name}\n")
         if self.options.random_objectives.value:
             spoiler_handle.write(f"{'Objectives drawn:':33}{', '.join(self.objective_keys())}\n")
+        if self.peg_tiles != tiles.VANILLA_TILES:
+            spoiler_handle.write(f"{'Basic tiles shown as:':33}{', '.join(self.peg_tiles)}\n")
+
+    def _draw_the_tiles(self) -> tuple[str, ...]:
+        """
+        R8 `custom_tiles`: the nine basic tiles' drawings (tiles.draw). From a generator of their own, drawn from the
+        seed, so that the rest of the seed draws as it did before the tiles.
+        """
+        mode = self.options.custom_tiles
+        if mode == bigwalk_options.CustomTiles.option_off:
+            return tiles.VANILLA_TILES
+        drawings = [tile.key for tile in tiles.CUSTOM_TILES]
+        if mode == bigwalk_options.CustomTiles.option_custom_only:
+            candidates = drawings
+        elif mode == bigwalk_options.CustomTiles.option_all:
+            candidates = [*tiles.VANILLA_TILES, *drawings]
+        else:
+            candidates = [*tiles.VANILLA_TILES, *tiles.matching(self.multiworld.game.values())]
+        own = random.Random(f"{self.multiworld.seed}-{self.player}-tiles")
+        return tiles.draw(own, candidates, self.options.custom_tile_weights.value,
+                          sorted(self.options.custom_tile_choices.value))
 
     def _keep_the_gauntlet_stages_local(self) -> None:
         """
@@ -332,7 +360,7 @@ class BigWalkWorld(World):
                 # With linear_towers too, the game's own way: the tutorial's monument holds the key, and its gourds
                 # must be found in the tutorial, unless its puzzles hold them (`linear_puzzles`); with `by_item` and
                 # the first monument closed, its item as well.
-                gourds = 0 if self.options.linear_puzzles else self.tower_slots(data.TOWERS[0])
+                gourds = 0 if self.options.linear_puzzles else self.key_gourds(data.TOWERS[0])
                 self.way_out = (data.GOURD_ITEM_NAME,) * gourds
                 if self.options.tower_mode == bigwalk_options.TowerMode.option_by_item and not self.options.first_tower_open:
                     self.way_out += (data.PROGRESSIVE_MONUMENT_ITEM_NAME,)
@@ -773,20 +801,58 @@ class BigWalkWorld(World):
 
     def key_in_its_monument(self, tower: data.Tower) -> bool:
         """
-        L1 `linear_towers`: whether this tower's key is its monument full. Not the Drawbridge Key when the drawbridge
-        is the only way out of the tutorial (`linear_arch_doors` and `linear_keys`) and the tutorial's monument does
-        not come first: its monument would then lie past the drawbridge the key opens. That key stays in the pool.
+        L1 `linear_towers`: whether this tower's key is in its monument (full, or the gourd drawn for it). Not the
+        Drawbridge Key when the drawbridge is the only way out of the tutorial (`linear_arch_doors` and `linear_keys`)
+        and the tutorial's monument does not come first: its monument would then lie past the drawbridge the key
+        opens. That key stays in the pool.
         """
-        if not self.options.linear_towers or tower not in self.monuments_full():
+        if not self.options.linear_towers or self.tower_slots(tower) <= 0:
             return False
         return not (tower is data.TOWERS[0] and self.options.linear_arch_doors and self.options.linear_keys
                     and not self.options.start_with_drawbridge_open and not self.tutorial_monument_first())
 
+    def key_location_name(self, tower: data.Tower) -> str:
+        """Where `linear_towers` puts this tower's key: its monument full, or its monument key."""
+        if self.options.linear_towers == bigwalk_options.LinearTowers.option_one_deposit_box:
+            return data.monument_key_location_name(tower)
+        return data.monument_full_location_name(tower)
+
+    def key_gourds(self, tower: data.Tower) -> int:
+        """How many gourds this tower's monument holds when its key comes (`linear_towers`)."""
+        return self.monument_key_gourds.get(tower.prop_name, self.tower_slots(tower))
+
     def monuments_full(self) -> list[data.Tower]:
-        """The towers whose monument full is a check: with monument_sanity or linear_towers, those that have slots."""
-        if not (self.options.monument_sanity or self.options.linear_towers):
+        """
+        The towers whose monument full is a check: with monument_sanity or linear_towers all_deposit_boxes, those
+        that have slots.
+        """
+        if not (self.options.monument_sanity
+                or self.options.linear_towers == bigwalk_options.LinearTowers.option_all_deposit_boxes):
             return []
         return [tower for tower in data.TOWERS if self.tower_slots(tower) > 0]
+
+    def monument_keys(self) -> list[data.Tower]:
+        """The towers whose monument key is a location (`linear_towers: one_deposit_box`): those that hold their key."""
+        if self.options.linear_towers != bigwalk_options.LinearTowers.option_one_deposit_box:
+            return []
+        return [tower for tower in data.TOWERS if self.key_in_its_monument(tower)]
+
+    def _draw_the_monument_keys(self) -> None:
+        """
+        `linear_towers: one_deposit_box`: for each tower, the gourd of its monument that frees its key, between the
+        first and the last slot; read back from the slot data while Universal Tracker re-generates the seed.
+        """
+        self.monument_key_gourds: dict[str, int] = {}
+        if self.options.linear_towers != bigwalk_options.LinearTowers.option_one_deposit_box:
+            return
+        passthrough = getattr(self.multiworld, "re_gen_passthrough", None)
+        slot_data = passthrough.get(self.game) if passthrough else None
+        if slot_data and "monument_key_gourds" in slot_data:
+            self.monument_key_gourds = dict(zip(slot_data["monument_key_keys"], slot_data["monument_key_gourds"]))
+            return
+        for tower in data.TOWERS:
+            if self.tower_slots(tower) > 0:
+                self.monument_key_gourds[tower.prop_name] = self.random.randint(1, self.tower_slots(tower))
 
     def puzzles(self) -> list[data.Puzzle]:
         """The puzzles that are checks: all of them, less the purple ones with `include_big_game_puzzles: disabled`."""
@@ -969,7 +1035,9 @@ class BigWalkWorld(World):
             # The packs and fireworks as checks: the mod keeps the packs on the map, and turns a
             # pick-up (by guid) or a launcher's button (by landmark) into the location at
             # `<offset> + position` in these lists.
-            "pack_sanity": bool(self.options.pack_sanity),
+            # "self" with `vanilla` (the mod's own "vanilla" is the packs free on the map, which the apworld calls off).
+            "pack_sanity": "self" if self.options.pack_sanity == bigwalk_options.PackSanity.option_vanilla
+            else bool(self.options.pack_sanity),
             "pickup_guids": [pickup.guid for pickup in data.PICKUPS],
             "pickup_id_offset": data.PICKUP_ID_OFFSET,
             "firework_sanity": bool(self.options.firework_sanity),
@@ -1017,6 +1085,11 @@ class BigWalkWorld(World):
             # guns painted from them; empty keeps the game's own.
             "random_colors": bool(self.options.random_colors),
             "color_palette": self.color_palette,
+            # The custom tiles (R8, mod only): the drawing each basic tile shows, PegTileA1 to PegTileA9; the game's own
+            # names (tiles.VANILLA_TILES) for those left as they are.
+            "peg_tiles": list(self.peg_tiles),
+            # The drawing panels' scribbles replaced (`custom_drawings`): "<the tile kind>=<the drawing>".
+            "peg_drawings": [f"{place}={name}" for place, name in sorted(self.peg_drawings.items())],
             "trap_link": bool(self.options.trap_link),
 
             # Traps and bonuses (mod only): each effect's key by its item id offset, how long
@@ -1070,9 +1143,14 @@ class BigWalkWorld(World):
             # A check for each monument full (L1): the towers by their big key's prop, in id order
             # (`base + monument_full_id_offset + position in data.TOWERS`); empty when there are none.
             "monument_sanity": bool(self.options.monument_sanity),
-            "linear_towers": bool(self.options.linear_towers),
+            "linear_towers": self.options.linear_towers.current_key,
             "monument_full_keys": [tower.prop_name for tower in self.monuments_full()],
             "monument_full_id_offset": data.MONUMENT_FULL_ID_OFFSET,
+            # `linear_towers: one_deposit_box`: each monument key (`base + monument_key_id_offset + position in
+            # data.TOWERS`), sent once its monument holds the gourds of the same position here.
+            "monument_key_keys": [tower.prop_name for tower in self.monument_keys()],
+            "monument_key_gourds": [self.key_gourds(tower) for tower in self.monument_keys()],
+            "monument_key_id_offset": data.MONUMENT_KEY_ID_OFFSET,
 
             # Not an option: it is the model this world is built on. The mod
             # stops a placed key from opening its door only while this is

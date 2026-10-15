@@ -45,6 +45,7 @@ def set_all_rules(world: BigWalkWorld) -> None:
     set_key_deposit_rules(world)
     set_tower_reached_rules(world)
     set_key_cut_rules(world)
+    set_pickup_junk(world)
     set_gourd_deposit_rules(world)
     set_puzzle_rules(world)
     set_gauntlet_rules(world)
@@ -107,6 +108,13 @@ def set_key_cut_rules(world: BigWalkWorld) -> None:
             cuts.append(location)
     if world.options.cut_key_sanity == bigwalk_options.CutKeySanity.option_junk:
         exclude_as_junk(world, cuts, "cut_key_sanity junk")
+
+
+def set_pickup_junk(world: BigWalkWorld) -> None:
+    """`pack_sanity: junk` and `flare_gun_sanity: junk` (the community document's `filler`): their checks hold junk."""
+    for option, pickups in (("pack_sanity", data.PICKUPS), ("flare_gun_sanity", data.FLARE_GUN_PICKUPS)):
+        if getattr(world.options, option).current_key == "junk":
+            exclude_as_junk(world, [world.get_location(pickup.location_name) for pickup in pickups], f"{option} junk")
 
 
 def doors_up_to(world: BigWalkWorld, count: int) -> list[Rule]:
@@ -282,16 +290,24 @@ def set_monument_full_rules(world: BigWalkWorld) -> None:
     order, every monument before it full too (the capacity up to it) and what opens them (doors, by_item items).
     """
     for tower in world.monuments_full():
-        if world.tower_order:
-            position = world.tower_index(tower.prop_name) + 1
-            capacity = sum(world.tower_slots(data.tower_by_prop(prop)) for prop in world.tower_order[:position])
-            rule: Rule = Has(data.GOURD_ITEM_NAME, count=capacity)
-            for more in monuments_up_to(world, position):
-                rule = rule & more
-        else:
-            rule = past_far_door(world, data.TOWER_FAR_DOOR.get(tower.prop_name),
-                                 Has(data.GOURD_ITEM_NAME, count=world.tower_slots(tower)))
-        world.set_rule(world.get_location(data.monument_full_location_name(tower)), rule)
+        world.set_rule(world.get_location(data.monument_full_location_name(tower)),
+                       monument_holding(world, tower, world.tower_slots(tower)))
+    # A monument key (`linear_towers: one_deposit_box`): the same, up to the gourd drawn for it.
+    for tower in world.monument_keys():
+        world.set_rule(world.get_location(data.monument_key_location_name(tower)),
+                       monument_holding(world, tower, world.key_gourds(tower)))
+
+
+def monument_holding(world: BigWalkWorld, tower: data.Tower, gourds: int) -> Rule:
+    """This tower's monument holding `gourds`: with the monuments in order, every one before it full as well."""
+    if world.tower_order:
+        position = world.tower_index(tower.prop_name) + 1
+        capacity = sum(world.tower_slots(data.tower_by_prop(prop)) for prop in world.tower_order[:position - 1])
+        rule: Rule = Has(data.GOURD_ITEM_NAME, count=capacity + gourds)
+        for more in monuments_up_to(world, position):
+            rule = rule & more
+        return rule
+    return past_far_door(world, data.TOWER_FAR_DOOR.get(tower.prop_name), Has(data.GOURD_ITEM_NAME, count=gourds))
 
 
 def set_object_event_rules(world: BigWalkWorld) -> None:
@@ -344,9 +360,42 @@ def exclude_as_junk(world: BigWalkWorld, chosen: list, what: str) -> None:
         logging.warning(f"Big Walk ({world.player_name}): {what}: only {budget} junk items left for "
                         f"{len(chosen)} locations; the others may hold anything.")
         chosen = world.random.sample(chosen, budget)
+    room = room_for_progression(world)
+    if room < len(chosen):
+        logging.warning(f"Big Walk ({world.player_name}): {what}: excluding {len(chosen)} locations would leave too "
+                        f"few for this world's progression; {room} excluded, the others may hold anything.")
+        chosen = world.random.sample(chosen, room)
     for location in chosen:
         location.progress_type = LocationProgressType.EXCLUDED
     world.__dict__["junk_budget"] = budget - len(chosen)
+
+
+PROGRESSION_MARGIN = 5
+"""
+Locations kept free beyond this world's progression items when junk is asked for: half as many again as there are
+progression items, 5 at least. Counting alone was not enough: what the junk options exclude (objects, lights) is
+mostly reached early, and the fill still ran short in the first spheres (the fuzzer's seed, 4 FillError in 20 with a
+margin of 5, none with half the progression).
+"""
+
+
+def room_for_progression(world: BigWalkWorld) -> int:
+    """
+    How many more of this world's locations the junk options may exclude and still leave room for its progression
+    items, counted as in a solo seed (the fuzzer, 2026-10-15: `pack_sanity: vanilla` and the objects' and lights' checks
+    as junk left 10 progression items more than locations). Not counted as room: the locations already filled (packs,
+    locked items), excluded, or kept for this world's own items by a `local` option (world.pre_fill).
+    """
+    local_groups = [group for group, contents in (("Objects", world.options.object_sanity_items.value),
+                                                  ("Lights", world.options.light_sanity_items.value))
+                    if contents == bigwalk_options.ObjectSanityItems.option_local]
+    local_names = set().union(*(locations.LOCATION_NAME_GROUPS[group] for group in local_groups))
+    open_locations = sum(1 for location in world.multiworld.get_locations(world.player)
+                         if location.address is not None and location.item is None
+                         and location.progress_type != LocationProgressType.EXCLUDED
+                         and location.name not in local_names)
+    progression = sum(1 for item in world.multiworld.itempool if item.player == world.player and item.advancement)
+    return max(0, open_locations - progression - max(PROGRESSION_MARGIN, progression // 2))
 
 
 def set_object_rules(world: BigWalkWorld) -> None:

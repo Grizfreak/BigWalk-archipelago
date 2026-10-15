@@ -107,6 +107,17 @@ The defaults changed too, so a seed made from an unchanged YAML is bigger: 117 l
 seed. Turn `pack_sanity`, `firework_sanity`, `flare_gun_sanity`, `bonus_fill_percentage` or
 `random_colors` off to go back.
 
+### Moving a YAML from 0.7
+
+A 0.7 YAML generates as before, with one change you can see: `custom_tiles` is on by default
+(`matching_games`), so when a game of the multiworld has a drawing of its own (Celeste, Zelda,
+Minecraft...), some of the puzzles' basic tiles show other symbols. The puzzles ask for the same tiles;
+set `custom_tiles: off` to keep the game's. `pack_sanity`, `flare_gun_sanity` and `linear_towers` were
+on/off and now have more values; `true` and `false` still mean what they meant.
+
+Every player of a session needs this build of the mod: the host and its guests talk a new version of
+their protocol.
+
 ## Joining a MultiWorld Game
 
 ### Generating a game

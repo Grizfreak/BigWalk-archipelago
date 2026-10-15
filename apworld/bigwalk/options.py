@@ -8,7 +8,7 @@ from Options import (
     Choice, DefaultOnToggle, FreeText, OptionCounter, OptionGroup, OptionSet, PerGameCommonOptions, Range, StartInventoryPool, Toggle, Visibility,
 )
 
-from . import data
+from . import data, tiles
 
 
 class Goal(Choice):
@@ -249,16 +249,28 @@ class RadioSanity(DefaultOnToggle):
 # Stations are named after the music they actually play, not the game's
 # internal names, and numbered by their light on the dial, which carries no
 # labels at all (see data.RADIO_STATIONS).
-class PackSanity(DefaultOnToggle):
+class PackSanity(Choice):
     """
     The island's backpacks, belts and gourd carton (12 in all) as checks.
 
     - on: picking each one up for the first time is a check (12 locations); the pack then
       disappears from the map, so the packs a player can wear are still the items of the pool.
+    - junk: the same checks, holding only filler or a trap.
+    - vanilla: each pack is a check that gives itself: it stays in the hands of whoever picked it up, and no
+      other location gives a pack (backpacks_in_pool, belts_in_pool and gourd_cartons_in_pool do nothing).
     - off: as in the game, free to take on the map, and no location.
     """
 
     display_name = "Pack Sanity"
+    option_off = 0
+    option_on = 1
+    option_junk = 2
+    option_vanilla = 3
+    # A toggle until 0.7.1: `true` / `false` still read; `self` is what the slot data says for vanilla (the tracker).
+    alias_true = option_on
+    alias_false = option_off
+    alias_self = option_vanilla
+    default = option_on
 
 
 class FireworkSanity(DefaultOnToggle):
@@ -414,15 +426,27 @@ class ZoneLocksLocal(Toggle):
     display_name = "Zone Locks Local"
 
 
-class FlareGunSanity(DefaultOnToggle):
+class FlareGunSanity(Choice):
     """
-    Picking up each of the island's four flare guns for the first time is a check: 4 locations. The
-    four flare guns are then items in the pool (how many of each: `island_object_limits`; with
-    `random_colors`, painted from the seed's colors). Off: the flare guns stay on the island and
-    none is an item. The Rainbow Flare Gun is an item either way (`island_object_limits`).
+    The island's four flare guns as checks.
+
+    - on: picking up each one for the first time is a check (4 locations). The four flare guns are
+      then items in the pool (how many of each: `island_object_limits`; with `random_colors`, painted
+      from the seed's colors).
+    - junk: the same, the four checks holding only filler or a trap.
+    - off: the flare guns stay on the island and none is an item.
+
+    The Rainbow Flare Gun is an item either way (`island_object_limits`).
     """
 
     display_name = "Flare Gun Sanity"
+    option_off = 0
+    option_on = 1
+    option_junk = 2
+    # A toggle until 0.7.1: `true` / `false` still read.
+    alias_true = option_on
+    alias_false = option_off
+    default = option_on
 
 
 class GourdName(FreeText):
@@ -591,20 +615,35 @@ class LinearArchDoors(Toggle):
 class MonumentSanity(DefaultOnToggle):
     """
     A check for each monument filled to its last slot: the Drawbridge's, the five towers' and the Green Dome's.
-    Linear Towers puts each tower's key there. On by default.
+    Linear Towers all_deposit_boxes puts each tower's key there; with one_deposit_box the key has a check of its own
+    (the "Monument Key"), and these stay free for anything. On by default.
     """
 
     display_name = "Monument Sanity"
 
 
-class LinearTowers(Toggle):
+class LinearTowers(Choice):
     """
-    If on, filling a tower's monument gives its key, as in the game, instead of the key being an item to find.
-    The key still arrives as an item, beside the player, the moment the monument is full. The
-    "Monument Full" checks exist with it, Monument Sanity or not.
+    Whether a tower's monument gives its key, as in the game, instead of the key being an item to find. The key
+    still arrives as an item, beside the player.
+
+    - off: the keys are items of the multiworld.
+    - all_deposit_boxes: the key comes the moment the monument is full. The "Monument Full" checks exist with it,
+      Monument Sanity or not.
+    - one_deposit_box: the key comes once the monument holds a number of gourds drawn for each tower, between one
+      and full (the "Monument Key" location).
     """
 
     display_name = "Linear Towers"
+    option_off = 0
+    option_all_deposit_boxes = 1
+    option_one_deposit_box = 2
+    # A toggle until 0.7.1: `true` / `false` still read; `disabled` is the community document's word.
+    alias_true = option_all_deposit_boxes
+    alias_on = option_all_deposit_boxes
+    alias_false = option_off
+    alias_disabled = option_off
+    default = option_off
 
 
 class LinearPuzzles(Toggle):
@@ -1014,6 +1053,70 @@ class CabinFeverLongHideTimer(Toggle):
     display_name = "Cabin Fever Long Hide Timer"
 
 
+class CustomTiles(Choice):
+    """
+    The nine basic peg tiles (the triangle, the asterisk, the G...) drawn for the seed among the game's own and the
+    community's drawings (CC BY 4.0, by Jack5, Don Chalant, GameFraek and Kensufox). A tile only changes what it shows:
+    every puzzle, every display and every player's screen follows, and the puzzles ask for the same tiles.
+
+    - off: the game's tiles.
+    - matching_games: the drawings of the games in the multiworld (Celeste, Zelda, Minecraft...) join the game's
+      tiles, and nine are drawn among them. Without such a game, the game's tiles.
+    - all: nine drawn among every tile.
+    - custom_only: nine drawn among the drawings alone: none of the game's basic tiles stays.
+
+    How often each one is drawn: Custom Tile Weights; tiles you want for sure: Custom Tile Choices.
+    """
+
+    display_name = "Custom Tiles"
+    option_off = 0
+    option_matching_games = 1
+    option_all = 2
+    option_custom_only = 3
+    default = option_matching_games
+
+
+class CustomDrawings(Toggle):
+    """
+    The community's scribbles for the drawing panels (the Poet's and the Pontiff's puzzles): each one takes the place
+    of one of the game's 45 scribbles, drawn for the seed. Like the custom tiles, only what a tile shows changes.
+    None are in this version yet: until some are added, on and off play alike. How to add one: the README of the
+    mod's mod/assets/tiles folder.
+    """
+
+    display_name = "Custom Drawings"
+
+
+class CustomTileChoices(OptionSet):
+    """
+    With Custom Tiles on, the tiles you want for sure, whatever the mode and the weights: nine at most (with more,
+    nine are drawn among them). The rest is drawn as usual. Names: see Custom Tile Weights. For example
+    [pokeball, heart, cat].
+    """
+
+    display_name = "Custom Tile Choices"
+    valid_keys = frozenset(tiles.ALL_TILES)
+    default = frozenset()
+
+
+class CustomTileWeights(OptionCounter):
+    """
+    With Custom Tiles, how often each tile is drawn, against the others. 0 leaves a tile out (a basic tile left out
+    still shows where fewer than nine remain to draw from).
+
+    The game's tiles: triangle, asterisk, diagonal_line, G, dot_and_line, vertical_ellipsis, S, spiral, e.
+    The drawings: pelly, jack, strawberry, triforce, semibot, star, smile, five, arrow, sword_in_stone, lodo,
+    stones_above_banner, pokeball, tree, creeper, sigil, chicken, planets, monster, joker, rune, knight,
+    blob_with_legs, gear, hat, heart, tunic, portal, cat.
+    """
+
+    display_name = "Custom Tile Weights"
+    valid_keys = frozenset(tiles.ALL_TILES)
+    min = 0
+    max = 100
+    default = {key: 1 for key in tiles.ALL_TILES}
+
+
 class TileThief(Choice):
     """
     A button beside the Tile Thief puzzle that makes peg tiles in front of it.
@@ -1035,7 +1138,7 @@ class TileThief(Choice):
 class BackpacksInPool(Range):
     """
     How many Backpacks the item pool holds. Each one takes the place of a filler item; a pool
-    without that much room holds fewer.
+    without that much room holds fewer. None with Pack Sanity vanilla, where each pack is its own check's item.
     """
 
     display_name = "Backpacks in Pool"
@@ -1047,7 +1150,7 @@ class BackpacksInPool(Range):
 class BeltsInPool(Range):
     """
     How many Belts the item pool holds. Each one takes the place of a filler item; a pool
-    without that much room holds fewer.
+    without that much room holds fewer. None with Pack Sanity vanilla, where each pack is its own check's item.
     """
 
     display_name = "Belts in Pool"
@@ -1059,7 +1162,7 @@ class BeltsInPool(Range):
 class GourdCartonsInPool(Range):
     """
     How many Gourd Cartons the item pool holds. Each one takes the place of a filler item; a
-    pool without that much room holds fewer.
+    pool without that much room holds fewer. None with Pack Sanity vanilla, where each pack is its own check's item.
     """
 
     display_name = "Gourd Cartons in Pool"
@@ -1400,6 +1503,10 @@ class BigWalkOptions(PerGameCommonOptions):
     cabin_fever_hide_timer: CabinFeverHideTimer
     cabin_fever_long_hide_timer: CabinFeverLongHideTimer
     tile_thief: TileThief
+    custom_tiles: CustomTiles
+    custom_tile_choices: CustomTileChoices
+    custom_drawings: CustomDrawings
+    custom_tile_weights: CustomTileWeights
     gauntlet_mode: GauntletMode
     gauntlet_puzzles_required: GauntletPuzzlesRequired
     lock_gauntlet_needs: LockGauntletNeeds
@@ -1471,6 +1578,7 @@ option_groups = [
     OptionGroup("Movement Locking", [LockAbilities, StartWithAbilities, LockRunning]),
     OptionGroup("Item Pool", [BackpacksInPool, BeltsInPool, GourdCartonsInPool, IslandObjectLimits]),
     OptionGroup("Colors and Names", [RandomColors, GourdName]),
+    OptionGroup("Custom Tiles", [CustomTiles, CustomTileChoices, CustomTileWeights, CustomDrawings]),
     OptionGroup("Traps and Bonuses", [
         TrapFillPercentage, TrapWeights, HardTraps, BonusFillPercentage, BonusWeights, TrapDuration, TrapsSpareTheGauntlet,
         TrapLink,
