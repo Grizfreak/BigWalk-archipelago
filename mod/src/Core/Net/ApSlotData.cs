@@ -148,6 +148,11 @@ namespace BigWalkArchipelago.Core.Net
         // L1 (0.6): the towers whose monument full is a check, by their big key's prop, in id order.
         internal string[] MonumentFullKeys { get; private set; } = Array.Empty<string>();
         internal int MonumentFullIdOffset { get; private set; } = 13_800;
+        // `linear_towers: one_deposit_box`: the towers whose monument key is a location, and for each the gourds its
+        // monument must hold for it, in the same order.
+        internal string[] MonumentKeyKeys { get; private set; } = Array.Empty<string>();
+        internal int[] MonumentKeyGourds { get; private set; } = Array.Empty<int>();
+        internal int MonumentKeyIdOffset { get; private set; } = 13_850;
         // Light sanity (0.6): the mode, every light's key in id order, and what big_lights asks for.
         internal string LightSanity { get; private set; } = "off";
         internal string[] LightKeys { get; private set; } = Array.Empty<string>();
@@ -205,6 +210,10 @@ namespace BigWalkArchipelago.Core.Net
         internal string[] ObjectSanityKinds { get; private set; }
         internal bool RandomColours { get; private set; }
         internal int[] ColourPalette { get; private set; } = Array.Empty<int>();
+        // R8: the drawing each basic tile shows, PegTileA1 to PegTileA9 (`peg_tiles`); empty keeps the game's.
+        internal string[] PegTiles { get; private set; } = Array.Empty<string>();
+        // R8 `custom_drawings`: the drawing panels' scribbles replaced, as "<tile kind>=<drawing>".
+        internal string[] PegDrawings { get; private set; } = Array.Empty<string>();
 
         // gourd_name (0.4.0); "Gourd" on older seeds.
         internal string GourdName { get; private set; } = GourdNames.Default;
@@ -272,6 +281,10 @@ namespace BigWalkArchipelago.Core.Net
             data.IncludeBigGamePuzzles = GetString(raw, "include_big_game_puzzles", data.IncludeBigGamePuzzles);
             data.MonumentFullKeys = GetStringArray(raw, "monument_full_keys");
             data.MonumentFullIdOffset = GetInt(raw, "monument_full_id_offset", data.MonumentFullIdOffset);
+            data.MonumentKeyKeys = GetStringArray(raw, "monument_key_keys");
+            // In the order of monument_key_keys: not sorted (a sorted list gave the Drawbridge the smallest draw, 2026-10-15).
+            data.MonumentKeyGourds = GetIntArray(raw, "monument_key_gourds", sorted: false);
+            data.MonumentKeyIdOffset = GetInt(raw, "monument_key_id_offset", data.MonumentKeyIdOffset);
             data.LightSanity = GetString(raw, "light_sanity", data.LightSanity);
             data.LightKeys = GetStringArray(raw, "light_keys");
             data.LightIdOffset = GetInt(raw, "light_id_offset", data.LightIdOffset);
@@ -356,7 +369,12 @@ namespace BigWalkArchipelago.Core.Net
             data.ObjectSanityKinds = raw.ContainsKey("object_sanity_kinds") ? GetStringArray(raw, "object_sanity_kinds") : null;
             // "random_colours" and "colour_palette" in the first builds of 0.4.
             data.RandomColours = GetBool(raw, "random_colors", GetBool(raw, "random_colours", false));
-            data.ColourPalette = raw.ContainsKey("color_palette") ? GetIntArray(raw, "color_palette") : GetIntArray(raw, "colour_palette");
+            // In the drawn order (the first four paint the flare guns): sorted, they always took the lowest indices.
+            data.ColourPalette = raw.ContainsKey("color_palette")
+                ? GetIntArray(raw, "color_palette", sorted: false)
+                : GetIntArray(raw, "colour_palette", sorted: false);
+            data.PegTiles = GetStringArray(raw, "peg_tiles");
+            data.PegDrawings = GetStringArray(raw, "peg_drawings");
             data.GourdName = GetString(raw, "gourd_name", data.GourdName);
             data.TrapLink = GetBool(raw, "trap_link", false);
 
@@ -479,7 +497,7 @@ namespace BigWalkArchipelago.Core.Net
             return result;
         }
 
-        private static int[] GetIntArray(Dictionary<string, object> raw, string key)
+        private static int[] GetIntArray(Dictionary<string, object> raw, string key, bool sorted = true)
         {
             if (!raw.TryGetValue(key, out var value) || value is not IEnumerable sequence || value is string)
                 return Array.Empty<int>();
@@ -498,7 +516,8 @@ namespace BigWalkArchipelago.Core.Net
                 }
             }
 
-            result.Sort();
+            if (sorted)
+                result.Sort();
             return result.ToArray();
         }
     }

@@ -149,6 +149,11 @@ namespace BigWalkArchipelago.Core
                             tile.transform.position = spot.Position;
                         }
 
+                        // A tile hidden by its puzzle need has no collider: set loose, it would fall through the
+                        // ground before the hider holds it again. Held until shown (PuzzleNeedHider.SoftShow).
+                        if (PuzzleNeedHider.IsSoftHidden(tile.gameObject) && tile.rb != null)
+                            tile.rb.isKinematic = true;
+
                         moved++;
                     }
                     catch (Exception ex)

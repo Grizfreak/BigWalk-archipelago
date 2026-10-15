@@ -13,6 +13,12 @@ here. It is released under the MIT license, BepInEx\licenses\
 BigWalkArchipelago.MIT.txt, and its source is at
 https://github.com/Grizfreak/BigWalk-archipelago
 
+The plugin carries the custom tiles inside it. They are not under MIT: they
+are drawn by Jack5, Don Chalant, GameFraek and Kensufox, and licensed under
+the Creative Commons Attribution 4.0 International license (CC BY 4.0),
+https://creativecommons.org/licenses/by/4.0/ . Who drew each tile:
+https://github.com/Grizfreak/BigWalk-archipelago/blob/master/mod/assets/tiles/LICENSE.md
+
 
 LOADER AND MOD FRAMEWORK
 ------------------------

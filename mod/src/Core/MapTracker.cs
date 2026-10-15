@@ -278,6 +278,7 @@ namespace BigWalkArchipelago.Core
                 var prop = MonumentOrder.PropOfTower(tower);
                 Add("tower:" + prop, ApLocationIds.TowerPrefix + prop);
                 Add("monument:" + prop, ApLocationIds.MonumentPrefix + prop);
+                Add("monumentkey:" + prop, ApLocationIds.MonumentKeyPrefix + prop);
             }
             for (var chamber = 0; chamber < 7; chamber++)
                 Add("gauntlet:" + chamber, "GauntletChamber" + chamber);
@@ -532,6 +533,15 @@ namespace BigWalkArchipelago.Core
                     }
                     else if (kind == "monument" && hasMonument && scene.GourdMark != null)
                         Place(key, monument, scene.GourdMark, true);
+                    break;
+                }
+                case "monumentkey":
+                {
+                    // At the monument, the tower's own key on the pin.
+                    var tower = MonumentOrder.TowerIndexOf(rest);
+                    if (tower >= 0 && scene.Monuments.TryGetValue(tower, out var monument)
+                        && Enum.TryParse<SaveablePropName>(rest, out var keyName) && scene.Keys.TryGetValue(keyName, out var bigKey))
+                        Place(key, monument, bigKey, false);
                     break;
                 }
                 case "gauntlet":

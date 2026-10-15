@@ -912,6 +912,7 @@ namespace BigWalkArchipelago.Core.Net
             Traps.AnnounceOverrides();
             PackChecks.Configure(Connection.SlotData);
             Palette.Configure(Connection.SlotData);
+            CustomTiles.Configure(Connection.SlotData);
             GourdNames.Configure(Connection.SlotData);
             Connection.ListenForDeathLinks(Traps.ReceivesDeathLink);
             Connection.ListenForTrapLinks(Connection.SlotData.TrapLink);
@@ -1235,6 +1236,9 @@ namespace BigWalkArchipelago.Core.Net
                 // exactly once per item, on the same "not a replay" gate
                 // the gourd counter uses.
                 var isGadget = ApLocationIds.TryResolveGadgetItem(item.ItemId, out var gadgetKind);
+                // `pack_sanity: vanilla`: a pack that is its own pick-up's item is already in the world; nothing is owed.
+                if (isGadget && PackChecks.IsPackItself(item))
+                    isGadget = false;
 
                 // Already materialized into this save by an earlier session:
                 // this is the server's replay, not a new item. Skipping it is
@@ -1305,6 +1309,9 @@ namespace BigWalkArchipelago.Core.Net
         private static bool Apply(Archipelago.MultiClient.Net.Models.ItemInfo item)
         {
             var itemId = item.ItemId;
+
+            if (PackChecks.IsPackItself(item))
+                return true;
 
             if (itemId == ApLocationIds.GourdItemId && !_looseGourdsRestored && _skipGourdSpawns > 0)
             {

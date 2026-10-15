@@ -200,7 +200,15 @@ namespace BigWalkArchipelago.Core
             internal bool[] ColliderWas;
             internal Rigidbody[] Bodies;
             internal bool[] BodyWasKinematic;
+            // A prop's home when it was hidden: one moved meanwhile (PegTileShuffler, from a rack to the floor or
+            // back) takes the physics of where it is now, not of where it was (tiles fell off the racks, 2026-10-15).
+            internal Prop Prop;
+            internal bool WasPinned;
         }
+
+        // Whether this object is hidden here without being switched off (SoftHide): no collider, held kinematic.
+        internal static bool IsSoftHidden(GameObject go) =>
+            go != null && _current != null && _current._soft.ContainsKey(go.GetInstanceID());
 
         private readonly Dictionary<int, SoftState> _soft = new Dictionary<int, SoftState>();
 
@@ -709,6 +717,8 @@ namespace BigWalkArchipelago.Core
                 state.RendererWas = state.Renderers.Select(r => r != null && r.enabled).ToArray();
                 state.ColliderWas = state.Colliders.Select(c => c != null && c.enabled).ToArray();
                 state.BodyWasKinematic = state.Bodies.Select(b => b != null && b.isKinematic).ToArray();
+                state.Prop = go.GetComponent<Prop>();
+                state.WasPinned = state.Prop != null && state.Prop.currentHome != null;
                 _soft[id] = state;
             }
 
@@ -766,10 +776,17 @@ namespace BigWalkArchipelago.Core
                     state.Colliders[i].enabled = state.ColliderWas[i];
             }
 
+            // A prop pinned or set loose while hidden: held if it hangs in a home now, free to fall if not.
+            var pinnedNow = state.Prop != null && state.Prop.currentHome != null;
+            var moved = state.Prop != null && pinnedNow != state.WasPinned;
             for (var i = 0; i < state.Bodies.Length; i++)
             {
-                if (state.Bodies[i] != null)
-                    state.Bodies[i].isKinematic = state.BodyWasKinematic[i];
+                var body = state.Bodies[i];
+                if (body == null)
+                    continue;
+                body.isKinematic = moved && state.Prop.rb != null && body.Pointer == state.Prop.rb.Pointer
+                    ? pinnedNow
+                    : state.BodyWasKinematic[i];
             }
 
             _soft.Remove(id);

@@ -52,6 +52,9 @@ host types the Archipelago details — but every player installs the mod
   highest point, a party on the beach, a share of the lights, objects or
   abilities), listed or drawn at random, shown on a board in the hub. The towers can open one after the other, in an order the
   seed draws, or each one on a Progressive Monument.
+- **Looks**: the island's buoys and flare guns in the seed's colors, and the puzzles' nine basic tiles shown as
+  drawings made by the community, those of the games in your multiworld first (Celeste's strawberry, Zelda's
+  Triforce, Minecraft's creeper...).
 
 What each goal asks, what every item does and what the options change are on
 the **[game page](apworld/bigwalk/docs/en_Big%20Walk.md)** — the same one the
@@ -70,10 +73,18 @@ The world is built with `apworld/build.py` and the mod with `tools/package-mod.p
 (both documented in their own folder: [`apworld/README.md`](apworld/README.md),
 [`mod/README.md`](mod/README.md)).
 
+To propose a tile of your own (an icon for your game, a scribble for the drawing panels):
+[`mod/assets/tiles/README.md`](mod/assets/tiles/README.md).
+
 ## License
 
 [MIT](LICENSE). The mod zip also bundles BepInEx and its dependencies, each
 under its own license, listed in `THIRD-PARTY-NOTICES.txt` inside the zip.
+
+The custom tiles in [`mod/assets/tiles/`](mod/assets/tiles/) are not under MIT: they are drawn by Jack5, Don
+Chalant, GameFraek and Kensufox, and licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Who drew which tile:
+[`mod/assets/tiles/LICENSE.md`](mod/assets/tiles/LICENSE.md). Thanks to them.
 
 ## AI disclosure
 

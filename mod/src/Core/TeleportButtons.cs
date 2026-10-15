@@ -345,6 +345,7 @@ namespace BigWalkArchipelago.Core
                 CabinFeverWaits.Tick();
                 TileThiefHelper.Sync();
                 PegTileShuffler.Tick();
+                CustomTiles.Tick();
                 BlackTowerDoor.Enforce();
             }
             catch (Exception ex)

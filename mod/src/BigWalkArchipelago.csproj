@@ -133,4 +133,8 @@
     </Reference>
   </ItemGroup>
 
+  <!-- The custom tiles (R8), carried in the DLL as tiles.<name>.png; their license: mod/assets/tiles/LICENSE.md. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\assets\tiles\*\*.png" Exclude="..\assets\tiles\source\**" LogicalName="tiles.%(Filename).png" />
+  </ItemGroup>
 </Project>

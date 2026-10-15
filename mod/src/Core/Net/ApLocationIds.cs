@@ -93,6 +93,8 @@ namespace BigWalkArchipelago.Core.Net
             _lightOffset = slotData.LightIdOffset;
             _monumentKeys = slotData.MonumentFullKeys;
             _monumentOffset = slotData.MonumentFullIdOffset;
+            _monumentKeyKeys = slotData.MonumentKeyKeys;
+            _monumentKeyOffset = slotData.MonumentKeyIdOffset;
         }
 
         // The packs and fireworks (Core/PackChecks): reported as "pickup:<guid>" and
@@ -102,6 +104,10 @@ namespace BigWalkArchipelago.Core.Net
         internal const string FireworkPrefix = "firework:";
         private static string[] _pickupGuids = Array.Empty<string>();
         private static long _pickupOffset = 13_000;
+
+        // A pack's pick-up location of this slot (`pack_sanity`), by its id.
+        internal static bool IsPickupLocation(long id) =>
+            id >= _base + _pickupOffset && id < _base + _pickupOffset + _pickupGuids.Length;
         private static string[] _fireworkKeys = Array.Empty<string>();
         private static long _fireworkOffset = 13_100;
         // A tower reached (ROADMAP S8): reported as "tower:<big key's prop name>".
@@ -130,16 +136,26 @@ namespace BigWalkArchipelago.Core.Net
         private static string[] _monumentKeys = Array.Empty<string>();
         private static long _monumentOffset = 13_800;
 
-        private static bool TryResolveMonument(string locationName, out long locationId)
+        // A monument key (`linear_towers: one_deposit_box`): "monumentkey:<the tower's big key prop>", by the same
+        // position.
+        internal const string MonumentKeyPrefix = "monumentkey:";
+        private static string[] _monumentKeyKeys = Array.Empty<string>();
+        private static long _monumentKeyOffset = 13_850;
+
+        private static bool TryResolveMonument(string locationName, out long locationId) =>
+            TryResolveByTower(locationName, MonumentPrefix, _monumentKeys, _monumentOffset, out locationId)
+            || TryResolveByTower(locationName, MonumentKeyPrefix, _monumentKeyKeys, _monumentKeyOffset, out locationId);
+
+        private static bool TryResolveByTower(string locationName, string prefix, string[] listed, long offset, out long locationId)
         {
             locationId = 0;
-            if (!locationName.StartsWith(MonumentPrefix, StringComparison.Ordinal))
+            if (!locationName.StartsWith(prefix, StringComparison.Ordinal))
                 return false;
-            var prop = locationName.Substring(MonumentPrefix.Length);
+            var prop = locationName.Substring(prefix.Length);
             var position = MonumentOrder.TowerIndexOf(prop);
-            if (position < 0 || Array.IndexOf(_monumentKeys, prop) < 0)
+            if (position < 0 || Array.IndexOf(listed, prop) < 0)
                 return false;
-            locationId = _base + _monumentOffset + position;
+            locationId = _base + offset + position;
             return true;
         }
 

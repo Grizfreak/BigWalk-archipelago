@@ -64,7 +64,7 @@ namespace BigWalkArchipelago.Core.Net
 
         // Both ends must speak the same version; a mismatch is logged once
         // and ignored rather than half-read.
-        private const byte ProtocolVersion = 21;
+        private const byte ProtocolVersion = 22;
 
         private const byte KindHello = 1;
         private const byte KindSnapshot = 2;
@@ -524,6 +524,10 @@ namespace BigWalkArchipelago.Core.Net
                 writer.WriteByte((byte)Math.Min(zoneLocked.Count, byte.MaxValue));
                 for (var i = 0; i < zoneLocked.Count && i < byte.MaxValue; i++)
                     NetworkWriterExtensions.WriteString(writer, zoneLocked[i]);
+                var pegTiles = CustomTiles.HostTiles;
+                writer.WriteByte((byte)Math.Min(pegTiles.Length, byte.MaxValue));
+                for (var i = 0; i < pegTiles.Length && i < byte.MaxValue; i++)
+                    NetworkWriterExtensions.WriteString(writer, pegTiles[i]);
 
                 connection.Send(writer.ToArraySegment(), 0);
             }
@@ -745,6 +749,7 @@ namespace BigWalkArchipelago.Core.Net
                 PackChecks.ForgetMirror();
                 Palette.ForgetMirror();
                 GourdNames.ForgetMirror();
+                CustomTiles.ForgetMirror();
             }
 
             _clientHandlerRegistered = false;
@@ -972,6 +977,10 @@ namespace BigWalkArchipelago.Core.Net
                 var zoneLockedCount = reader.ReadByte();
                 for (var i = 0; i < zoneLockedCount; i++)
                     zoneLocked.Add(NetworkReaderExtensions.ReadString(reader));
+                var pegTiles = new List<string>();
+                var pegTileCount = reader.ReadByte();
+                for (var i = 0; i < pegTileCount; i++)
+                    pegTiles.Add(NetworkReaderExtensions.ReadString(reader));
 
                 var first = _receivedAt < 0f;
 
@@ -1018,6 +1027,7 @@ namespace BigWalkArchipelago.Core.Net
                 AbilityLocks.ApplyFromHost(abilitiesEnabled, abilityMask);
                 HintBoards.ApplyFromHost(hintFlags, hintNames);
                 ZoneLocks.ApplyFromHost(zoneLocked);
+                CustomTiles.ApplyFromHost(pegTiles);
             }
             catch (Exception ex)
             {

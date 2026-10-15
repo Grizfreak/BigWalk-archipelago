@@ -15,7 +15,10 @@ namespace BigWalkArchipelago.Core
     //   on       on the map; the first pick-up of each is its location, told apart by its
     //            `savablePropGuid`, and the pack then disappears (player, 2026-10-05): the packs a
     //            player can wear stay the pool's items.
-    //   vanilla  on the map as in the game, free, and no location.
+    //   vanilla  on the map as in the game, free, and no location (the apworld's `off`).
+    //   self     on the map; the first pick-up of each is its location, whose item is the pack itself (the
+    //            apworld's `vanilla`, ROADMAP S1): the pack stays in the player's hands, and the item, when it
+    //            comes back from the server, spawns nothing (IsPackItself).
     // The pick-up is caught on the host, in the server half of the game's pick-up Command
     // (Patches/PackCheckPatches), so a guest's counts too. "Disappears" is each machine hiding its
     // own copy, like the island's hidden objects, never a network destroy (which broke the guests'
@@ -36,6 +39,7 @@ namespace BigWalkArchipelago.Core
         internal const byte ModeOff = 0;
         internal const byte ModeOn = 1;
         internal const byte ModeVanilla = 2;
+        internal const byte ModeSelf = 3;
 
         private static byte _mode;
         private static string[] _guids = Array.Empty<string>();
@@ -132,6 +136,7 @@ namespace BigWalkArchipelago.Core
                 // Without the field (a 0.3 seed) they stay hidden, as that build had it.
                 "on" or "True" => ModeOn,
                 "vanilla" or "False" => ModeVanilla,
+                "self" => ModeSelf,
                 _ => ModeOff,
             };
             _guids = slot.PickupGuids ?? Array.Empty<string>();
@@ -194,6 +199,11 @@ namespace BigWalkArchipelago.Core
         internal static byte HostMode => _mode;
 
         internal static IEnumerable<string> HostCollected => Collected;
+
+        // `self`: an item that is a pack of this slot's own pick-up locations, already in the world (the host's).
+        internal static bool IsPackItself(Archipelago.MultiClient.Net.Models.ItemInfo item) =>
+            _mode == ModeSelf && item?.Player != null && ApRuntime.Current != null
+            && item.Player.Slot == ApRuntime.Current.SlotNumber && ApLocationIds.IsPickupLocation(item.LocationId);
 
         // Whether this pack or gadget was picked up for its check (on a guest, as the host says).
         internal static bool IsCollected(string guid) => Collected.Contains(guid);
@@ -340,7 +350,8 @@ namespace BigWalkArchipelago.Core
 
         internal static void OnPickedUp(Prop prop)
         {
-            if (prop == null || !NetworkServer.active || _mode != ModeOn && !_flareGunSanity && _objectMode == ObjectsOff)
+            if (prop == null || !NetworkServer.active || _mode != ModeOn && _mode != ModeSelf && !_flareGunSanity
+                && _objectMode == ObjectsOff)
                 return;
 
             // A pack the mod spawned (an item, a trap) is a copy of an island one and carries its
@@ -355,6 +366,13 @@ namespace BigWalkArchipelago.Core
 
             if (_objectMode != ObjectsOff && OnObjectPickedUp(prop, guid))
                 return;
+
+            if (_mode == ModeSelf && Array.IndexOf(_guids, guid) >= 0)
+            {
+                // Its own item: it stays where it is, in the player's hands.
+                Report(ApLocationIds.PickupPrefix + guid, $"{prop.gameObject.name} picked up, its own item");
+                return;
+            }
 
             if (_mode == ModeOn && Array.IndexOf(_guids, guid) >= 0)
                 Report(ApLocationIds.PickupPrefix + guid, $"{prop.gameObject.name} picked up");

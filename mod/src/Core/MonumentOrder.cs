@@ -255,11 +255,11 @@ namespace BigWalkArchipelago.Core
                 return;
             _nextFullCheck = Time.unscaledTime + 1f;
 
-            var keys = ApRuntime.SlotData?.MonumentFullKeys;
-            if (keys == null || keys.Length == 0)
+            var slot = ApRuntime.SlotData;
+            if (slot == null)
                 return;
 
-            foreach (var prop in keys)
+            foreach (var prop in slot.MonumentFullKeys)
             {
                 var tower = IndexOfProp(prop);
                 if (tower < 0 || SlotsOf(tower) <= 0 || !IsFull(tower))
@@ -268,6 +268,20 @@ namespace BigWalkArchipelago.Core
                 if (!CheckTracker.TryMarkReported(location))
                     continue;
                 Plugin.Log.LogInfo($"{Tag} {Names[tower]}'s monument is full: {location}.");
+                Plugin.Reporter.ReportCheck(location);
+            }
+
+            // `linear_towers: one_deposit_box`: the monument key once the monument holds the gourds drawn for it.
+            for (var i = 0; i < slot.MonumentKeyKeys.Length && i < slot.MonumentKeyGourds.Length; i++)
+            {
+                var prop = slot.MonumentKeyKeys[i];
+                var tower = IndexOfProp(prop);
+                if (tower < 0 || CosmeticMonumentFillTracker.FilledSlots(PrefixOf(tower)) < slot.MonumentKeyGourds[i])
+                    continue;
+                var location = ApLocationIds.MonumentKeyPrefix + prop;
+                if (!CheckTracker.TryMarkReported(location))
+                    continue;
+                Plugin.Log.LogInfo($"{Tag} {Names[tower]}'s monument holds {slot.MonumentKeyGourds[i]} gourd(s): {location}.");
                 Plugin.Reporter.ReportCheck(location);
             }
         }

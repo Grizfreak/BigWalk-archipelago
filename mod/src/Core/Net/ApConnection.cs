@@ -418,6 +418,9 @@ namespace BigWalkArchipelago.Core.Net
         // This is the guard apworld/protocol.md §3 insists on — it is what
         // makes it safe for the mod to report anything the game writes
         // without first knowing which options this slot was rolled with.
+        // This slot's number in the multiworld; -1 before a login.
+        internal int SlotNumber => _session?.ConnectionInfo?.Slot ?? -1;
+
         internal bool BelongsToSlot(long locationId)
         {
             return _slotLocations.Contains(locationId);
