@@ -6,6 +6,37 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## 1.0.0
+
+### Moving from 0.7 to 1.0
+
+- **Everyone needs this build:** the host's channel to its guests changed (protocol v22).
+- **A 0.7 YAML generates as it did, with one change you can see:** `custom_tiles` is on by default
+  (`matching_games`): when a game of the multiworld has a drawing of its own, some of the puzzles' basic tiles show it.
+  The puzzles ask for the same tiles; `custom_tiles: off` keeps the game's.
+- `pack_sanity`, `flare_gun_sanity` and `linear_towers` were on/off and have more values now; `true` and `false`
+  still mean what they meant.
+
+### Added
+
+- **Custom tiles**, drawn by the community (Jack5, Don Chalant, GameFraek, Kensufox; CC BY 4.0): the nine basic peg
+  tiles shown as other drawings, on every tile, split-flap and display, the same on every player's screen.
+  **`custom_tiles`** (off / matching_games, the default: the drawings of the games in the multiworld join the game's
+  tiles / all / custom_only), **`custom_tile_choices`** (the tiles you want for sure), **`custom_tile_weights`**.
+  **`custom_drawings`** for the drawing panels' scribbles, none yet. How to propose a tile:
+  `mod/assets/tiles/README.md`.
+- **`pack_sanity: junk`** and **`flare_gun_sanity: junk`**: the same checks, holding only filler or a trap.
+- **`pack_sanity: vanilla`**: each pack's check gives the pack itself, which stays in your hands; no other location
+  gives one.
+- **`linear_towers: one_deposit_box`**: a tower's key comes once its monument holds a number of gourds drawn for each
+  tower, at a check of its own, the "Monument Key".
+
+### Fixed
+
+- The peg tiles a puzzle part hid could fall off their racks when their item came.
+- The seed's colors kept the order they were drawn in (the flare guns took the lowest ones).
+- `junk` options leave the progression enough room: a tight seed could fail to fill.
+
 ## 0.7.1
 
 ### Moving from 0.7.0 to 0.7.1

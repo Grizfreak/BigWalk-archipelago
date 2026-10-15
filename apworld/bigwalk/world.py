@@ -19,7 +19,7 @@ from . import options as bigwalk_options
 if TYPE_CHECKING:
     from NetUtils import MultiData
 
-WORLD_VERSION = "0.7.1"
+WORLD_VERSION = "1.0.0"
 """Kept in step with archipelago.json; sent in slot_data so the mod can check it."""
 
 TRACKER_OPTIONS = {

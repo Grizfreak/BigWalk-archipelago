@@ -255,6 +255,17 @@ generates the same seed's count.
   the wait runs, now and then flashing one digit. The game's sound still plays over the last ten seconds.
 - **Twelve new traps** (see Traps and bonuses below), and the Gourd Carton follows `gourd_name`.
 
+## Added in 1.0
+
+Every option below is **off by default**, except `custom_tiles` (`matching_games`), and none changes a 0.7 YAML's
+checks.
+
+- **`custom_tiles`**, **`custom_tile_choices`**, **`custom_tile_weights`**, **`custom_drawings`**: the puzzles' basic
+  tiles shown as the community's drawings (see Custom tiles below).
+- **`pack_sanity: junk`** and **`flare_gun_sanity: junk`**: the same checks, holding only filler or a trap.
+  **`pack_sanity: vanilla`**: each pack's check gives the pack itself.
+- **`linear_towers: one_deposit_box`**: a tower's key comes at a gourd drawn for it, at its **Monument Key** check.
+
 ## Other options
 
 - **`start_with_drawbridge_open`**: the Drawbridge is open from the start (its key deposit stays a check).
