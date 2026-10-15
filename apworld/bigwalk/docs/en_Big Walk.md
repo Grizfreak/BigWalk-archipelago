@@ -322,13 +322,13 @@ tile, split-flap and display of that kind follows, on every player's screen, and
 
 The drawings and the games that bring them: pelly (every multiworld), jack (The Witness), strawberry (Celeste),
 triforce (Zelda, Link to the Past, Links Awakening, Ocarina of Time, Majora's Mask, Wind Waker, Minish Cap, Twilight
-Princess, Skyward Sword, SMZ3), semibot (R.E.P.O.), star (Mario, Yoshi), smile (Lingo), five (Dice), arrow (Grapple Dog), sword_in_stone
-(Dark Souls), lodo (StarCraft), stones_above_banner (RuneScape), pokeball (Pokémon), tree (Terraria), creeper
-(Minecraft), sigil (Blasphemous), chicken (Stardew Valley), planets (Risk of Rain), monster (Slay the Spire), joker
-(Balatro), rune (DOOM), knight (Hollow Knight), blob_with_legs (Animal Well), gear (Factorio), hat (A Hat in Time),
-heart (Undertale, Deltarune), tunic (Tunic), portal (Portal), cat (Rain World). A game matches when its name holds
-one of these, whatever the capitals (`Super Mario 64`, `Manual_SuperMarioBros3_Someone`). The spoiler log lists the
-seed's tiles.
+Princess, Skyward Sword, SMZ3), semibot (R.E.P.O.), star (Mario, Luigi, Yoshi), smile (Lingo), five (Dice), arrow
+(Grapple Dog), sword_in_stone (Dark Souls), lodo (StarCraft), stones_above_banner (RuneScape), pokeball (Pokémon),
+tree (Terraria), creeper (Minecraft), sigil (Blasphemous), chicken (Stardew Valley), planets (Risk of Rain), monster
+(Slay the Spire), joker (Balatro), rune (DOOM), knight (Hollow Knight), blob_with_legs (Animal Well), gear (Factorio),
+hat (A Hat in Time), heart (Undertale, Deltarune), tunic (Tunic), portal (Portal), cat (Rain World). A game matches
+when its name holds one of these, whatever the capitals (`Super Mario 64`, `Manual_SuperMarioBros3_Someone`). The
+spoiler log lists the seed's tiles.
 
 The drawings are by **Jack5**, **Don Chalant**, **GameFraek** and **Kensufox**, under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); who drew which one is in the mod's repository,

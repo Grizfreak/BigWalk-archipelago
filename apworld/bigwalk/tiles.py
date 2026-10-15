@@ -47,7 +47,7 @@ CUSTOM_TILES: tuple[CustomTile, ...] = (
                             "Majora's Mask", "Wind Waker", "Minish Cap", "Twilight Princess", "Skyward Sword",
                             "SMZ3"), "Jack5"),
     CustomTile("semibot", ("R.E.P.O.",), "Jack5"),
-    CustomTile("star", ("Mario", "Yoshi"), "Jack5"),
+    CustomTile("star", ("Mario", "Luigi", "Yoshi"), "Jack5"),
     CustomTile("smile", ("Lingo",), "Jack5"),
     CustomTile("five", ("Dice",), "Jack5"),
     CustomTile("arrow", ("Grapple Dog",), "Jack5"),

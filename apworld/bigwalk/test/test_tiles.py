@@ -38,6 +38,7 @@ class TestDraw(BigWalkTestBase):
         for game in ("A Link to the Past", "Ocarina of Time", "Links Awakening DX", "The Wind Waker", "SMZ3"):
             self.assertIn("triforce", tiles.matching([game]), game)
         self.assertIn("star", tiles.matching(["Yoshi's Island"]))
+        self.assertIn("star", tiles.matching(["Luigi's Mansion"]))
         self.assertIn("star", tiles.matching(["Manual_SuperMarioBros3_Someone"]))
 
     def test_pelly_in_every_multiworld(self) -> None:
