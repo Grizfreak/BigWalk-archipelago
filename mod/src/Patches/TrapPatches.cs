@@ -5,11 +5,15 @@ namespace BigWalkArchipelago.Patches
 {
     // A fall that knocks a player down, as a DeathLink trigger (`big_fall`, Core/Traps.OnFall).
     // The host sees its own falls through TriggerFall and its guests' through ProcessRemoteFall.
+    // TriggerFall runs on the machine of the player who fell, so it also tells that machine's
+    // AbilityLockEnforcer its player is down and needs jump to get up.
     [HarmonyPatch(typeof(PlayerFaller), nameof(PlayerFaller.TriggerFall))]
     internal static class PlayerFallPatch
     {
         private static void Postfix(PlayerFaller __instance)
         {
+            if (__instance != null && __instance.playerCharacter != null && __instance.playerCharacter.isLocalPlayer)
+                AbilityLockEnforcer.OnLocalFall();
             if (Mirror.NetworkServer.active && __instance != null)
                 Traps.OnFall(__instance.playerCharacter);
         }

@@ -285,7 +285,11 @@ namespace BigWalkArchipelago.Core
     // others back on. Only once the option has locked something, so a vanilla game is never touched;
     // re-applied every second, since the game rebuilds its maps when controls are rebound or a
     // controller is plugged in. Jump stays on while the player sits in a pose: it is the way off a
-    // chair, and a player who could sit without jumping would be stuck there.
+    // chair, and a player who could sit without jumping would be stuck there. Likewise after a fall
+    // that leaves the player on the ground (a big fall, the DeathLink knock-out): jump is how one gets
+    // up (player, 2026-10-15), so it stays on from the fall, through the daze, and until a couple of
+    // seconds after the last jump pressed once the daze is over: one press that the game takes too
+    // early does not lock it again with the player still on the ground, every try gets its own time.
     internal class AbilityLockEnforcer : MonoBehaviour
     {
         public AbilityLockEnforcer(IntPtr ptr) : base(ptr)
@@ -305,7 +309,19 @@ namespace BigWalkArchipelago.Core
         private bool _touched;
         private float _next;
         private int _appliedVersion = -1;
-        private bool _wasPosing;
+        private bool _wasJumpFree;
+
+        // The local player has fallen and not got up yet (Patches/TrapPatches, PlayerFallPatch); once a
+        // jump is pressed after the daze, when jump goes back off unless another is pressed before.
+        private const float GetUpGrace = 2f;
+        private static bool _down;
+        private static float _upAt = -1f;
+
+        internal static void OnLocalFall()
+        {
+            _down = true;
+            _upAt = -1f;
+        }
 
         private void Update()
         {
@@ -314,18 +330,26 @@ namespace BigWalkArchipelago.Core
                 if (!Rewired.ReInput.isReady)
                     return;
 
-                var posing = LocalPlayerIsPosing();
-                if (_appliedVersion == AbilityLocks.Version && posing == _wasPosing && Time.unscaledTime < _next)
+                if (_down && !LocalPlayerIsDazed())
+                {
+                    if (Rewired.ReInput.players.GetPlayer(0).GetButtonDown(RewiredConsts.Action.jump))
+                        _upAt = Time.unscaledTime + GetUpGrace;
+                    else if (_upAt >= 0f && Time.unscaledTime >= _upAt)
+                        _down = false;
+                }
+
+                var jumpFree = _down || LocalPlayerIsPosing();
+                if (_appliedVersion == AbilityLocks.Version && jumpFree == _wasJumpFree && Time.unscaledTime < _next)
                     return;
 
                 _next = Time.unscaledTime + 1f;
                 _appliedVersion = AbilityLocks.Version;
-                _wasPosing = posing;
+                _wasJumpFree = jumpFree;
 
                 if (!AbilityLocks.Active && !_touched)
                     return;
 
-                Apply(posing);
+                Apply(jumpFree);
                 _touched = AbilityLocks.Active;
             }
             catch (Exception ex)
@@ -335,7 +359,7 @@ namespace BigWalkArchipelago.Core
             }
         }
 
-        private static void Apply(bool posing)
+        private static void Apply(bool jumpFree)
         {
             var player = Rewired.ReInput.players.GetPlayer(0);
             var maps = new Il2CppSystem.Collections.Generic.List<Rewired.ControllerMap>();
@@ -343,7 +367,7 @@ namespace BigWalkArchipelago.Core
             var elements = new Il2CppSystem.Collections.Generic.List<Rewired.ActionElementMap>();
             foreach (var (action, ability) in RewiredLocks)
             {
-                var enabled = !AbilityLocks.IsLocked(ability) || (action == RewiredConsts.Action.jump && posing);
+                var enabled = !AbilityLocks.IsLocked(ability) || (action == RewiredConsts.Action.jump && jumpFree);
                 for (var m = 0; m < maps.Count; m++)
                 {
                     elements.Clear();
@@ -362,6 +386,13 @@ namespace BigWalkArchipelago.Core
             var local = Mirror.NetworkClient.localPlayer;
             var character = local != null ? local.GetComponent<PlayerCharacter>() : null;
             return character != null && character.poser != null && character.poser.currentPose != null;
+        }
+
+        private static bool LocalPlayerIsDazed()
+        {
+            var local = Mirror.NetworkClient.localPlayer;
+            var character = local != null ? local.GetComponent<PlayerCharacter>() : null;
+            return character != null && character.faller != null && character.faller.isDazed;
         }
     }
 }
