@@ -7,71 +7,69 @@ options and export a config file from them.
 
 ## What does randomization do to this game?
 
-Solving a puzzle no longer hands you its gourd. The puzzle still opens, and
-solving it still sends a check out to the multiworld, but the gourd itself is
-gone — the only gourds you will ever hold are the ones other players send
-you. They arrive at the hub as ordinary, pickable props, and they are
-generic: any gourd fits any slot of any tower.
+### Gourds and monuments
 
-That changes what the monuments are for. Filling one is no longer the reward
-for clearing a tower's puzzles, and it no longer releases that tower's key
-either: it is simply how you spend the gourds Archipelago gives you, and
-every deposit is a check.
+Solving a puzzle still opens it and sends a check, but you don't get its gourd.
+Your gourds come from the multiworld instead. They show up at the hub as normal
+props you can pick up, and any gourd fits any monument slot.
 
-**The big keys are items too.** A key arrives from the multiworld and drops
-at the spawn point like a gourd — uncut, and tinted so you can tell one from
-another. What a key is FOR is unchanged: you carry it along its cutting
-trail, and every one of the five segments you cut is a check, as is placing
-the finished key in its receptacle. That is 32 checks across the seven
-towers, all of them earned by hand.
+Every gourd you deposit in a monument is a check. A full monument no longer
+releases its tower's key.
 
-**And the key no longer opens anything.** The drawbridge, the map room, the
-chairlift, the train, the tunnels, the Big Wall Door and the Spawn Secret
-Door are separate items. So the two halves come apart: you might be riding the chairlift long
-before its key reaches you, or cut all five segments of a key and still be
-waiting on someone else to send you the ride.
+### Big keys
 
-The radio works like the puzzles rather than like the keys. Switching a
-station on at its tower sends the check, but the music stays off until the
-matching Radio Music item reaches you — so a station, like a gourd, is
-something another player gives you. Turn `shuffle_radio_music` off in your
-YAML to keep the vanilla radio, where a station plays the moment it is
-switched on.
+Each big key is an item. It drops at the spawn point, uncut and tinted so you
+can tell the keys apart. You still cut it along its trail and place it in its
+receptacle. Each cut segment is a check, and so is each placement, for 32 checks
+over the seven keys.
 
-If you are not the host: only the host's game talks to Archipelago, and the
-host's mod tells yours which stations have arrived, so your radio waits for
-the same items and plays the same music. A guest without the mod gets the
-vanilla radio.
+Placing a key doesn't open anything anymore. The drawbridge, the map room, the
+chairlift, the train, the tunnels, the Big Wall Door and the Spawn Secret Door
+are their own items. You can end up riding the chairlift long before you find
+its key, or finish a key and still wait for someone to send you the ride.
 
-The radio's dial has no labels, only a row of lights, so every station and
-its music carry a number: its place on the dial, counted from the first
-light. `Radio Station 01: Bobby` is the first light, `Radio Station 07:
-Bristol` the last.
+### Radio
 
-A few things are handed to you for free so a randomized run does not start
-behind a wall: purple postgame gourds show on the map from the start, and the
-sphere that normally blocks the true-ending path until you have beaten the
-game once is removed.
+Switching on a station at its tower sends a check. The music only plays once
+the matching Radio Music item arrives. Set `shuffle_radio_music` to off to keep
+the vanilla radio.
 
-The hub's three arch doors follow `start_with_arch_doors_open`, the list of
-those open from the start; every other one is an item. By default only the
-First Arch Door, the tutorial's way back to the hub, is open, and the two far
-ones, left towards Sports Creek and right, are items: shortcuts that save long
-detours. With `require_arch_doors` (on by default) what lies past them is behind
-them in logic, so that you are not asked for a place on foot and sent the shortcut
-afterwards: past the left door the Yellow, Blue and Black towers and the Green
-Dome (never the chapel: the end of the game needs only the Big Wall Door), past the
-right one the Green Tower and what is beyond the chairlift. A door that starts open
-asks for nothing.
+Only the host's game talks to Archipelago. If you're a guest, the host's mod
+tells yours which stations have arrived, so you hear the same music. A guest
+without the mod gets the vanilla radio.
 
-The doors are shortcuts, not walls: the island can still be walked round them.
-But they do hold the logic. Until a door arrives, what lies past it is out of
-logic, even once you have walked there: the generator never expects those checks of
-you, and Universal Tracker shows them as out of reach. Turn `require_arch_doors` off
-for logic that ignores the doors. Remove the First Arch Door from the list for a real
-early game: you then leave the starting area through the Drawbridge or the
-First Arch Door, one of which is always found early. Left open, most of the
-island is reachable from the start.
+The dial has no labels, just a row of lights, so stations are numbered by
+their light from the left: `Radio Station 01: Bobby` is the first,
+`Radio Station 07: Bristol` the last.
+
+### Free from the start
+
+The purple postgame gourds are on the map from the start, and the sphere that
+blocks the true ending path until you've beaten the game once is gone.
+
+### Arch doors
+
+`start_with_arch_doors_open` lists the hub arch doors that start open. The
+others are items. By default only the First Arch Door (the tutorial's way back
+to the hub) is open. The left door, towards Sports Creek, and the right door are
+items.
+
+With `require_arch_doors` on (the default), the logic expects you to have a door
+before it sends you past it:
+
+- Left door: the Yellow, Blue and Black towers, and the Green Dome. Not the
+  chapel, which only needs the Big Wall Door.
+- Right door: the Green Tower and everything past the chairlift.
+
+You can still walk around a closed door, it's only a shortcut. But until it
+arrives, the checks behind it are out of logic, and Universal Tracker shows them
+as out of reach. Turn `require_arch_doors` off if you don't want the doors in
+the logic at all.
+
+For a real early game, take the First Arch Door off the list. You'll then leave
+the starting area through the Drawbridge or the First Arch Door, and one of the
+two is always found early. With it open, most of the island is reachable right
+away.
 
 ### The Silent Gauntlet
 
