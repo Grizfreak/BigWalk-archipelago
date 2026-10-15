@@ -22,7 +22,10 @@ unwinnable, which is why every player of a session should run the same build.
 - **Custom tiles**, drawn by the community (Jack5, Don Chalant, GameFraek, Kensufox; CC BY 4.0): the nine basic peg
   tiles shown as other drawings, on every tile, split-flap and display, the same on every player's screen.
   **`custom_tiles`** (off / matching_games, the default: the drawings of the games in the multiworld join the game's
-  tiles / all / custom_only), **`custom_tile_choices`** (the tiles you want for sure), **`custom_tile_weights`**.
+  tiles / matching_first: every one of them shown, the game's tiles in the places left / all / custom_only),
+  **`custom_tile_choices`** (the tiles you want for sure), **`custom_tile_weights`**. A game brings its drawing in
+  when its name holds the drawing's game, whatever the capitals (`Super Mario 64`, `TUNIC`, a Manual's
+  `Manual_SuperMarioBros3_...`); pelly, Archipelago's own, is in every multiworld.
   **`custom_drawings`** for the drawing panels' scribbles, none yet. How to propose a tile:
   `mod/assets/tiles/README.md`.
 - **`pack_sanity: junk`** and **`flare_gun_sanity: junk`**: the same checks, holding only filler or a trap.

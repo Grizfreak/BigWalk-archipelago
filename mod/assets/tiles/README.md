@@ -24,7 +24,7 @@ The pose and point tiles are not replaced: their puzzles depend on what they sho
 2. **The file**: in the folder of its category, named in lowercase with underscores (`sword_in_stone.png`). The
    name must be unique across every folder: the mod finds a drawing by it.
 3. **The world**: one line in `apworld/bigwalk/tiles.py`, in `CUSTOM_TILES` for an icon (its name, the games that
-   bring it in with `custom_tiles: matching_games`, matched anywhere in a game's name with the same capitals, and its
+   bring it in with `custom_tiles: matching_games`, matched anywhere in a game's name whatever the capitals, and its
    artist) or in `CUSTOM_DRAWINGS` for a scribble (its name and its artist).
 4. **The credit**: a line in [`LICENSE.md`](LICENSE.md). Every tile here is under CC BY 4.0: send one only if you
    drew it, or have its artist's agreement to that license.

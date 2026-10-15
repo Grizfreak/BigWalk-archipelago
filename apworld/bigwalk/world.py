@@ -273,15 +273,19 @@ class BigWalkWorld(World):
         if mode == bigwalk_options.CustomTiles.option_off:
             return tiles.VANILLA_TILES
         drawings = [tile.key for tile in tiles.CUSTOM_TILES]
+        preferred: list[str] = []
         if mode == bigwalk_options.CustomTiles.option_custom_only:
             candidates = drawings
         elif mode == bigwalk_options.CustomTiles.option_all:
             candidates = [*tiles.VANILLA_TILES, *drawings]
         else:
-            candidates = [*tiles.VANILLA_TILES, *tiles.matching(self.multiworld.game.values())]
+            matching = tiles.matching(self.multiworld.game.values())
+            candidates = [*tiles.VANILLA_TILES, *matching]
+            if mode == bigwalk_options.CustomTiles.option_matching_first:
+                preferred = matching
         own = random.Random(f"{self.multiworld.seed}-{self.player}-tiles")
         return tiles.draw(own, candidates, self.options.custom_tile_weights.value,
-                          sorted(self.options.custom_tile_choices.value))
+                          sorted(self.options.custom_tile_choices.value), preferred)
 
     def _keep_the_gauntlet_stages_local(self) -> None:
         """

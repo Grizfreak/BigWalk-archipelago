@@ -1060,8 +1060,10 @@ class CustomTiles(Choice):
     every puzzle, every display and every player's screen follows, and the puzzles ask for the same tiles.
 
     - off: the game's tiles.
-    - matching_games: the drawings of the games in the multiworld (Celeste, Zelda, Minecraft...) join the game's
-      tiles, and nine are drawn among them. Without such a game, the game's tiles.
+    - matching_games: the drawings of the games in the multiworld (Celeste, Zelda, Minecraft...) and Archipelago's own
+      (pelly, in every multiworld) join the game's tiles, and nine are drawn among them.
+    - matching_first: the same drawings, every one shown first (nine drawn among them if more); the game's tiles
+      take the places left.
     - all: nine drawn among every tile.
     - custom_only: nine drawn among the drawings alone: none of the game's basic tiles stays.
 
@@ -1073,6 +1075,7 @@ class CustomTiles(Choice):
     option_matching_games = 1
     option_all = 2
     option_custom_only = 3
+    option_matching_first = 4
     default = option_matching_games
 
 

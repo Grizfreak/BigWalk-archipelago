@@ -28,9 +28,40 @@ class TestDraw(BigWalkTestBase):
         drawn = tiles.draw(Random(3), tiles.ALL_TILES, weights)
         self.assertFalse(set(drawn) & set(tiles.VANILLA_TILES))
 
-    def test_matching_is_case_sensitive_and_anywhere(self) -> None:
-        self.assertEqual(tiles.matching(["Celeste 64", "The Legend of Zelda", "doom"]), ["strawberry", "triforce"])
+    def test_matching_is_anywhere_whatever_the_capitals(self) -> None:
+        self.assertEqual(tiles.matching(["Celeste 64", "The Legend of Zelda", "doom"]),
+                         ["pelly", "strawberry", "triforce", "rune"])
         self.assertIn("pokeball", tiles.matching(["Pokemon Red and Blue"]))
+        # The names the main Archipelago repository gives them (2026-10-15).
+        self.assertEqual(tiles.matching(["Starcraft 2", "Old School Runescape", "TUNIC"]),
+                         ["pelly", "lodo", "stones_above_banner", "tunic"])
+        for game in ("A Link to the Past", "Ocarina of Time", "Links Awakening DX", "The Wind Waker", "SMZ3"):
+            self.assertIn("triforce", tiles.matching([game]), game)
+        self.assertIn("star", tiles.matching(["Yoshi's Island"]))
+        self.assertIn("star", tiles.matching(["Manual_SuperMarioBros3_Someone"]))
+
+    def test_pelly_in_every_multiworld(self) -> None:
+        self.assertEqual(tiles.matching([]), ["pelly"])
+
+    def test_preferred_first(self) -> None:
+        preferred = ["star", "tree", "gear"]
+        for seed in range(200):
+            drawn = tiles.draw(Random(seed), [*tiles.VANILLA_TILES, *preferred], {}, preferred=preferred)
+            self.assertTrue(set(preferred) <= set(drawn))
+            self.assertEqual(sum(1 for key in drawn if key in tiles.VANILLA_TILES), 6)
+
+    def test_preferred_nine_at_most_after_the_chosen_and_weight_zero_out(self) -> None:
+        preferred = [tile.key for tile in tiles.CUSTOM_TILES][:12]
+        for seed in range(100):
+            drawn = tiles.draw(Random(seed), [*tiles.VANILLA_TILES, *preferred], {preferred[0]: 0}, ["cat"], preferred)
+            self.assertIn("cat", drawn)
+            self.assertNotIn(preferred[0], drawn)
+            self.assertEqual(len(set(drawn) & set(preferred)), 8)
+
+    def test_no_preferred_draws_as_before(self) -> None:
+        for seed in range(50):
+            self.assertEqual(tiles.draw(Random(seed), tiles.ALL_TILES, {}, ["cat"]),
+                             tiles.draw(Random(seed), tiles.ALL_TILES, {}, ["cat"], []))
 
     def test_every_drawing_has_its_file(self) -> None:
         from pathlib import Path
@@ -93,11 +124,21 @@ class TestChoicesWithMatchingGames(BigWalkTestBase):
 
 
 class TestMatchingGamesAlone(BigWalkTestBase):
-    """The default, in a multiworld of Big Walk alone: no game matches, the game's tiles."""
+    """The default, in a multiworld of Big Walk alone: only pelly joins the game's tiles."""
 
-    def test_vanilla(self) -> None:
-        self.assertEqual(self.world.peg_tiles, tiles.VANILLA_TILES)
-        self.assertEqual(self.world.fill_slot_data()["peg_tiles"], list(tiles.VANILLA_TILES))
+    def test_vanilla_or_pelly(self) -> None:
+        self.assertLessEqual(set(self.world.peg_tiles), {*tiles.VANILLA_TILES, "pelly"})
+        self.assertEqual(self.world.fill_slot_data()["peg_tiles"], list(self.world.peg_tiles))
+
+
+class TestMatchingFirstAlone(BigWalkTestBase):
+    """`matching_first`, Big Walk alone: pelly for sure, the game's tiles in the places left."""
+
+    options = {"custom_tiles": "matching_first"}
+
+    def test_pelly_and_the_game_tiles(self) -> None:
+        self.assertIn("pelly", self.world.peg_tiles)
+        self.assertEqual(sum(1 for key in self.world.peg_tiles if key in tiles.VANILLA_TILES), 8)
 
 
 class TestAllTiles(BigWalkTestBase):

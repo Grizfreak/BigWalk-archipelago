@@ -21,7 +21,10 @@ class CustomTile(NamedTuple):
     key: str
     """The drawing's name: its file in mod/assets/tiles, and its key in `custom_tile_weights`."""
     games: tuple[str, ...]
-    """It belongs to a multiworld holding a game whose name contains one of these (case-sensitive, anywhere)."""
+    """
+    It belongs to a multiworld holding a game whose name contains one of these (anywhere, whatever the capitals);
+    with none, to every multiworld.
+    """
     artist: str
 
 
@@ -37,12 +40,14 @@ VANILLA_TILES: tuple[str, ...] = (
 """The game's nine basic tiles, PegTileA1 to PegTileA9 (the atlas, dumped 2026-10-15), by the document's names."""
 
 CUSTOM_TILES: tuple[CustomTile, ...] = (
-    CustomTile("pelly", ("AP", "Archipelago"), "Jack5"),
+    CustomTile("pelly", (), "Jack5"),
     CustomTile("jack", ("The Witness",), "Jack5"),
     CustomTile("strawberry", ("Celeste",), "Jack5"),
-    CustomTile("triforce", ("Zelda",), "Jack5"),
+    CustomTile("triforce", ("Zelda", "Link to the Past", "Links Awakening", "Link's Awakening", "Ocarina of Time",
+                            "Majora's Mask", "Wind Waker", "Minish Cap", "Twilight Princess", "Skyward Sword",
+                            "SMZ3"), "Jack5"),
     CustomTile("semibot", ("R.E.P.O.",), "Jack5"),
-    CustomTile("star", ("Mario",), "Jack5"),
+    CustomTile("star", ("Mario", "Yoshi"), "Jack5"),
     CustomTile("smile", ("Lingo",), "Jack5"),
     CustomTile("five", ("Dice",), "Jack5"),
     CustomTile("arrow", ("Grapple Dog",), "Jack5"),
@@ -81,27 +86,31 @@ DRAWING_PLACES: tuple[str, ...] = (
 
 
 def matching(games: Iterable[str]) -> list[str]:
-    """The drawings whose game is in the multiworld."""
-    names = list(games)
-    return [tile.key for tile in CUSTOM_TILES if any(part in name for part in tile.games for name in names)]
+    """The drawings whose game is in the multiworld (whatever the capitals: "TUNIC", "Starcraft 2"), and pelly's."""
+    names = [name.casefold() for name in games]
+    return [tile.key for tile in CUSTOM_TILES
+            if not tile.games or any(part.casefold() in name for part in tile.games for name in names)]
 
 
 def draw(random: Random, candidates: Iterable[str], weights: Mapping[str, int],
-         chosen: Iterable[str] = ()) -> tuple[str, ...]:
+         chosen: Iterable[str] = (), preferred: Iterable[str] = ()) -> tuple[str, ...]:
     """
     The nine basic tiles' drawings, in the order PegTileA1 to PegTileA9: the chosen ones first (whatever their weight
-    and whether they are candidates, nine at most, drawn among them if more), then drawn by weight among the candidates
-    (a weight of 0 leaves a tile out). A basic tile drawn keeps its own place; the drawings take the others, in a drawn
-    order. A place left without a drawing (fewer than nine to draw from) keeps its own tile.
+    and whether they are candidates, nine at most, drawn among them if more), then the preferred ones
+    (`matching_first`: drawn by weight among them if more than the room left), then drawn by weight among the
+    candidates (a weight of 0 leaves a tile out, preferred or not). A basic tile drawn keeps its own place; the
+    drawings take the others, in a drawn order. A place left without a drawing (fewer than nine to draw from) keeps
+    its own tile.
     """
     drawn = list(dict.fromkeys(key for key in chosen if key in ALL_TILES))
     if len(drawn) > len(VANILLA_TILES):
         drawn = random.sample(drawn, len(VANILLA_TILES))
-    pool = [key for key in dict.fromkeys(candidates) if weights.get(key, 1) > 0 and key not in drawn]
-    while pool and len(drawn) < len(VANILLA_TILES):
-        pick = random.choices(pool, weights=[weights.get(key, 1) for key in pool])[0]
-        pool.remove(pick)
-        drawn.append(pick)
+    for keys in (preferred, candidates):
+        pool = [key for key in dict.fromkeys(keys) if key in ALL_TILES and weights.get(key, 1) > 0 and key not in drawn]
+        while pool and len(drawn) < len(VANILLA_TILES):
+            pick = random.choices(pool, weights=[weights.get(key, 1) for key in pool])[0]
+            pool.remove(pick)
+            drawn.append(pick)
 
     result = list(VANILLA_TILES)
     free = [i for i, key in enumerate(VANILLA_TILES) if key not in drawn]

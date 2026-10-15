@@ -307,8 +307,11 @@ The nine basic peg tiles (the triangle, the asterisk, the diagonal line, the G, 
 the S, the spiral and the e) can show other drawings for the seed. A tile only changes what it shows: every peg
 tile, split-flap and display of that kind follows, on every player's screen, and the puzzles ask for the same tiles.
 
-- **`custom_tiles: matching_games`** (the default): the drawings of the games in the multiworld join the nine basic
-  tiles, and nine are drawn among them; nothing is forced. Without such a game, the game's tiles stay.
+- **`custom_tiles: matching_games`** (the default): the drawings of the games in the multiworld, and pelly
+  (Archipelago's own, in every multiworld), join the nine basic tiles, and nine are drawn among them; nothing is
+  forced.
+- **`matching_first`**: the same drawings, every one of them shown (nine drawn among them if there are more); the
+  game's tiles keep the places left.
 - **`all`**: nine drawn among every tile. **`custom_only`**: nine drawn among the drawings alone, none of the game's
   tiles stays. **`off`**: the game's tiles.
 - **`custom_tile_choices`**: the tiles you want for sure (nine at most), whatever the mode and the weights:
@@ -317,13 +320,15 @@ tile, split-flap and display of that kind follows, on every player's screen, and
 - **`custom_drawings`** (off): the community's scribbles for the drawing panels (the Poet's and the Pontiff's
   puzzles), each one in the place of one of the game's 45, drawn for the seed. None are in this version yet.
 
-The drawings and the games that bring them: pelly (AP, Archipelago), jack (The Witness), strawberry (Celeste),
-triforce (Zelda), semibot (R.E.P.O.), star (Mario), smile (Lingo), five (Dice), arrow (Grapple Dog), sword_in_stone
+The drawings and the games that bring them: pelly (every multiworld), jack (The Witness), strawberry (Celeste),
+triforce (Zelda, Link to the Past, Links Awakening, Ocarina of Time, Majora's Mask, Wind Waker, Minish Cap, Twilight
+Princess, Skyward Sword, SMZ3), semibot (R.E.P.O.), star (Mario, Yoshi), smile (Lingo), five (Dice), arrow (Grapple Dog), sword_in_stone
 (Dark Souls), lodo (StarCraft), stones_above_banner (RuneScape), pokeball (Pokémon), tree (Terraria), creeper
 (Minecraft), sigil (Blasphemous), chicken (Stardew Valley), planets (Risk of Rain), monster (Slay the Spire), joker
 (Balatro), rune (DOOM), knight (Hollow Knight), blob_with_legs (Animal Well), gear (Factorio), hat (A Hat in Time),
 heart (Undertale, Deltarune), tunic (Tunic), portal (Portal), cat (Rain World). A game matches when its name holds
-one of these, with the same capitals. The spoiler log lists the seed's tiles.
+one of these, whatever the capitals (`Super Mario 64`, `Manual_SuperMarioBros3_Someone`). The spoiler log lists the
+seed's tiles.
 
 The drawings are by **Jack5**, **Don Chalant**, **GameFraek** and **Kensufox**, under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); who drew which one is in the mod's repository,
