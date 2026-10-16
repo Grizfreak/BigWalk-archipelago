@@ -115,13 +115,13 @@ class TestCustomOnly(BigWalkTestBase):
 
 
 class TestChoicesWithMatchingGames(BigWalkTestBase):
-    """The default mode, Big Walk alone: no game matches, but the chosen drawing is shown."""
+    """The default mode, Big Walk alone: no game matches, but the chosen drawing is shown (and pelly may be drawn)."""
 
     options = {"custom_tile_choices": ["knight"]}
 
     def test_the_choice_alone(self) -> None:
         self.assertIn("knight", self.world.peg_tiles)
-        self.assertEqual(sum(1 for key in self.world.peg_tiles if key not in tiles.VANILLA_TILES), 1)
+        self.assertLessEqual({key for key in self.world.peg_tiles if key not in tiles.VANILLA_TILES}, {"knight", "pelly"})
 
 
 class TestMatchingGamesAlone(BigWalkTestBase):
