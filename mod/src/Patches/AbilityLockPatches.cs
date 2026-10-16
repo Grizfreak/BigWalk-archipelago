@@ -46,6 +46,52 @@ namespace BigWalkArchipelago.Patches
         }
     }
 
+    // The same refusal at the source, for the local player (player, 2026-10-16: an arm raised, then a click,
+    // looked and sounded like a T-pose on the player's own screen, while the others saw nothing). The patch
+    // above only reaches the animator: PlayerGestures.Update copies PlayerDecisions.leftHandIsPointing into
+    // leftArmPointing, sends it to the server and plays the arm's sounds from it (decompiled 2026-10-16).
+    // Refused in PlayerDecisions before that copy, every part of the gesture goes with it.
+    [HarmonyPatch(typeof(PlayerGestures), nameof(PlayerGestures.Update))]
+    internal static class LocalPointingLockPatch
+    {
+        private static void Prefix(PlayerGestures __instance)
+        {
+            try
+            {
+                if (!AbilityLocks.Active || __instance?.playerCharacter == null || !__instance.playerCharacter.isLocalPlayer)
+                    return;
+
+                var decisions = __instance.playerCharacter.decisions;
+                if (decisions == null)
+                    return;
+
+                if (decisions.leftHandIsPointing && IsLocked(__instance.leftArmWavingState.isActive, left: true))
+                {
+                    decisions.leftHandIsPointing = false;
+                    ArmGestureLockPatch.LogOnce("refused left pointing at the source for the local player");
+                }
+
+                if (decisions.rightHandIsPointing && IsLocked(__instance.rightArmWavingState.isActive, left: false))
+                {
+                    decisions.rightHandIsPointing = false;
+                    ArmGestureLockPatch.LogOnce("refused right pointing at the source for the local player");
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(LocalPointingLockPatch)}] {ex.Message}");
+            }
+        }
+
+        private static bool IsLocked(bool waving, bool left)
+        {
+            var ability = waving
+                ? (left ? AbilityLocks.LeftExtending : AbilityLocks.RightExtending)
+                : (left ? AbilityLocks.LeftPointing : AbilityLocks.RightPointing);
+            return AbilityLocks.IsLocked(ability);
+        }
+    }
+
     // Chair sitting: a seat is entered through PlayerPoser.EnterPose (measured 2026-10-12, a stump of the
     // spawn courtyard). Refused for furniture only, while the ability is locked.
     [HarmonyPatch(typeof(PlayerPoser), nameof(PlayerPoser.EnterPose))]

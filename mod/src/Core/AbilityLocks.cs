@@ -286,6 +286,12 @@ namespace BigWalkArchipelago.Core
     // re-applied every second, since the game rebuilds its maps when controls are rebound or a
     // controller is plugged in. Jump stays on while the player sits in a pose: it is the way off a
     // chair, and a player who could sit without jumping would be stuck there.
+    //
+    // The same goes for sitting on the ground, which a player does not always choose: a big fall, a
+    // knock-out or a trip seats them (PlayerSitter.isSittingLocal), and PlayerSitter.Update stands
+    // them up on jump or sit only (decompiled 2026-10-16). With Legs and Seat both locked, a player
+    // who fell had no way up (player, 2026-10-16). So jump and sit stay on while seated: from the
+    // ground they only stand the player up.
     internal class AbilityLockEnforcer : MonoBehaviour
     {
         public AbilityLockEnforcer(IntPtr ptr) : base(ptr)
@@ -306,6 +312,7 @@ namespace BigWalkArchipelago.Core
         private float _next;
         private int _appliedVersion = -1;
         private bool _wasPosing;
+        private bool _wasSeated;
 
         private void Update()
         {
@@ -314,18 +321,22 @@ namespace BigWalkArchipelago.Core
                 if (!Rewired.ReInput.isReady)
                     return;
 
-                var posing = LocalPlayerIsPosing();
-                if (_appliedVersion == AbilityLocks.Version && posing == _wasPosing && Time.unscaledTime < _next)
+                var character = LocalCharacter();
+                var posing = IsPosing(character);
+                var seated = IsSeated(character);
+                if (_appliedVersion == AbilityLocks.Version && posing == _wasPosing && seated == _wasSeated
+                    && Time.unscaledTime < _next)
                     return;
 
                 _next = Time.unscaledTime + 1f;
                 _appliedVersion = AbilityLocks.Version;
                 _wasPosing = posing;
+                _wasSeated = seated;
 
                 if (!AbilityLocks.Active && !_touched)
                     return;
 
-                Apply(posing);
+                Apply(posing, seated);
                 _touched = AbilityLocks.Active;
             }
             catch (Exception ex)
@@ -335,7 +346,7 @@ namespace BigWalkArchipelago.Core
             }
         }
 
-        private static void Apply(bool posing)
+        private static void Apply(bool posing, bool seated)
         {
             var player = Rewired.ReInput.players.GetPlayer(0);
             var maps = new Il2CppSystem.Collections.Generic.List<Rewired.ControllerMap>();
@@ -343,7 +354,9 @@ namespace BigWalkArchipelago.Core
             var elements = new Il2CppSystem.Collections.Generic.List<Rewired.ActionElementMap>();
             foreach (var (action, ability) in RewiredLocks)
             {
-                var enabled = !AbilityLocks.IsLocked(ability) || (action == RewiredConsts.Action.jump && posing);
+                var wayUp = (action == RewiredConsts.Action.jump && (posing || seated))
+                            || (action == RewiredConsts.Action.sit && seated);
+                var enabled = !AbilityLocks.IsLocked(ability) || wayUp;
                 for (var m = 0; m < maps.Count; m++)
                 {
                     elements.Clear();
@@ -357,11 +370,20 @@ namespace BigWalkArchipelago.Core
             }
         }
 
-        private static bool LocalPlayerIsPosing()
+        private static PlayerCharacter LocalCharacter()
         {
             var local = Mirror.NetworkClient.localPlayer;
-            var character = local != null ? local.GetComponent<PlayerCharacter>() : null;
+            return local != null ? local.GetComponent<PlayerCharacter>() : null;
+        }
+
+        private static bool IsPosing(PlayerCharacter character)
+        {
             return character != null && character.poser != null && character.poser.currentPose != null;
+        }
+
+        private static bool IsSeated(PlayerCharacter character)
+        {
+            return character != null && character.sitter != null && character.sitter.isSittingLocal;
         }
     }
 }

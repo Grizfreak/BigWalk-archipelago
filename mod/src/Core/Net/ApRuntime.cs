@@ -958,6 +958,7 @@ namespace BigWalkArchipelago.Core.Net
             Plugin.Log.LogInfo(
                 $"[{nameof(ApRuntime)}] Connected. {Connection.SlotData.Describe()}. "
                 + $"{_appliedItemCount} item(s) already applied to this save.");
+            WarnIfOtherApworld(Connection.SlotData.WorldVersion);
 
             // ResendKnownChecks FIRST, and that order is not cosmetic. On
             // 2026-09-21 RearmFromLedger threw out of here — FmRadioManager's
@@ -977,6 +978,33 @@ namespace BigWalkArchipelago.Core.Net
             RadioStations.RearmFromLedger();
             KeyFeatures.RearmFromLedger();
             KeyCustody.RearmFromLedger();
+        }
+
+        // A seed generated with another release's apworld (2026-10-16: a 1.0.0 game on a 0.7.1 seed, the
+        // generating player had not updated): it mostly works, which is what hides it, and what the seed
+        // lacks looks like the mod's bugs (no custom tiles, older logic). Said on screen, to the host,
+        // when the major or minor version differs; a patch release keeps its seeds.
+        private static void WarnIfOtherApworld(string worldVersion)
+        {
+            if (SameMinor(worldVersion, Plugin.PluginVersion))
+                return;
+
+            Plugin.Log.LogWarning(
+                $"[{nameof(ApRuntime)}] This seed was generated with apworld {worldVersion}, and this mod is {Plugin.PluginVersion}: "
+                + "the generating player should update the apworld to the mod's release.");
+            ApNotices.Post($"This seed was made with apworld {worldVersion}, the mod is {Plugin.PluginVersion}: some options may be missing",
+                warning: true, seconds: 30f);
+        }
+
+        private static bool SameMinor(string a, string b)
+        {
+            static string MajorMinor(string version)
+            {
+                var parts = (version ?? "").Split('.');
+                return parts.Length >= 2 ? parts[0] + "." + parts[1] : version;
+            }
+
+            return MajorMinor(a) == MajorMinor(b);
         }
 
         // Every check this save has ever reported is resent on connection.

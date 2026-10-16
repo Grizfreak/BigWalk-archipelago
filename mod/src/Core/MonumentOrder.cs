@@ -634,6 +634,55 @@ namespace BigWalkArchipelago.Core
             }
         }
 
+        // ----- the Green Dome's door (2026-10-16, a 1.0.0 seed stuck on it)
+        //
+        // In the game, the door to the Green Dome's monument (`OverflowMonument/Positioner/BasicDoor - to overflow`,
+        // a TrackedPeckState saved nowhere) opens once the Black Tower is complete, and the round panel beside it shows
+        // the Black Tower's state. The apworld never asked for that: a seed may open the Green Dome before the Black
+        // Tower, and then no monument takes gourds at all (player, 2026-10-16: "Tower open: Green Dome (0/15)" in front
+        // of a shut door). So the mod opens it itself when the Green Dome takes gourds: at its turn in the order, and
+        // from the start when the towers are all open, which is what the logic of every apworld so far assumes. Host
+        // only, the state reaching the guests over the network like an arch door's; asserted again on each pass, since
+        // nothing saves it.
+        private static TrackedPeckState _greenDomeDoor;
+        private static float _nextDoorSearch;
+
+        private static void TickGreenDomeDoor()
+        {
+            if (!NetworkServer.active || (ApRuntime.SlotData == null && DebugMode == null) || !IsOpen(6))
+                return;
+
+            if (_greenDomeDoor == null)
+            {
+                if (Time.unscaledTime < _nextDoorSearch)
+                    return;
+
+                _nextDoorSearch = Time.unscaledTime + 10f;
+                _greenDomeDoor = FindGreenDomeDoor();
+                if (_greenDomeDoor == null)
+                    return;
+            }
+
+            if (_greenDomeDoor.currentPeckContext.state == 1)
+                return;
+
+            // Logged each time: once per world loaded, and more often would mean something in the game shuts it again.
+            _greenDomeDoor.SetState(1);
+            Plugin.Log.LogInfo($"{Tag} The Green Dome takes gourds: its door opened.");
+        }
+
+        private static TrackedPeckState FindGreenDomeDoor()
+        {
+            foreach (var state in UnityEngine.Object.FindObjectsByType<TrackedPeckState>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                var parent = state != null ? state.transform.parent : null;
+                if (parent != null && state.name == "BasicDoorPeckLogic" && parent.name == "BasicDoor - to overflow")
+                    return state;
+            }
+
+            return null;
+        }
+
         // ----- applying it, every couple of seconds (TeleportButtons.Sync), on every machine
 
         internal static void Tick()
@@ -649,6 +698,7 @@ namespace BigWalkArchipelago.Core
 
             var active = Active;
             TickButtons(active);
+            TickGreenDomeDoor();
             foreach (var home in homes)
             {
                 if (home == null || !ReceivedItemSpawner.IsMonumentHome(home))
