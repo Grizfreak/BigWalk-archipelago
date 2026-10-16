@@ -6,6 +6,29 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## 1.0.1
+
+### Moving from 1.0.0 to 1.0.1
+
+- **A fix for the mod only.** Nothing changed in the world: a 1.0.0 seed plays as it is, and so does a seed already
+  started (a seed stuck at a shut Green Dome opens again once the host runs 1.0.1). Every player of a session should
+  still run the same build.
+
+### Fixed
+
+- **The Green Dome's door stayed shut** while its monument was the one taking gourds: the game opens it once the
+  Black Tower is complete, which the world never asked for. With `tower_mode` drawing the Green Dome before the Black
+  Tower, no monument took gourds at all. The mod now opens it at the Green Dome's turn (from the start with
+  `all_open`).
+- **A player who fell could not get up** with Legs and Seat both locked (`lock_abilities`): jump and sit, the only
+  ways up, stay on while seated.
+- A raised arm that pointed, with pointing locked, still showed a T-pose and its sound on the player's own screen.
+
+### Added
+
+- The host is told on screen when the seed was made with an apworld of another version than the mod (a seed from an
+  older apworld lacks the newer options, custom tiles among them).
+
 ## 1.0.0
 
 ### Moving from 0.7 to 1.0
