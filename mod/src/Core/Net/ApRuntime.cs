@@ -958,7 +958,7 @@ namespace BigWalkArchipelago.Core.Net
             Plugin.Log.LogInfo(
                 $"[{nameof(ApRuntime)}] Connected. {Connection.SlotData.Describe()}. "
                 + $"{_appliedItemCount} item(s) already applied to this save.");
-            WarnIfOtherApworld(Connection.SlotData.WorldVersion);
+            WarnIfNewerApworld(Connection.SlotData.WorldVersion);
 
             // ResendKnownChecks FIRST, and that order is not cosmetic. On
             // 2026-09-21 RearmFromLedger threw out of here — FmRadioManager's
@@ -980,31 +980,31 @@ namespace BigWalkArchipelago.Core.Net
             KeyCustody.RearmFromLedger();
         }
 
-        // A seed generated with another release's apworld (2026-10-16: a 1.0.0 game on a 0.7.1 seed, the
-        // generating player had not updated): it mostly works, which is what hides it, and what the seed
-        // lacks looks like the mod's bugs (no custom tiles, older logic). Said on screen, to the host,
-        // when the major or minor version differs; a patch release keeps its seeds.
-        private static void WarnIfOtherApworld(string worldVersion)
+        // A seed generated with a newer apworld than this mod (a minor or major version ahead): the mod ignores what it
+        // does not know, which can leave a seed unwinnable (CHANGELOG). Said on screen, to the host. An older seed is
+        // left alone: its logic was fixed when it was generated and plays the same with this mod, only the newer
+        // options are missing (the player, 2026-10-16: a warning there tells nothing worth a warning).
+        private static void WarnIfNewerApworld(string worldVersion)
         {
-            if (SameMinor(worldVersion, Plugin.PluginVersion))
+            if (!TryMajorMinor(worldVersion, out var seed) || !TryMajorMinor(Plugin.PluginVersion, out var mod) || seed.CompareTo(mod) <= 0)
                 return;
 
             Plugin.Log.LogWarning(
-                $"[{nameof(ApRuntime)}] This seed was generated with apworld {worldVersion}, and this mod is {Plugin.PluginVersion}: "
-                + "the generating player should update the apworld to the mod's release.");
-            ApNotices.Post($"This seed was made with apworld {worldVersion}, the mod is {Plugin.PluginVersion}: some options may be missing",
+                $"[{nameof(ApRuntime)}] This seed was generated with apworld {worldVersion}, newer than this mod ({Plugin.PluginVersion}): "
+                + "every player should update the mod, or the seed may not be finishable.");
+            ApNotices.Post($"This seed needs a newer mod (apworld {worldVersion}, mod {Plugin.PluginVersion}): update the mod",
                 warning: true, seconds: 30f);
         }
 
-        private static bool SameMinor(string a, string b)
+        private static bool TryMajorMinor(string version, out (int Major, int Minor) value)
         {
-            static string MajorMinor(string version)
-            {
-                var parts = (version ?? "").Split('.');
-                return parts.Length >= 2 ? parts[0] + "." + parts[1] : version;
-            }
+            value = default;
+            var parts = (version ?? string.Empty).Split('.');
+            if (parts.Length < 2 || !int.TryParse(parts[0], out var major) || !int.TryParse(parts[1], out var minor))
+                return false;
 
-            return MajorMinor(a) == MajorMinor(b);
+            value = (major, minor);
+            return true;
         }
 
         // Every check this save has ever reported is resent on connection.

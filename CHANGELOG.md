@@ -26,8 +26,9 @@ unwinnable, which is why every player of a session should run the same build.
 
 ### Added
 
-- The host is told on screen when the seed was made with an apworld of another version than the mod (a seed from an
-  older apworld lacks the newer options, custom tiles among them).
+- The host is told on screen when the seed was made with a newer apworld than the mod: the mod ignores what it does not
+  know, which can leave a seed unwinnable. A seed from an older apworld plays as it was generated, without the newer
+  options (custom tiles among them), and is not warned about.
 
 ## 1.0.0
 
