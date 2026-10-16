@@ -56,6 +56,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> LogStatesKey;
         internal static ConfigEntry<KeyboardShortcut> DumpPegTilesKey;
         internal static ConfigEntry<float> DumpGauntletRadius;
+        internal static ConfigEntry<string> DumpGauntletCentre;
         internal static ConfigEntry<KeyboardShortcut> EnableSkipAidsKey;
         internal static ConfigEntry<KeyboardShortcut> SpawnTestButtonKey;
         internal static ConfigEntry<KeyboardShortcut> MarkSpotKey;
@@ -423,6 +424,12 @@ namespace BigWalkArchipelago
                 "DumpGauntletRadius",
                 80f,
                 "Radius in metres of DumpGauntletKey's dump.");
+
+            DumpGauntletCentre = debug.Bind(
+                "Debug",
+                "DumpGauntletCentre",
+                "",
+                "Where DumpGauntletKey's dump is centred: x, y, z in metres. Empty: on the player. The game builds every place at once, so a place can be dumped from anywhere (2026-10-16, the Green Dome's door).");
 
             EnableSkipAidsKey = debug.Bind(
                 "Debug",

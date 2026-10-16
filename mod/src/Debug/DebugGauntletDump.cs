@@ -39,7 +39,7 @@ namespace BigWalkArchipelago.Debug
             }
 
             _count++;
-            var origin = player.transform.position;
+            var origin = TryParseCentre(ModConfig.DumpGauntletCentre.Value, out var centre) ? centre : player.transform.position;
             var text = new StringBuilder();
             text.AppendLine($"# dump {_count} label='{label}' radius={radius} player={Format(origin)}");
             text.AppendLine("kind\tname\tpath\tx\ty\tz\tdistance\tstate\tlink\tdetail");
@@ -226,6 +226,24 @@ namespace BigWalkArchipelago.Debug
                 foreach (var target in toggle.targets)
                     if (target != null)
                         yield return PathOf(target);
+        }
+
+        private static bool TryParseCentre(string text, out Vector3 centre)
+        {
+            centre = Vector3.zero;
+            var parts = (text ?? string.Empty).Split(',');
+            if (parts.Length != 3)
+                return false;
+
+            var values = new float[3];
+            for (var i = 0; i < 3; i++)
+            {
+                if (!float.TryParse(parts[i].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out values[i]))
+                    return false;
+            }
+
+            centre = new Vector3(values[0], values[1], values[2]);
+            return true;
         }
 
         private static bool Within(Transform transform, Vector3 origin, float radius)
