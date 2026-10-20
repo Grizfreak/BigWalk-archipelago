@@ -655,13 +655,16 @@ class BigWalkWorld(World):
         fuzzer, 2026-10-14: 2 option sets of 7 failed every seed). So the way is opened here as the fill would, with
         this world's progression: one item per free location; where no single item opens anything but two together
         do, and only one location is free, the player starts with one of the two (the generation log says which).
-        Steps that only count gourds are left to the fill.
+        Steps that only count gourds are left to the fill. Only this world's part of the state is swept, tried and
+        put back: its rules ask for its own items, and a sweep or a copy of the whole state costs every other world's
+        logic at each trial (10-20 minutes for two walks among ~300 slots, 2026-10-16).
         """
         mine = [item for item in self.multiworld.itempool if item.player == self.player and item.advancement]
         if not mine:
             return
+        own = self.multiworld.get_locations(self.player)
         state = CollectionState(self.multiworld)
-        state.sweep_for_advancements()
+        state.sweep_for_advancements(own)
         used = 0
 
         def reach(with_state: CollectionState) -> set[str]:
@@ -669,11 +672,18 @@ class BigWalkWorld(World):
                     if loc.progress_type != LocationProgressType.EXCLUDED and loc.can_reach(with_state)}
 
         def opens(names: tuple[str, ...], now: set[str]) -> int:
-            trial = state.copy()
-            for name in names:
-                trial.collect(self.create_item(name), True)
-            trial.sweep_for_advancements()
-            return len(reach(trial) - now)
+            player = self.player
+            saved = (state.prog_items[player].copy(), state.reachable_regions[player].copy(),
+                     state.blocked_connections[player].copy(), state.stale[player],
+                     state.advancements.copy(), state.locations_checked.copy())
+            try:
+                for name in names:
+                    state.collect(self.create_item(name), True)
+                state.sweep_for_advancements(own)
+                return len(reach(state) - now)
+            finally:
+                (state.prog_items[player], state.reachable_regions[player], state.blocked_connections[player],
+                 state.stale[player], state.advancements, state.locations_checked) = saved
 
         for _ in range(len(mine)):
             now = reach(state)
@@ -706,14 +716,14 @@ class BigWalkWorld(World):
                 self.push_precollected(item)
                 self.multiworld.itempool.append(self.create_filler())
                 state.collect(item, True)
-                state.sweep_for_advancements()
+                state.sweep_for_advancements(own)
                 continue
             for name in chosen:
                 item = next(item for item in mine if item.name == name)
                 mine.remove(item)
                 state.collect(item, True)
                 used += 1
-            state.sweep_for_advancements()
+            state.sweep_for_advancements(own)
 
     def _make_room_at_the_start(self) -> None:
         """
