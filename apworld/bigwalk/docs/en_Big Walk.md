@@ -175,6 +175,13 @@ Big Walk:
 - **big_fiesta** (or big_club): throw the party on the beach by plugging a
   radio into the big speakers with music playing. A **Radio** is always in the
   pool, and with `shuffle_radio_music` you'll need one of the Radio Music items.
+- **big_doof**: light up the Doof Chamber, the music room in the tunnels: its
+  five light switches on and its smoke machine's button held, for ten seconds.
+- **big_makeover**: get painted at the Secret Salon, in the tunnels. With
+  `everyone_gathers`, every player must be painted there, each in turn.
+- With `everyone_gathers` (on by default), big_climb, big_fiesta, big_doof and
+  big_makeover want every player there. Their ten seconds tick: once at the
+  start, then on each of the last three.
 - **big_lights**: switch on `lights_required` percent of the lights at least
   once. Without `light_sanity` the lamps still count, they just aren't checks.
 - **big_objects**: send `objects_required` percent of the object checks. Needs
@@ -267,7 +274,7 @@ Off by default:
   lamps.
 - **`light_sanity`**: switching on each light for the first time. `lamps` is the
   83 lamps (pedestals, towers, tutorial...), `lamps_and_switches` adds 19 wall
-  switches (Doof Chamber, salons, tutorial, train and its stops). Puzzle lights
+  switches (Doof Chamber, the music room in the tunnels; salons, tutorial, train and its stops). Puzzle lights
   don't count. With it on, lamps are lights rather than objects.
 - The Silent Gauntlet's seven stages (`gauntlet_mode: locked_stages`).
 
@@ -294,7 +301,9 @@ The tutorial, Map Room, chairlift, tunnels and train keep their usual locks.
   Tower Key**, **Blue Castle Tower Key**, **Yellow Twist Tower Key**, **Black
   Monolith Tower Key** and **Green Dome Tower Key**. Their checks use the same
   names (**Red Funnel Tower Key Cut 1**, **Red Funnel Tower Key Deposit**). A key
-  opens nothing, but it's the only way to get its checks.
+  opens nothing, but it's the only way to get its checks. A key can be cut along
+  any trail, each station cutting its own segment (Key Cut 1 at a trail's first
+  station, and so on). The map's flags show the stations of the key's own trail.
 - The 7 Radio Music items, each one making a station play. They're named after
   the song, which the game never shows, and numbered by the station's light.
 - **First Arch Door**, **Left Arch Door** and **Right Arch Door**, for the doors
@@ -370,8 +379,10 @@ All off by default.
 
 - `start_with_map_room_open`, `start_with_drawbridge_open`: open from the start.
   The drawbridge's key deposit is still a check.
-- `open_black_tower` (on): the Black Tower's door is open from the start instead
-  of waiting for five monuments.
+- `open_black_tower` (on): the Black Tower's door is open from the start. Off,
+  it waits for the monuments of the drawbridge and the four coloured towers;
+  with `tower_mode` in_order or by_item, it opens at the Black Tower's turn
+  (with by_item, its Progressive Monument). The logic waits for it too.
 - `hint_keys: from_start`: the seven big keys are hinted from the start.
 - `fast_golf`: the golf ball (the cannonball) is no longer too heavy.
 - `tower_resync_stations`: a resync station in each of the five towers. It's a
@@ -510,6 +521,8 @@ and paints the island's **buoys** and **flare guns** with them:
 - Flare guns: body, barrel and shot (flare, light and smoke). The four island
   guns take the first four colors, and a gun you receive matches its kind. The
   item feed names a flare gun by its color: "Received: Pink Flare Gun".
+- Lasers: one color per laser, its beam included. A laser you receive takes
+  the color of the island laser it was copied from.
 
 Only map objects are painted, never the players, gourds or keys. Turn
 `random_colors` off to keep the game's colors.
@@ -535,6 +548,11 @@ and the puzzles ask for the same tiles.
 - **`custom_drawings`** (off): community scribbles for the drawing panels (the
   Poet's and the Pontiff's puzzles), each replacing one of the game's 45. None
   yet.
+- **`mirrored_poses`** (0): the pose panels (Indoor Semaphore, Optical
+  Telegraph, Charades Rooms) picked among the game's nine poses and the mirrors
+  of the four that aren't symmetric. A pose and its mirror can both be there:
+  tell left from right. The value is how often a mirror is picked against a
+  game pose (100 = as often).
 
 The drawings and the games that bring them: pelly (every multiworld), jack (The
 Witness), strawberry (Celeste), triforce (Zelda, Link to the Past, Links

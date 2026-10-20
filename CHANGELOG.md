@@ -6,6 +6,54 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## 1.0.2
+
+### Moving from 1.0.1 to 1.0.2
+
+- **Everyone needs this build:** the gadgets the multiworld sends are built differently, and a guest on 1.0.1 would
+  build them another way than its host.
+- A 1.0.1 YAML generates as it did. With `open_black_tower` off, the Black Tower's button and monument now wait in
+  logic for the door at its foot, so such a seed may place things differently.
+
+### Fixed
+
+- **Gadgets received with `object_sanity` could break between players:** a scanner nobody else could pick up, then
+  stuck on a guest's face, a torch that stayed on, a walkie-talkie that gave a guest their own voice back. A received
+  gadget could borrow what identifies one of the island's own, which stays on the map with `object_sanity`.
+- **Opening the door of a light puzzle sent a DeathLink** (Pointer's Paradise and the others whose lights must be
+  pressed in order): the game puts the lights out when the room closes, the same way it does for a wrong press. Only a
+  press counts now.
+- **Peg tiles were shuffled across puzzles:** in the Green Tower, the Ring Room, the Silent Gauntlet and the rooms
+  around them, tiles were strewn about, doubled in one puzzle and missing in another, invisible ink in a plain puzzle
+  and plain tiles in the ink one. Tiles now swap only within their own rack and their own kind, a few seconds after the world loads, and the same
+  way every time the save is loaded.
+- **A key's cutting flags on the map followed the key around:** a key carried near another trail showed its flags on
+  that trail's stations. Each key's flags stay on its own trail. (A key can be cut along any trail, as in the game.)
+- **With `open_black_tower` off, the Black Tower's button and monument were in logic behind a shut door.** They now
+  wait for it: the monuments of the drawbridge and the four coloured towers full, or with `tower_mode` the Black
+  Tower's turn, when the mod opens it.
+- Generation is much faster in large multiworlds: the world's pre-fill no longer walks every other world (27 s down
+  to under a tenth of a second per Big Walk among 150 slots).
+
+### Added
+
+- **`mirrored_poses`** (0 to 100, off by default): the pose panels (Indoor Semaphore, Optical Telegraph, Charades
+  Rooms) are drawn among the game's poses and the mirrors of the four that are not symmetric, a pose and its mirror
+  possibly side by side. The value is how often a mirror is drawn against a game pose. The puzzles work as before.
+- **Two objectives in the tunnels:** **`big_doof`**, the Doof Chamber's five lights on and its smoke machine's button held for ten seconds, and
+  **`big_makeover`**, painted at the Secret Salon (every player, each in turn, with `everyone_gathers`). With `everyone_gathers`, every player there. The Doof
+  Chamber's switches and radio are now in the tunnels for the logic and for `zone_locks`.
+- Big Climb's, Big Fiesta's and Big Doof's ten seconds tick, with Cabin Fever's sound: once when they start, then on
+  each of the last three, for every player.
+- With `random_colors`, each laser takes its own color, its tip and its beam included.
+- With `tower_mode: by_item`, the towers' line says which Progressive Monument it waits for.
+- The host is told on screen when the seed was made with a newer apworld than the mod: the mod ignores what it does not
+  know, which can leave a seed unwinnable. A seed from an older apworld plays as it was generated, without the newer
+  options (custom tiles among them), and is not warned about.
+- The session journal (`BepInEx/session-journal.tsv`) notes what each player holds, for reports of a gourd that cannot
+  be picked up.
+- The setup guide covers Linux and the Steam Deck (Proton needs a launch option).
+
 ## 1.0.1
 
 ### Moving from 1.0.0 to 1.0.1
@@ -23,12 +71,6 @@ unwinnable, which is why every player of a session should run the same build.
 - **A player who fell could not get up** with Legs and Seat both locked (`lock_abilities`): jump and sit, the only
   ways up, stay on while seated.
 - A raised arm that pointed, with pointing locked, still showed a T-pose and its sound on the player's own screen.
-
-### Added
-
-- The host is told on screen when the seed was made with a newer apworld than the mod: the mod ignores what it does not
-  know, which can leave a seed unwinnable. A seed from an older apworld plays as it was generated, without the newer
-  options (custom tiles among them), and is not warned about.
 
 ## 1.0.0
 

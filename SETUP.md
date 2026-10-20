@@ -2,7 +2,8 @@
 
 ## What you need
 
-- **Big Walk** on Steam (Windows). Every player needs their own copy: this is
+- **Big Walk** on Steam (Windows, or Linux and the Steam Deck through Proton: see below). Every player needs
+  their own copy: this is
   a co-op game and the randomizer does not change that.
 - **The mod**, `BigWalkArchipelago-<version>.zip`, from this repository's
   [releases](https://github.com/Grizfreak/BigWalk-archipelago/releases). It is
@@ -66,7 +67,22 @@ own.
    for it. The ones after it are normal.
 
 To check it worked, open `BepInEx/LogOutput.log` and look for a line reading
-`Big Walk Archipelago v0.1.2 loaded (build …).` — the build is a short code that tells two copies of the mod apart.
+`Big Walk Archipelago v<version> loaded (build …).`, the version being the zip's — the build is a short code that
+tells two copies of the mod apart.
+
+### On Linux or the Steam Deck (Proton)
+
+The game runs under Proton, and so does the mod, with one thing to set: Proton loads its own `winhttp.dll`
+rather than BepInEx's, and the mod then never starts. In Steam, right-click **Big Walk** → **Properties** →
+**General**, and put this in **Launch options**:
+
+```
+WINEDLLOVERRIDES="winhttp=n,b" %command%
+```
+
+The zip holds the Windows build of BepInEx, so the game must run through Proton (**Properties** →
+**Compatibility**, force a Proton version if Steam ever offers anything else). The install folder
+(**Manage** → **Browse local files**) and `BepInEx/LogOutput.log` inside it are where they are on Windows.
 
 **Everyone must run the same mod version and the same game version.** A
 mismatch is not always loud: an older mod ignores parts of the seed it does
