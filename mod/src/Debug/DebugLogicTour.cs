@@ -295,13 +295,12 @@ namespace BigWalkArchipelago.Debug
                         break;
                     case "cut":
                     {
-                        // At its cutting station: the stations of the key's trail, the one whose end lies nearest the key.
+                        // At its cutting station, on the key's own trail (MapTracker.TrailOf).
                         var last = rest.LastIndexOf(':');
-                        if (last < 0 || !keys.TryGetValue(rest.Substring(0, last), out var bigKey) || !int.TryParse(rest.Substring(last + 1), out var index))
+                        if (last < 0 || !Enum.TryParse<SaveablePropName>(rest.Substring(0, last), out var keyName)
+                            || !int.TryParse(rest.Substring(last + 1), out var index))
                             break;
-                        var trail = UnityEngine.Object.FindObjectsByType<UnlockTrail>(FindObjectsInactive.Include, FindObjectsSortMode.None)
-                            .Where(t => t != null && t.finalTarget != null)
-                            .OrderBy(t => (t.finalTarget.position - bigKey.position).sqrMagnitude).FirstOrDefault();
+                        var trail = MapTracker.TrailOf(keyName);
                         if (trail?.stations == null)
                             break;
                         foreach (var cutStation in trail.stations)

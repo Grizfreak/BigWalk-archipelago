@@ -446,8 +446,11 @@ namespace BigWalkArchipelago.Core
 
                 if (!IsOpen(tower))
                 {
-                    _hudLine = Mode == "by_item"
-                        ? "Towers: none open, a Progressive Monument is missing"
+                    // Which one, by number (players, 2026-10-17: the Black Tower shut after the Green Dome, and nothing
+                    // said a fifth item was what it waited for). Not the tower's name: the order is a surprise.
+                    var needed = Array.IndexOf(Order, prop) + (FirstTowerOpen ? 0 : 1);
+                    _hudLine = Mode == "by_item" && Granted < needed
+                        ? $"Towers: none open, waiting for Progressive Monument {needed} ({Granted} received)"
                         : "Towers: none open";
                     break;
                 }

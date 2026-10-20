@@ -338,7 +338,7 @@ namespace BigWalkArchipelago.Core
         }
 
         private static bool HasPlace(string objective) =>
-            objective is "big_climb" or "big_fiesta" or "big_wall" or "big_game" or "big_goodbye";
+            objective is "big_climb" or "big_fiesta" or "big_doof" or "big_makeover" or "big_wall" or "big_game" or "big_goodbye";
 
         // To the guests: the list when it changes, and every few seconds for one who joined since.
         private static void SendToGuests()
@@ -551,13 +551,12 @@ namespace BigWalkArchipelago.Core
                     break;
                 case "cut":
                 {
-                    // Each at its own cutting station, five per key (player, 2026-10-13); a key's trail of stations is
-                    // the one whose end lies nearest the key.
+                    // Each at its own cutting station, five per key (player, 2026-10-13), on the key's own trail.
                     var last = rest.LastIndexOf(':');
                     if (last < 0 || !Enum.TryParse<SaveablePropName>(rest.Substring(0, last), out var name)
                         || !int.TryParse(rest.Substring(last + 1), out var index) || !scene.Keys.TryGetValue(name, out var bigKey))
                         break;
-                    var trail = TrailOf(bigKey);
+                    var trail = TrailOf(name);
                     if (trail?.stations == null)
                         break;
                     foreach (var cutStation in trail.stations)
@@ -587,22 +586,32 @@ namespace BigWalkArchipelago.Core
             }
         }
 
-        private static UnlockTrail TrailOf(Transform key)
+        // A key's trail of cutting stations, by the trail's name (the scene's LandmarksNonChallenge/CuttingTrails).
+        // It used to be the trail whose end lay nearest the key, wherever the key was: a key received, carried or
+        // set down elsewhere took another key's trail, and its flags with it (players, 2026-10-17: green key flags
+        // on the red key's stations, the red key cut and in the map room). The checks were never wrong:
+        // KeyBlankCutPatch counts a cut by key and segment, whatever the station.
+        private static readonly Dictionary<SaveablePropName, string> TrailNames = new()
         {
-            UnlockTrail best = null;
-            var bestDistance = float.MaxValue;
+            { SaveablePropName.bigKeyIntro, "CuttingTrailBoardwalk" },
+            { SaveablePropName.bigKeyRedZone, "CuttingTrailRedTower" },
+            { SaveablePropName.bigKeyGreenZone, "CuttingTrailGreenTower" },
+            { SaveablePropName.bigKeyBlueZone, "CuttingTrailBlueTower" },
+            { SaveablePropName.bigKeyYellowZone, "CuttingTrailYellowTower" },
+        };
+
+        internal static UnlockTrail TrailOf(SaveablePropName key)
+        {
+            if (!TrailNames.TryGetValue(key, out var trailName))
+                return null;
+
             foreach (var trail in UnityEngine.Object.FindObjectsByType<UnlockTrail>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
-                if (trail == null || trail.finalTarget == null)
-                    continue;
-                var distance = (trail.finalTarget.position - key.position).sqrMagnitude;
-                if (distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    best = trail;
-                }
+                if (trail != null && trail.gameObject.name == trailName)
+                    return trail;
             }
-            return best;
+
+            return null;
         }
 
         // ------------------------------------------------------------------
@@ -629,6 +638,10 @@ namespace BigWalkArchipelago.Core
                             return home.transform.position;
                     }
                     return null;
+                case "big_doof":
+                    return ObjectiveSpots.DoofCentre();
+                case "big_makeover":
+                    return ObjectiveSpots.SalonCentre();
                 case "big_wall":
                     return ActiveNamed("GoodbyeChapel")?.position;
                 case "big_game":

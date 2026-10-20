@@ -196,7 +196,7 @@ namespace BigWalkArchipelago.Core
         // clone (VanillaUsable), so a clone and a pack still on the map can never share one, and
         // host and guests agree on every clone's tickets before the guest knows the option.
         // The gadgets `object_sanity` leaves on the island (ROADMAP S7). The clocks, paintbrushes and cowbells
-        // are not gadgets of the pool and were never hidden.
+        // are not gadgets of the pool and were never hidden. Like the packs, they lend no tickets (LendsNoTickets).
         private static readonly HashSet<GadgetKind> IslandObjects = new()
         {
             GadgetKind.Megaphone, GadgetKind.WalkieTalkie, GadgetKind.Laser, GadgetKind.Binoculars,
@@ -223,9 +223,18 @@ namespace BigWalkArchipelago.Core
             GadgetKind.RainbowFlareGun,
         };
 
+        // The island's gadgets too, whatever `object_sanity` says (players, 2026-10-15 and 17: a received scanner
+        // nobody else could pick up, then stuck on a guest's face; a torch staying on; a walkie-talkie that gave a
+        // guest their own voice back). With `object_sanity` they stay on the map, but a clone still borrowed the
+        // tickets of one of them whenever that one was not registered yet, loaded later and far away: the host's
+        // logs show Torch #0/#1/#2/#5, XrayGoggles #3/#4/#6, WalkieTalkie #3/#4/#6. Once it registered, two props
+        // held one ticket, the office refused one, and its state (held, switched on) stopped being shared, the
+        // lamps' bug of 2026-09-25 again. Not tied to the option, for the packs' reason: host and guests must agree
+        // on every clone's tickets before the guest knows it. A clone takes invented tickets instead, all 32 slots.
         private static bool LendsNoTickets(GadgetKind kind)
         {
-            return KeptInWorld.Contains(kind) || Packs.Contains(kind) || FlareGuns.Contains(kind);
+            return KeptInWorld.Contains(kind) || Packs.Contains(kind) || FlareGuns.Contains(kind)
+                || IslandObjects.Contains(kind);
         }
 
         // A block of our own, clear of ReceivedItemSpawner.CosmeticAssetId

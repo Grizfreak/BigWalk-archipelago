@@ -184,7 +184,7 @@ namespace BigWalkArchipelago.Core
         }
 
         // "PegTileD2" -> "PegTileD", "PegTilePriestA6" -> "PegTilePriestA".
-        private static string Family(PropGroup kind) => kind.ToString().TrimEnd('0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
+        internal static string Family(PropGroup kind) => kind.ToString().TrimEnd('0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
 
         // Builds a copy of the given kind, switched on, not spawned. Same on host and guest.
         internal static Prop Build(PropGroup kind, bool speaker, int slot, Vector3 position)

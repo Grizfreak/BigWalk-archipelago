@@ -239,7 +239,10 @@ namespace BigWalkArchipelago.Core
                 // A different save or slot reconnects, and Configure runs
                 // afresh; a guest is told again by the next snapshot.
                 if (_collected)
+                {
                     SessionJournal.Write("world", "gone", withPosition: false);
+                    HandsJournal.WorldGone();
+                }
 
                 _readySince = -1f;
                 _collected = false;
@@ -269,6 +272,7 @@ namespace BigWalkArchipelago.Core
                 Collect();
                 _collected = true;
                 SessionJournal.Write("world", "ready");
+                HandsJournal.WorldReady();
 
                 // A save hosted with the Archipelago switch off must be
                 // vanilla, whatever the previous world in this process left
@@ -288,6 +292,8 @@ namespace BigWalkArchipelago.Core
                     }
                 }
             }
+
+            HandsJournal.Tick();
 
             if (_appliedVersion == PuzzleNeeds.Version && Time.time < _nextRecheck)
                 return;

@@ -27,13 +27,15 @@ namespace BigWalkArchipelago.Patches
 
     // A failed puzzle, for DeathLink (Core/PuzzleFailures): the failure switches of PressInOrder and
     // CountingController, and the success switch of a synchronised-button puzzle, go through
-    // PeckSwitch.Peck. Both overloads; the cooldown there keeps one failure one.
+    // PeckSwitch.Peck. Both overloads; the cooldown there keeps one failure one. The context says who
+    // pecked: nobody, for PressInOrder's own reset (PuzzleFailures.OnPeck).
     [HarmonyPatch(typeof(PeckSwitch), nameof(PeckSwitch.Peck), new System.Type[] { typeof(PeckContext) })]
     internal static class PuzzleFailurePatch
     {
-        private static void Postfix(PeckSwitch __instance)
+        private static void Postfix(PeckSwitch __instance, PeckContext __0)
         {
-            PuzzleFailures.OnPeck(__instance);
+            PuzzleFailures.OnPeck(__instance, __0 != null && __0.playerIdentity == null && __0.actionNumber == -1);
+            ObjectiveSpots.OnPeck(__instance);
         }
     }
 
@@ -42,7 +44,8 @@ namespace BigWalkArchipelago.Patches
     {
         private static void Postfix(PeckSwitch __instance)
         {
-            PuzzleFailures.OnPeck(__instance);
+            PuzzleFailures.OnPeck(__instance, false);
+            ObjectiveSpots.OnPeck(__instance);
         }
     }
 

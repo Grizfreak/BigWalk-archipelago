@@ -15,6 +15,11 @@ namespace BigWalkArchipelago.Core
     //   Semaphore's is not), the screen always is.
     //
     //   A failure switch fires: PressInOrder and CountingController have one (PeckSwitch.Peck).
+    //   Not PressInOrder's reset (player on Discord, 2026-10: opening the door of Pointer's Paradise killed
+    //   everyone, "as a button pressed in the wrong order"). Read with Ghidra on 2026-10-20: a
+    //   wrong press (OnInput) pecks the failure switch with the presser's context, and SetOff,
+    //   when the puzzle goes inactive with `resetWhenInactive`, pecks it too, with an empty one
+    //   (no player, action -1): the game's way of putting the lights out.
     //
     //   A timed tomato runs out with its puzzle not done (state log, 2026-10-05): the Pomodoro's own
     //   state goes 1 when it starts and back to 0 when its time is up. Only the tomatoes that sit
@@ -43,6 +48,9 @@ namespace BigWalkArchipelago.Core
         private sealed class World
         {
             internal readonly Dictionary<int, string> FailureSwitches = new();
+
+            // The failure switches of the PressInOrder puzzles, whose reset pecks them too.
+            internal readonly HashSet<int> ResetBySetOff = new();
             internal readonly Dictionary<int, string> Screens = new();
 
             // A synchronised button's state, by instance: the controller it belongs to.
@@ -75,8 +83,8 @@ namespace BigWalkArchipelago.Core
             }
         }
 
-        // From the PeckSwitch.Peck patches.
-        internal static void OnPeck(PeckSwitch peckSwitch)
+        // From the PeckSwitch.Peck patches; `byNobody` when the context names no player and no action.
+        internal static void OnPeck(PeckSwitch peckSwitch, bool byNobody)
         {
             if (peckSwitch == null || !NetworkServer.active)
                 return;
@@ -93,8 +101,16 @@ namespace BigWalkArchipelago.Core
                 return;
             }
 
-            if (world.FailureSwitches.TryGetValue(id, out var puzzle))
-                Fail(id, puzzle, world);
+            if (!world.FailureSwitches.TryGetValue(id, out var puzzle))
+                return;
+
+            if (byNobody && world.ResetBySetOff.Contains(id))
+            {
+                Plugin.Log.LogInfo($"{Tag} Reset, not failed: {puzzle} went inactive (no player pressed anything).");
+                return;
+            }
+
+            Fail(id, puzzle, world);
         }
 
         // From the TrackedPeckState.SetState patch (Patches/WorldButtonPatch), every state change.
@@ -245,7 +261,10 @@ namespace BigWalkArchipelago.Core
                 foreach (var p in UnityEngine.Object.FindObjectsByType<PressInOrder>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 {
                     if (p != null && p.failureSwitch != null)
+                    {
                         world.FailureSwitches[p.failureSwitch.GetInstanceID()] = Name(p);
+                        world.ResetBySetOff.Add(p.failureSwitch.GetInstanceID());
+                    }
                 }
 
                 foreach (var c in UnityEngine.Object.FindObjectsByType<CountingController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
