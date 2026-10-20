@@ -13,10 +13,17 @@ namespace BigWalkArchipelago.Core
     // and Patches/BlackTowerDoorHoldPatch refuses it going back down, since the combinator writes
     // it again whenever one of its indicators changes. The state is networked, so guests follow.
     //
+    // With `tower_mode` (2026-10-17, a 1.0.1 seed stuck on it, like the Green Dome's the day before), the door also
+    // opens at the Black Tower's turn in the order, whatever `open_black_tower` says: the apworld's logic never asked
+    // for the five monuments, and a seed drawing the Black Tower before one of them had no monument taking gourds.
+    //
     // The button at the top of the tower (its inner door) is left to the players.
     internal static class BlackTowerDoor
     {
         internal static bool Enabled { get; private set; }
+
+        // Whether the door is held open now: from the start, or because the Black Tower takes gourds.
+        internal static bool Held => Enabled || (MonumentOrder.Active && MonumentOrder.IsOpen(5));
 
         private static TrackedPeckState _door;
 
@@ -34,7 +41,7 @@ namespace BigWalkArchipelago.Core
         // loaded and opens it.
         internal static void Enforce()
         {
-            if (!Enabled || !NetworkServer.active)
+            if (!NetworkServer.active || !Held)
                 return;
 
             var door = FindDoor();
@@ -42,7 +49,7 @@ namespace BigWalkArchipelago.Core
                 return;
 
             door.SetState(1);
-            Plugin.Log.LogInfo($"[{nameof(BlackTowerDoor)}] The Black Tower's door opened.");
+            Plugin.Log.LogInfo($"[{nameof(BlackTowerDoor)}] The Black Tower's door opened{(Enabled ? string.Empty : ": the Black Tower takes gourds")}.");
         }
 
         private static TrackedPeckState FindDoor()
