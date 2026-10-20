@@ -77,12 +77,27 @@ class TestRandomObjectives(BigWalkTestBase):
 class TestRandomObjectivesFromAll(BigWalkTestBase):
     """With none listed, they are drawn from all those the other options allow."""
 
-    options = {"goal": "big_wall", "random_objectives": 6, "radio_sanity": False, "tower_mode": "all_open"}
+    options = {"goal": "big_wall", "random_objectives": 8, "radio_sanity": False, "tower_mode": "all_open"}
     run_default_tests = False
 
     def test_what_cannot_be_asked_is_not_drawn(self) -> None:
         # big_lights counts the lamps without light_sanity, so it can be drawn too (0.6).
-        self.assertEqual({"big_collection", "big_keys", "big_climb", "big_fiesta", "big_lights"}, set(self.world.objectives))
+        self.assertEqual({"big_collection", "big_keys", "big_climb", "big_fiesta", "big_lights", "big_doof", "big_makeover"},
+                         set(self.world.objectives))
+
+
+class TestTheTunnelObjectives(BigWalkTestBase):
+    """big_doof and big_makeover are in the tunnels: the goal waits for them."""
+
+    options = {"goal": "big_wall", "objectives": ["big_doof", "big_makeover"], "lock_endings_until_objectives": True}
+    run_default_tests = False
+
+    def test_the_goal_needs_the_tunnels(self) -> None:
+        from .. import data, locations
+        self.collect_all_but(data.YELLOW_TWIST.item_name)
+        self.assertFalse(self.can_reach_location(locations.VICTORY_EVENT_NAME))
+        self.collect_by_name(data.YELLOW_TWIST.item_name)
+        self.assertTrue(self.can_reach_location(locations.VICTORY_EVENT_NAME))
 
 
 class TestTheSlotDataOfAList(BigWalkTestBase):

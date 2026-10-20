@@ -64,7 +64,7 @@ namespace BigWalkArchipelago.Core.Net
 
         // Both ends must speak the same version; a mismatch is logged once
         // and ignored rather than half-read.
-        private const byte ProtocolVersion = 22;
+        private const byte ProtocolVersion = 23;
 
         private const byte KindHello = 1;
         private const byte KindSnapshot = 2;
@@ -120,7 +120,7 @@ namespace BigWalkArchipelago.Core.Net
             internal bool Warning;
         }
 
-        private static readonly byte[] _heardCounts = new byte[4];
+        private static readonly byte[] _heardCounts = new byte[ApSounds.Counts.Length];
 
         internal static string MirroredStatus { get; private set; }
         internal static bool MirroredStatusIsWarning { get; private set; }

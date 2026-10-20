@@ -24,6 +24,10 @@ namespace BigWalkArchipelago.Core
     //              the paintbrush and the kettles (puzzles), the folding map (paper, another shader), an
     //              emissive part (the laser's tip). The walkie-talkies' blue and yellow mean nothing (player,
     //              2026-10-13): their colour is a PropertyBlockHelper's (_TintColor, _Tint), written too.
+    //   a laser   (player on Discord, 2026-10: "are the colour of the laser but mainly their beams able to be
+    //              random?") a colour of its own, from its guid like a buoy (a received one, its template's): its
+    //              body as a gadget's, its tip, and its beam: a tube of the mod's own under the game's shader, its
+    //              vertices the colour (measured 2026-10-20, see RecolourLaserPart and BeamTube).
     //   a firework the launcher's model (_TintColor) and its explosion (HangingSpark's _EmissionColor and
     //              start colour, the sparks' start colour); the smoke stays black (its start colour,
     //              tinted, did not show in game, 2026-10-13; the player let it go), through their PropertyBlockHelpers; never the four
@@ -43,7 +47,8 @@ namespace BigWalkArchipelago.Core
         private static readonly string[] GunNames = { "FlareGunPropBlue", "FlareGunPropGreen", "FlareGunPropYellow", "FlareGunProp" };
 
         // C2: the gadgets painted, by kind; a kind's place in the seed's draw is 4 + its row (the four flare guns take
-        // the first four), the three cowbells sharing one.
+        // the first four), the three cowbells sharing one. The laser's row is kept for the rows after it, but a laser
+        // is painted on its own before this list is read (PaintIfLaser).
         private static readonly string[][] GadgetKinds =
         {
             new[] { "BinocularsProp" }, new[] { "ClockProp" }, new[] { "CompassProp" },
@@ -166,6 +171,8 @@ namespace BigWalkArchipelago.Core
                         buoys++;
                     else if (PaintIfGun(prop.gameObject))
                         guns++;
+                    else if (PaintIfLaser(prop.gameObject, prop.savablePropGuid))
+                        gadgets++;
                     else if (PaintIfGadget(prop.gameObject))
                         gadgets++;
                 }
@@ -196,6 +203,8 @@ namespace BigWalkArchipelago.Core
                 var prop = clone.GetComponent<Prop>();
                 if (kind == GadgetKind.Lamp)
                     PaintIfBuoy(clone, prop != null ? prop.savablePropGuid : clone.name);
+                else if (kind == GadgetKind.Laser)
+                    PaintIfLaser(clone, prop != null ? prop.savablePropGuid : clone.name);
                 else if (!PaintIfGun(clone))
                     PaintIfGadget(clone);
             }
@@ -333,6 +342,236 @@ namespace BigWalkArchipelago.Core
                     helper.Refresh();
             }
             return true;
+        }
+
+        // ------------------------------------------------------------------
+        // Lasers
+        // ------------------------------------------------------------------
+
+        private const string LaserName = "LaserProp";
+        private static readonly string[] GlowColours = { "_TintColor", "_MainColor", "_BaseColor", "_Color", "_EmissionColor" };
+
+        private static bool PaintIfLaser(GameObject root, string key)
+        {
+            if (!root.name.StartsWith(LaserName, StringComparison.Ordinal))
+                return false;
+            if (!Palette.Active)
+                return true;
+
+            var colour = Palette.For(string.IsNullOrEmpty(key) ? root.name : key);
+            foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
+            {
+                var material = renderer != null ? renderer.sharedMaterial : null;
+                if (material == null)
+                    continue;
+
+                var block = new MaterialPropertyBlock();
+                renderer.GetPropertyBlock(block);
+                if (material.name.StartsWith("hhVertexColors", StringComparison.Ordinal)
+                    && !material.name.StartsWith("hhVertexColorsEmissive", StringComparison.Ordinal))
+                {
+                    // The body, as every gadget's.
+                    block.SetColor("_TintColor", colour.body);
+                }
+                else if (renderer.name != "laser")
+                {
+                    // The beam, the dot: what the shader has of these takes the bright colour. Not the tip, whose vertex
+                    // colours take it (RecolourLaserPart): a tint on top would darken it.
+                    foreach (var property in GlowColours)
+                    {
+                        if (material.HasProperty(property))
+                            block.SetColor(property, colour.halo);
+                    }
+                }
+                renderer.SetPropertyBlock(block);
+
+                var line = renderer.TryCast<LineRenderer>();
+                if (line != null)
+                {
+                    line.startColor = colour.halo;
+                    line.endColor = colour.halo;
+                }
+
+                // MEASURED 2026-10-20 (colour probe, the lasers still red): the beam is a mesh "Beam" drawn by
+                // househouse/laser, whose only colour property is _EmissionColor (black), and the tip "laser" is
+                // hhVertexColorsEmissive, its tint white: the red is in the meshes' vertex colours, or in the shader.
+                // Their vertex colours are written when the mesh can be read; else the beam takes a plain unlit
+                // material of the seed's colour.
+                if (renderer.name == "Beam" || renderer.name == "laser")
+                    RecolourLaserPart(renderer, colour.halo);
+            }
+
+            foreach (var light in root.GetComponentsInChildren<Light>(true))
+                light.color = colour.halo;
+
+            foreach (var system in root.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                var main = system.main;
+                main.startColor = new ParticleSystem.MinMaxGradient(colour.halo);
+            }
+
+            return true;
+        }
+
+        private static bool _laserDescribed;
+
+        // One tube per colour, shared by the lasers that wear it.
+        private static readonly Dictionary<uint, Mesh> Tubes = new();
+        private const int TubeSides = 6;
+        private const int TubeRings = 69;
+
+        // A tube along the bounds' Y, from its top to its bottom, as wide as they are, its vertices one colour. The
+        // game's own red is (204, 7, 2): about 0.8 of a full channel, so the colour is brought to the same brightness.
+        private static Mesh BeamTube(Bounds bounds, Color colour)
+        {
+            var max = Mathf.Max(colour.r, Mathf.Max(colour.g, colour.b));
+            var scaled = max > 0f ? colour * (0.8f / max) : colour;
+            var key = (Color32)new Color(scaled.r, scaled.g, scaled.b, 1f);
+            var id = (uint)key.r << 16 | (uint)key.g << 8 | key.b;
+            if (Tubes.TryGetValue(id, out var known) && known != null)
+                return known;
+
+            var radius = Mathf.Max(bounds.extents.x, bounds.extents.z);
+            var top = bounds.max.y;
+            var bottom = bounds.min.y;
+            var centre = bounds.center;
+            var columns = TubeSides + 1;
+            var vertices = new Vector3[TubeRings * columns];
+            var normals = new Vector3[vertices.Length];
+            var uvs = new Vector2[vertices.Length];
+            var colours = new Color32[vertices.Length];
+            for (var ring = 0; ring < TubeRings; ring++)
+            {
+                var t = ring / (float)(TubeRings - 1);
+                var y = Mathf.Lerp(top, bottom, t);
+                for (var side = 0; side < columns; side++)
+                {
+                    // The game's tube has a corner on +Z: start there.
+                    var angle = Mathf.PI / 2f - side * 2f * Mathf.PI / TubeSides;
+                    var outward = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+                    var at = ring * columns + side;
+                    vertices[at] = new Vector3(centre.x, y, centre.z) + outward * radius;
+                    normals[at] = outward;
+                    uvs[at] = new Vector2(side / (float)TubeSides, t);
+                    colours[at] = key;
+                }
+            }
+
+            var triangles = new int[(TubeRings - 1) * TubeSides * 6];
+            var index = 0;
+            for (var ring = 0; ring < TubeRings - 1; ring++)
+            {
+                for (var side = 0; side < TubeSides; side++)
+                {
+                    var a = ring * columns + side;
+                    var b = a + 1;
+                    var c = a + columns;
+                    var d = c + 1;
+                    triangles[index++] = a;
+                    triangles[index++] = c;
+                    triangles[index++] = b;
+                    triangles[index++] = b;
+                    triangles[index++] = c;
+                    triangles[index++] = d;
+                }
+            }
+
+            var tube = new Mesh { name = "laser (AP colour)" };
+            tube.vertices = vertices;
+            tube.normals = normals;
+            tube.uv = uvs;
+            tube.colors32 = colours;
+            tube.triangles = triangles;
+            tube.bounds = bounds;
+            UnityEngine.Object.DontDestroyOnLoad(tube);
+            Tubes[id] = tube;
+            return tube;
+        }
+        private static Shader _plainShader;
+        private static bool _plainLooked;
+
+        private static void RecolourLaserPart(Renderer renderer, Color colour)
+        {
+            var filter = renderer.GetComponent<MeshFilter>();
+            var mesh = filter != null ? filter.sharedMesh : null;
+            var material = renderer.sharedMaterial;
+
+            // Once per launch, what the part is made of, for the next measurement.
+            if (!_laserDescribed && renderer.name == "Beam")
+            {
+                _laserDescribed = true;
+                var shader = material != null ? material.shader : null;
+                var properties = new List<string>();
+                if (shader != null)
+                {
+                    for (var i = 0; i < shader.GetPropertyCount(); i++)
+                        properties.Add($"{shader.GetPropertyName(i)}({shader.GetPropertyType(i)})");
+                }
+                var sample = mesh != null && mesh.isReadable && mesh.colors32 != null && mesh.colors32.Length > 0
+                    ? mesh.colors32[0].ToString()
+                    : "none";
+                Plugin.Log.LogInfo($"{Tag} Laser beam: shader {(shader != null ? shader.name : "?")} [{string.Join(", ", properties)}], "
+                                   + $"texture {(material != null && material.mainTexture != null ? material.mainTexture.name : "none")}, "
+                                   + $"mesh {(mesh != null ? mesh.name : "?")} readable={(mesh != null && mesh.isReadable)} "
+                                   + $"vertices={(mesh != null ? mesh.vertexCount : 0)} first colour={sample}.");
+            }
+
+            if (mesh != null && mesh.isReadable)
+            {
+                try
+                {
+                    // An instance of its own: the mesh is the same for every laser.
+                    var own = filter.mesh;
+                    var colours = own.colors32;
+                    var count = own.vertexCount;
+                    var painted = new Color32[count];
+                    var target = (Color32)colour;
+                    for (var i = 0; i < count; i++)
+                    {
+                        var alpha = colours != null && colours.Length == count ? colours[i].a : (byte)255;
+                        painted[i] = new Color32(target.r, target.g, target.b, alpha);
+                    }
+                    own.colors32 = painted;
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"{Tag} A laser's {renderer.name} kept its colours: {ex.Message}");
+                }
+            }
+
+            // The beam keeps the game's own: househouse/laser is what stretches it to where it points (_distanceScalar,
+            // _thicknessScalar), and under any other shader it vanished (2026-10-20). Its _EmissionColor, on a copy of its material (2026-10-20): unchanged; with _Emission at 0 the beam goes
+            // black, so the shader is the mesh's vertex colour times _Emission. Read from the game's data (UnityPy, the
+            // same day): the mesh "laser" is a thin six-sided tube along -Y (radius 0.005, 0 to -0.375, 69 rings), every
+            // one of its 962 vertices (204, 7, 2), the red. So the beam keeps the game's shader, which stretches it,
+            // and takes a tube of the mod's own, built here to the same bounds, its vertices the laser's colour.
+            if (renderer.name == "Beam")
+            {
+                if (filter != null && mesh != null)
+                    filter.sharedMesh = BeamTube(mesh.bounds, colour);
+                return;
+            }
+
+            // Unreadable (measured 2026-10-20): the tip takes a plain glowing material of the colour. Standard, as the
+            // laser's own Cube has: it ignores the vertex colours, where the red is. Not Particles/Standard Unlit,
+            // tried first: it multiplies its colour by them, and the lasers stayed red.
+            if (!_plainLooked)
+            {
+                _plainLooked = true;
+                _plainShader = Shader.Find("Standard");
+                if (_plainShader == null)
+                    Plugin.Log.LogWarning($"{Tag} No Standard shader to colour the lasers' beams with; they stay red.");
+            }
+            if (_plainShader == null)
+                return;
+
+            var plain = new Material(_plainShader) { name = "laser (AP colour)" };
+            plain.SetColor("_Color", colour);
+            plain.EnableKeyword("_EMISSION");
+            plain.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            plain.SetColor("_EmissionColor", colour * 2f);
+            renderer.sharedMaterial = plain;
         }
 
         // ------------------------------------------------------------------

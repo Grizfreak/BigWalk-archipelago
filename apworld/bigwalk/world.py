@@ -19,7 +19,7 @@ from . import options as bigwalk_options
 if TYPE_CHECKING:
     from NetUtils import MultiData
 
-WORLD_VERSION = "1.0.1"
+WORLD_VERSION = "1.0.2"
 """Kept in step with archipelago.json; sent in slot_data so the mod can check it."""
 
 TRACKER_OPTIONS = {
@@ -216,6 +216,9 @@ class BigWalkWorld(World):
         if self.options.custom_drawings:
             own = random.Random(f"{self.multiworld.seed}-{self.player}-drawings")
             self.peg_drawings = tiles.draw_drawings(own, [drawing.key for drawing in tiles.CUSTOM_DRAWINGS])
+        if self.options.mirrored_poses.value:
+            poses = random.Random(f"{self.multiworld.seed}-{self.player}-poses")
+            self.peg_drawings.update(tiles.draw_poses(poses, self.options.mirrored_poses.value))
         self.deposit_amounts = self._pick_deposit_amounts(self.gourd_count)
         self.cabin_fever = self._cabin_fever_waits()
         self.deposit_goal = self.options.gourds_required.value
@@ -263,6 +266,10 @@ class BigWalkWorld(World):
             spoiler_handle.write(f"{'Objectives drawn:':33}{', '.join(self.objective_keys())}\n")
         if self.peg_tiles != tiles.VANILLA_TILES:
             spoiler_handle.write(f"{'Basic tiles shown as:':33}{', '.join(self.peg_tiles)}\n")
+        mirrors = {place: name for place, name in self.peg_drawings.items() if place in tiles.POSE_PLACES}
+        if mirrors:
+            spoiler_handle.write(f"{'Mirrored poses:':33}"
+                                 f"{', '.join(f'{place}={name}' for place, name in sorted(mirrors.items()))}\n")
 
     def _draw_the_tiles(self) -> tuple[str, ...]:
         """

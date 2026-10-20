@@ -28,7 +28,7 @@ class TestZoneLocksBoth(BigWalkTestBase):
         self.assertEqual(sorted(n for n in pool_names(self) if n in ZONE_ITEMS), sorted(ZONE_ITEMS))
 
     def test_a_gadget_needs_its_zone(self) -> None:
-        name = "Radio (Doof Chamber)"
+        name = "Radio (Peak Marker)"
         obj = next(o for o in data.ISLAND_OBJECTS if o.location_name == name)
         lock = data.zone_lock_for(obj.guid, obj.zone, False)
         self.assertIsNotNone(lock)
@@ -37,7 +37,7 @@ class TestZoneLocksBoth(BigWalkTestBase):
         self.assertTrue(self.can_reach_location(name))
 
     def test_a_switch_needs_its_zone(self) -> None:
-        name = "Light Switch (Doof Chamber, House) On"
+        name = "Light Switch (Ring Room Train Stop) On"
         light = next(light for light in data.LIGHTS if light.location_name == name)
         lock = data.zone_lock_for(light.key, light.zone, True)
         self.assertIsNotNone(lock)

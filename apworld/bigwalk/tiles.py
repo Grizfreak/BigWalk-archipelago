@@ -85,6 +85,57 @@ DRAWING_PLACES: tuple[str, ...] = (
 """The drawing panels' tile kinds (the mod's PropGroup names): C1..C9, Priest A1..D9 (the tile dump, 2026-10-15)."""
 
 
+POSE_PLACES: tuple[str, ...] = tuple(f"PegTileD{i}" for i in range(1, 10))
+"""The pose panels' tile kinds (set D: Indoor Semaphore, Optical Telegraph, Charades), the mod's PropGroup names."""
+
+ASYMMETRIC_POSES: tuple[str, ...] = ("PegTileD4", "PegTileD5", "PegTileD6", "PegTileD9")
+"""
+The poses whose mirror is another pose (the atlas, looked at 2026-10-20): D4 an arm level and one up, D5 one up and one
+down, D6 one level and one down, D9 crouched with one up and one down. The other five are symmetric, and no pose is
+another's mirror, so the four mirrors are four new poses.
+"""
+
+KEPT_POSES: tuple[str, ...] = ("PegTileD3",)
+"""
+Always shown as the game has it: D3 (both arms down) is also drawn on the pulse flashers of Perspective Counting and
+Signal Flags (the tile dump, 2026-10-15), which are no pose puzzles.
+"""
+
+POSE_WEIGHT = 100
+"""A game pose's weight in the draw: `mirrored_poses` gives each mirror its own, against it."""
+
+
+def mirror_name(pose: str) -> str:
+    """The drawing the mod builds by flipping a pose's own cell of the game's atlas."""
+    return f"mirror_{pose}"
+
+
+def draw_poses(random: Random, mirror_weight: int) -> dict[str, str]:
+    """
+    `mirrored_poses`: the nine pose panels drawn among the game's nine poses and the four mirrors, each mirror weighing
+    `mirror_weight` against a game pose's POSE_WEIGHT, as the basic tiles are drawn (draw). A game pose drawn keeps its
+    own place; a mirror takes one of the places left, in a drawn order, so a pose and its mirror can both be there, on
+    two kinds. Only the places that change, place -> drawing; nothing with a weight of 0.
+
+    What a puzzle asks for does not change: a kind showing a mirror is asked for by its kind, and players make the
+    pose it shows. Nothing in the game reads the arms (one validator, PegTileValidator, compares the tiles' kinds).
+    """
+    if mirror_weight <= 0:
+        return {}
+    weights = {pose: POSE_WEIGHT for pose in POSE_PLACES if pose not in KEPT_POSES}
+    weights.update({mirror_name(pose): mirror_weight for pose in ASYMMETRIC_POSES})
+    pool = list(weights)
+    drawn: list[str] = list(KEPT_POSES)
+    while pool and len(drawn) < len(POSE_PLACES):
+        pick = random.choices(pool, weights=[weights[key] for key in pool])[0]
+        pool.remove(pick)
+        drawn.append(pick)
+
+    free = [place for place in POSE_PLACES if place not in drawn]
+    random.shuffle(free)
+    return dict(zip(free, [key for key in drawn if key not in POSE_PLACES]))
+
+
 def matching(games: Iterable[str]) -> list[str]:
     """The drawings whose game is in the multiworld (whatever the capitals: "TUNIC", "Starcraft 2"), and pelly's."""
     names = [name.casefold() for name in games]

@@ -27,6 +27,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<bool> ShowObjectives;
         internal static ConfigEntry<bool> ShowTowerOrder;
         internal static ConfigEntry<KeyboardShortcut> LatchGoalFlagsKey;
+        internal static ConfigEntry<KeyboardShortcut> LaserBeamKey;
         internal static ConfigEntry<string> ClimbSpot;
         internal static ConfigEntry<string> ReceivedSound;
         internal static ConfigEntry<string> CheckSound;
@@ -682,6 +683,12 @@ namespace BigWalkArchipelago
                 "LatchGoalFlagsKey",
                 new KeyboardShortcut(KeyCode.Alpha4, KeyCode.LeftAlt),
                 "Latches in the save the bell and the Gauntlet as if both had been played, to see an objectives goal go out without playing them (only has an effect if Debug.Enabled is active).");
+
+            LaserBeamKey = debug.Bind(
+                "Debug",
+                "LaserBeamKey",
+                new KeyboardShortcut(KeyCode.Alpha5, KeyCode.LeftAlt),
+                "Puts the next of a few emission settings on every laser beam, to see whether its red can be pushed aside; the last puts the game's own back (only has an effect if Debug.Enabled is active).");
 
             SoundCandidatesKey = debug.Bind(
                 "Debug",

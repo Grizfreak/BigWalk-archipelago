@@ -86,9 +86,20 @@ namespace BigWalkArchipelago.Core
             Plugin.Log.LogInfo($"[{nameof(ApSounds)}] {clip}: {(played ? "played" : "NOT played")}.");
         }
 
-        // What the host played, counted by kind (received, check, confetti, DeathLink), for the guests: the snapshot carries the
+        // Big Climb's and Big Fiesta's countdown (Core/ObjectiveSpots): Cabin Fever's own tick. Not held to a burst: four
+        // a count, a second apart.
+        private const string CountdownClip = "sfx_cabinFever_timer_run_random";
+
+        internal static void CountdownTick()
+        {
+            Counts[4]++;
+            PlayAlways(CountdownClip);
+            Net.ModChannel.SendSnapshotNow();
+        }
+
+        // What the host played, counted by kind (received, check, confetti, DeathLink, countdown), for the guests: the snapshot carries the
         // counts, and a guest plays a sound when its count moved (the player, 2026-10-12: every sound on the guests too).
-        internal static readonly byte[] Counts = new byte[4];
+        internal static readonly byte[] Counts = new byte[5];
 
         internal static void PlayForGuest(int kind)
         {
@@ -102,6 +113,9 @@ namespace BigWalkArchipelago.Core
                     break;
                 case 2:
                     PlayAlways("sfx_challengeWin_confetti_random");
+                    break;
+                case 4:
+                    PlayAlways(CountdownClip);
                     break;
                 default:
                     if (Time.unscaledTime - _lastDeathLinkSound >= 2f)

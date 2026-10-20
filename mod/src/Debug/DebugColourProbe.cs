@@ -13,7 +13,7 @@ namespace BigWalkArchipelago.Debug
     internal static class DebugColourProbe
     {
         private const string Tag = "[" + nameof(DebugColourProbe) + "]";
-        private static readonly string[] Words = { "Buoy", "Flare", "Blind", "Helmet", "Mask" };
+        private static readonly string[] Words = { "Buoy", "Flare", "Blind", "Helmet", "Mask", "Laser" };
         private static HashSet<string> _lastRoots;
 
         internal static void Dump()

@@ -83,9 +83,59 @@ def set_tower_reached_rules(world: BigWalkWorld) -> None:
         return
 
     for tower in data.reached_towers():
+        rules: list[Rule] = []
         door = data.TOWER_FAR_DOOR.get(tower.prop_name)
         if door is not None and world.options.require_arch_doors and door in world.locked_arch_doors:
-            world.set_rule(world.get_location(data.tower_reached_location_name(tower)), Has(door.item_name))
+            rules.append(Has(door.item_name))
+        # The Black Tower's button is up the tower, past the door at its foot.
+        if tower is data.BLACK_MONOLITH:
+            inside = black_tower_door(world)
+            if inside is not None:
+                rules.append(inside)
+        if rules:
+            world.set_rule(world.get_location(data.tower_reached_location_name(tower)), all_of(rules))
+
+
+def black_tower_door(world: BigWalkWorld) -> Rule | None:
+    """
+    What opens the door at the Black Tower's foot, behind which its button and its monument are; None when
+    `open_black_tower` holds it open from the start.
+
+    Without the option the game opens it once the five monuments of the drawbridge and the four coloured towers are
+    full; the logic never asked for it (players, 2026-10-17: a `tower_mode` seed stuck at the Black Tower, its
+    monument behind a shut door). With the monuments in order the mod also opens it at the Black Tower's turn
+    (mod/src/Core/BlackTowerDoor.cs), so it asks for that turn: every monument before it full, and what opens them.
+    The game may open it sooner, when the five come first; the logic only waits longer.
+    """
+    if world.options.open_black_tower:
+        return None
+
+    if world.tower_order:
+        position = world.tower_index(data.BLACK_MONOLITH.prop_name) + 1
+        capacity = sum(world.tower_slots(data.tower_by_prop(prop)) for prop in world.tower_order[:position - 1])
+        rules = monuments_up_to(world, position)
+        if capacity > 0:
+            rules.append(Has(data.GOURD_ITEM_NAME, count=capacity))
+        return all_of(rules) if rules else None
+
+    return five_monuments_full(world, 0)
+
+
+def five_monuments_full(world: BigWalkWorld, more: int) -> Rule:
+    """
+    Every monument open: the five the game waits for full (their slots in gourds, and their far doors), and `more`
+    gourds on top, for the Black Tower's own monument. Gourds placed are gone, so the counts add up.
+    """
+    five = [tower for tower in data.TOWERS if tower is not data.BLACK_MONOLITH and tower is not data.GREEN_DOME]
+    rule: Rule = Has(data.GOURD_ITEM_NAME, count=sum(world.tower_slots(tower) for tower in five) + more)
+    doors = []
+    for tower in five:
+        door = data.TOWER_FAR_DOOR.get(tower.prop_name)
+        if (door is not None and world.options.require_arch_doors and door in world.locked_arch_doors
+                and door not in doors):
+            doors.append(door)
+            rule = rule & Has(door.item_name)
+    return rule
 
 
 def set_key_cut_rules(world: BigWalkWorld) -> None:
@@ -307,6 +357,9 @@ def monument_holding(world: BigWalkWorld, tower: data.Tower, gourds: int) -> Rul
         for more in monuments_up_to(world, position):
             rule = rule & more
         return rule
+    # Every monument open: the Black Tower's is past the door the other five open (black_tower_door).
+    if tower is data.BLACK_MONOLITH and not world.options.open_black_tower:
+        return past_far_door(world, data.TOWER_FAR_DOOR.get(tower.prop_name), five_monuments_full(world, gourds))
     return past_far_door(world, data.TOWER_FAR_DOOR.get(tower.prop_name), Has(data.GOURD_ITEM_NAME, count=gourds))
 
 
@@ -571,6 +624,9 @@ def set_completion_rule(world: BigWalkWorld) -> None:
                 this = CanReachRegion(regions.OVERWORLD) & Has(items.RADIO_ITEM_NAME)
                 if world.options.shuffle_radio_music:
                     this = this & HasAny(*items.RADIO_ITEM_NAMES)
+            elif key in ("big_doof", "big_makeover"):
+                # The Doof Chamber and the Secret Salon, both in the tunnels (the player, 2026-10-20).
+                this = CanReachRegion(regions.TUNNEL_ZONE)
             elif key == "big_towers":
                 count = world.options.towers_required.value
                 capacity = sum(world.tower_slots(data.tower_by_prop(prop)) for prop in world.tower_order[:count])

@@ -1652,6 +1652,7 @@ namespace BigWalkArchipelago.Core
 
                 if (NetworkServer.active)
                 {
+                    ObjectiveSpots.TickCountdown();
                     Traps.TickHost(ApRuntime.SessionSettled);
                 }
                 else

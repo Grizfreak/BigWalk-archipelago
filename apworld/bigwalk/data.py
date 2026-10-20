@@ -1165,7 +1165,7 @@ ISLAND_OBJECTS: tuple[IslandObject, ...] = (
     IslandObject("c6259d07-2499-4063-b033-b72cddd951c2", "MegaphoneProp", "Megaphone (Ramp Holder)", "overworld"),
     IslandObject("48da7ac6-988f-4f4b-a376-3686fe550f69", "MegaphoneProp", "Megaphone (Spiral Holder)", "chairlift"),
     IslandObject("2835fac9-81b1-4312-a576-cc977e6e8c85", "FmRadioProp", "Radio (Abbey Music Garden)", "chairlift"),
-    IslandObject("21ab205e-db90-452b-b620-8f64ebcabd63", "FmRadioProp", "Radio (Doof Chamber)", "overworld"),
+    IslandObject("21ab205e-db90-452b-b620-8f64ebcabd63", "FmRadioProp", "Radio (Doof Chamber)", "tunnels"),
     IslandObject("ec17f547-5b1f-4fcf-828e-f2932dc2f620", "FmRadioProp", "Radio (Factory Music Garden)", "overworld"),
     IslandObject("d8e70c55-9800-498e-af4e-7054093950e4", "FmRadioProp", "Radio (Floorplan Music Garden)", "overworld"),
     IslandObject("87dbbb84-5c58-43a4-96ba-e43c1c7308b9", "FmRadioProp", "Radio (Greensteps Music Garden)", "overworld"),
@@ -1346,15 +1346,15 @@ LIGHT_SWITCHES: tuple[tuple[str, str, str], ...] = (
     # The wall switches outside the puzzles (light-switches.tsv, 2026-10-04): the puzzles' own lights are part of
     # them, and the `lights` need hides them. (TrackedPeckState path, name, zone.)
     ("LandmarksNonChallenge/DoofChamber/Positioner/FXControls/BasicLightSwitchHouse/LightSwitchPeckLogic",
-     "Light Switch (Doof Chamber, House)", "overworld"),
+     "Light Switch (Doof Chamber, House)", "tunnels"),
     ("LandmarksNonChallenge/DoofChamber/Positioner/FXControls/BasicLightSwitchRing/LightSwitchPeckLogic",
-     "Light Switch (Doof Chamber, Ring)", "overworld"),
+     "Light Switch (Doof Chamber, Ring)", "tunnels"),
     ("LandmarksNonChallenge/DoofChamber/Positioner/FXControls/ColouredSpotSwitches/BasicLightSwitchPurple/LightSwitchPeckLogic",
-     "Light Switch (Doof Chamber, Purple)", "overworld"),
+     "Light Switch (Doof Chamber, Purple)", "tunnels"),
     ("LandmarksNonChallenge/DoofChamber/Positioner/FXControls/ColouredSpotSwitches/BasicLightSwitchReds/LightSwitchPeckLogic",
-     "Light Switch (Doof Chamber, Reds)", "overworld"),
+     "Light Switch (Doof Chamber, Reds)", "tunnels"),
     ("LandmarksNonChallenge/DoofChamber/Positioner/FXControls/ColouredSpotSwitches/BasicLightSwitchWhiteSpots/LightSwitchPeckLogic",
-     "Light Switch (Doof Chamber, White Spots)", "overworld"),
+     "Light Switch (Doof Chamber, White Spots)", "tunnels"),
     ("LandmarksNonChallenge/Salon/Positioner/SalonBuilding/BasicLightSwitch - Salon Main/LightSwitchPeckLogic",
      "Light Switch (Salon, Main)", "overworld"),
     ("LandmarksNonChallenge/Salon/Positioner/SalonBuilding/BasicLightSwitch - Mirror/LightSwitchPeckLogic",
@@ -1439,11 +1439,6 @@ OVERWORLD_ZONES: dict[str, str] = {
     "24d2f9a5-5376-4a7c-b08c-17e9c060855b": "blue",  # Lamp (Diffuser Peak)
     "12a7f64b-8175-4857-a371-77dc2989cd68": "blue",  # Lamp (near Cannonball 2)
     "59a73457-6368-4639-8ec7-335902797343": "blue",  # Lamp (near Coordinates)
-    "LandmarksNonChallenge/DoofChamber/Positioner/FXControls/BasicLightSwitchHouse/LightSwitchPeckLogic": "blue",  # Light Switch (Doof Chamber, House) On
-    "LandmarksNonChallenge/DoofChamber/Positioner/FXControls/ColouredSpotSwitches/BasicLightSwitchPurple/LightSwitchPeckLogic": "blue",  # Light Switch (Doof Chamber, Purple) On
-    "LandmarksNonChallenge/DoofChamber/Positioner/FXControls/ColouredSpotSwitches/BasicLightSwitchReds/LightSwitchPeckLogic": "blue",  # Light Switch (Doof Chamber, Reds) On
-    "LandmarksNonChallenge/DoofChamber/Positioner/FXControls/BasicLightSwitchRing/LightSwitchPeckLogic": "blue",  # Light Switch (Doof Chamber, Ring) On
-    "LandmarksNonChallenge/DoofChamber/Positioner/FXControls/ColouredSpotSwitches/BasicLightSwitchWhiteSpots/LightSwitchPeckLogic": "blue",  # Light Switch (Doof Chamber, White Spots) On
     "dab5cfc8-f4d9-44f2-abb0-90bc42b3cade": "blue",  # Pedestal Lamp (Diffuser Peak)
     "52b0dfcb-4588-4ce7-a78c-bdb9cb800fe6": "blue",  # Pedestal Lamp (Peak Marker 1)
     "f84cb1c7-1702-4fa1-9ddb-f4c334041237": "blue",  # Pedestal Lamp (Peak Marker 2)
@@ -1451,7 +1446,6 @@ OVERWORLD_ZONES: dict[str, str] = {
     "b2f9b7af-39f5-431c-9908-c2ebf6d6453b": "blue",  # Pedestal Lamp (near Breadcrumb Loop 1)
     "accb5df0-1452-4b84-8607-9f01bd517103": "blue",  # Pedestal Lamp (near Observation Room 3)
     "a552b903-066f-45a8-8550-4cbf5652de74": "blue",  # Pedestal Lamp (near Poet and Priest)
-    "21ab205e-db90-452b-b620-8f64ebcabd63": "blue",  # Radio (Doof Chamber)
     "ec17f547-5b1f-4fcf-828e-f2932dc2f620": "blue",  # Radio (Factory Music Garden)
     "ea8c71ac-810f-4426-84a1-17e0e3b0b81d": "blue",  # Radio (Peak Marker)
     "cee6114c-2dc0-4d02-a393-5686a2f2e9b8": "blue",  # Walkie-Talkie (Back Beach Hill, Yellow)

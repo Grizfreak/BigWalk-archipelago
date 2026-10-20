@@ -70,7 +70,7 @@ EXCLUSIVE_ENDINGS = ("big_goodbye", "big_game")
 
 OBJECTIVE_KEYS = (
     "big_wall", "big_goodbye", "big_game", "big_collection", "big_keys", "big_radio", "big_towers",
-    "big_climb", "big_fiesta", "big_lights", "big_objects", "big_body",
+    "big_climb", "big_fiesta", "big_lights", "big_objects", "big_body", "big_doof", "big_makeover",
 )
 """Every objective, in the order the slot data lists them. Frozen: the mod reads these strings."""
 
@@ -91,6 +91,10 @@ class Objectives(OptionSet):
     - big_climb: stand on the highest point of the island.
     - big_fiesta (also read as big_club): the party on the beach, a radio plugged into the big speakers with a music
       playing. Needs a Radio, and with Shuffle Radio Music one of the stations, which become progression.
+    - big_doof: the Doof Chamber, the music room in the tunnels: its five light switches on and its smoke machine's
+      button held, ten seconds.
+    - big_makeover: be painted at the Secret Salon, in the tunnels (with Everyone Gathers, every player, each in turn).
+    With Everyone Gathers, big_climb, big_fiesta, big_doof and big_makeover want every player there.
 
     The endings (big_wall, big_goodbye, big_game) are not listed here: they are the Goal.
     """
@@ -543,9 +547,9 @@ class HintDiscoveredDepositBoxes(Toggle):
 
 class RandomColors(DefaultOnToggle):
     """
-    The island's buoys (their body, halo and light), flare guns (and their shots), gadgets (one color
-    per kind: binoculars, clocks, compasses, cowbells, radios, lasers, megaphones, torches, scanners,
-    walkie-talkies) and the firework launchers away from the towers (and their bursts) take colors
+    The island's buoys (their body, halo and light), flare guns (and their shots), lasers (one color per
+    laser, its beam included), gadgets (one color per kind: binoculars, clocks, compasses, cowbells, radios,
+    megaphones, torches, scanners, walkie-talkies) and the firework launchers away from the towers (and their bursts) take colors
     drawn for the seed, between five and ten of them, the same on every player's screen. It paints objects of the map only:
     never the players, the gourds, the keys, or what a puzzle needs. Off: the game's own colors.
     The Rainbow Flare Gun, whose shots run through every color, is not affected by it.
@@ -968,7 +972,9 @@ class GuestsCanResync(Toggle):
 
 class OpenBlackTower(DefaultOnToggle):
     """
-    The Black Tower's door is open from the start, instead of waiting for the five monuments.
+    The Black Tower's door is open from the start (the default). Off: it opens as in the game, once the monuments of
+    the drawbridge and the four coloured towers are full, or with Tower Mode in_order or by_item at the Black Tower's
+    turn; its button and its monument wait for it in logic.
     """
 
     display_name = "Open Black Tower"
@@ -1088,6 +1094,22 @@ class CustomDrawings(Toggle):
     """
 
     display_name = "Custom Drawings"
+
+
+class MirroredPoses(Range):
+    """
+    The pose panels (Indoor Semaphore, Optical Telegraph, Charades Rooms) drawn for the seed among the game's nine poses
+    and the mirrors of the four that are not symmetric: one arm up and one level, one up and one down, and so on, the
+    other way round. A mirror can be there beside its own pose: tell left from right. Only what a panel shows changes;
+    the puzzles work as before.
+
+    How often each mirror is drawn, against a game pose (100 = as often). 0, the default: the game's poses.
+    """
+
+    display_name = "Mirrored Poses"
+    range_start = 0
+    range_end = 100
+    default = 0
 
 
 class CustomTileChoices(OptionSet):
@@ -1510,6 +1532,7 @@ class BigWalkOptions(PerGameCommonOptions):
     custom_tile_choices: CustomTileChoices
     custom_drawings: CustomDrawings
     custom_tile_weights: CustomTileWeights
+    mirrored_poses: MirroredPoses
     gauntlet_mode: GauntletMode
     gauntlet_puzzles_required: GauntletPuzzlesRequired
     lock_gauntlet_needs: LockGauntletNeeds
@@ -1581,7 +1604,7 @@ option_groups = [
     OptionGroup("Movement Locking", [LockAbilities, StartWithAbilities, LockRunning]),
     OptionGroup("Item Pool", [BackpacksInPool, BeltsInPool, GourdCartonsInPool, IslandObjectLimits]),
     OptionGroup("Colors and Names", [RandomColors, GourdName]),
-    OptionGroup("Custom Tiles", [CustomTiles, CustomTileChoices, CustomTileWeights, CustomDrawings]),
+    OptionGroup("Custom Tiles", [CustomTiles, CustomTileChoices, CustomTileWeights, CustomDrawings, MirroredPoses]),
     OptionGroup("Traps and Bonuses", [
         TrapFillPercentage, TrapWeights, HardTraps, BonusFillPercentage, BonusWeights, TrapDuration, TrapsSpareTheGauntlet,
         TrapLink,

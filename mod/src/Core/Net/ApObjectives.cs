@@ -20,7 +20,7 @@ namespace BigWalkArchipelago.Core.Net
         private static readonly string[] Known =
         {
             "big_wall", "big_goodbye", "big_game", "big_collection", "big_keys", "big_radio", "big_towers",
-            "big_climb", "big_fiesta", "big_lights", "big_objects", "big_body",
+            "big_climb", "big_fiesta", "big_lights", "big_objects", "big_body", "big_doof", "big_makeover",
         };
         private static readonly string[] Endings = { "big_goodbye", "big_game", "big_wall" };
 
@@ -109,6 +109,8 @@ namespace BigWalkArchipelago.Core.Net
                     return MonumentOrder.TowersFull(TowersTarget);
                 case "big_climb":
                 case "big_fiesta":
+                case "big_doof":
+                case "big_makeover":
                     return ObjectiveSpots.IsDone(key);
                 case "big_keys":
                     return KeysPlaced() >= KeysTarget;
@@ -140,6 +142,10 @@ namespace BigWalkArchipelago.Core.Net
                     return "Big Climb (highest point)";
                 case "big_fiesta":
                     return "Big Fiesta (the party)";
+                case "big_doof":
+                    return "Big Doof (light up the Doof Chamber)";
+                case "big_makeover":
+                    return "Big Makeover (painted at the Secret Salon)";
                 case "big_towers":
                     return $"Big Towers ({MonumentOrder.FullCount()}/{TowersTarget} full)";
                 case "big_wall":

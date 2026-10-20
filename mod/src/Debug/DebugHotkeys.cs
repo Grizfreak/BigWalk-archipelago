@@ -309,6 +309,9 @@ namespace BigWalkArchipelago.Debug
             if (ModConfig.LatchGoalFlagsKey.Value.IsDown())
                 Core.Net.ApGoalFlags.DebugLatchBoth();
 
+            if (ModConfig.LaserBeamKey.Value.IsDown())
+                DebugLaserBeam.Cycle();
+
             if (ModConfig.OpenLastStairwayKey.Value.IsDown())
                 GauntletStairways.DebugOpenLast();
 
