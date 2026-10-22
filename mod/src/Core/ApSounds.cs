@@ -38,13 +38,20 @@ namespace BigWalkArchipelago.Core
         // Plays a clip by name, whatever the burst window: the debug key's candidates.
         internal static bool PlayNamed(string clip)
         {
+            var player = Debug.DebugPlayerLookup.FindLocalPlayer();
+            return player != null && PlayNamedAt(clip, player.transform.position);
+        }
+
+        // The same, where something happens rather than where this player stands (Big Confetti, around each player).
+        // Not held to the sounds' setting: it is an effect's own sound, as Big Flare's shot.
+        internal static bool PlayNamedAt(string clip, Vector3 position)
+        {
             try
             {
-                var player = Debug.DebugPlayerLookup.FindLocalPlayer();
                 var asset = Find(clip);
-                if (player == null || asset == null)
+                if (asset == null)
                     return false;
-                AudioPlayHelper.Play(asset, player.transform.position);
+                AudioPlayHelper.Play(asset, position);
                 return true;
             }
             catch (System.Exception ex)
@@ -86,7 +93,7 @@ namespace BigWalkArchipelago.Core
             Plugin.Log.LogInfo($"[{nameof(ApSounds)}] {clip}: {(played ? "played" : "NOT played")}.");
         }
 
-        // Big Climb's and Big Fiesta's countdown (Core/ObjectiveSpots): Cabin Fever's own tick. Not held to a burst: four
+        // Big Climb's and Big Party's countdown (Core/ObjectiveSpots): Cabin Fever's own tick. Not held to a burst: four
         // a count, a second apart.
         private const string CountdownClip = "sfx_cabinFever_timer_run_random";
 

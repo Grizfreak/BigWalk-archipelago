@@ -461,10 +461,7 @@ class BigWalkWorld(World):
                 f"Gauntlet, whose locked stages would then hold checks for nothing. Set "
                 f"gauntlet_mode to vanilla, or the goal to big_goodbye or big_game.")
 
-        listed = set(self.options.objectives.value)
-        if "big_club" in listed:
-            listed.discard("big_club")
-            listed.add("big_fiesta")
+        listed = {bigwalk_options.OBJECTIVE_ALIASES.get(key, key) for key in self.options.objectives.value}
         endings = sorted(listed & set(bigwalk_options.OBJECTIVE_ENDINGS))
         if endings:
             raise OptionError(

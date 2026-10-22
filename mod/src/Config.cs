@@ -592,7 +592,7 @@ namespace BigWalkArchipelago
                 "Debug",
                 "FireTrapKey",
                 new KeyboardShortcut(KeyCode.Keypad0, KeyCode.LeftControl),
-                "On the host: fires the next trap or bonus on every player, one per press in turn (Big Drop, Big Throw, Big Trip, Big Meeting, Big Night, Big Sleep, Big Load, Big Day, Big Speed, Big Jump), as if its item had arrived; works without a server, for 30 seconds then. Its name goes in the log and the feed (only has an effect if Debug.Enabled is active).");
+                "On the host: fires the next trap or bonus on every player, one per press in turn (Big Drop, Big Throw, Big Trip, Big Meeting, Big Night, Big Sleep, Big Load, Big Day, Big Speed, Big Jump, Big Confetti), as if its item had arrived; works without a server, for 30 seconds then. Its name goes in the log and the feed (only has an effect if Debug.Enabled is active).");
 
             TrapStateKey = debug.Bind(
                 "Debug",
@@ -640,7 +640,7 @@ namespace BigWalkArchipelago
                 "Debug",
                 "ResetObjectiveSpotsKey",
                 new KeyboardShortcut(KeyCode.Alpha2, KeyCode.LeftAlt),
-                "Forgets that big_climb and big_fiesta were done, to try them again (only has an effect if Debug.Enabled is active).");
+                "Forgets that big_climb and big_party were done, to try them again (only has an effect if Debug.Enabled is active).");
 
             ApFeedKey = debug.Bind(
                 "Debug",

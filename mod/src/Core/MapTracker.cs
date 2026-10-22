@@ -338,7 +338,7 @@ namespace BigWalkArchipelago.Core
         }
 
         private static bool HasPlace(string objective) =>
-            objective is "big_climb" or "big_fiesta" or "big_doof" or "big_makeover" or "big_wall" or "big_game" or "big_goodbye";
+            objective is "big_climb" or "big_party" or "big_doof" or "big_makeover" or "big_wall" or "big_game" or "big_goodbye";
 
         // To the guests: the list when it changes, and every few seconds for one who joined since.
         private static void SendToGuests()
@@ -631,7 +631,7 @@ namespace BigWalkArchipelago.Core
             {
                 case "big_climb":
                     return ObjectiveSpots.ClimbCentre();
-                case "big_fiesta":
+                case "big_party":
                     foreach (var home in UnityEngine.Object.FindObjectsByType<PropHome>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                     {
                         if (home != null && home.name == "FmRadioDockPropHome")

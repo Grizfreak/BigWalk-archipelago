@@ -163,7 +163,7 @@ the whole list.
 ```yaml
 Big Walk:
   goal: big_wall
-  objectives: [big_keys, big_radio, big_climb, big_fiesta]
+  objectives: [big_keys, big_radio, big_climb, big_party]
   random_objectives: 2   # two of these four, picked per seed
 ```
 
@@ -172,14 +172,14 @@ Big Walk:
 - **big_radio**: switch on `radio_stations_required` radio stations. Needs
   `radio_sanity`.
 - **big_climb**: stand on the highest point of the island.
-- **big_fiesta** (or big_club): throw the party on the beach by plugging a
+- **big_party** (or big_fiesta): throw the party on the beach by plugging a
   radio into the big speakers with music playing. A **Radio** is always in the
   pool, and with `shuffle_radio_music` you'll need one of the Radio Music items.
-- **big_doof**: light up the Doof Chamber, the music room in the tunnels: its
+- **big_doof** (or big_club): light up the Doof Chamber, the music room in the tunnels: its
   five light switches on and its smoke machine's button held, for ten seconds.
 - **big_makeover**: get painted at the Secret Salon, in the tunnels. With
   `everyone_gathers`, every player must be painted there, each in turn.
-- With `everyone_gathers` (on by default), big_climb, big_fiesta, big_doof and
+- With `everyone_gathers` (on by default), big_climb, big_party, big_doof and
   big_makeover want every player there. Their ten seconds tick: once at the
   start, then on each of the last three.
 - **big_lights**: switch on `lights_required` percent of the lights at least
@@ -200,7 +200,7 @@ overlay. With `lock_endings_until_objectives` (on by default), the way into the
 ending stays shut until the other objectives are done: the Gauntlet's last
 stairway, and the printer in the secret room.
 
-`everyone_gathers` (on by default): Big Climb and Big Fiesta only count their
+`everyone_gathers` (on by default): Big Climb and Big Party only count their
 ten seconds while every player is there. Turn it off and one player is enough.
 
 ### Towers in order
@@ -453,6 +453,7 @@ of the filler is bonuses (`bonus_fill_percentage: 25`).
 | **Big Speed** | everyone walks and runs faster |
 | **Big Jump** | everyone jumps higher |
 | **Big Day** | the clock jumps to noon and runs on from there |
+| **Big Confetti** | confetti bursts around every player, with the sound of a puzzle solved (filler, just for show) |
 
 Effects that last (Big Sleep, Big Mask, Big Silence, Big Slide, Big Ghost, Big
 Paint, Big Goggles, Big Pixels, Big Head, Big Brain, Big Arms, Big Smell, Big

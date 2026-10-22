@@ -153,6 +153,9 @@ def classification_for(name: str, require_arch_doors: bool = False) -> ItemClass
         return ItemClassification.progression
     if name in TRAP_ITEM_NAMES:
         return ItemClassification.trap
+    if name == data.CONFETTI_ITEM_NAME:
+        # Drawn with the bonuses, but only a show: filler, so a junk-only check can hold it.
+        return ItemClassification.filler
     if name in BONUS_ITEM_NAMES:
         # A boost for a while: nice to get, never needed.
         return ItemClassification.useful
@@ -167,12 +170,12 @@ RADIO_ITEM_NAME = "Radio"
 
 
 def party_asked_for(world: BigWalkWorld) -> bool:
-    return "big_fiesta" in world.objectives
+    return "big_party" in world.objectives
 
 
 def create_item(world: BigWalkWorld, name: str) -> BigWalkItem:
     classification = classification_for(name, bool(world.options.require_arch_doors))
-    # The party (`big_fiesta`) needs a radio and a music: from filler, they become what the goal waits for.
+    # The party (`big_party`) needs a radio and a music: from filler, they become what the goal waits for.
     if party_asked_for(world) and (name == RADIO_ITEM_NAME or name in RADIO_ITEM_NAMES):
         classification = ItemClassification.progression
     return BigWalkItem(name, classification, ITEM_NAME_TO_ID[name], world.player)
@@ -374,7 +377,7 @@ def create_all_items(world: BigWalkWorld) -> None:
             else:
                 world.push_precollected(world.create_item(ability.item_name))
 
-    # The party (`big_fiesta`) needs a radio: one is certain, counted with what the seed needs rather than taken
+    # The party (`big_party`) needs a radio: one is certain, counted with what the seed needs rather than taken
     # from the filler headroom, which the gear may have spent (the fuzzer, 62 seeds without it, 2026-10-13).
     # The filler gives more up to `island_object_limits`.
     if party_asked_for(world):

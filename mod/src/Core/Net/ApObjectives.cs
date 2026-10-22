@@ -20,7 +20,7 @@ namespace BigWalkArchipelago.Core.Net
         private static readonly string[] Known =
         {
             "big_wall", "big_goodbye", "big_game", "big_collection", "big_keys", "big_radio", "big_towers",
-            "big_climb", "big_fiesta", "big_lights", "big_objects", "big_body", "big_doof", "big_makeover",
+            "big_climb", "big_party", "big_lights", "big_objects", "big_body", "big_doof", "big_makeover",
         };
         private static readonly string[] Endings = { "big_goodbye", "big_game", "big_wall" };
 
@@ -49,7 +49,10 @@ namespace BigWalkArchipelago.Core.Net
                     "deposits" => "big_collection",
                     _ => null,
                 };
-                _keys = slot.Objectives is { Length: > 0 } listed ? listed : goal != null ? new[] { goal } : Array.Empty<string>();
+                // big_fiesta: the party's name in a seed made by 1.0.2 or older.
+                _keys = slot.Objectives is { Length: > 0 } listed
+                    ? listed.Select(key => key == "big_fiesta" ? "big_party" : key).ToArray()
+                    : goal != null ? new[] { goal } : Array.Empty<string>();
             }
 
             return _keys;
@@ -108,7 +111,7 @@ namespace BigWalkArchipelago.Core.Net
                 case "big_towers":
                     return MonumentOrder.TowersFull(TowersTarget);
                 case "big_climb":
-                case "big_fiesta":
+                case "big_party":
                 case "big_doof":
                 case "big_makeover":
                     return ObjectiveSpots.IsDone(key);
@@ -140,8 +143,8 @@ namespace BigWalkArchipelago.Core.Net
             {
                 case "big_climb":
                     return "Big Climb (highest point)";
-                case "big_fiesta":
-                    return "Big Fiesta (the party)";
+                case "big_party":
+                    return "Big Party (on the beach)";
                 case "big_doof":
                     return "Big Doof (light up the Doof Chamber)";
                 case "big_makeover":

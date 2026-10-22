@@ -32,8 +32,9 @@ class TestTheNames(BigWalkTestBase):
     def test_classifications(self) -> None:
         for name in TRAPS:
             self.assertTrue(self.world.create_item(name).trap, name)
-        for name in BONUSES:
+        for name in BONUSES - {data.CONFETTI_ITEM_NAME}:
             self.assertTrue(self.world.create_item(name).useful, name)
+        self.assertTrue(self.world.create_item(data.CONFETTI_ITEM_NAME).filler)
 
 
 class TestByDefault(BigWalkTestBase):

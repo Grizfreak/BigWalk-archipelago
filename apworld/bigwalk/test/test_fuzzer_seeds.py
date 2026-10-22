@@ -10,12 +10,12 @@ from .test_vanilla_options import pool, precollected
 
 class TestThePartyHasARadioInATightPool(BigWalkTestBase):
     """
-    `big_fiesta` needs a radio, which used to come from the filler headroom after the gear: with the puzzles holding
+    `big_party` needs a radio, which used to come from the filler headroom after the gear: with the puzzles holding
     their gourds and the keys their monuments, the gear took it all and the seed could not be won (62 seeds).
     """
 
     options = {
-        "goal": "big_goodbye", "objectives": ["big_body", "big_collection", "big_fiesta"], "random_objectives": 0,
+        "goal": "big_goodbye", "objectives": ["big_body", "big_collection", "big_party"], "random_objectives": 0,
         "gourds_required": 40, "body_required": 64, "gourd_sanity": "every_5", "radio_sanity": False,
         "shuffle_radio_music": True, "pack_sanity": True, "firework_sanity": False, "flare_gun_sanity": True,
         "tower_sanity": False, "monument_sanity": False, "cut_key_sanity": "off", "object_sanity": "off",

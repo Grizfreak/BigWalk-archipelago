@@ -12,7 +12,7 @@ namespace BigWalkArchipelago.Core
     //  - `big_climb`, the island's highest point: a player standing there. The place is the .cfg's
     //    "x, y, z, radius" (metres), so it can be moved without a rebuild; the default is the Peak fireworks (the
     //    highest launcher, y = 179.6). Alt + 1 writes where the player stands to BepInEx/objective-spots.txt.
-    //  - `big_fiesta`, the party: not a place but an action (the player, 2026-10-12): a radio plugged into the big
+    //  - `big_party`, the party: not a place but an action (the player, 2026-10-12): a radio plugged into the big
     //    speakers on the beach. The Speaker Stage has a dock for the radio (`FmRadioDockPropHome`, found in the
     //    relevé F9 of 2026-10-12) and the speakers' own logic (`SpeakerStageLogic`, an unsaved state), so the
     //    party is the radio sitting in the dock for a few seconds.
@@ -29,13 +29,17 @@ namespace BigWalkArchipelago.Core
         private const string Tag = "[" + nameof(ObjectiveSpots) + "]";
         private const string LatchPrefix = "ap_objective_";
 
+        // Where the save keeps an objective done. The party keeps the name it had until 1.0.2, big_fiesta, so a save that
+        // threw it then still has it done.
+        private static string Latch(string key) => LatchPrefix + (key == "big_party" ? "big_fiesta" : key);
+
         private struct Spot
         {
             internal Vector3 Centre;
             internal float Radius;
         }
 
-        internal static bool IsSpot(string key) => key is "big_climb" or "big_fiesta" or "big_doof" or "big_makeover";
+        internal static bool IsSpot(string key) => key is "big_climb" or "big_party" or "big_doof" or "big_makeover";
 
         private static Spot? Of(string key)
         {
@@ -64,9 +68,9 @@ namespace BigWalkArchipelago.Core
         internal static Vector3? ClimbCentre() => Of("big_climb")?.Centre;
 
         // Whether this build knows where the place is.
-        internal static bool Known(string key) => key is "big_fiesta" or "big_doof" or "big_makeover" || Of(key) != null;
+        internal static bool Known(string key) => key is "big_party" or "big_doof" or "big_makeover" || Of(key) != null;
 
-        internal static bool IsDone(string key) => SaveManager.GetIntValue(LatchPrefix + key, 0, false) != 0;
+        internal static bool IsDone(string key) => SaveManager.GetIntValue(Latch(key), 0, false) != 0;
 
         // Every couple of seconds (TeleportButtons.Sync), on the host.
         internal static void Tick()
@@ -79,7 +83,7 @@ namespace BigWalkArchipelago.Core
                 if (!IsSpot(key) || IsDone(key))
                     continue;
 
-                if (key == "big_fiesta")
+                if (key == "big_party")
                 {
                     CheckTheParty();
                     continue;
@@ -110,10 +114,10 @@ namespace BigWalkArchipelago.Core
                 if (Time.unscaledTime - _atTheTopSince < ClimbSeconds)
                     continue;
 
-                SaveManager.SetIntValue(LatchPrefix + key, 1);
+                SaveManager.SetIntValue(Latch(key), 1);
                 _atTheTopSince = -1f;
                 Plugin.Log.LogInfo($"{Tag} {key} is done: a player is at {spot.Value.Centre}.");
-                ApNotices.Post(key == "big_climb" ? "Big Climb: the highest point is reached" : "Big Fiesta: the party is reached");
+                ApNotices.Post(key == "big_climb" ? "Big Climb: the highest point is reached" : "Big Party: the party is reached");
             }
         }
 
@@ -233,11 +237,11 @@ namespace BigWalkArchipelago.Core
             if (Time.unscaledTime - _dockedSince < PartySeconds)
                 return;
 
-            SaveManager.SetIntValue(LatchPrefix + "big_fiesta", 1);
+            SaveManager.SetIntValue(Latch("big_party"), 1);
             _dockedSince = -1f;
             _partyPlaying = false;
-            Plugin.Log.LogInfo($"{Tag} big_fiesta is done: a radio has been in the Speaker Stage's dock for {PartySeconds} s.");
-            ApNotices.Post("Big Fiesta: the party is on");
+            Plugin.Log.LogInfo($"{Tag} big_party is done: a radio has been in the Speaker Stage's dock for {PartySeconds} s.");
+            ApNotices.Post("Big Party: the party is on");
         }
 
         private static bool TunedOnAGrantedStation(TrackedPeckState radioSystem)
@@ -351,7 +355,7 @@ namespace BigWalkArchipelago.Core
             if (Time.unscaledTime - _doofSince < DoofSeconds)
                 return;
 
-            SaveManager.SetIntValue(LatchPrefix + "big_doof", 1);
+            SaveManager.SetIntValue(Latch("big_doof"), 1);
             _doofSince = -1f;
             Plugin.Log.LogInfo($"{Tag} big_doof is done: the Doof Chamber's lights all on and its smoke going for {DoofSeconds} s.");
             ApNotices.Post("Big Doof: the Doof Chamber is lit");
@@ -413,7 +417,7 @@ namespace BigWalkArchipelago.Core
                     continue;
                 }
 
-                SaveManager.SetIntValue(LatchPrefix + "big_makeover", 1);
+                SaveManager.SetIntValue(Latch("big_makeover"), 1);
                 Plugin.Log.LogInfo($"{Tag} big_makeover is done: {player.gameObject.name} was painted at the Secret Salon "
                                    + $"({before} -> {now}).");
                 ApNotices.Post("Big Makeover: painted at the Secret Salon");
@@ -502,17 +506,17 @@ namespace BigWalkArchipelago.Core
         // Debug key (Alt + 2): forgets the two latches, to try them again.
         internal static void ResetLatches()
         {
-            SaveManager.SetIntValue(LatchPrefix + "big_climb", 0);
-            SaveManager.SetIntValue(LatchPrefix + "big_fiesta", 0);
-            SaveManager.SetIntValue(LatchPrefix + "big_doof", 0);
-            SaveManager.SetIntValue(LatchPrefix + "big_makeover", 0);
+            SaveManager.SetIntValue(Latch("big_climb"), 0);
+            SaveManager.SetIntValue(Latch("big_party"), 0);
+            SaveManager.SetIntValue(Latch("big_doof"), 0);
+            SaveManager.SetIntValue(Latch("big_makeover"), 0);
             _doofSince = -1f;
             Looks.Clear();
             Painted.Clear();
             _atTheTopSince = -1f;
             _dockedSince = -1f;
             _partyPlaying = false;
-            Plugin.Log.LogInfo($"{Tag} big_climb and big_fiesta forgotten.");
+            Plugin.Log.LogInfo($"{Tag} big_climb and big_party forgotten.");
             ApNotices.Post("Debug: climb and club forgotten");
         }
 

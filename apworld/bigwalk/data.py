@@ -1651,8 +1651,13 @@ BONUSES: tuple[Effect, ...] = (
     Effect("Big Speed", 9_301, "speed"),
     Effect("Big Jump", 9_302, "jump"),
     Effect("Big Day", 9_303, "day"),
+    # A burst or two of the puzzles' own confetti around every player, with the sound of a puzzle won; nothing else,
+    # so it is filler (player, 2026-10-22).
+    Effect("Big Confetti", 9_304, "confetti"),
 )
-"""The traps' good twins: a boost for every player, for `trap_duration` seconds."""
+"""The traps' good twins: a boost for every player, for `trap_duration` seconds, or a treat (Big Confetti)."""
+
+CONFETTI_ITEM_NAME = "Big Confetti"
 
 TRAP_ITEMS: tuple[tuple[str, int], ...] = tuple((trap.item_name, trap.offset) for trap in TRAPS)
 BONUS_ITEMS: tuple[tuple[str, int], ...] = tuple((bonus.item_name, bonus.offset) for bonus in BONUSES)

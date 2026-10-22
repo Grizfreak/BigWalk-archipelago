@@ -70,9 +70,17 @@ EXCLUSIVE_ENDINGS = ("big_goodbye", "big_game")
 
 OBJECTIVE_KEYS = (
     "big_wall", "big_goodbye", "big_game", "big_collection", "big_keys", "big_radio", "big_towers",
-    "big_climb", "big_fiesta", "big_lights", "big_objects", "big_body", "big_doof", "big_makeover",
+    "big_climb", "big_party", "big_lights", "big_objects", "big_body", "big_doof", "big_makeover",
 )
 """Every objective, in the order the slot data lists them. Frozen: the mod reads these strings."""
+
+OBJECTIVE_ALIASES = {
+    # big_club is the club it was first meant to be (the player, 2026-10-22).
+    "big_club": "big_doof",
+    # big_fiesta was the party's name until 1.0.2 (the player, 2026-10-22); the mod still reads it in an older seed.
+    "big_fiesta": "big_party",
+}
+"""An objective's older names, still read in a YAML, and what each one is now."""
 
 
 class Objectives(OptionSet):
@@ -89,20 +97,20 @@ class Objectives(OptionSet):
     - big_objects: pick up a share of the island's objects (see Objects Required; needs Object Sanity).
     - big_body: get back a share of the body's abilities (see Body Required; needs Lock Abilities).
     - big_climb: stand on the highest point of the island.
-    - big_fiesta (also read as big_club): the party on the beach, a radio plugged into the big speakers with a music
-      playing. Needs a Radio, and with Shuffle Radio Music one of the stations, which become progression.
-    - big_doof: the Doof Chamber, the music room in the tunnels: its five light switches on and its smoke machine's
-      button held, ten seconds.
+    - big_party (also read as big_fiesta): the party on the beach, a radio plugged into the big speakers with a music playing. Needs a Radio,
+      and with Shuffle Radio Music one of the stations, which become progression.
+    - big_doof (also read as big_club): the Doof Chamber, the music room in the tunnels: its five light switches on
+      and its smoke machine's button held, ten seconds.
     - big_makeover: be painted at the Secret Salon, in the tunnels (with Everyone Gathers, every player, each in turn).
-    With Everyone Gathers, big_climb, big_fiesta, big_doof and big_makeover want every player there.
+    With Everyone Gathers, big_climb, big_party, big_doof and big_makeover want every player there.
 
     The endings (big_wall, big_goodbye, big_game) are not listed here: they are the Goal.
     """
 
     display_name = "Objectives"
-    # The endings are accepted only to be refused with a clear word (world._check_the_objectives); big_club is
-    # another name of big_fiesta.
-    valid_keys = frozenset(OBJECTIVE_KEYS) | {"big_club"}
+    # The endings are accepted only to be refused with a clear word (world._check_the_objectives); the old names
+    # are read as the new ones (world._check_the_objectives).
+    valid_keys = frozenset(OBJECTIVE_KEYS) | set(OBJECTIVE_ALIASES)
     default = frozenset()
 
 
@@ -496,7 +504,7 @@ class FirstTowerOpen(DefaultOnToggle):
 
 class EveryoneGathers(DefaultOnToggle):
     """
-    Big Climb and Big Fiesta count their ten seconds only while every player is there: at the island's highest point for
+    Big Climb and Big Party count their ten seconds only while every player is there: at the island's highest point for
     the climb, near the big speakers on the beach for the party (the default). Off: one player is enough.
     """
 
@@ -1297,6 +1305,8 @@ class BonusWeights(OptionCounter):
     - Big Speed: everyone walks and runs faster for `trap_duration` seconds.
     - Big Jump: everyone jumps higher for `trap_duration` seconds.
     - Big Day: the clock fast-forwards to noon, and runs on from there.
+    - Big Confetti: a burst or two of confetti around every player, with the sound of a puzzle won. Filler, not a
+      boost.
     """
 
     display_name = "Bonus Weights"

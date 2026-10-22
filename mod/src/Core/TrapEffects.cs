@@ -49,6 +49,9 @@ namespace BigWalkArchipelago.Core
         // A flare in front of every player, in the Archipelago colours (Core/BigFlare).
         internal const string Flare = "flare";
 
+        // A puzzle's confetti around every player, with its sound (Core/BigConfetti): filler, only a show.
+        internal const string Confetti = "confetti";
+
         // A clock in every player's hands, on the real time of their own computer (host only, Core/Traps).
         internal const string BigTime = "time";
 
@@ -1059,11 +1062,11 @@ namespace BigWalkArchipelago.Core
             }
         }
 
-        // The three that are a boost, not a trap: they get the item sound, not the alert of a trap.
-        internal static bool IsBonus(string key) => key == Day || key == Speed || key == Jump;
+        // The boosts and the confetti, not a trap: they get the item sound, not the alert of a trap.
+        internal static bool IsBonus(string key) => key == Day || key == Speed || key == Jump || key == Confetti;
 
         // Every effect this build plays, so a key from a newer apworld is refused by name.
-        internal static readonly string[] Known = { Drop, Throw, Trip, Meeting, Night, Sleep, Load, Mask, Flare, BigTime, Silence, Slide, Ghost, Paint, Air, Goggles, Pixels, Head, Brain, Arms, Smell, Brother, Reset, Break, Day, Speed, Jump, Knockout };
+        internal static readonly string[] Known = { Drop, Throw, Trip, Meeting, Night, Sleep, Load, Mask, Flare, BigTime, Silence, Slide, Ghost, Paint, Air, Goggles, Pixels, Head, Brain, Arms, Smell, Brother, Reset, Break, Day, Speed, Jump, Confetti, Knockout };
 
         // Gentle effects (ModConfig.GentleEffects, the accessibility setting; player 2026-10-14): the traps that are hard
         // to look at (Big Goggles' narrowing view, Big Pixels) are not shown on this machine's screen.
@@ -1209,6 +1212,9 @@ namespace BigWalkArchipelago.Core
                         break;
                     case Flare:
                         BigFlare.Play();
+                        break;
+                    case Confetti:
+                        BigConfetti.Play();
                         break;
                     case Knockout:
                         DropHeld(player);

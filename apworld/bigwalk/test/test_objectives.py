@@ -64,13 +64,13 @@ class TestTheGourdsAsTheGoalWithObjectives(BigWalkTestBase):
 class TestRandomObjectives(BigWalkTestBase):
     """random_objectives draws among those listed."""
 
-    options = {"goal": "big_game", "objectives": ["big_collection", "big_keys", "big_climb", "big_fiesta"],
+    options = {"goal": "big_game", "objectives": ["big_collection", "big_keys", "big_climb", "big_party"],
                "random_objectives": 2}
     run_default_tests = False
 
     def test_two_are_drawn_among_the_listed(self) -> None:
         self.assertEqual(2, len(self.world.objectives))
-        self.assertTrue(self.world.objectives <= {"big_collection", "big_keys", "big_climb", "big_fiesta"})
+        self.assertTrue(self.world.objectives <= {"big_collection", "big_keys", "big_climb", "big_party"})
         self.assertIn("big_game", self.world.fill_slot_data()["objectives"])
 
 
@@ -82,7 +82,7 @@ class TestRandomObjectivesFromAll(BigWalkTestBase):
 
     def test_what_cannot_be_asked_is_not_drawn(self) -> None:
         # big_lights counts the lamps without light_sanity, so it can be drawn too (0.6).
-        self.assertEqual({"big_collection", "big_keys", "big_climb", "big_fiesta", "big_lights", "big_doof", "big_makeover"},
+        self.assertEqual({"big_collection", "big_keys", "big_climb", "big_party", "big_lights", "big_doof", "big_makeover"},
                          set(self.world.objectives))
 
 
@@ -167,14 +167,24 @@ class TestTheClimb(BigWalkTestBase):
         self.assertTrue(self.can_reach_location("Victory"))
 
 
-class TestTheOldNameOfTheFiesta(BigWalkTestBase):
-    """big_club was the first name of big_fiesta: a YAML that still says so is read as the new one."""
+class TestTheClubIsTheDoof(BigWalkTestBase):
+    """big_club is read as big_doof, the club it was first meant to be."""
 
-    options = {"goal": "big_game", "objectives": ["big_club"], "shuffle_radio_music": True, "everyone_gathers": True}
+    options = {"goal": "big_game", "objectives": ["big_club"], "everyone_gathers": True}
     run_default_tests = False
 
-    def test_it_is_the_fiesta(self) -> None:
-        self.assertEqual(["big_game", "big_fiesta"], self.world.fill_slot_data()["objectives"])
+    def test_it_is_the_doof(self) -> None:
+        self.assertEqual(["big_game", "big_doof"], self.world.fill_slot_data()["objectives"])
+
+
+class TestTheOldNameOfTheParty(BigWalkTestBase):
+    """big_fiesta was the party's name until 1.0.2: a YAML that still says so is read as big_party."""
+
+    options = {"goal": "big_game", "objectives": ["big_fiesta"], "shuffle_radio_music": True}
+    run_default_tests = False
+
+    def test_it_is_the_party(self) -> None:
+        self.assertEqual(["big_game", "big_party"], self.world.fill_slot_data()["objectives"])
 
     def test_the_slot_data_carries_everyone_gathers(self) -> None:
         self.assertTrue(self.world.fill_slot_data()["everyone_gathers"])
@@ -183,11 +193,11 @@ class TestTheOldNameOfTheFiesta(BigWalkTestBase):
 class TestTheClub(BigWalkTestBase):
     """The party: a radio, and with the stations as items, any one of them."""
 
-    options = {"goal": "big_game", "objectives": ["big_fiesta"], "shuffle_radio_music": True}
+    options = {"goal": "big_game", "objectives": ["big_party"], "shuffle_radio_music": True}
     run_default_tests = False
 
     def test_they_are_listed_in_the_frozen_order(self) -> None:
-        self.assertEqual(["big_game", "big_fiesta"], self.world.fill_slot_data()["objectives"])
+        self.assertEqual(["big_game", "big_party"], self.world.fill_slot_data()["objectives"])
 
     def test_a_radio_is_certain_in_the_pool(self) -> None:
         self.assertGreaterEqual(len(self.get_items_by_name("Radio")), 1)
@@ -209,7 +219,7 @@ class TestTheClub(BigWalkTestBase):
 
 
 class TestTheClubWithoutShuffledMusic(BigWalkTestBase):
-    options = {"goal": "big_game", "objectives": ["big_fiesta"], "shuffle_radio_music": False}
+    options = {"goal": "big_game", "objectives": ["big_party"], "shuffle_radio_music": False}
     run_default_tests = False
 
     def test_only_the_radio_is_needed(self) -> None:

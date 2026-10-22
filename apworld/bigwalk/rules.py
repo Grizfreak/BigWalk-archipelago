@@ -618,7 +618,7 @@ def set_completion_rule(world: BigWalkWorld) -> None:
             elif key == "big_climb":
                 # A place the host sees a player at; nothing but the island itself to reach.
                 this = CanReachRegion(regions.OVERWORLD)
-            elif key == "big_fiesta":
+            elif key == "big_party":
                 # The party on the beach: a radio plugged into the big speakers, with a music playing (any
                 # station). With `shuffle_radio_music` the stations are items: one of them is needed.
                 this = CanReachRegion(regions.OVERWORLD) & Has(items.RADIO_ITEM_NAME)

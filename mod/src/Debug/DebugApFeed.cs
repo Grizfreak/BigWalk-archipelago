@@ -57,7 +57,7 @@ namespace BigWalkArchipelago.Debug
                     ApObjectives.DebugKeys = new[]
                     {
                         "big_wall", "big_goodbye", "big_game", "big_collection", "big_keys", "big_radio", "big_towers",
-                        "big_climb", "big_fiesta",
+                        "big_climb", "big_party",
                     };
                     break;
                 default:
@@ -126,7 +126,7 @@ namespace BigWalkArchipelago.Debug
                     ApNotices.Post("Drawbridge: opens when its item arrives");
                     break;
                 case 8:
-                    ApNotices.Post("Objective done: Big Fiesta (the party)");
+                    ApNotices.Post("Objective done: Big Party (on the beach)");
                     ApSounds.Confetti();
                     break;
                 default:
