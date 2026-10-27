@@ -1187,6 +1187,13 @@ namespace BigWalkArchipelago.Core.Net
         // spawn them if restarting a room, as other gourds and keys
         // stuff"). Paced the same way and reusing the same interval config
         // — this is cosmetic filler, not worth a setting of its own.
+        // ModConfig.GadgetCopiesKept: how many of one kind a reload or a session start puts back.
+        private static int Kept(int received)
+        {
+            var limit = ModConfig.GadgetCopiesKept.Value;
+            return limit > 0 ? Math.Min(received, limit) : received;
+        }
+
         private static void RestoreLooseGadgets()
         {
             if (_looseGadgetsRestored || Connection.HasPendingItems)
@@ -1205,7 +1212,7 @@ namespace BigWalkArchipelago.Core.Net
             foreach (GadgetKind kind in Enum.GetValues(typeof(GadgetKind)))
             {
                 var spawnedThisSession = _gadgetsSpawnedThisSession.TryGetValue(kind, out var n) ? n : 0;
-                var owed = ApItemCursor.GadgetsReceived(kind) - spawnedThisSession;
+                var owed = Kept(ApItemCursor.GadgetsReceived(kind)) - spawnedThisSession;
                 if (owed <= 0)
                     continue;
 
@@ -1410,7 +1417,13 @@ namespace BigWalkArchipelago.Core.Net
             // flag, not the gourd one: the two reconciliations run
             // independently and can finish at different times.
             if (ApLocationIds.TryResolveGadgetItem(itemId, out var gadgetKind))
+            {
+                // The startup burst stops at the limit instead of spawning copies to remove.
+                var spawned = _gadgetsSpawnedThisSession.TryGetValue(gadgetKind, out var already) ? already : 0;
+                if (!_looseGadgetsRestored && spawned >= Kept(int.MaxValue))
+                    return true;
                 return ItemApplier.ApplyGadgetItem(gadgetKind, toPlayer: _looseGadgetsRestored);
+            }
 
             // A trap or a bonus: queued, and fired on every player once the session has settled
             // (Core/Traps). Not "materialized" in the sense the gourd ledger counts.

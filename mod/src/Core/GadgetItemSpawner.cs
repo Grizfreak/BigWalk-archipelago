@@ -788,6 +788,64 @@ namespace BigWalkArchipelago.Core
         internal static void ForgetWorld()
         {
             _hiddenThisWorld = false;
+            Spawned.Clear();
+        }
+
+        // Our copies of each kind in this world, oldest first, for ModConfig.GadgetCopiesKept.
+        private static readonly Dictionary<GadgetKind, List<Prop>> Spawned = new();
+
+        // A copy past the limit replaces the oldest one lying loose. Packs are left alone.
+        private static void KeepUnderLimit(GadgetKind kind, Prop added)
+        {
+            if (!Spawned.TryGetValue(kind, out var list))
+                Spawned[kind] = list = new List<Prop>();
+            list.RemoveAll(prop => prop == null);
+            list.Add(added);
+
+            var limit = ModConfig.GadgetCopiesKept.Value;
+            if (limit <= 0 || Packs.Contains(kind))
+                return;
+
+            var removed = 0;
+            for (var i = 0; i < list.Count - 1 && list.Count > limit;)
+            {
+                var prop = list[i];
+                if (prop.currentHome != null || IsHeldByAnyone(prop))
+                {
+                    i++;
+                    continue;
+                }
+
+                list.RemoveAt(i);
+                try
+                {
+                    NetworkServer.Destroy(prop.gameObject);
+                    removed++;
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"[{nameof(GadgetItemSpawner)}] Could not remove an old {kind}: {ex.Message}");
+                }
+            }
+
+            if (removed > 0)
+                Plugin.Log.LogInfo(
+                    $"[{nameof(GadgetItemSpawner)}] {removed} old {kind}(s) removed to keep {limit} in the world.");
+        }
+
+        private static bool IsHeldByAnyone(Prop prop)
+        {
+            var players = PlayerCharacter.allPlayerCharacters;
+            if (players == null)
+                return false;
+
+            foreach (var pc in players)
+            {
+                if (pc != null && pc.hands != null && pc.hands.heldProp == prop)
+                    return true;
+            }
+
+            return false;
         }
 
         private static float _nextLateCapture;
@@ -1242,6 +1300,7 @@ namespace BigWalkArchipelago.Core
                 PublishLooseStates(prop.gameObject);
 
                 ReceivedItemSpawner.QueueHandover(prop, recipient);
+                KeepUnderLimit(kind, prop);
 
                 var identity = prop.GetComponent<NetworkIdentity>();
                 Plugin.Log.LogInfo(

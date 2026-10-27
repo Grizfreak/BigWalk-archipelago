@@ -32,6 +32,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<string> ReceivedSound;
         internal static ConfigEntry<string> CheckSound;
         internal static ConfigEntry<float> NoticeSeconds;
+        internal static ConfigEntry<int> GadgetCopiesKept;
         internal static ConfigEntry<bool> SpawnGourdAtPlayer;
         internal static ConfigEntry<bool> PutGourdInHands;
         internal static ConfigEntry<KeyboardShortcut> ToggleFlightKey;
@@ -274,6 +275,12 @@ namespace BigWalkArchipelago
                 "NoticeSeconds",
                 8f,
                 "How long, in seconds, a line in the feed above stays on screen.");
+
+            GadgetCopiesKept = file.Bind(
+                "Archipelago",
+                "GadgetCopiesKept",
+                10,
+                "How many copies of each received object (map, torch, radio...) the world keeps at most. Past that, a reload puts back no more, and a new one takes the place of the oldest left lying around (never one held, worn or stowed). Backpacks, belts and cartons are only limited on reload. 0: no limit.");
 
             HoldTrackedStateKey = debug.Bind(
                 "Debug",
