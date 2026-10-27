@@ -20,7 +20,7 @@ namespace BigWalkArchipelago.Core
     //   rainbow    a white body; its shot's colour follows Palette.RainbowNow, set every frame.
     //   a gadget   (C2, 0.7, player 2026-10-13: "the gadgets that are relevant") every renderer of the
     //              house shader (hhVertexColors, which multiplies its painted vertex colours by _TintColor,
-    //              as the buoy) through a property block; one colour per kind for the seed. Left alone:
+    //              as the buoy) through a property block; one colour per object for the seed. Left alone:
     //              the paintbrush and the kettles (puzzles), the folding map (paper, another shader), an
     //              emissive part (the laser's tip). The walkie-talkies' blue and yellow mean nothing (player,
     //              2026-10-13): their colour is a PropertyBlockHelper's (_TintColor, _Tint), written too.
@@ -46,9 +46,7 @@ namespace BigWalkArchipelago.Core
         private static readonly string[] BuoyNames = { "BuoyLight", "BuoyProp", "BuoyRedProp" };
         private static readonly string[] GunNames = { "FlareGunPropBlue", "FlareGunPropGreen", "FlareGunPropYellow", "FlareGunProp" };
 
-        // C2: the gadgets painted, by kind; a kind's place in the seed's draw is 4 + its row (the four flare guns take
-        // the first four), the three cowbells sharing one. The laser's row is kept for the rows after it, but a laser
-        // is painted on its own before this list is read (PaintIfLaser).
+        // C2: the gadgets painted (a laser is painted on its own first, PaintIfLaser).
         private static readonly string[][] GadgetKinds =
         {
             new[] { "BinocularsProp" }, new[] { "ClockProp" }, new[] { "CompassProp" },
@@ -56,7 +54,6 @@ namespace BigWalkArchipelago.Core
             new[] { "LaserProp" }, new[] { "MegaphoneProp" }, new[] { "TorchProp" }, new[] { "XrayGogglesProp" },
             new[] { "WalkieTalkieProp" },
         };
-        private const int FirstGadgetSlot = 4;
         private const string LauncherName = "FireworkLauncher";
 
         private static bool _dirty = true;
@@ -167,13 +164,14 @@ namespace BigWalkArchipelago.Core
                     continue;
                 try
                 {
-                    if (PaintIfBuoy(prop.gameObject, prop.savablePropGuid))
+                    var key = KeyOf(prop);
+                    if (PaintIfBuoy(prop.gameObject, key))
                         buoys++;
                     else if (PaintIfGun(prop.gameObject))
                         guns++;
-                    else if (PaintIfLaser(prop.gameObject, prop.savablePropGuid))
+                    else if (PaintIfLaser(prop.gameObject, key))
                         gadgets++;
-                    else if (PaintIfGadget(prop.gameObject))
+                    else if (PaintIfGadget(prop.gameObject, key))
                         gadgets++;
                 }
                 catch (Exception ex)
@@ -206,12 +204,40 @@ namespace BigWalkArchipelago.Core
                 else if (kind == GadgetKind.Laser)
                     PaintIfLaser(clone, prop != null ? prop.savablePropGuid : clone.name);
                 else if (!PaintIfGun(clone))
-                    PaintIfGadget(clone);
+                    PaintIfGadget(clone, prop != null ? prop.savablePropGuid : clone.name);
             }
             catch (Exception ex)
             {
                 Plugin.Log.LogWarning($"{Tag} Could not paint a {kind} clone: {ex.Message}");
             }
+        }
+
+        // A received copy by its netId, the same everywhere: its own colour, not its template's.
+        internal static void PaintCopy(GameObject copy, uint netId)
+        {
+            if (copy == null || netId == 0 || copy.name.Contains(RainbowMarker))
+                return;
+            try
+            {
+                var key = CopyKey(netId);
+                if (!PaintIfBuoy(copy, key) && !PaintIfLaser(copy, key))
+                    PaintIfGadget(copy, key);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"{Tag} Could not paint copy {netId}: {ex.Message}");
+            }
+        }
+
+        private static string CopyKey(uint netId) => "copy " + netId;
+
+        // A repaint of the world keeps each copy's own colour (a guest repaints after its copies arrive).
+        private static string KeyOf(Prop prop)
+        {
+            if (!ReceivedItemSpawner.IsCosmeticClone(prop))
+                return prop.savablePropGuid;
+            var identity = prop.GetComponent<Mirror.NetworkIdentity>();
+            return identity != null && identity.netId != 0 ? CopyKey(identity.netId) : prop.savablePropGuid;
         }
 
         private static bool StartsWithAny(string name, string[] names)
@@ -300,7 +326,8 @@ namespace BigWalkArchipelago.Core
         // Gadgets (C2)
         // ------------------------------------------------------------------
 
-        private static bool PaintIfGadget(GameObject root)
+        // One colour per object, as the lamps, the same on every machine (player, 2026-10-27).
+        private static bool PaintIfGadget(GameObject root, string key)
         {
             var row = Array.FindIndex(GadgetKinds, names => StartsWithAny(root.name, names));
             if (row < 0)
@@ -308,7 +335,7 @@ namespace BigWalkArchipelago.Core
             if (!Palette.Active)
                 return true;
 
-            var colour = Palette.At(FirstGadgetSlot + row).body;
+            var colour = Palette.For(string.IsNullOrEmpty(key) ? root.name : key).body;
             foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
             {
                 var material = renderer != null ? renderer.sharedMaterial : null;
@@ -340,6 +367,19 @@ namespace BigWalkArchipelago.Core
                 }
                 if (changed)
                     helper.Refresh();
+            }
+
+            // A torch's light takes its body's colour, kept like a lamp's.
+            if (root.name.StartsWith("TorchProp", StringComparison.Ordinal))
+            {
+                foreach (var light in root.GetComponentsInChildren<Light>(true))
+                {
+                    if (light == null)
+                        continue;
+                    light.color = colour;
+                    Lamps.RemoveAll(entry => entry.light == light);
+                    Lamps.Add((light, null, colour, null, colour));
+                }
             }
             return true;
         }

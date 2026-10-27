@@ -1303,6 +1303,7 @@ namespace BigWalkArchipelago.Core
                 KeepUnderLimit(kind, prop);
 
                 var identity = prop.GetComponent<NetworkIdentity>();
+                ColourPainter.PaintCopy(prop.gameObject, identity != null ? identity.netId : 0);
                 Plugin.Log.LogInfo(
                     $"[{nameof(GadgetItemSpawner)}] Cosmetic {kind} #{index} spawned at {prop.transform.position} (netId {(identity != null ? identity.netId : 0)}).");
                 return prop.gameObject;

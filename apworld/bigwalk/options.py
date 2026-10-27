@@ -556,8 +556,8 @@ class HintDiscoveredDepositBoxes(Toggle):
 class RandomColors(DefaultOnToggle):
     """
     The island's buoys (their body, halo and light), flare guns (and their shots), lasers (one color per
-    laser, its beam included), gadgets (one color per kind: binoculars, clocks, compasses, cowbells, radios,
-    megaphones, torches, scanners, walkie-talkies) and the firework launchers away from the towers (and their bursts) take colors
+    laser, its beam included), gadgets (one color per object: binoculars, clocks, compasses, cowbells, radios,
+    megaphones, torches and their light, scanners, walkie-talkies) and the firework launchers away from the towers (and their bursts) take colors
     drawn for the seed, between five and ten of them, the same on every player's screen. It paints objects of the map only:
     never the players, the gourds, the keys, or what a puzzle needs. Off: the game's own colors.
     The Rainbow Flare Gun, whose shots run through every color, is not affected by it.

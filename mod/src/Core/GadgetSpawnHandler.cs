@@ -37,6 +37,7 @@ namespace BigWalkArchipelago.Core
 
         private static readonly List<Prop> PendingSpawned = new();
         private static readonly Dictionary<int, float> SettleDeadline = new();
+        private static readonly HashSet<int> Painted = new();
         private const float SettleSeconds = 3f;
 
         private void Update()
@@ -136,6 +137,11 @@ namespace BigWalkArchipelago.Core
                 }
 
                 var id = prop.GetInstanceID();
+                // Painted once its netId has arrived, which the spawn handler is called without.
+                var netIdentity = prop.GetComponent<NetworkIdentity>();
+                if (netIdentity != null && netIdentity.netId != 0 && Painted.Add(id))
+                    ColourPainter.PaintCopy(prop.gameObject, netIdentity.netId);
+
                 if (!SettleDeadline.TryGetValue(id, out var deadline))
                 {
                     deadline = now + SettleSeconds;
@@ -193,7 +199,10 @@ namespace BigWalkArchipelago.Core
             {
                 PendingSpawned.Remove(done);
                 if (done != null)
+                {
                     SettleDeadline.Remove(done.GetInstanceID());
+                    Painted.Remove(done.GetInstanceID());
+                }
             }
         }
 
