@@ -205,3 +205,31 @@ for _seed in range(12):
     _cls = _sweep_closed(_seed)
     globals()[_cls.__name__] = _cls
 del _cls
+
+
+class TestATowerRoofWaitsForItsTurn(BigWalkTestBase):
+    # The mod holds a tower's opening button until its monument opens: the roof and the button's check wait for it.
+    options = {"tower_mode": "in_order", "gourd_sanity": "every_gourd", "tower_sanity": True,
+               "firework_sanity": True, "object_sanity": "every"}
+    run_default_tests = False
+
+    def test_the_roof_of_a_later_tower_needs_the_gourds_before_it(self) -> None:
+        order = self.world.tower_order
+        prop = next(prop for prop in order[1:] if any(f.tower == prop for f in data.FIREWORKS))
+        before = sum(self.world.tower_slots(data.tower_by_prop(p)) for p in order[:order.index(prop)])
+        roof = [next(f.location_name for f in data.FIREWORKS if f.tower == prop),
+                data.tower_reached_location_name(data.tower_by_prop(prop))]
+        roof += [obj.location_name for obj in data.ISLAND_OBJECTS
+                 if obj.zone == f"tower:{prop}" and obj.kind not in data.LAMP_KINDS]
+        foot = [obj.location_name for obj in data.ISLAND_OBJECTS
+                if obj.zone == f"tower:{prop}" and obj.kind in data.LAMP_KINDS]
+
+        self.collect_all_but(data.GOURD_ITEM_NAME)
+        self.collect_gourds(before - 1)
+        for name in roof:
+            self.assertFalse(self.can_reach_location(name), name)
+        for name in foot:
+            self.assertTrue(self.can_reach_location(name), name)
+        self.collect_gourds(1)
+        for name in roof:
+            self.assertTrue(self.can_reach_location(name), name)

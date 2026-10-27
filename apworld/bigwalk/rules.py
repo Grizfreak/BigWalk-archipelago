@@ -50,6 +50,7 @@ def set_all_rules(world: BigWalkWorld) -> None:
     set_puzzle_rules(world)
     set_gauntlet_rules(world)
     set_object_rules(world)
+    set_firework_rules(world)
     set_object_event_rules(world)
     set_monument_full_rules(world)
     set_light_rules(world)
@@ -78,7 +79,10 @@ def set_key_deposit_rules(world: BigWalkWorld) -> None:
 
 
 def set_tower_reached_rules(world: BigWalkWorld) -> None:
-    """Reaching a tower asks for nothing but the far door it lies past, when that door is an item."""
+    """
+    Reaching a tower is pressing its opening button: the far door it lies past, when that door is an item,
+    and with the monuments in order the tower's turn.
+    """
     if not world.options.tower_sanity:
         return
 
@@ -92,6 +96,8 @@ def set_tower_reached_rules(world: BigWalkWorld) -> None:
             inside = black_tower_door(world)
             if inside is not None:
                 rules.append(inside)
+        else:
+            rules += tower_open(world, tower.prop_name)
         if rules:
             world.set_rule(world.get_location(data.tower_reached_location_name(tower)), all_of(rules))
 
@@ -111,14 +117,26 @@ def black_tower_door(world: BigWalkWorld) -> Rule | None:
         return None
 
     if world.tower_order:
-        position = world.tower_index(data.BLACK_MONOLITH.prop_name) + 1
-        capacity = sum(world.tower_slots(data.tower_by_prop(prop)) for prop in world.tower_order[:position - 1])
-        rules = monuments_up_to(world, position)
-        if capacity > 0:
-            rules.append(Has(data.GOURD_ITEM_NAME, count=capacity))
+        rules = tower_open(world, data.BLACK_MONOLITH.prop_name)
         return all_of(rules) if rules else None
 
     return five_monuments_full(world, 0)
+
+
+def tower_open(world: BigWalkWorld, prop: str) -> list[Rule]:
+    """
+    With the monuments in order, the mod holds a tower's opening button until the tower's turn
+    (mod/src/Patches/MonumentHoldPatch.cs): every monument before it full, and what opens them.
+    Nothing without an order.
+    """
+    if not world.tower_order or prop not in world.tower_order:
+        return []
+    position = world.tower_index(prop) + 1
+    capacity = sum(world.tower_slots(data.tower_by_prop(before)) for before in world.tower_order[:position - 1])
+    rules = monuments_up_to(world, position)
+    if capacity > 0:
+        rules.append(Has(data.GOURD_ITEM_NAME, count=capacity))
+    return rules
 
 
 def five_monuments_full(world: BigWalkWorld, more: int) -> Rule:
@@ -291,7 +309,30 @@ def object_rule(world: BigWalkWorld, obj: data.IslandObject) -> Rule | None:
     item for the Map Room's bench, a tower's far door for its roof and stairs (as reaching the tower);
     with `zone_locks`, its zone's item too.
     """
-    return with_zone(world, place_rule(world, obj.zone), obj.guid, obj.zone, obj.kind in data.LAMP_KINDS)
+    lamp = obj.kind in data.LAMP_KINDS
+    rule = place_rule(world, obj.zone)
+    # A tower's lamps stand at its foot; its other objects are on the roof, past the opening button.
+    if obj.zone.startswith("tower:") and not lamp:
+        rule = with_all(rule, tower_open(world, obj.zone[len("tower:"):]))
+    return with_zone(world, rule, obj.guid, obj.zone, lamp)
+
+
+def with_all(rule: Rule | None, more: list[Rule]) -> Rule | None:
+    """`rule` and every one of `more`; None when there is nothing at all."""
+    rules = ([rule] if rule is not None else []) + more
+    return all_of(rules) if rules else None
+
+
+def set_firework_rules(world: BigWalkWorld) -> None:
+    """A tower's fireworks are on its roof, behind its opening button; the others ask for nothing more."""
+    if not world.options.firework_sanity:
+        return
+    for firework in data.FIREWORKS:
+        if firework.tower is None:
+            continue
+        rule = with_all(place_rule(world, f"tower:{firework.tower}"), tower_open(world, firework.tower))
+        if rule is not None:
+            world.set_rule(world.get_location(firework.location_name), rule)
 
 
 def place_rule(world: BigWalkWorld, zone: str) -> Rule | None:
