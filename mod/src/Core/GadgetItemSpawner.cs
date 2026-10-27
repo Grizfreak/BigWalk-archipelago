@@ -886,9 +886,8 @@ namespace BigWalkArchipelago.Core
                 $"[{nameof(GadgetItemSpawner)}] Hid {hidden} vanilla gadget prop(s) from this machine's map, and is "
                 + $"keeping {_hidden.Count - hidden} that were already off.");
 
-            // Only a sweep that found something counts: one run before the
-            // world has loaded finds nothing, and must not stop the next.
-            _hiddenThisWorld = _hidden.Count > 0;
+            // An empty sweep counts once the world is loaded, or it reruns on every gadget.
+            _hiddenThisWorld = _hidden.Count > 0 || WorldManager.isReadyForEffects;
 
             return hidden;
         }

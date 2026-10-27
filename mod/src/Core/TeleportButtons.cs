@@ -236,11 +236,6 @@ namespace BigWalkArchipelago.Core
         internal static void Sync()
         {
             var mask = Mask();
-            ObjectiveBoard.Sync();
-            HintBoards.Sync();
-            TowerReach.Tick();
-            MonumentOrder.Tick();
-            ObjectiveSpots.Tick();
             ResyncStations.Sync((mask & ToolsBit) != 0);
             for (var i = 0; i < Destinations.Length; i++)
             {
@@ -324,34 +319,47 @@ namespace BigWalkArchipelago.Core
         }
     }
 
-    // Keeps the world's buttons what TeleportButtons says they should be.
+    // The jobs of every couple of seconds, one a frame: run together they made a hitch every 2 s.
     internal sealed class TeleportButtonRunner : MonoBehaviour
     {
         private const float Period = 2f;
         private float _next;
+        private int _step = -1;
+
+        private static readonly Action[] Steps =
+        {
+            ObjectiveBoard.Sync, HintBoards.Sync, TowerReach.Tick, MonumentOrder.Tick, ObjectiveSpots.Tick,
+            TeleportButtons.Sync, CabinFeverWaits.Tick, TileThiefHelper.Sync, PegTileShuffler.Tick,
+            CustomTiles.Tick, BlackTowerDoor.Enforce,
+        };
 
         private void Update()
         {
-            if (Time.unscaledTime < _next)
-                return;
-
-            _next = Time.unscaledTime + Period;
             if (!WorldManager.isReadyForEffects)
+            {
+                _step = -1;
                 return;
+            }
+
+            if (_step < 0)
+            {
+                if (Time.unscaledTime < _next)
+                    return;
+                _next = Time.unscaledTime + Period;
+                _step = 0;
+            }
 
             try
             {
-                TeleportButtons.Sync();
-                CabinFeverWaits.Tick();
-                TileThiefHelper.Sync();
-                PegTileShuffler.Tick();
-                CustomTiles.Tick();
-                BlackTowerDoor.Enforce();
+                Steps[_step]();
             }
             catch (Exception ex)
             {
                 Plugin.Log.LogWarning($"[{nameof(TeleportButtonRunner)}] {ex.Message}");
             }
+
+            if (++_step >= Steps.Length)
+                _step = -1;
         }
     }
 }

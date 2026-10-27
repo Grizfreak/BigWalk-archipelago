@@ -688,23 +688,41 @@ namespace BigWalkArchipelago.Core
 
         // ----- applying it, every couple of seconds (TeleportButtons.Sync), on every machine
 
+        // The monuments' homes, cached: the scene holds hundreds of homes, more with every prop.
+        private static readonly List<PropHome> Monuments = new();
+        private static float _monumentsFoundAt = -100f;
+        private const float RefindSeconds = 30f;
+
+        private static List<PropHome> MonumentHomes()
+        {
+            if (Monuments.Count > 0 && !Monuments.Exists(home => home == null)
+                                    && Time.unscaledTime - _monumentsFoundAt < RefindSeconds)
+                return Monuments;
+
+            Monuments.Clear();
+            _monumentsFoundAt = Time.unscaledTime;
+            // Not `PropHome.allPropHomes`: no monument was ever found in that list (2026-10-12).
+            foreach (var home in UnityEngine.Object.FindObjectsByType<PropHome>(FindObjectsSortMode.None))
+            {
+                if (ReceivedItemSpawner.IsMonumentHome(home))
+                    Monuments.Add(home);
+            }
+            return Monuments;
+        }
+
         internal static void Tick()
         {
             if (!WorldManager.isReadyForEffects)
                 return;
 
-            // The scene's own homes, not `PropHome.allPropHomes`: no monument was ever found in that list (2026-10-12: the log
-            // never said "blockPlacing on").
-            var homes = UnityEngine.Object.FindObjectsByType<PropHome>(FindObjectsSortMode.None);
-            if (homes == null)
-                return;
+            var homes = MonumentHomes();
 
             var active = Active;
             TickButtons(active);
             TickGreenDomeDoor();
             foreach (var home in homes)
             {
-                if (home == null || !ReceivedItemSpawner.IsMonumentHome(home))
+                if (home == null)
                     continue;
 
                 var id = home.GetInstanceID();

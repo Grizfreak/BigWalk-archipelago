@@ -35,19 +35,15 @@ namespace BigWalkArchipelago.Debug
         private const string FileName = "puzzle-needs-dump.tsv";
 
         private float _readySince = -1f;
-        private bool _done;
+        private float _nextRequestCheck;
 
         private void Update()
         {
             if (!WorldManager.isReadyForEffects)
             {
                 _readySince = -1f;
-                _done = false;
                 return;
             }
-
-            if (_done)
-                return;
 
             if (_readySince < 0f)
                 _readySince = Time.time;
@@ -55,7 +51,14 @@ namespace BigWalkArchipelago.Debug
             if (Time.time - _readySince < DelayAfterReadySeconds)
                 return;
 
-            _done = true;
+            // Only on request: run on every load, it froze the game for half a second (2026-10-27).
+            if (Time.unscaledTime < _nextRequestCheck)
+                return;
+            _nextRequestCheck = Time.unscaledTime + 2f;
+            var request = Path.Combine(Paths.BepInExRootPath, "puzzle-needs-dump.request");
+            if (!File.Exists(request))
+                return;
+            File.Delete(request);
             try
             {
                 Dump();
