@@ -1217,7 +1217,7 @@ namespace BigWalkArchipelago.Core
 
         // A fall that knocks a player down (`big_fall`, players 2026-10-07; built first on
         // 2026-10-05, 9d2ec1e). The game runs PlayerFaller.TriggerFall on the machine of the player
-        // who fell and ProcessRemoteFall on the others (decompiled 2026-10-05), so the host sees its
+        // who fell and ShowFall on the others (seen 2026-10-27), so the host sees its
         // own falls through the first and its guests' through the second (Patches/TrapPatches).
         // A knock-out the mod gave is not a fall: none counts for a few seconds after one.
         private const float FallCooldown = 5f;

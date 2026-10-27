@@ -4,7 +4,7 @@ using HarmonyLib;
 namespace BigWalkArchipelago.Patches
 {
     // A fall that knocks a player down, as a DeathLink trigger (`big_fall`, Core/Traps.OnFall).
-    // The host sees its own falls through TriggerFall and its guests' through ProcessRemoteFall.
+    // The host sees its own falls through TriggerFall and its guests' through ShowFall.
     [HarmonyPatch(typeof(PlayerFaller), nameof(PlayerFaller.TriggerFall))]
     internal static class PlayerFallPatch
     {
@@ -15,13 +15,20 @@ namespace BigWalkArchipelago.Patches
         }
     }
 
-    [HarmonyPatch(typeof(PlayerFaller), nameof(PlayerFaller.ProcessRemoteFall))]
+    // Not ProcessRemoteFall: the host never runs it for a guest, only ShowFall (2026-10-27).
+    [HarmonyPatch(typeof(PlayerFaller), nameof(PlayerFaller.ShowFall))]
     internal static class RemoteFallPatch
     {
         private static void Postfix(PlayerFaller __instance)
         {
-            if (Mirror.NetworkServer.active && __instance != null)
-                Traps.OnFall(__instance.playerCharacter);
+            var player = __instance != null ? __instance.playerCharacter : null;
+            if (!Mirror.NetworkServer.active || player == null)
+                return;
+
+            // The host's own fall is TriggerFall's.
+            var identity = player.GetComponent<Mirror.NetworkIdentity>();
+            if (identity == null || !identity.isLocalPlayer)
+                Traps.OnFall(player);
         }
     }
 
