@@ -522,8 +522,12 @@ and paints the island's **buoys** and **flare guns** with them:
 - Flare guns: body, barrel and shot (flare, light and smoke). The four island
   guns take the first four colors, and a gun you receive matches its kind. The
   item feed names a flare gun by its color: "Received: Pink Flare Gun".
-- Lasers: one color per laser, its beam included. A laser you receive takes
-  the color of the island laser it was copied from.
+- Lasers: one color per laser, its beam included.
+- Gadgets (binoculars, clocks, compasses, cowbells, radios, megaphones,
+  torches, scanners, walkie-talkies): one color per object, and a torch's light
+  takes its color.
+- A laser or a gadget you receive gets a color of its own, the same on every
+  screen.
 
 Only map objects are painted, never the players, gourds or keys. Turn
 `random_colors` off to keep the game's colors.

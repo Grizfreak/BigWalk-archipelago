@@ -6,6 +6,37 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## 1.0.3
+
+### Moving from 1.0.2 to 1.0.3
+
+- **Everyone needs this build:** the copies of received gadgets are painted from their network id, and a guest on 1.0.2
+  would paint them another way than its host.
+- A 1.0.2 YAML generates as it did. With `tower_mode`, a tower's roof (its gadgets and fireworks) and "Reached the
+  tower" now wait in logic for the tower's turn, so such a seed may place things differently. `big_fiesta` is now
+  `big_party`; the old name is still read, in a YAML, a seed and a save.
+
+### Fixed
+
+- **The host's game hitched every couple of seconds**, worse the longer the session ran. Each received gadget made the
+  mod look through every prop of the world again, and a few checks ran all in the same frame every two seconds. The
+  look happens once per world now, and the checks one per frame.
+- **A guest's big fall never sent a DeathLink** (`big_fall`): only the host's falls were seen. The host now sees every
+  player's.
+- **With `tower_mode`, the trackers showed a tower's roof in logic before the tower opened**: its gadgets, its
+  fireworks and "Reached the tower" now wait for its turn, as the button at its foot does. The lamps around a tower are
+  at its foot and do not wait.
+
+### Added
+
+- **`GadgetCopiesKept`** (in the mod's `.cfg`, 10 by default): at most that many copies of each received gadget in the
+  world. Loading a save puts back no more, and past it a new one takes the place of the oldest left lying around. A
+  long session no longer piles up hundreds of them.
+- With `random_colors`, every gadget takes its own color, each copy received too, and a torch's light takes its color.
+- **Big Confetti**, a bonus (`bonus_weights`): two bursts of a puzzle's confetti around every player, with the sound of
+  a puzzle won.
+- `big_fiesta` is now **`big_party`** ("Big Party (on the beach)"), and `big_club` reads as `big_doof`.
+
 ## 1.0.2
 
 ### Moving from 1.0.1 to 1.0.2

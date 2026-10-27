@@ -325,6 +325,10 @@ the `[Archipelago]` section:
   goes to a player with free hands, the one given the fewest items this
   session first. The batch rebuilt at the start of a session always goes to
   the hub.
+- `GadgetCopiesKept` — how many copies of each received gadget the world keeps
+  (10 by default, 0 for no limit). Past that, a reload puts back no more, and a
+  new one takes the place of the oldest lying around, never one held, worn or
+  stowed. Backpacks, belts and cartons are only limited on reload.
 - `ColorBigKeys` — whether received keys are tinted so they stand out from
   the ones sitting at their towers. Received gourds always come in one of six
   colors.
