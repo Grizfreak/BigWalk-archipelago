@@ -6,9 +6,9 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
-## Unreleased
+## 1.0.4
 
-### Moving from 1.0.3 to Unreleased
+### Moving from 1.0.3 to 1.0.4
 
 - **Everyone needs this build** with `lock_abilities`: the lock of the chairlift and the train travels to the guests with the others.
 - A 1.0.3 YAML generates as it did, except with `lock_abilities` and `object_sanity`: the Megaphones now ask for
