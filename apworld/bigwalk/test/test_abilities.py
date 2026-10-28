@@ -140,3 +140,62 @@ class TestSomeAbilitiesFree(BigWalkTestBase):
 
     def test_the_way_out_is_open(self) -> None:
         self.assertTrue(self.multiworld.get_entrance(regions.STARTING_EXIT, self.player).can_reach(self.multiworld.state))
+
+
+class TestMegaphonesNeedCarrying(BigWalkTestBase):
+    """Every megaphone hangs above one player's reach (Tyrope, 2026-10-27)."""
+
+    options = {"lock_abilities": "handed", "lock_puzzle_needs": False, "object_sanity": "every"}
+
+    def test_every_megaphone(self) -> None:
+        megaphones = [obj.location_name for obj in data.ISLAND_OBJECTS if obj.kind == "MegaphoneProp"]
+        self.assertEqual(len(megaphones), 3)
+        self.collect_all_but(["Carrying"])
+        for location in megaphones:
+            self.assertFalse(self.can_reach_location(location), location)
+        self.collect_by_name("Carrying")
+        for location in megaphones:
+            self.assertTrue(self.can_reach_location(location), location)
+
+
+class TestChairliftFreeByDefault(BigWalkTestBase):
+    options = {"lock_abilities": "handed", "lock_puzzle_needs": False}
+
+    def test_the_chairlift_asks_no_seat(self) -> None:
+        self.collect_all_but(["Seat"])
+        self.assertTrue(self.can_reach_region(regions.CHAIRLIFT_ZONE))
+        self.assertFalse(self.world.fill_slot_data()["rides_require_seat"])
+
+
+class TestRidesRequireSeat(BigWalkTestBase):
+    options = {"lock_abilities": "handed", "lock_puzzle_needs": False, "rides_require_seat": True}
+
+    def test_the_chairlift_asks_for_the_seat(self) -> None:
+        self.collect_all_but(["Seat"])
+        self.assertFalse(self.can_reach_region(regions.CHAIRLIFT_ZONE))
+        self.collect_by_name("Seat")
+        self.assertTrue(self.can_reach_region(regions.CHAIRLIFT_ZONE))
+        self.assertTrue(self.world.fill_slot_data()["rides_require_seat"])
+
+
+class TestTrainRequiresSeat(BigWalkTestBase):
+    options = {
+        "lock_abilities": "handed", "lock_puzzle_needs": False, "rides_require_seat": True,
+        "light_sanity": "lamps_and_switches",
+    }
+
+    def test_the_headlights_ask_for_the_seat(self) -> None:
+        self.collect_all_but(["Seat"])
+        self.assertFalse(self.can_reach_location("Light Switch (Train, Front Car) On"))
+        self.collect_by_name("Seat")
+        self.assertTrue(self.can_reach_location("Light Switch (Train, Front Car) On"))
+
+
+class TestRidesRequireSeatWithoutLocks(BigWalkTestBase):
+    """Without `lock_abilities` there is no Seat item: the option does nothing."""
+
+    options = {"lock_puzzle_needs": False, "rides_require_seat": True}
+
+    def test_the_chairlift_asks_no_seat(self) -> None:
+        self.collect_all_but([])
+        self.assertTrue(self.can_reach_region(regions.CHAIRLIFT_ZONE))

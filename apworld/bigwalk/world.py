@@ -54,6 +54,7 @@ TRACKER_OPTIONS = {
     "linear_towers": "linear_towers",
     "cut_key_sanity": "cut_key_sanity",
     "lock_running": "lock_running",
+    "rides_require_seat": "rides_require_seat",
     "pack_sanity": "pack_sanity",
     "firework_sanity": "firework_sanity",
     "flare_gun_sanity": "flare_gun_sanity",
@@ -1146,6 +1147,7 @@ class BigWalkWorld(World):
             "ability_keys": [ability.key for ability in data.ABILITIES],
             "ability_id_offset": data.ABILITY_ID_OFFSET,
             "lock_running": bool(self.options.lock_running),
+            "rides_require_seat": bool(self.options.rides_require_seat),
             "start_with_abilities": sorted(self.options.start_with_abilities.value),
 
             # The vanilla behaviours back (ROADMAP L2 to L8, 0.6). Only the purple puzzles change what the mod does:

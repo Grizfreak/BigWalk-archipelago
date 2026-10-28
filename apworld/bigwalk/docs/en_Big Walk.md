@@ -341,15 +341,18 @@ can do becomes items. Each one applies to every player of the slot at once.
 - **Legs**: jumping and crouching. You need both to get past the tutorial, so
   the logic asks for Legs to leave the starting zone. If the zone has no room
   for it, you start with it.
-- **Seat**: sitting on chairs, couches, benches, stumps and the floor.
-  Turnstiles, telescopes, the chairlift, the train and the ending are never
-  locked.
+- **Seat**: sitting on chairs, couches, benches, stumps, the Carousel's swings
+  and the floor, and on a chair you carry. Turnstiles, telescopes and the
+  ending are never locked; the chairlift and the train only with
+  `rides_require_seat`, and then the logic asks for Seat to use them.
 - **Progressive Arm**: raising the arm, then pointing, then extending it
   sideways. `handed` has three for each arm, `ambidextrous` has three that work
   on both.
 - **Throwing** and **Carrying** another player. Big Throw still works without
   Throwing.
 - **Running**, with `lock_running`. The logic never needs it.
+
+`rides_require_seat` (off by default) locks the chairlift and the train with the Seat.
 
 `start_with_abilities` lists the ones you start with: `legs`, `seat`, `arms`,
 `throwing`, `carrying`. None by default.
@@ -359,7 +362,8 @@ extended: Concert, Indoor Semaphore, Optical Telegraph, Charades Rooms,
 Pointer's Paradise, Dancer and Selector, and the Gauntlet's last stage. Both
 arms raised: Invisible Ink. The Seat: the Carousel and Cannonball Commute.
 Throwing: Fielding, Window Labyrinth, Basketball and Kick Up Pits. Carrying:
-High Button, the two obbies and Pointer's Paradise.
+High Button, the two obbies and Pointer's Paradise, and the three Megaphones
+with `object_sanity`, hung above one player's reach.
 
 ## Closer to the vanilla game
 

@@ -93,7 +93,8 @@ namespace BigWalkArchipelago.Patches
     }
 
     // Chair sitting: a seat is entered through PlayerPoser.EnterPose (measured 2026-10-12, a stump of the
-    // spawn courtyard). Refused for furniture only, while the ability is locked.
+    // spawn courtyard). Refused for furniture only, while the ability is locked; the chairlift and the train too with
+    // `rides_require_seat`.
     [HarmonyPatch(typeof(PlayerPoser), nameof(PlayerPoser.EnterPose))]
     internal static class ChairSittingLockPatch
     {
@@ -101,11 +102,16 @@ namespace BigWalkArchipelago.Patches
         {
             try
             {
-                if (!AbilityLocks.IsLocked(AbilityLocks.ChairSitting) || !AbilityLocks.IsFurniture(pose))
+                if (!AbilityLocks.IsLocked(AbilityLocks.ChairSitting))
                     return true;
 
-                Plugin.Log.LogInfo($"[{nameof(ChairSittingLockPatch)}] '{pose.gameObject.name}' refused: Chair Sitting is locked.");
-                return false;
+                var refused = AbilityLocks.IsFurniture(pose)
+                              || (AbilityLocks.IsLocked(AbilityLocks.RideSitting) && AbilityLocks.IsRide(pose));
+                // Both ways, so a seat the lock gets wrong can be named from the log.
+                Plugin.Log.LogInfo(
+                    $"[{nameof(ChairSittingLockPatch)}] '{AbilityLocks.Describe(pose)}' "
+                    + (refused ? "refused: Chair Sitting is locked." : "let through: not furniture."));
+                return !refused;
             }
             catch (Exception ex)
             {

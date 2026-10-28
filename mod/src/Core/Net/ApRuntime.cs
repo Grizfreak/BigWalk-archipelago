@@ -887,6 +887,7 @@ namespace BigWalkArchipelago.Core.Net
             AbilityLocks.Configure(
                 Connection.SlotData.LockAbilities,
                 Connection.SlotData.LockRunning,
+                Connection.SlotData.RidesRequireSeat,
                 Connection.SlotData.AbilityKeys,
                 ApLocationIds.Base + Connection.SlotData.AbilityIdOffset);
             // Also after the ledger, for the same reason.

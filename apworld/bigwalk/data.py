@@ -1110,6 +1110,14 @@ GAUNTLET_STAGE_ABILITIES: tuple[Body, ...] = (
 """The same, for the Silent Gauntlet's seven stages, in order (tour of 2026-10-12)."""
 
 
+OBJECT_ABILITIES: dict[str, Body] = {
+    # Every megaphone hangs on its holder above one player's reach: one climbs on another's shoulders (Tyrope,
+    # 2026-10-27; the player, 2026-10-28).
+    "MegaphoneProp": Body(carrying=True),
+}
+"""What picking up an island object asks of the body with `lock_abilities`, by its kind."""
+
+
 def ability_item_id(ability: Ability) -> int:
     return BASE_ID + ABILITY_ID_OFFSET + ABILITIES.index(ability)
 

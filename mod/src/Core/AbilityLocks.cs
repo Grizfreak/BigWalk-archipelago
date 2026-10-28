@@ -25,7 +25,8 @@ namespace BigWalkArchipelago.Core
     //     the wind-up itself refused (PlayerDecisions.SetWindUpStartTime);
     //   - carrying another player: refused on the host (UserCode_CmdPickUpPlayer);
     //   - chair sitting: PlayerPoser.EnterPose refused for furniture only (IsFurniture), never for a
-    //     turnstile, a telescope, a listening chair, the chairlift, the train or the ending's poses.
+    //     turnstile, a telescope, a listening chair or the ending's poses; the chairlift and the train only
+    //     with `rides_require_seat` (RideSitting, locked with chair sitting).
     internal static class AbilityLocks
     {
         internal const string Jumping = "jumping";
@@ -41,13 +42,16 @@ namespace BigWalkArchipelago.Core
         internal const string Throwing = "throwing";
         internal const string Carrying = "carrying";
         internal const string Running = "running";
+        // Not an ability of its own: chair sitting, for the chairlift and the train, with `rides_require_seat`. Kept as
+        // a bit of the snapshot so the guests, who have no slot_data, know it too.
+        internal const string RideSitting = "ride_sitting";
 
         // What the player can be kept from doing, in the order of the snapshot's mask bits.
         internal static readonly string[] All =
         {
             Jumping, Crouching, ChairSitting, FloorSitting,
             LeftPointing, LeftRaising, LeftExtending, RightPointing, RightRaising, RightExtending,
-            Throwing, Carrying, Running,
+            Throwing, Carrying, Running, RideSitting,
         };
 
         // The items (apworld data.ABILITIES): Legs and Seat grant two abilities at once; a progressive
@@ -96,11 +100,13 @@ namespace BigWalkArchipelago.Core
         // the ledger has not granted is locked.
         // Running is only locked with `lock_running`: without it, the seed holds no Running item.
         private static bool _lockRunning;
+        private static bool _ridesRequireSeat;
 
-        internal static void Configure(string mode, bool lockRunning, string[] keysInIdOrder, long itemIdBase)
+        internal static void Configure(string mode, bool lockRunning, bool ridesRequireSeat, string[] keysInIdOrder, long itemIdBase)
         {
             Enabled = mode == "handed" || mode == "ambidextrous";
             _lockRunning = lockRunning;
+            _ridesRequireSeat = ridesRequireSeat;
             _keys = keysInIdOrder ?? Array.Empty<string>();
             _itemIdBase = itemIdBase;
             Rearm();
@@ -116,9 +122,12 @@ namespace BigWalkArchipelago.Core
             {
                 foreach (var ability in All)
                 {
-                    if (!IsGranted(ability) && (ability != Running || _lockRunning))
+                    if (ability != RideSitting && !IsGranted(ability) && (ability != Running || _lockRunning))
                         Locked.Add(ability);
                 }
+
+                if (_ridesRequireSeat && Locked.Contains(ChairSitting))
+                    Locked.Add(RideSitting);
             }
 
             Version++;
@@ -154,6 +163,9 @@ namespace BigWalkArchipelago.Core
                 SaveManager.SetIntValue(KeyPrefix + ability, 1);
                 Locked.Remove(ability);
             }
+
+            if (!Locked.Contains(ChairSitting))
+                Locked.Remove(RideSitting);
 
             Version++;
             if (key != "running")
@@ -251,25 +263,58 @@ namespace BigWalkArchipelago.Core
         // A chair, a couch, a bench, a stump: a pose that only seats the player. A pose that drives
         // something (a turnstile's switch, a telescope, a listening chair's headset) or carries the
         // player (chairlift, train) or ends the game (Goodbye) is never furniture: locking those would
-        // lock puzzles and ways through.
+        // lock puzzles and ways through. Two exceptions (Tyrope, 2026-10-27): the Carousel's swings,
+        // which the logic asks Seat for (apworld data.ABILITY_PUZZLES), and the chairlift and the
+        // train with `rides_require_seat` (IsRide, RideSitting).
         private static readonly string[] FurnitureWords = { "chair", "couch", "bench", "stump", "seat", "sofa", "stool" };
         private static readonly string[] NeverFurniture = { "chairlift", "trainsystem", "climbaboard", "goodbye", "turnstile", "telescope", "listening" };
+        private static readonly string[] AlwaysFurniture = { "carousel" };
+
+        private static readonly string[] RideWords = { "chairlift", "trainsystem" };
+
+        internal static bool IsRide(PlayerPose pose)
+        {
+            if (pose == null)
+                return false;
+
+            var path = PathOf(pose.transform, null);
+            return Array.Exists(RideWords, word => path.Contains(word));
+        }
 
         internal static bool IsFurniture(PlayerPose pose)
         {
-            if (pose == null || pose.onEnterSwitch != null || pose.onExitSwitch != null || pose.directSystemControl != null)
+            if (pose == null)
                 return false;
 
-            var path = pose.transform.name;
-            for (var parent = pose.transform.parent; parent != null; parent = parent.parent)
-                path = parent.name + "/" + path;
-            path = path.ToLowerInvariant();
+            foreach (var word in AlwaysFurniture)
+            {
+                if (PathOf(pose.transform, null).Contains(word))
+                    return true;
+            }
+
+            if (pose.onEnterSwitch != null || pose.onExitSwitch != null || pose.directSystemControl != null)
+                return false;
+
+            // A seat that can be picked up (deck chair, folding chair) is furniture whatever it is called.
+            var prop = pose.GetComponentInParent<Prop>(true);
+            var path = PathOf(pose.transform, prop != null ? prop.transform : null);
+            // Carried, the seat hangs from the holder's grasperhand, out of its chair (measured 2026-10-28).
+            var holder = pose.GetComponentInParent<PlayerCharacter>(true);
+            var held = holder != null ? HeldBy(holder) : null;
+            if (held != null)
+            {
+                prop = held;
+                path = PathOf(held.transform, null);
+            }
 
             foreach (var word in NeverFurniture)
             {
                 if (path.Contains(word))
                     return false;
             }
+
+            if (prop != null && prop.GetComponent<PlayerCharacter>() == null)
+                return true;
 
             foreach (var word in FurnitureWords)
             {
@@ -278,6 +323,38 @@ namespace BigWalkArchipelago.Core
             }
 
             return false;
+        }
+
+        internal static string Describe(PlayerPose pose) => pose == null ? "(none)" : PathOf(pose.transform, null);
+
+        // What a player holds, from their hands or else the synced record (a remote holder has only that one).
+        private static Prop HeldBy(PlayerCharacter pc)
+        {
+            if (pc.hands != null && pc.hands.heldProp != null)
+                return pc.hands.heldProp;
+
+            try
+            {
+                var identity = pc.playerNetworking != null ? pc.playerNetworking.playerHeldInformation.identity : null;
+                return identity != null ? identity.GetComponent<Prop>() : null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        // A transform's place in the hierarchy, lower case, up to `top` included (the whole of it when null).
+        private static string PathOf(Transform transform, Transform top)
+        {
+            var path = transform.name;
+            for (var node = transform; node != top && node.parent != null;)
+            {
+                node = node.parent;
+                path = node.name + "/" + path;
+            }
+
+            return path.ToLowerInvariant();
         }
     }
 

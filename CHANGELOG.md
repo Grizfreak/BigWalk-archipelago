@@ -6,6 +6,27 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## Unreleased
+
+### Moving from 1.0.3 to Unreleased
+
+- **Everyone needs this build** with `lock_abilities`: the lock of the chairlift and the train travels to the guests with the others.
+- A 1.0.3 YAML generates as it did, except with `lock_abilities` and `object_sanity`: the Megaphones now ask for
+  Carrying.
+
+### Fixed
+
+- **The Carousel's swings could be sat on without Seat** (Tyrope): a seat that drives the puzzle was never locked. The
+  logic already asked for Seat; the mod now does too.
+- **A deck chair picked up first could be sat on without Seat** (naf): a chair you can carry is now always furniture,
+  even in the hands of the player who holds it.
+- **The Megaphones were in logic without Carrying** (Tyrope): each one hangs above one player's reach.
+
+### Added
+
+- **`rides_require_seat`** (off by default): with `lock_abilities`, the chairlift and the train are locked like any
+  seat until Seat arrives, and the logic asks for Seat to use them.
+
 ## 1.0.3
 
 ### Moving from 1.0.2 to 1.0.3
