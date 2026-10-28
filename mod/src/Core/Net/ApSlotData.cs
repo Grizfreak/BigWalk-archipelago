@@ -143,6 +143,8 @@ namespace BigWalkArchipelago.Core.Net
         internal string[] AbilityKeys { get; private set; } = Array.Empty<string>();
         internal long AbilityIdOffset { get; private set; } = 13_400;
         internal bool LockRunning { get; private set; }
+        // `chairlift_requires_seat` (1.0.4): the chairlift's seats are locked with the others until Seat arrives.
+        internal bool ChairliftRequiresSeat { get; private set; }
         // L4 (0.6): the purple puzzles are shown on the map only with from_start (the default, and older seeds).
         internal string IncludeBigGamePuzzles { get; private set; } = "from_start";
         // L1 (0.6): the towers whose monument full is a check, by their big key's prop, in id order.
@@ -278,6 +280,7 @@ namespace BigWalkArchipelago.Core.Net
             data.AbilityKeys = GetStringArray(raw, "ability_keys");
             data.AbilityIdOffset = GetInt(raw, "ability_id_offset", (int)data.AbilityIdOffset);
             data.LockRunning = GetBool(raw, "lock_running", data.LockRunning);
+            data.ChairliftRequiresSeat = GetBool(raw, "chairlift_requires_seat", data.ChairliftRequiresSeat);
             data.IncludeBigGamePuzzles = GetString(raw, "include_big_game_puzzles", data.IncludeBigGamePuzzles);
             data.MonumentFullKeys = GetStringArray(raw, "monument_full_keys");
             data.MonumentFullIdOffset = GetInt(raw, "monument_full_id_offset", data.MonumentFullIdOffset);

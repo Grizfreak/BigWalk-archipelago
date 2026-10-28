@@ -306,14 +306,18 @@ def gauntlet_body_through(world: BigWalkWorld, count: int) -> Rule | None:
 def object_rule(world: BigWalkWorld, obj: data.IslandObject) -> Rule | None:
     """
     What an island object asks for beyond its region (locations.OBJECT_ZONE_REGIONS): the Map Room's
-    item for the Map Room's bench, a tower's far door for its roof and stairs (as reaching the tower);
-    with `zone_locks`, its zone's item too.
+    item for the Map Room's bench, a tower's far door for its roof and stairs (as reaching the tower),
+    the body its kind asks for with `lock_abilities` (data.OBJECT_ABILITIES); with `zone_locks`, its
+    zone's item too.
     """
     lamp = obj.kind in data.LAMP_KINDS
     rule = place_rule(world, obj.zone)
     # A tower's lamps stand at its foot; its other objects are on the roof, past the opening button.
     if obj.zone.startswith("tower:") and not lamp:
         rule = with_all(rule, tower_open(world, obj.zone[len("tower:"):]))
+    body = body_rule(world, data.OBJECT_ABILITIES.get(obj.kind, data.Body()))
+    if body is not None:
+        rule = with_all(rule, [body])
     return with_zone(world, rule, obj.guid, obj.zone, lamp)
 
 
@@ -582,9 +586,13 @@ def set_entrance_rules(world: BigWalkWorld) -> None:
     # seed-breaking bug: the chairlift and the tunnels are not scenery, they
     # are doors. Without these two rules nothing stopped generation putting
     # the Green Cup Key past the chairlift it opens.
+    chairlift: Rule = Has(data.GREEN_CUP.item_name)
+    # `chairlift_requires_seat` (Tyrope, 2026-10-27): the chairlift is a seat like any other, locked by the mod.
+    if world.options.chairlift_requires_seat and abilities_locked(world):
+        chairlift = chairlift & Has(data.SEAT_ITEM_NAME)
     world.set_rule(
         world.get_entrance(regions.CHAIRLIFT_ENTRANCE),
-        past_far_door(world, data.ZONE_FAR_DOOR["chairlift"], Has(data.GREEN_CUP.item_name)),
+        past_far_door(world, data.ZONE_FAR_DOOR["chairlift"], chairlift),
     )
     world.set_rule(
         world.get_entrance(regions.TUNNEL_ENTRANCE),

@@ -825,6 +825,15 @@ class LockRunning(Toggle):
     display_name = "Lock Running"
 
 
+class ChairliftRequiresSeat(Toggle):
+    """
+    With Lock Abilities on, the chairlift is a seat like the others: you cannot sit on it before Seat arrives,
+    and the logic asks for Seat to go past it. Off, the chairlift is never locked.
+    """
+
+    display_name = "Chairlift Requires Seat"
+
+
 class HintKeys(Choice):
     """
     Whether the server tells you, from the first minute, where the seven big
@@ -1521,6 +1530,7 @@ class BigWalkOptions(PerGameCommonOptions):
     cut_key_sanity: CutKeySanity
     start_with_abilities: StartWithAbilities
     lock_running: LockRunning
+    chairlift_requires_seat: ChairliftRequiresSeat
     fast_golf: FastGolf
     hint_keys: HintKeys
     open_black_tower: OpenBlackTower
@@ -1611,7 +1621,7 @@ option_groups = [
         GauntletMode, GauntletStageItems, GauntletPuzzlesRequired, LockGauntletNeeds, GauntletStagesLocal,
     ]),
     OptionGroup("Vanilla Behaviours", [LinearKeys, LinearArchDoors, LinearTowers, LinearPuzzles]),
-    OptionGroup("Movement Locking", [LockAbilities, StartWithAbilities, LockRunning]),
+    OptionGroup("Movement Locking", [LockAbilities, StartWithAbilities, LockRunning, ChairliftRequiresSeat]),
     OptionGroup("Item Pool", [BackpacksInPool, BeltsInPool, GourdCartonsInPool, IslandObjectLimits]),
     OptionGroup("Colors and Names", [RandomColors, GourdName]),
     OptionGroup("Custom Tiles", [CustomTiles, CustomTileChoices, CustomTileWeights, CustomDrawings, MirroredPoses]),
