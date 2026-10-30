@@ -6,9 +6,9 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
-## Unreleased
+## 1.0.5
 
-### Moving from 1.0.4 to Unreleased
+### Moving from 1.0.4 to 1.0.5
 
 - Update the apworld to generate: a 1.0.4 YAML generates as it did, except that the Hub Fireworks now wait for the way
   out of the starting zone when the First Arch Door is locked.
