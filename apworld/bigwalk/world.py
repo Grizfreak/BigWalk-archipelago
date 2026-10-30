@@ -656,7 +656,7 @@ class BigWalkWorld(World):
         """
         The fill places one item at a time, each where the items not yet placed can reach: a step that needs two
         items at once, with a single free location before it, cannot be filled. With `linear_keys` and `linear_towers`
-        the starting zone can come to that: one free location (Hub Fireworks) before Legs and Carrying together (the
+        the starting zone can come to that: one free location before Legs and Carrying together (the
         fuzzer, 2026-10-14: 2 option sets of 7 failed every seed). So the way is opened here as the fill would, with
         this world's progression: one item per free location; where no single item opens anything but two together
         do, and only one location is free, the player starts with one of the two (the generation log says which).

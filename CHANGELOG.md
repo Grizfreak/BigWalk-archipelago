@@ -6,6 +6,29 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## Unreleased
+
+### Moving from 1.0.4 to Unreleased
+
+- Update the apworld to generate: a 1.0.4 YAML generates as it did, except that the Hub Fireworks now wait for the way
+  out of the starting zone when the First Arch Door is locked.
+- The mod's fixes are each player's own: a session still plays with mixed 1.0.4 and newer builds.
+
+### Fixed
+
+- **A seed could be impossible from the start** (Blunty, Morgan): the Hub Fireworks were in logic from the starting
+  zone, but they stand in the hub, past the drawbridge or the First Arch Door. With both locked, the generator could put
+  the Drawbridge there.
+- **The custom tiles showed pieces of the game's own symbols after rejoining** (Blunty, Morgan): a world loaded again in
+  the same game kept its tiles on the game's sheet. They are drawn again on each new world.
+- **Big Run's key during Big Speed, Big Jump or Big Sleep left you fast, or frozen, for good** (Morgan): with the Big Run
+  mod, its key now waits until the trap ends, and says so.
+
+### Added
+
+- **A report when Unity floods the log with errors** (Blunty): twenty errors a second for three seconds and the mod
+  writes once what is broken (network objects, held objects, homes). Unity's own `Player.log` names the code at fault.
+
 ## 1.0.4
 
 ### Moving from 1.0.3 to 1.0.4

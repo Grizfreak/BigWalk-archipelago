@@ -60,6 +60,8 @@ namespace BigWalkArchipelago
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll();
             Patches.PlayerCountProceedLog.TryApply(_harmony);
+            Patches.BigRunCompat.TryApply(_harmony);
+            Core.ErrorFloodWatch.Install();
             Debug.PerfProbe.TryApply(_harmony);
 
             AddComponent<Core.Net.ApRuntime>();

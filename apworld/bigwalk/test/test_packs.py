@@ -28,9 +28,9 @@ class TestOnByDefault(BigWalkTestBase):
         self.assertEqual(self.multiworld.get_location("Purple Belt", self.player).parent_region.name,
                          regions.TUNNEL_ZONE)
 
-    def test_the_hub_fireworks_are_in_the_starting_zone(self) -> None:
+    def test_the_hub_fireworks_are_past_the_way_out(self) -> None:
         self.assertEqual(self.multiworld.get_location("Hub Fireworks", self.player).parent_region.name,
-                         regions.STARTING_ZONE)
+                         regions.OVERWORLD)
 
     def test_the_mod_is_told(self) -> None:
         slot = self.world.fill_slot_data()

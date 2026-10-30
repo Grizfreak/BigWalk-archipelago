@@ -1109,6 +1109,9 @@ namespace BigWalkArchipelago.Core
         private static float _sleepStart;
         private static PlayerCharacter _sleeper;
 
+        // Big Speed, Big Jump or Big Sleep holds this machine's tunings (Patches/BigRunCompat).
+        internal static bool MovementActive => _moveTunings != null;
+
         // Big Sleep's rhythm (player, 2026-10-05): asleep and still this long, then awake this
         // long, again and again for `trap_duration`.
         private const float AsleepSeconds = 2f;

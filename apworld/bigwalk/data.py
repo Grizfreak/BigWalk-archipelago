@@ -918,7 +918,6 @@ class Firework(NamedTuple):
     """The landmark the launcher stands in, as the mod finds it among the launcher's parents."""
     location_name: str
     past_chairlift: bool = False
-    in_starting_zone: bool = False
     tower: str | None = None
     """The `prop_name` of the tower whose roof it stands on, opened by the button at the tower's foot."""
 
@@ -927,7 +926,7 @@ FIREWORK_ID_OFFSET = 13_100
 """A firework's location id: `BASE_ID + 13_100 + position` in FIREWORKS."""
 
 FIREWORKS: tuple[Firework, ...] = (
-    Firework("Hub", "Hub Fireworks", in_starting_zone=True),
+    Firework("Hub", "Hub Fireworks"),
     Firework("Lookout_RedCone", "Red Funnel Tower Fireworks", tower="bigKeyRedZone"),
     Firework("Lookout_YellowZigzag", "Yellow Twist Tower Fireworks", tower="bigKeyYellowZone"),
     Firework("Lookout_BlueTube", "Blue Castle Tower Fireworks", tower="bigKeyBlueZone"),
@@ -939,8 +938,8 @@ FIREWORKS: tuple[Firework, ...] = (
 """
 The eight firework launchers (census of 2026-10-05), in every map version. The game saves
 nothing when one is fired: the mod sees its button go to state 1 (`PokeButtonPeckLogic`
-under `FireworkLauncher`), measured at the hub's. All on the open island but the hub's, in
-the starting zone (walked to by the player, 2026-10-05).
+under `FireworkLauncher`), measured at the hub's. All on the open island, the hub's too: it is
+past the drawbridge or the First Arch Door (a solo seed put the Drawbridge there, 2026-10-30).
 """
 
 

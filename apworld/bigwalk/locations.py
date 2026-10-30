@@ -96,8 +96,6 @@ def gated_regions() -> dict[str, str]:
     mapping.update({data.object_kind_location_name(label): regions.STARTING_ZONE
                     for kind, label in data.OBJECT_KINDS
                     if any(obj.kind == kind and obj.zone == "start" for obj in data.ISLAND_OBJECTS)})
-    mapping.update({firework.location_name: regions.STARTING_ZONE
-                    for firework in data.FIREWORKS if firework.in_starting_zone})
     return mapping
 
 

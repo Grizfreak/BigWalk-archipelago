@@ -41,6 +41,8 @@ namespace BigWalkArchipelago.Core
         private static int _textureIndex = -1;
         private static Material _material;
         private static Texture2D _atlas;
+        private static PegTileRenderer _probe;
+        private static bool _newWorld;
         private static readonly Dictionary<string, byte[]> Drawings = new();
 
         // The mod's atlas, for the tile dump (Debug/DebugPegTileDump).
@@ -76,6 +78,10 @@ namespace BigWalkArchipelago.Core
         // should show, and are left alone once they do.
         internal static void Tick()
         {
+            // Its tile gone, this is another world (a guest rejoining): its set may be a fresh one.
+            if (!ReferenceEquals(_probe, null) && _probe == null)
+                ForgetSet();
+
             var wanted = new List<string>(IsGuest ? _mirrored ?? Array.Empty<string>() : HostTiles);
             wanted.Sort(StringComparer.Ordinal);
             var key = string.Join(",", wanted);
@@ -93,6 +99,24 @@ namespace BigWalkArchipelago.Core
                 _applied = key;
                 Plugin.Log.LogWarning($"{Tag} Could not show the custom tiles, the game's stay: {ex}");
             }
+        }
+
+        private static void ForgetSet()
+        {
+            _probe = null;
+            _applied = null;
+            _newWorld = true;
+            var sets = Resources.FindObjectsOfTypeAll<PegTileDataSet>();
+            if (_set != null && sets.Length > 0 && sets[0].Pointer == _set.Pointer)
+                return;
+
+            Plugin.Log.LogInfo($"{Tag} A new tile data set came with this world; the drawings go on it again.");
+            _set = null;
+            _original = null;
+            _textureIndex = -1;
+            if (_material != null)
+                UnityEngine.Object.Destroy(_material);
+            _material = null;
         }
 
         private static bool Apply(List<string> wanted)
@@ -138,7 +162,25 @@ namespace BigWalkArchipelago.Core
             if (shown.Count > 0)
                 BuildAtlas(shown, grid);
 
+            var renderers = new List<PegTileRenderer>();
+            foreach (var renderer in UnityEngine.Object.FindObjectsByType<PegTileRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (renderer != null && renderer.pegTileDataSet != null && renderer.pegTileDataSet.Pointer == _set.Pointer)
+                    renderers.Add(renderer);
+            }
+
             var datas = _set.indexDatas;
+
+            // Tiles born on our cells keep their mesh's material: the game's cells make them swap.
+            if (_newWorld)
+            {
+                _newWorld = false;
+                for (var i = 0; i < datas.Length && i < _original.Length; i++)
+                    datas[i] = _original[i];
+                foreach (var renderer in renderers)
+                    renderer.Refresh();
+            }
+
             for (var i = 0; i < datas.Length && i < _original.Length; i++)
             {
                 var cell = _original[i];
@@ -151,14 +193,11 @@ namespace BigWalkArchipelago.Core
                 datas[i] = cell;
             }
 
-            var refreshed = 0;
-            foreach (var renderer in UnityEngine.Object.FindObjectsByType<PegTileRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-            {
-                if (renderer == null || renderer.pegTileDataSet == null || renderer.pegTileDataSet.Pointer != _set.Pointer)
-                    continue;
+            foreach (var renderer in renderers)
                 renderer.Refresh();
-                refreshed++;
-            }
+            var refreshed = renderers.Count;
+            if (refreshed > 0)
+                _probe = renderers[0];
 
             Plugin.Log.LogInfo(kinds.Count > 0
                 ? $"{Tag} {kinds.Count} tile kind(s) shown as {shown.Count} drawing(s) ({string.Join(", ", shown)}); {refreshed} tile(s) refreshed."
@@ -343,11 +382,19 @@ namespace BigWalkArchipelago.Core
             atlas.LoadRawTextureData((Il2CppStructArray<byte>)raw);
             atlas.Apply(false, true);
 
+            // Unity's null as well: a material destroyed is made again, in the same slot.
             if (_material == null)
             {
                 _material = new Material(_set.materialPerTextureIndex[0]) { name = "PegTile Archipelago" };
                 UnityEngine.Object.DontDestroyOnLoad(_material);
+            }
 
+            if (_textureIndex >= 0)
+            {
+                _set.materialPerTextureIndex[_textureIndex] = _material;
+            }
+            else
+            {
                 var materials = _set.materialPerTextureIndex;
                 var moreMaterials = new Il2CppReferenceArray<Material>(materials.Length + 1);
                 for (var i = 0; i < materials.Length; i++)
