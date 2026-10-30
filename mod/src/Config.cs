@@ -118,6 +118,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<KeyboardShortcut> DazeKey;
         internal static ConfigEntry<KeyboardShortcut> DumpNetworkKey;
         internal static ConfigEntry<KeyboardShortcut> LoopbackJoinKey;
+        internal static ConfigEntry<bool> EmulateBigLanding;
         internal static ConfigEntry<KeyboardShortcut> LoopbackFocusKey;
         internal static ConfigEntry<KeyboardShortcut> LoopbackSummonKey;
         internal static ConfigEntry<KeyboardShortcut> LoopbackVanillaGuestKey;
@@ -774,6 +775,12 @@ namespace BigWalkArchipelago
                 "LoopbackJoinKey",
                 new KeyboardShortcut(KeyCode.L, KeyCode.LeftControl),
                 "Co-op on one PC. On the host: starts a second instance of the game as the loopback guest, windowed, which joins on its own if you are already hosting a world. In that guest: joins the host on 127.0.0.1 over Kcp from the title menu, for when the host was not hosting yet or to join again after leaving. tools/launch-guest.ps1 starts the same guest from a terminal (only has an effect if Debug.Enabled is active).");
+
+            EmulateBigLanding = debug.Bind(
+                "Debug",
+                "EmulateBigLanding",
+                false,
+                "Does what the Big Landing mod does (predictive pick-up and drop, no big falls) on every player character, without its DLL, which crashes the loopback guest. For co-op tests of another player's mods (only has an effect if Debug.Enabled is active).");
 
             LoopbackFocusKey = debug.Bind(
                 "Debug",

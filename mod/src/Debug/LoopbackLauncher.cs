@@ -71,6 +71,11 @@ namespace BigWalkArchipelago.Debug
                 + (hosting ? " " + LoopbackGuest.JoinArgument : "")
                 + $" -logFile \"{unityLog}\" -screen-fullscreen 0 -screen-width {Width} -screen-height {Height}";
 
+            // A BepInEx-guest folder beside BepInEx gives the guest its own plugins (another player's mods).
+            var guestLoader = Path.Combine(gameDir, "BepInEx-guest", "core", "BepInEx.Unity.IL2CPP.dll");
+            if (!withoutTheMod && File.Exists(guestLoader))
+                arguments += $" --doorstop-target-assembly \"{guestLoader}\"";
+
             // Saved before the first guest only: its watcher waits for every guest.
             var snapshot = index == 1 ? SnapshotScreenSettings() : null;
 
