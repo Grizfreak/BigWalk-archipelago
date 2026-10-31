@@ -6,9 +6,9 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
-## Unreleased
+## 1.0.6
 
-### Moving from 1.0.5 to Unreleased
+### Moving from 1.0.5 to 1.0.6
 
 - **Everyone needs this build:** some of the mod's buttons take other tickets, and a guest on 1.0.5 would press
   nothing with them.
