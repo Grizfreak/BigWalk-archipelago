@@ -644,7 +644,10 @@ namespace BigWalkArchipelago.Core
 
                 var free = true;
                 for (var i = 0; i < TicketsPerButton && free; i++)
-                    free = office == null || !office.tickets.ContainsKey((ushort)(first + i));
+                {
+                    var ticket = (ushort)(first + i);
+                    free = (office == null || !office.tickets.ContainsKey(ticket)) && !SceneTickets().Contains(ticket);
+                }
 
                 if (free)
                 {
@@ -655,6 +658,43 @@ namespace BigWalkArchipelago.Core
             }
 
             return FirstTicket + slot * TicketsPerButton;
+        }
+
+        private static HashSet<ushort> _sceneTickets;
+        private static float _sceneTicketsAt = -1f;
+
+        // Switched-off objects enter the office only in OnEnable: a hidden button's looked free.
+        internal static HashSet<ushort> SceneTickets()
+        {
+            if (_sceneTickets != null && Time.unscaledTime - _sceneTicketsAt < 5f)
+                return _sceneTickets;
+
+            var taken = new HashSet<ushort>();
+            Collect<PeckSwitch>(taken, item => item.ticket);
+            Collect<TrackedPeckState>(taken, item => item.ticket);
+            Collect<PropHome>(taken, item => item.ticket);
+            Collect<PlayerPose>(taken, item => item.ticket);
+            Collect<StickyPlatform>(taken, item => item.ticket);
+            _sceneTickets = taken;
+            _sceneTicketsAt = Time.unscaledTime;
+            return taken;
+        }
+
+        private static void Collect<T>(HashSet<ushort> taken, Func<T, ushort> ticketOf) where T : Component
+        {
+            foreach (var item in UnityEngine.Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                // The mod's buttons hang under "AP ..." roots: a slot keeps its own block.
+                if (item == null || item.transform.root.name.StartsWith("AP ", StringComparison.Ordinal))
+                    continue;
+                // Scene objects only, alike on every machine: run-time spawns may not be there yet.
+                var identity = item.GetComponentInParent<Mirror.NetworkIdentity>(true);
+                if (identity != null && identity.sceneId == 0)
+                    continue;
+                var ticket = ticketOf(item);
+                if (ticket != 0)
+                    taken.Add(ticket);
+            }
         }
 
         // Called by Patches/WorldButtonPatch whenever a TrackedPeckState is set: when it is one

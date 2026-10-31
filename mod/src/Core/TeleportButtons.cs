@@ -331,6 +331,7 @@ namespace BigWalkArchipelago.Core
             ObjectiveBoard.Sync, HintBoards.Sync, TowerReach.Tick, MonumentOrder.Tick, ObjectiveSpots.Tick,
             TeleportButtons.Sync, CabinFeverWaits.Tick, TileThiefHelper.Sync, PegTileShuffler.Tick,
             CustomTiles.Tick, BlackTowerDoor.Enforce, ErrorFloodWatch.Tick,
+            Patches.AudioBehaviourGuard.Tick,
         };
 
         private void Update()

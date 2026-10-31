@@ -6,6 +6,23 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## Unreleased
+
+### Moving from 1.0.5 to Unreleased
+
+- **Everyone needs this build:** some of the mod's buttons take other tickets, and a guest on 1.0.5 would press
+  nothing with them.
+- A 1.0.5 YAML generates as it did: the apworld only changes its version.
+
+### Fixed
+
+- **Sounds, door and clamp animations stopped for good** (Morgan, Blunty): a gourd cleared by a resync, or any rolling
+  prop that went away, stayed in the game's audio loop, which then failed every frame (the flood of errors in the log).
+  The mod now takes such a prop out of the loop as it goes.
+- **A Memory Bombs button could not be pressed** (Jay0): a button of the mod could take the ticket of a game button that
+  was switched off at the time (puzzle needs locked), and the press then reached the mod's button. Tickets held by
+  switched-off objects are now avoided, for the mod's buttons and for the extra gadgets.
+
 ## 1.0.5
 
 ### Moving from 1.0.4 to 1.0.5

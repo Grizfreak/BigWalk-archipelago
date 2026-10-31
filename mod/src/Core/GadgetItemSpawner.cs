@@ -625,7 +625,7 @@ namespace BigWalkArchipelago.Core
 
                 var free = true;
                 for (var rank = 0; rank < slotNeeds && free; rank++)
-                    free = IsTicketFree(ExtraTicket(kind, index, rank));
+                    free = IsInventedTicketFree(ExtraTicket(kind, index, rank));
 
                 if (free)
                     candidates.Add(index);
@@ -752,6 +752,12 @@ namespace BigWalkArchipelago.Core
             }
 
             return tickets;
+        }
+
+        // A switched-off scene object (a hidden Memory Bombs mine) holds its ticket outside the office.
+        private static bool IsInventedTicketFree(ushort ticket)
+        {
+            return IsTicketFree(ticket) && !WorldButtons.SceneTickets().Contains(ticket);
         }
 
         private static bool IsTicketFree(ushort ticket)

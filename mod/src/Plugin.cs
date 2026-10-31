@@ -61,6 +61,7 @@ namespace BigWalkArchipelago
             _harmony.PatchAll();
             Patches.PlayerCountProceedLog.TryApply(_harmony);
             Patches.BigRunCompat.TryApply(_harmony);
+            Patches.AudioBehaviourGuard.TryApply(_harmony);
             Core.ErrorFloodWatch.Install();
             Debug.PerfProbe.TryApply(_harmony);
 
