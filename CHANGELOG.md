@@ -6,6 +6,13 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## Unreleased
+
+### Fixed
+
+- **The seven purple puzzles were in logic without the purple hole** (MasterProZ_NL): the hole that leads to them past
+  the chairlift only opens with the Tunnels. They now need the Tunnels item.
+
 ## 1.0.6
 
 ### Moving from 1.0.5 to 1.0.6

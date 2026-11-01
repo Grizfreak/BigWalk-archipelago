@@ -38,8 +38,22 @@ class TestGatedRegions(BigWalkTestBase):
             self.assertFalse(self.can_reach_location(location_name), location_name)
 
         self.collect_by_name(data.GREEN_CUP.item_name)
+        self.collect_by_name(data.YELLOW_TWIST.item_name)
 
         for location_name in data.chairlift_locations():
+            self.assertTrue(self.can_reach_location(location_name), location_name)
+
+    def test_the_purple_puzzles_also_need_the_tunnels(self) -> None:
+        purple = {puzzle.location_name for puzzle in data.PUZZLES if puzzle.prop_name in data.CHAIRLIFT_PUZZLES}
+        self.collect_by_name(data.GREEN_CUP.item_name)
+
+        for location_name in data.chairlift_locations():
+            reachable = self.can_reach_location(location_name)
+            self.assertEqual(reachable, location_name not in purple, location_name)
+
+        self.collect_by_name(data.YELLOW_TWIST.item_name)
+
+        for location_name in purple:
             self.assertTrue(self.can_reach_location(location_name), location_name)
 
     def test_nothing_past_the_tunnels_is_reachable_without_the_key(self) -> None:

@@ -54,7 +54,10 @@ class TestPuzzleNeedsDisabled(BigWalkTestBase):
         self.assertFalse(set(item_names(self)) & self.world.item_name_groups["Puzzle Needs"])
 
     def test_a_puzzle_needs_nothing(self) -> None:
+        # The purple puzzles keep their tunnel rule, which is not a need.
         for p in data.PUZZLES:
+            if p.prop_name in data.CHAIRLIFT_PUZZLES:
+                continue
             self.assertTrue(self.world.get_location(p.location_name).access_rule(self.multiworld.state))
 
 

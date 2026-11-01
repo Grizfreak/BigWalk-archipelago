@@ -61,6 +61,9 @@ before it sends you past it:
   chapel, which only needs the Big Wall Door.
 - Right door: the Green Tower and everything past the chairlift.
 
+The seven purple puzzles past the chairlift also need the **Tunnels** item: it is what opens the purple
+hole that leads to them.
+
 You can still walk around a closed door, it's only a shortcut. But until it
 arrives, the checks behind it are out of logic, and Universal Tracker shows them
 as out of reach. Turn `require_arch_doors` off if you don't want the doors in

@@ -254,6 +254,9 @@ def set_puzzle_rules(world: BigWalkWorld) -> None:
         body = body_rule(world, data.ABILITY_PUZZLES.get(puzzle.prop_name, data.Body()))
         if body is not None:
             rules.append(body)
+        # The purple hole (SouthPeakTunnel) splits the chairlift zone; the Tunnels item opens it from afar.
+        if puzzle.prop_name in data.CHAIRLIFT_PUZZLES:
+            rules.append(Has(data.YELLOW_TWIST.item_name))
         # The purple puzzles as in the game: once an ending has been reached (L4 `when_unlocked`).
         if (puzzle.prop_name in data.CHAIRLIFT_PUZZLES
                 and world.options.include_big_game_puzzles == bigwalk_options.IncludeBigGamePuzzles.option_when_unlocked):
