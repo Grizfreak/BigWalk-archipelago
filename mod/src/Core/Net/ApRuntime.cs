@@ -697,6 +697,7 @@ namespace BigWalkArchipelago.Core.Net
                 // of the time.
                 RestoreLooseGourds();
                 RestoreLooseGadgets();
+                PuzzleFailures.TickPresses();
             }
 
             _pollTimer -= Time.unscaledDeltaTime;

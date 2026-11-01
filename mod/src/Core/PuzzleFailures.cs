@@ -54,6 +54,12 @@ namespace BigWalkArchipelago.Core
 
             // The failure switches of the PressInOrder puzzles, whose reset pecks them too.
             internal readonly HashSet<int> ResetBySetOff = new();
+
+            // A PressInOrder's active state, by instance: its failure switch.
+            internal readonly Dictionary<int, int> ActiveOf = new();
+
+            // A failure peck waiting a frame: closing the door pecks it, then turns the puzzle off.
+            internal readonly Dictionary<int, int> PendingFrame = new();
             internal readonly Dictionary<int, string> Screens = new();
 
             // A synchronised button's state, by instance: the controller it belongs to.
@@ -116,6 +122,13 @@ namespace BigWalkArchipelago.Core
                 return;
             }
 
+            // Pointer's Paradise (2026-11-01): the door's peck carries the closer's context.
+            if (world.ResetBySetOff.Contains(id))
+            {
+                world.PendingFrame[id] = Time.frameCount;
+                return;
+            }
+
             Fail(id, puzzle, world);
         }
 
@@ -130,6 +143,15 @@ namespace BigWalkArchipelago.Core
                 return;
 
             var id = state.GetInstanceID();
+            if (world.ActiveOf.TryGetValue(id, out var failureSwitch))
+            {
+                if (value == 0 && world.PendingFrame.TryGetValue(failureSwitch, out var frame) && frame == Time.frameCount)
+                {
+                    world.PendingFrame.Remove(failureSwitch);
+                    Plugin.Log.LogInfo($"{Tag} Reset, not failed: {world.FailureSwitches[failureSwitch]} was closed by a player.");
+                }
+                return;
+            }
             if (world.Screens.TryGetValue(id, out var puzzle))
             {
                 if (value == ScreenFailure)
@@ -155,6 +177,23 @@ namespace BigWalkArchipelago.Core
             world.LastState[id] = value;
             if (before != 0 && value == 0 && !world.SyncDone.Contains(controller))
                 Fail(id, world.SyncControllers[controller] + " (a synchronised button let go)", world);
+        }
+
+        // Every frame (ApRuntime): a wrong press waits one frame for the door that may follow it.
+        internal static void TickPresses()
+        {
+            var world = _world;
+            if (world == null || world.PendingFrame.Count == 0)
+                return;
+
+            foreach (var id in new List<int>(world.PendingFrame.Keys))
+            {
+                if (Time.frameCount <= world.PendingFrame[id])
+                    continue;
+
+                world.PendingFrame.Remove(id);
+                Fail(id, world.FailureSwitches[id], world);
+            }
         }
 
         // Every couple of seconds: a tomato that ran out fails if still unsolved after its grace.
@@ -293,6 +332,8 @@ namespace BigWalkArchipelago.Core
                     {
                         world.FailureSwitches[p.failureSwitch.GetInstanceID()] = Name(p);
                         world.ResetBySetOff.Add(p.failureSwitch.GetInstanceID());
+                        if (p.isActiveSystem.peckSystem != null)
+                            world.ActiveOf[p.isActiveSystem.peckSystem.GetInstanceID()] = p.failureSwitch.GetInstanceID();
                     }
                 }
 

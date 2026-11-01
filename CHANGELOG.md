@@ -24,6 +24,8 @@ unwinnable, which is why every player of a session should run the same build.
 - **A timed tomato sent a DeathLink on a solved puzzle** (Tyrope, Window Labyrinth): when it ran out while the gourd's
   clamp was still opening, the check had not gone yet. The mod now waits a few seconds for the check before counting a
   failure.
+- **Closing the door of Pointer's Paradise sent a DeathLink** (Tyrope): 1.0.2 only spotted the reset when nobody closed
+  the room; the game gives it the closer's name. A failure that turns the puzzle off in the same moment is a reset now.
 
 ## 1.0.6
 
