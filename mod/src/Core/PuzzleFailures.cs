@@ -45,6 +45,9 @@ namespace BigWalkArchipelago.Core
         private const float WorldSettleSeconds = 8f;
         private const int ScreenFailure = 3;
 
+        // A clamp opens slowly; the check goes once the gourd is loose (Tyrope, Window Labyrinth).
+        private const float TomatoGraceSeconds = 15f;
+
         private sealed class World
         {
             internal readonly Dictionary<int, string> FailureSwitches = new();
@@ -64,6 +67,9 @@ namespace BigWalkArchipelago.Core
 
             // A tomato's state, by instance: its puzzle's name and location (the check name).
             internal readonly Dictionary<int, KeyValuePair<string, string>> Tomatoes = new();
+
+            // A tomato that ran out, by instance: when to look whether its check went after all.
+            internal readonly Dictionary<int, float> TomatoesOut = new();
             internal float ReadyAt;
 
             // One line per thing watched, for BepInEx/puzzle-failures.tsv.
@@ -136,7 +142,9 @@ namespace BigWalkArchipelago.Core
                 var started = world.LastState.TryGetValue(id, out var tomatoWas) && tomatoWas != 0;
                 world.LastState[id] = value;
                 if (started && value == 0 && !CheckTracker.IsReported(tomato.Value))
-                    Fail(id, tomato.Key + " (the timed tomato ran out)", world);
+                    world.TomatoesOut[id] = Time.unscaledTime + TomatoGraceSeconds;
+                else if (value != 0)
+                    world.TomatoesOut.Remove(id);
                 return;
             }
 
@@ -147,6 +155,27 @@ namespace BigWalkArchipelago.Core
             world.LastState[id] = value;
             if (before != 0 && value == 0 && !world.SyncDone.Contains(controller))
                 Fail(id, world.SyncControllers[controller] + " (a synchronised button let go)", world);
+        }
+
+        // Every couple of seconds: a tomato that ran out fails if still unsolved after its grace.
+        internal static void Tick()
+        {
+            var world = _world;
+            if (world == null || world.TomatoesOut.Count == 0 || !NetworkServer.active)
+                return;
+
+            foreach (var id in new List<int>(world.TomatoesOut.Keys))
+            {
+                if (Time.unscaledTime < world.TomatoesOut[id])
+                    continue;
+
+                world.TomatoesOut.Remove(id);
+                var tomato = world.Tomatoes[id];
+                if (CheckTracker.IsReported(tomato.Value))
+                    Plugin.Log.LogInfo($"{Tag} Solved in time: {tomato.Key} (its check went after the tomato ran out).");
+                else
+                    Fail(id, tomato.Key + " (the timed tomato ran out)", world);
+            }
         }
 
         private static void Fail(int id, string puzzle, World world)

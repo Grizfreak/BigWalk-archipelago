@@ -21,6 +21,9 @@ unwinnable, which is why every player of a session should run the same build.
 
 - **The seven purple puzzles were in logic without the purple hole** (MasterProZ_NL): the hole that leads to them past
   the chairlift only opens with the Tunnels. They now need the Tunnels item (the Purple Tunnel with `tunnel_sanity`).
+- **A timed tomato sent a DeathLink on a solved puzzle** (Tyrope, Window Labyrinth): when it ran out while the gourd's
+  clamp was still opening, the check had not gone yet. The mod now waits a few seconds for the check before counting a
+  failure.
 
 ## 1.0.6
 
