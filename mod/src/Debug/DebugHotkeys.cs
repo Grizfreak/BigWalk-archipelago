@@ -36,6 +36,7 @@ namespace BigWalkArchipelago.Debug
             DebugNetworkLookup.DumpPrefabsOnce();
             DebugPegTileDump.DumpOnRequest();
             DebugTicketDump.DumpOnRequest();
+            DebugTunnelDoors.TickRequests();
             DebugBigLanding.Tick();
 
             if (_lastCosmeticPickupCheckTime >= 0f && Time.time >= _lastCosmeticPickupCheckTime)
