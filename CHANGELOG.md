@@ -6,11 +6,12 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
-## Unreleased
+## 1.0.7
 
-### Moving from 1.0.6
+### Moving from 1.0.6 to 1.0.7
 
 - Update the apworld and the mod together: a seed with `tunnel_sanity` needs this mod to open its doors.
+- A 1.0.6 YAML generates as it did, except that the purple puzzles now wait for the Tunnels.
 
 ### Added
 
