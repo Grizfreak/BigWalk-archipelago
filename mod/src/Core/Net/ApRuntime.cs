@@ -849,6 +849,8 @@ namespace BigWalkArchipelago.Core.Net
             // that stops a key opening its door consults this on every pin.
             KeyFeatures.Configure(Connection.SlotData.BigKeyFeatures);
             KeyCustody.Configure(Connection.SlotData.BigKeyItems);
+            // Before the ledger below, which it clears by this seed's door ids.
+            TunnelDoors.Configure(Connection.SlotData.TunnelDoors);
 
             _seenItemCount = 0;
             _appliedItemCount = ApItemCursor.SyncTo(Connection.SeedName, Connection.SlotName);
@@ -865,6 +867,7 @@ namespace BigWalkArchipelago.Core.Net
                 KeyCustody.ClearLedger();
                 PuzzleNeeds.ClearLedger();
                 ZoneLocks.ClearLedger();
+                TunnelDoors.ClearLedger();
                 AbilityLocks.ClearLedger();
                 PackChecks.ClearLightLedger();
                 GauntletStairways.ClearLedger();
@@ -1401,6 +1404,9 @@ namespace BigWalkArchipelago.Core.Net
 
             if (ZoneLocks.IsItem(itemId))
                 return ZoneLocks.Grant(itemId);
+
+            if (TunnelDoors.IsItem(itemId))
+                return TunnelDoors.Grant(itemId);
 
             if (AbilityLocks.TryResolveItem(itemId, out var ability))
                 return AbilityLocks.Grant(ability);

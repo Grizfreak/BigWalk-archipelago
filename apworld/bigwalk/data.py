@@ -1814,3 +1814,33 @@ def deposit_location_name(amount: int) -> str:
 
 def deposit_location_id(amount: int) -> int:
     return BASE_ID + DEPOSIT_ID_OFFSET + amount
+
+
+# Tunnel doors (`tunnel_sanity`): each GateLogic opens alone; the purple hole is SouthPeakTunnel.
+
+TUNNEL_DOOR_ID_OFFSET = 14_400
+"""`BASE_ID + 14_400 + position` in TUNNEL_DOORS (the zone locks end at 14_307)."""
+
+
+class TunnelDoor(NamedTuple):
+    item_name: str
+    gates: tuple[str, ...]
+    """Paths of the `GateLogic` states the mod opens."""
+    tower: str | None
+    """`prop_name` of the tower the outlet sits by; None for the purple hole."""
+
+
+PURPLE_TUNNEL_ITEM_NAME = "Purple Tunnel"
+
+TUNNEL_DOORS: tuple[TunnelDoor, ...] = (
+    *(TunnelDoor(f"{colour.title()} Tunnel Door", (f"TunnelSystem/TunnelOutlet - {colour.title()}/GateLogic",), prop)
+      for colour, prop in ZONE_COLOURS),
+    TunnelDoor(PURPLE_TUNNEL_ITEM_NAME, (
+        "TunnelSystem/SouthPeakTunnel/TunnelOutlet_Simple/GateLogic",
+        "TunnelSystem/SouthPeakTunnel/TunnelOutlet_Simple (1)/GateLogic",
+    ), None),
+)
+
+
+def tunnel_door_item_id(door: TunnelDoor) -> int:
+    return BASE_ID + TUNNEL_DOOR_ID_OFFSET + TUNNEL_DOORS.index(door)

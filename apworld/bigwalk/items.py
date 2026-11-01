@@ -33,6 +33,7 @@ ITEM_NAME_TO_ID: dict[str, int] = {
     **{name: data.BASE_ID + offset for name, offset in data.BONUS_ITEMS},
     **{data.teleport_item_name(name): data.teleport_item_id(i) for i, (_, name) in enumerate(data.TELEPORT_DESTINATIONS)},
     **{lock.item_name: data.zone_lock_item_id(lock) for lock in data.ZONE_LOCKS},
+    **{door.item_name: data.tunnel_door_item_id(door) for door in data.TUNNEL_DOORS},
 }
 
 FILLER_ITEM_NAMES: tuple[str, ...] = tuple(name for name, _ in data.FILLER_ITEMS)
@@ -72,6 +73,7 @@ ITEM_NAME_GROUPS: dict[str, set[str]] = {
     "Monuments": {data.PROGRESSIVE_MONUMENT_ITEM_NAME},
     "Abilities": {ability.item_name for ability in data.ABILITIES},
     "Zone Locks": {lock.item_name for lock in data.ZONE_LOCKS},
+    "Tunnel Doors": {door.item_name for door in data.TUNNEL_DOORS},
     "Filler": set(FILLER_ITEM_NAMES),
     "Teleporters": set(TELEPORT_ITEM_NAMES),
     "Traps": set(TRAP_ITEM_NAMES),
@@ -139,6 +141,9 @@ def classification_for(name: str, require_arch_doors: bool = False) -> ItemClass
         return ItemClassification.progression
     if name in ITEM_NAME_GROUPS["Zone Locks"]:
         # Only ever created with `zone_locks`, for the checks it locks.
+        return ItemClassification.progression
+    if name in ITEM_NAME_GROUPS["Tunnel Doors"]:
+        # Only ever created with `tunnel_sanity`, in place of the Tunnels.
         return ItemClassification.progression
     if name in ITEM_NAME_GROUPS["Puzzle Needs"]:
         # Only ever created when lock_puzzle_needs is on, where each one is
@@ -292,6 +297,9 @@ def create_all_items(world: BigWalkWorld) -> None:
             world.get_location(pickup.location_name).place_locked_item(world.create_item(pack_item_name(pickup)))
 
     for tower in world.towers:
+        if tower is data.YELLOW_TWIST and world.options.tunnel_sanity:
+            # `tunnel_sanity`: the doors one by one instead, below.
+            continue
         if tower.item_name == data.MAP_ROOM_ITEM_NAME and world.options.start_with_map_room_open:
             # L3: handed over at the start, like the drawbridge.
             world.push_precollected(world.create_item(tower.item_name))
@@ -310,6 +318,9 @@ def create_all_items(world: BigWalkWorld) -> None:
             world.push_precollected(world.create_item(tower.item_name))
             continue
         pool.append(world.create_item(tower.item_name))
+
+    if world.options.tunnel_sanity:
+        pool += [world.create_item(door.item_name) for door in data.TUNNEL_DOORS]
 
     # The keys themselves, always shuffled and never precollected. Starting
     # with the drawbridge open is about being able to LEAVE the tutorial,

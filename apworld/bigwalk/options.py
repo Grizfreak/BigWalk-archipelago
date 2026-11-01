@@ -438,6 +438,20 @@ class ZoneLocksLocal(Toggle):
     display_name = "Zone Locks Local"
 
 
+class TunnelSanity(Toggle):
+    """
+    The tunnels open door by door: the Tunnels item gives way to 5 items, `Red Tunnel Door`, `Green Tunnel Door`,
+    `Blue Tunnel Door`, `Yellow Tunnel Door` and `Purple Tunnel`.
+
+    - Each colored door opens the tunnels' outlet by its tower; you get in through any door you have.
+    - The Purple Tunnel opens the purple hole past the chairlift, the way to the seven purple puzzles.
+
+    Off with Linear Keys, where the Yellow key opens every door at once, as in the game.
+    """
+
+    display_name = "Tunnel Sanity"
+
+
 class FlareGunSanity(Choice):
     """
     The island's four flare guns as checks.
@@ -1589,6 +1603,7 @@ class BigWalkOptions(PerGameCommonOptions):
     zone_locks: ZoneLocks
     start_with_zone_locks: StartWithZoneLocks
     zone_locks_local: ZoneLocksLocal
+    tunnel_sanity: TunnelSanity
     lights_required: LightsRequired
     objects_required: ObjectsRequired
     body_required: BodyRequired
@@ -1613,7 +1628,7 @@ option_groups = [
         GourdSanity, RadioSanity, ShuffleRadioMusic, PackSanity, FireworkSanity, FlareGunSanity, TowerSanity,
         MonumentSanity, CutKeySanity,
         ObjectSanity, ObjectSanityKinds, ObjectSanityItems, ObjectSanityJunkPercentage, LightSanity, LightSanityItems,
-        LightSanityJunkPercentage, ZoneLocks, StartWithZoneLocks, ZoneLocksLocal,
+        LightSanityJunkPercentage, ZoneLocks, StartWithZoneLocks, ZoneLocksLocal, TunnelSanity,
     ]),
     OptionGroup("Logic", [
         StartWithDrawbridgeOpen, StartWithMapRoomOpen, StartWithArchDoorsOpen, RequireArchDoors, OpenBlackTower,

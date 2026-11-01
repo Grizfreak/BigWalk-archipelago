@@ -62,6 +62,7 @@ TRACKER_OPTIONS = {
     "object_sanity_kind_keys": "object_sanity_kinds",
     "light_sanity": "light_sanity",
     "zone_locks": "zone_locks",
+    "tunnel_sanity": "tunnel_sanity",
     "fast_golf": "fast_golf",
     "lights_required": "lights_required",
     "objects_required": "objects_required",
@@ -197,6 +198,12 @@ class BigWalkWorld(World):
 
     def generate_early(self) -> None:
         self._take_options_from_tracker()
+
+        # `linear_keys` puts the Tunnels on the Yellow key's deposit: no doors to shuffle then.
+        if self.options.linear_keys and self.options.tunnel_sanity:
+            logging.warning(f"Big Walk ({self.player_name}): tunnel_sanity is off with linear_keys, whose Yellow key "
+                            f"opens every tunnel door at once.")
+            self.options.tunnel_sanity.value = 0
 
         # The seed's colors (C1, player 2026-10-07): between five and all ten of the palette,
         # in a drawn order; the first four paint the four flare guns.
@@ -1092,6 +1099,11 @@ class BigWalkWorld(World):
                     if obj.kind not in data.LAMP_KINDS and self.object_kind_counted(obj.kind)
                     and data.zone_lock_for(obj.guid, obj.zone, False) == lock]
                 for lock in self.zone_locks() if not lock.lamps},
+            # tunnel_sanity: the gates each door item opens, by item id; empty without it.
+            "tunnel_sanity": bool(self.options.tunnel_sanity),
+            "tunnel_doors": {
+                str(data.tunnel_door_item_id(door)): list(door.gates)
+                for door in data.TUNNEL_DOORS if self.options.tunnel_sanity},
             # fast_golf (R6): the mod takes the golf ball's (the cannonball's) "too heavy" off.
             "fast_golf": bool(self.options.fast_golf),
             # big_objects and big_body: how many object checks, and how many ability items, they ask for.

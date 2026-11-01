@@ -8,10 +8,19 @@ unwinnable, which is why every player of a session should run the same build.
 
 ## Unreleased
 
+### Moving from 1.0.6
+
+- Update the apworld and the mod together: a seed with `tunnel_sanity` needs this mod to open its doors.
+
+### Added
+
+- **`tunnel_sanity`** (off by default): the tunnels open door by door. The Tunnels item gives way to five items,
+  Red, Green, Blue and Yellow Tunnel Door (each the outlet by its tower; any one lets you in) and Purple Tunnel.
+
 ### Fixed
 
 - **The seven purple puzzles were in logic without the purple hole** (MasterProZ_NL): the hole that leads to them past
-  the chairlift only opens with the Tunnels. They now need the Tunnels item.
+  the chairlift only opens with the Tunnels. They now need the Tunnels item (the Purple Tunnel with `tunnel_sanity`).
 
 ## 1.0.6
 

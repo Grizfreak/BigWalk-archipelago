@@ -165,6 +165,8 @@ namespace BigWalkArchipelago.Core.Net
         // Zone locks (R12, 0.7.1): the gadgets each zone item keeps off the map until it arrives, by item id.
         internal bool ZoneLocks { get; private set; }
         internal Dictionary<long, string[]> ZoneLockedGadgets { get; } = new();
+        // tunnel_sanity: the GateLogic paths each door item opens, by item id; empty when off.
+        internal Dictionary<long, string[]> TunnelDoors { get; } = new();
         internal int ObjectsRequiredCount { get; private set; }
         // fast_golf (R6, 0.6): the golf ball no longer too heavy.
         internal bool FastGolf { get; private set; }
@@ -306,6 +308,20 @@ namespace BigWalkArchipelago.Core.Net
                 catch (Exception ex)
                 {
                     Plugin.Log.LogWarning($"[{nameof(ApSlotData)}] slot_data['zone_locked_gadgets'][{pair.Key}] is unreadable: {ex.Message}");
+                }
+            }
+            foreach (var pair in GetMap(raw, "tunnel_doors"))
+            {
+                try
+                {
+                    var paths = new List<string>();
+                    foreach (var path in Newtonsoft.Json.Linq.JArray.Parse(pair.Value.Text))
+                        paths.Add(path.ToObject<string>());
+                    data.TunnelDoors[long.Parse(pair.Key)] = paths.ToArray();
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogWarning($"[{nameof(ApSlotData)}] slot_data['tunnel_doors'][{pair.Key}] is unreadable: {ex.Message}");
                 }
             }
             data.ObjectsRequiredCount = GetInt(raw, "objects_required_count", 0);

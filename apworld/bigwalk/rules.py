@@ -254,15 +254,33 @@ def set_puzzle_rules(world: BigWalkWorld) -> None:
         body = body_rule(world, data.ABILITY_PUZZLES.get(puzzle.prop_name, data.Body()))
         if body is not None:
             rules.append(body)
-        # The purple hole (SouthPeakTunnel) splits the chairlift zone; the Tunnels item opens it from afar.
+        # The purple hole (SouthPeakTunnel) splits the chairlift zone; the Tunnels open it.
         if puzzle.prop_name in data.CHAIRLIFT_PUZZLES:
-            rules.append(Has(data.YELLOW_TWIST.item_name))
+            rules.append(purple_hole(world))
         # The purple puzzles as in the game: once an ending has been reached (L4 `when_unlocked`).
         if (puzzle.prop_name in data.CHAIRLIFT_PUZZLES
                 and world.options.include_big_game_puzzles == bigwalk_options.IncludeBigGamePuzzles.option_when_unlocked):
             rules.append(CanReachRegion(regions.ENDING_ZONE))
         if rules:
             world.set_rule(world.get_location(puzzle.location_name), all_of(rules))
+
+
+def purple_hole(world: BigWalkWorld) -> Rule:
+    if world.options.tunnel_sanity:
+        return Has(data.PURPLE_TUNNEL_ITEM_NAME)
+    return Has(data.YELLOW_TWIST.item_name)
+
+
+def into_the_tunnels(world: BigWalkWorld) -> Rule:
+    """The Tunnels, or with `tunnel_sanity` any outlet's door and the way to the tower it sits by."""
+    if not world.options.tunnel_sanity:
+        return past_far_door(world, data.ZONE_FAR_DOOR["tunnels"], Has(data.YELLOW_TWIST.item_name))
+    ways = [past_far_door(world, data.TOWER_FAR_DOOR.get(door.tower), Has(door.item_name))
+            for door in data.TUNNEL_DOORS if door.tower is not None]
+    rule = ways[0]
+    for way in ways[1:]:
+        rule = rule | way
+    return rule
 
 
 def all_of(rules: list[Rule]) -> Rule:
@@ -604,7 +622,7 @@ def set_entrance_rules(world: BigWalkWorld) -> None:
     )
     world.set_rule(
         world.get_entrance(regions.TUNNEL_ENTRANCE),
-        past_far_door(world, data.ZONE_FAR_DOOR["tunnels"], Has(data.YELLOW_TWIST.item_name)),
+        into_the_tunnels(world),
     )
 
     # The way out of the starting zone, gated only while the first arch door

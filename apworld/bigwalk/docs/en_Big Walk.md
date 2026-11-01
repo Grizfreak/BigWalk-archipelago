@@ -61,8 +61,8 @@ before it sends you past it:
   chapel, which only needs the Big Wall Door.
 - Right door: the Green Tower and everything past the chairlift.
 
-The seven purple puzzles past the chairlift also need the **Tunnels** item: it is what opens the purple
-hole that leads to them.
+The seven purple puzzles past the chairlift also need the **Tunnels** item (the **Purple Tunnel** with
+`tunnel_sanity`): it is what opens the purple hole that leads to them.
 
 You can still walk around a closed door, it's only a shortcut. But until it
 arrives, the checks behind it are out of logic, and Universal Tracker shows them
@@ -293,6 +293,13 @@ item arrives. Its lamps and switches still work but are out of logic until then.
 The tutorial, Map Room, chairlift, tunnels and train keep their usual locks.
 `start_with_zone_locks` lists the zones you start with (`red_lamps`,
 `blue_gadgets`...), and `zone_locks_local` keeps the 8 items in your world.
+
+`tunnel_sanity` opens the tunnels door by door: the **Tunnels** item gives way to
+**Red Tunnel Door**, **Green Tunnel Door**, **Blue Tunnel Door**, **Yellow Tunnel
+Door** and **Purple Tunnel**. Each colored door opens the outlet by its tower, and
+any one of them lets you in. The Purple Tunnel opens the purple hole past the
+chairlift, the way to the seven purple puzzles. It is off with `linear_keys`,
+where the Yellow key opens every door at once, as in the game.
 
 ### Items
 
