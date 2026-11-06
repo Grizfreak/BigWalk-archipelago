@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace BigWalkArchipelago.Core
 {
-    // The in-world teleport buttons (ROADMAP U4/U10): in the hub one for each of six
+    // The in-world teleport buttons (ROADMAP U4/U10): in the hub one for each of eight
     // destinations, and in each destination one that leads back to the hub. Which of them exist
     // is the slot's `teleport_buttons` option:
     //
@@ -15,7 +15,8 @@ namespace BigWalkArchipelago.Core
     //   with_towers  a tower's hub button once its door has been opened by the button at its foot
     //                (the game's LookoutLight flag); the Black Tower's once the two buttons at its
     //                top have been held together; the Gauntlet's once the chapel has been opened
-    //                (its two buttons held together).
+    //                (its two buttons held together); the Drawbridge's and the Green Dome's once a
+    //                player has stood there.
     //   items        as with_towers, and each hub button also needs its own Teleporter item.
     //
     // The way back to the hub is there whenever the option is not off. A teleport can skip a
@@ -29,18 +30,24 @@ namespace BigWalkArchipelago.Core
     {
         private const string LedgerPrefix = "ap_tp_";
 
-        // Bit 0..5 of the mask: the hub's buttons, in `Destinations` order. This bit: the
-        // way back, in every destination.
+        // Bit 0..5 of the mask: the first six hub buttons, by `Destinations` (the others: 8, 9).
+        // This bit: the way back, in every destination.
         private const int ReturnBit = 1 << 6;
 
         // The resync stations (Core/ResyncStations): there when the host runs Archipelago, which a
         // guest does not, so its own config cannot say.
         private const int ToolsBit = 1 << 7;
 
+        // Latched by the host: the save has no mark of its own for these places.
+        private const string ReachedPrefix = "ap_tp_reached_";
+
         private sealed class Destination
         {
             internal string Key;
             internal string Label;
+
+            // Set for a place reached by standing there, as TowerReach knows it.
+            internal string ReachProp;
 
             // Where the hub's button for this destination is: a point on a wall and the way the
             // wall faces. The return button inside the destination is `ReturnSpot`.
@@ -61,33 +68,51 @@ namespace BigWalkArchipelago.Core
         }
 
         // The order is the apworld's `TELEPORT_DESTINATIONS`, which is also the order of the
-        // Teleporter item ids. The hub's spots are the Black Tower's mark of 2026-10-04 (Keypad 8) with the others
-        // lined up beside it, 1.2 m apart, left to right as the player faces the wall.
+        // Teleporter item ids. The hub's spots are a row on its red wall,
+        // 1.2 m apart, left to right as the player faces the wall.
         // The return spots are the marks of the same night, one inside each destination.
         private static readonly Destination[] Destinations =
         {
             new Destination { Key = "red", Label = "Red Funnel Tower",
-                HubSpot = new Spot(-229.25f, 33.65f, -506.16f, 0.75f, -0.66f),
+                HubSpot = new Spot(-230.83f, 33.65f, -507.96f, 0.75f, -0.66f),
                 ReturnSpot = new Spot(-88.75f, 87.11f, -608.67f, 0.24f, -0.97f) },
             new Destination { Key = "green", Label = "Green Cup Tower",
-                HubSpot = new Spot(-228.46f, 33.65f, -505.26f, 0.75f, -0.66f),
+                HubSpot = new Spot(-230.04f, 33.65f, -507.06f, 0.75f, -0.66f),
                 ReturnSpot = new Spot(454.01f, 102.51f, -447.57f, 0.76f, 0.64f) },
             new Destination { Key = "blue", Label = "Blue Castle Tower",
-                HubSpot = new Spot(-227.67f, 33.65f, -504.36f, 0.75f, -0.66f),
+                HubSpot = new Spot(-229.25f, 33.65f, -506.16f, 0.75f, -0.66f),
                 ReturnSpot = new Spot(139.55f, 102.38f, -201.39f, -0.28f, -0.96f) },
             new Destination { Key = "yellow", Label = "Yellow Twist Tower",
-                HubSpot = new Spot(-226.87f, 33.65f, -503.46f, 0.75f, -0.66f),
+                HubSpot = new Spot(-228.46f, 33.65f, -505.26f, 0.75f, -0.66f),
                 ReturnSpot = new Spot(-229.89f, 121.50f, -239.87f, 0.55f, 0.84f) },
             new Destination { Key = "black", Label = "Black Tower",
-                HubSpot = new Spot(-226.08f, 33.65f, -502.56f, 0.75f, -0.66f),
+                HubSpot = new Spot(-227.67f, 33.65f, -504.36f, 0.75f, -0.66f),
                 ReturnSpot = new Spot(-33.52f, 118.31f, -287.99f, 0.64f, 0.77f) },
             new Destination { Key = "gauntlet", Label = "Silent Gauntlet",
-                HubSpot = new Spot(-225.29f, 33.65f, -501.66f, 0.75f, -0.66f),
+                HubSpot = new Spot(-226.87f, 33.65f, -503.46f, 0.75f, -0.66f),
                 ReturnSpot = new Spot(-737.37f, 33.05f, 678.84f, 0.47f, 0.88f) },
+            new Destination { Key = "drawbridge", Label = "Drawbridge", ReachProp = "bigKeyIntro",
+                HubSpot = new Spot(-226.08f, 33.65f, -502.56f, 0.75f, -0.66f),
+                ReturnSpot = new Spot(-377.42f, 2.80f, -714.55f, 0.92f, 0.40f) },
+            new Destination { Key = "dome", Label = "Green Dome Tower", ReachProp = "bigKeyOverflow",
+                HubSpot = new Spot(-225.29f, 33.65f, -501.66f, 0.75f, -0.66f),
+                ReturnSpot = new Spot(-133.47f, 46.79f, -442.94f, 0.81f, -0.58f) },
         };
 
         // The slots of the buttons in WorldButtons: 0..5 the hub's, 6..11 the returns.
         private const int ReturnSlotBase = 6;
+
+        // The destinations added later: 12..26 were taken, so 27/28 and 29/30 (hub, return).
+        private const int FirstLateDestination = 6;
+        private const int LateSlotBase = 27;
+
+        private static int MaskBit(int i) => 1 << (i < FirstLateDestination ? i : i + 2);
+
+        private static int HubSlot(int i) =>
+            i < FirstLateDestination ? i : LateSlotBase + (i - FirstLateDestination) * 2;
+
+        private static int ReturnSlot(int i) =>
+            i < FirstLateDestination ? ReturnSlotBase + i : HubSlot(i) + 1;
 
         // How far in front of a button a player lands.
         private const float ArrivalDistance = 1.6f;
@@ -170,7 +195,7 @@ namespace BigWalkArchipelago.Core
             for (var i = 0; i < Destinations.Length; i++)
             {
                 if (IsOpen(Destinations[i].Key))
-                    mask |= 1 << i;
+                    mask |= MaskBit(i);
             }
 
             return mask;
@@ -217,6 +242,9 @@ namespace BigWalkArchipelago.Core
                     return SaveManager.GetIntValue("LookoutLightBlue", 0, false) != 0;
                 case "yellow":
                     return SaveManager.GetIntValue("LookoutLightYellow", 0, false) != 0;
+                case "drawbridge":
+                case "dome":
+                    return SaveManager.GetIntValue(ReachedPrefix + key, 0, false) != 0;
                 case "black":
                     // Like the other towers, the tower's own button: the two at the top held
                     // together write BlackTowerInteriorDoor (measured 2026-10-05).
@@ -235,14 +263,30 @@ namespace BigWalkArchipelago.Core
         // loaded late (or was destroyed by a reload) comes back.
         internal static void Sync()
         {
+            LatchReached();
             var mask = Mask();
             ResyncStations.Sync((mask & ToolsBit) != 0);
             for (var i = 0; i < Destinations.Length; i++)
             {
-                SyncSlot(i, (mask & (1 << i)) != 0, Destinations[i].HubSpot, Destinations[i].Label,
+                SyncSlot(HubSlot(i), (mask & MaskBit(i)) != 0, Destinations[i].HubSpot, Destinations[i].Label,
                     Destinations[i].Key, null, destination => ArrivalOf(destination), i);
-                SyncSlot(ReturnSlotBase + i, (mask & ReturnBit) != 0 && Destinations[i].ReturnSpot.Normal != Vector3.zero,
+                SyncSlot(ReturnSlot(i), (mask & ReturnBit) != 0 && Destinations[i].ReturnSpot.Normal != Vector3.zero,
                     Destinations[i].ReturnSpot, "Back to the hub from " + Destinations[i].Label, "hub", Destinations[i].Key, destination => HubArrivalOf(destination), i);
+            }
+        }
+
+        private static void LatchReached()
+        {
+            if (!NetworkServer.active || _mode is not ("with_towers" or "items"))
+                return;
+
+            foreach (var destination in Destinations)
+            {
+                if (destination.ReachProp == null || Reached(destination.Key) || !TowerReach.PlayerAt(destination.ReachProp))
+                    continue;
+
+                SaveManager.SetIntValue(ReachedPrefix + destination.Key, 1);
+                Plugin.Log.LogInfo($"[{nameof(TeleportButtons)}] {destination.Label} reached on foot.");
             }
         }
 
@@ -273,13 +317,13 @@ namespace BigWalkArchipelago.Core
         }
 
         // Big Trip's places among these (Core/Traps.cs): the hub, and each tower reached on foot,
-        // whatever the `teleport_buttons` option. Never the Gauntlet.
+        // whatever the `teleport_buttons` option. Not the Gauntlet, the Drawbridge, the Dome.
         internal static IEnumerable<KeyValuePair<string, Vector3>> TripLandings()
         {
             yield return new KeyValuePair<string, Vector3>("the hub", InFrontOf(Destinations[0].HubSpot));
             foreach (var destination in Destinations)
             {
-                if (destination.Key == "gauntlet" || !Reached(destination.Key))
+                if (destination.Key == "gauntlet" || destination.ReachProp != null || !Reached(destination.Key))
                     continue;
                 yield return new KeyValuePair<string, Vector3>(destination.Label, InFrontOf(destination.ReturnSpot));
             }

@@ -1,9 +1,10 @@
-"""The in-world teleport buttons: an option, and with `items` six Teleporter items."""
+"""The in-world teleport buttons: an option, and with `items` eight Teleporter items."""
 
 from .. import data, items
 from .bases import BigWalkTestBase
 
 TELEPORTERS = set(items.TELEPORT_ITEM_NAMES)
+DESTINATIONS = ["red", "green", "blue", "yellow", "black", "gauntlet", "drawbridge", "dome"]
 
 
 def pool(test: BigWalkTestBase) -> list[str]:
@@ -17,17 +18,17 @@ class TestOffByDefault(BigWalkTestBase):
         self.assertFalse(set(pool(self)) & TELEPORTERS)
         self.assertEqual(self.world.fill_slot_data()["teleport_buttons"], "off")
 
-    def test_five_destinations_and_no_green_dome(self) -> None:
+    def test_eight_destinations_with_the_new_ones_last(self) -> None:
         keys = [key for key, _ in data.TELEPORT_DESTINATIONS]
-        self.assertEqual(keys, ["red", "green", "blue", "yellow", "black", "gauntlet"])
-        self.assertEqual(len(TELEPORTERS), 6)
+        self.assertEqual(keys, DESTINATIONS)
+        self.assertEqual(len(TELEPORTERS), 8)
 
     def test_ids_are_clear_of_everything_else(self) -> None:
         ids = [items.ITEM_NAME_TO_ID[name] for name in items.TELEPORT_ITEM_NAMES]
-        self.assertEqual(len(set(ids)), 6)
+        self.assertEqual(len(set(ids)), 8)
         others = set(items.ITEM_NAME_TO_ID.values()) - set(ids)
         self.assertFalse(set(ids) & others)
-        self.assertEqual(ids, [data.BASE_ID + data.TELEPORT_ID_OFFSET + i for i in range(6)])
+        self.assertEqual(ids, [data.BASE_ID + data.TELEPORT_ID_OFFSET + i for i in range(8)])
 
 
 class TestFree(BigWalkTestBase):
@@ -68,7 +69,7 @@ class TestItems(BigWalkTestBase):
 
     def test_slot_data_lists_the_destinations_in_item_order(self) -> None:
         slot_data = self.world.fill_slot_data()
-        self.assertEqual(slot_data["teleport_destinations"], ["red", "green", "blue", "yellow", "black", "gauntlet"])
+        self.assertEqual(slot_data["teleport_destinations"], DESTINATIONS)
         self.assertEqual(slot_data["teleport_id_offset"], data.TELEPORT_ID_OFFSET)
 
 

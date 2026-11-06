@@ -402,8 +402,8 @@ All off by default.
 - `tower_resync_stations`: a resync station in each of the five towers. It's a
   button that brings your gourds, keys and gadgets lying around back in front
   of it. The hub always has one. `guests_can_resync` lets guests use them.
-- `teleport_buttons`: buttons in the hub that take you to the five towers and
-  the Silent Gauntlet. `free`, `with_towers` (once you've opened the place on
+- `teleport_buttons`: buttons in the hub that take you to the five towers, the
+  Silent Gauntlet, the Drawbridge and the Green Dome Tower. `free`, `with_towers` (once you've opened the place on
   foot) or `items` (each also needs its Teleporter item).
   `teleport_back_to_hub` adds a button back at each destination.
 - `cabin_fever_seconds` (300) and `cabin_fever_long_seconds` (1800): how long

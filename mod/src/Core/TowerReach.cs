@@ -75,6 +75,23 @@ namespace BigWalkArchipelago.Core
             if (tower.SaveKey != null)
                 return SaveManager.GetIntValue(tower.SaveKey, 0, false) != 0;
 
+            return PlayerWithin(tower);
+        }
+
+        // Whether a player stands at one of the towers that have a radius.
+        internal static bool PlayerAt(string prop)
+        {
+            foreach (var tower in Towers)
+            {
+                if (tower.Prop == prop)
+                    return tower.Radius > 0f && PlayerWithin(tower);
+            }
+
+            return false;
+        }
+
+        private static bool PlayerWithin(Tower tower)
+        {
             var players = PlayerCharacter.allPlayerCharacters;
             if (players == null)
                 return false;

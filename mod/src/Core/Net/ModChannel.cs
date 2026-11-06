@@ -64,7 +64,7 @@ namespace BigWalkArchipelago.Core.Net
 
         // Both ends must speak the same version; a mismatch is logged once
         // and ignored rather than half-read.
-        private const byte ProtocolVersion = 23;
+        private const byte ProtocolVersion = 24;
 
         private const byte KindHello = 1;
         private const byte KindSnapshot = 2;
@@ -488,7 +488,7 @@ namespace BigWalkArchipelago.Core.Net
 
                 NetworkWriterExtensions.WriteBool(writer, GauntletStairways.Enabled);
                 NetworkWriterExtensions.WriteBool(writer, GauntletStairways.PartsHidden);
-                writer.WriteByte((byte)TeleportButtons.HostMask());
+                NetworkWriterExtensions.WriteUShort(writer, (ushort)TeleportButtons.HostMask());
                 NetworkWriterExtensions.WriteUShort(writer, (ushort)CabinFeverWaits.Seconds(0));
                 NetworkWriterExtensions.WriteUShort(writer, (ushort)CabinFeverWaits.Seconds(1));
                 writer.WriteByte((byte)((CabinFeverWaits.Help(0) ? 1 : 0) | (CabinFeverWaits.Help(1) ? 2 : 0)
@@ -942,7 +942,7 @@ namespace BigWalkArchipelago.Core.Net
 
                 var gauntletLocked = NetworkReaderExtensions.ReadBool(reader);
                 var gauntletPartsLocked = NetworkReaderExtensions.ReadBool(reader);
-                var teleportMask = reader.ReadByte();
+                var teleportMask = NetworkReaderExtensions.ReadUShort(reader);
                 var cabinFever = NetworkReaderExtensions.ReadUShort(reader);
                 var cabinFeverLong = NetworkReaderExtensions.ReadUShort(reader);
                 var cabinFeverHelp = reader.ReadByte();

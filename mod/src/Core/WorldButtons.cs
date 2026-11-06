@@ -177,16 +177,16 @@ namespace BigWalkArchipelago.Core
                 icon.transform.localScale = Vector3.one * IconScale;
 
                 var made = 0;
-                // Seven pictures. The four towers by their colour. "black" is the Black Tower's own
+                // Nine pictures. The four towers by their colour. "black" is the Black Tower's own
                 // dark silhouette, and "gauntlet" a black sphere, the panel having no icon for it:
                 // all on the panel's light bezel (the player's choice), where black is not lost as it
                 // is on the dark one. "hub" is the beige silhouette (the panel's `tower_white`, beige
                 // of its own).
-                var gauntlet = tower == "gauntlet";
+                var sphere = tower is "gauntlet" or "drawbridge" or "dome";
                 var beige = tower == "hub";
                 var silhouette = beige ? "white" : tower;
                 var bezel = "EndingGateIndicator_base_white";
-                var names = gauntlet
+                var names = sphere
                     ? new[] { bezel, "EndingGateIndicator_light" }
                     : new[] { bezel, "EndingGateIndicator_light", "EndingGateIndicator_tower_" + silhouette };
                 Renderer bezelCopy = null;
@@ -227,8 +227,10 @@ namespace BigWalkArchipelago.Core
                     made++;
                 }
 
-                if (gauntlet && bezelCopy != null)
-                    AddSphere(icon, bezelCopy.bounds, button.Root.transform.forward);
+                if (tower == "drawbridge" && bezelCopy != null)
+                    AddDrawbridge(icon, bezelCopy.bounds, button.Root.transform.forward);
+                else if (sphere && bezelCopy != null)
+                    AddSphere(icon, bezelCopy.bounds, button.Root.transform.forward, PlateColour(tower));
 
                 // Lifted by what it measures, not by a fixed amount: the icon is bigger than the
                 // button, and a fixed lift left the button inside the symbol. Walls are upright, so
@@ -258,8 +260,38 @@ namespace BigWalkArchipelago.Core
             }
         }
 
-        // A black sphere in front of the bezel's middle, about two fifths of its width.
-        private static void AddSphere(GameObject icon, Bounds bezel, Vector3 outward)
+        // The panel has no drawbridge: its red bridge on two piers, in cubes.
+        private static void AddDrawbridge(GameObject icon, Bounds bezel, Vector3 outward)
+        {
+            var width = Mathf.Max(bezel.size.x, bezel.size.z);
+            var toIcon = 1f / Mathf.Max(0.0001f, icon.transform.lossyScale.x);
+            var upright = Quaternion.LookRotation(outward, Vector3.up);
+            var middle = bezel.center + outward * (width * 0.16f);
+            var red = new Color(0.72f, 0.14f, 0.12f);
+            var stone = new Color(0.38f, 0.31f, 0.20f);
+
+            void Block(float x, float y, float sizeX, float sizeY, Color colour)
+            {
+                var block = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                block.name = "drawbridge part";
+                block.transform.SetParent(icon.transform, false);
+                block.transform.localScale = new Vector3(sizeX, sizeY, 0.20f) * (width * toIcon);
+                var at = middle + upright * new Vector3(x, y, 0f) * width;
+                block.transform.SetPositionAndRotation(at, upright);
+                Paint(block, colour);
+            }
+
+            Block(-0.12f, -0.15f, 0.09f, 0.20f, stone);
+            Block(0.12f, -0.15f, 0.09f, 0.20f, stone);
+            Block(0f, -0.03f, 0.50f, 0.05f, red);
+            Block(0f, 0.06f, 0.50f, 0.02f, red);
+            Block(-0.24f, 0.015f, 0.02f, 0.09f, red);
+            Block(0f, 0.015f, 0.02f, 0.09f, red);
+            Block(0.24f, 0.015f, 0.02f, 0.09f, red);
+        }
+
+        // A sphere in front of the bezel's middle, about two fifths of its width.
+        private static void AddSphere(GameObject icon, Bounds bezel, Vector3 outward, Color colour)
         {
             var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             sphere.name = "gauntlet sphere";
@@ -268,7 +300,7 @@ namespace BigWalkArchipelago.Core
             sphere.transform.localScale = Vector3.one * (width * 0.42f / Mathf.Max(0.0001f, icon.transform.lossyScale.x));
             // A little below the middle: centred it ran into the light at the top.
             sphere.transform.position = bezel.center + outward * (width * 0.04f) + Vector3.down * (width * 0.08f);
-            Paint(sphere, new Color(0.03f, 0.03f, 0.04f));
+            Paint(sphere, colour);
         }
 
         private static Color IconColour(string tower)
@@ -576,6 +608,8 @@ namespace BigWalkArchipelago.Core
                 case "black": return new Color(0.16f, 0.16f, 0.19f);
                 case "hub": return new Color(0.74f, 0.64f, 0.44f);
                 case "gauntlet": return new Color(0.04f, 0.04f, 0.05f);
+                case "drawbridge": return new Color(0.42f, 0.27f, 0.14f);
+                case "dome": return new Color(0.36f, 0.72f, 0.20f);
                 default: return new Color(0.23f, 0.81f, 0.39f);
             }
         }

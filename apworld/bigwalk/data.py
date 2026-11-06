@@ -839,10 +839,12 @@ TELEPORT_DESTINATIONS: tuple[tuple[str, str], ...] = (
     ("yellow", "Yellow Twist Tower"),
     ("black", "Black Tower"),
     ("gauntlet", "Silent Gauntlet"),
+    ("drawbridge", "Drawbridge"),
+    ("dome", "Green Dome Tower"),
 )
 """
 Where the in-world teleport buttons of the hub lead, by the key the mod knows each by and the
-player-facing name. The Green Dome is not here: it is next to the spawn (player, 2026-10-03).
+player-facing name. New ones go at the end: the position is the Teleporter's item id.
 Every destination has a button back to the hub, always there.
 """
 

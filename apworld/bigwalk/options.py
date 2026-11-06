@@ -1013,13 +1013,14 @@ class OpenBlackTower(DefaultOnToggle):
 
 class TeleportButtons(Choice):
     """
-    Buttons in the hub that teleport you to the Red, Green, Blue, Yellow and Black towers and the
-    Silent Gauntlet.
+    Buttons in the hub that teleport you to the Red, Green, Blue, Yellow and Black towers, the
+    Silent Gauntlet, the Drawbridge and the Green Dome Tower.
 
     - off: none.
     - free: all there from the start.
-    - with_towers: once the place has been opened on foot (the tower's button, the chapel's).
-    - items: the same, and each also needs its Teleporter item (6 items).
+    - with_towers: once the place has been opened on foot (the tower's button, the chapel's), or
+      for the Drawbridge and the Green Dome Tower, once a player has stood there.
+    - items: the same, and each also needs its Teleporter item (8 items).
     """
 
     display_name = "Teleport Buttons"
