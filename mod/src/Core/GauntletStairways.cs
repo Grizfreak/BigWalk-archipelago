@@ -384,6 +384,21 @@ namespace BigWalkArchipelago.Core
             return true;
         }
 
+        // The stage a scene object stands in, by its path (`.../SilentGauntlet.../Level<N>/...`): the puzzle
+        // failures name a Gauntlet puzzle by its stage, which has no gourd of its own (Core/PuzzleFailures).
+        internal static bool TryStageOf(Transform transform, out int level)
+        {
+            level = -1;
+            if (transform == null)
+                return false;
+
+            var path = PathOf(transform);
+            return path.Contains(GauntletPath) && TryLevelOf(path, out level);
+        }
+
+        // Whether a stage's puzzle is solved, by the game's own record (its chamber system).
+        internal static bool IsStageSolved(int level) => level >= 0 && level < Chambers.Length && PuzzleDone(level);
+
         private static bool TryLevelOf(string path, out int level)
         {
             level = -1;
