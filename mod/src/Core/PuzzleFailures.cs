@@ -48,6 +48,11 @@ namespace BigWalkArchipelago.Core
         // A clamp opens slowly; the check goes once the gourd is loose (Tyrope, Window Labyrinth).
         private const float TomatoGraceSeconds = 15f;
 
+        // A door closing pecks the failure switch and turns the puzzle off, in either order.
+        private const int ResetFrames = 3;
+
+        private const string ChamberPrefix = "GauntletChamber";
+
         private sealed class World
         {
             internal readonly Dictionary<int, string> FailureSwitches = new();
@@ -58,8 +63,14 @@ namespace BigWalkArchipelago.Core
             // A PressInOrder's active state, by instance: its failure switch.
             internal readonly Dictionary<int, int> ActiveOf = new();
 
-            // A failure peck waiting a frame: closing the door pecks it, then turns the puzzle off.
+            // A failure peck waiting a few frames for the door that may turn the puzzle off.
             internal readonly Dictionary<int, int> PendingFrame = new();
+
+            // When a PressInOrder last went off, by its failure switch.
+            internal readonly Dictionary<int, int> OffFrame = new();
+
+            // The Gauntlet stage of each id that Fail can receive.
+            internal readonly Dictionary<int, int> StageOf = new();
             internal readonly Dictionary<int, string> Screens = new();
 
             // A synchronised button's state, by instance: the controller it belongs to.
@@ -125,6 +136,12 @@ namespace BigWalkArchipelago.Core
             // Pointer's Paradise (2026-11-01): the door's peck carries the closer's context.
             if (world.ResetBySetOff.Contains(id))
             {
+                if (world.OffFrame.TryGetValue(id, out var off) && Time.frameCount - off <= ResetFrames)
+                {
+                    Plugin.Log.LogInfo($"{Tag} Reset, not failed: {puzzle} had just gone inactive.");
+                    return;
+                }
+
                 world.PendingFrame[id] = Time.frameCount;
                 return;
             }
@@ -145,7 +162,9 @@ namespace BigWalkArchipelago.Core
             var id = state.GetInstanceID();
             if (world.ActiveOf.TryGetValue(id, out var failureSwitch))
             {
-                if (value == 0 && world.PendingFrame.TryGetValue(failureSwitch, out var frame) && frame == Time.frameCount)
+                if (value == 0)
+                    world.OffFrame[failureSwitch] = Time.frameCount;
+                if (value == 0 && world.PendingFrame.TryGetValue(failureSwitch, out var frame) && Time.frameCount - frame <= ResetFrames)
                 {
                     world.PendingFrame.Remove(failureSwitch);
                     Plugin.Log.LogInfo($"{Tag} Reset, not failed: {world.FailureSwitches[failureSwitch]} was closed by a player.");
@@ -163,7 +182,7 @@ namespace BigWalkArchipelago.Core
             {
                 var started = world.LastState.TryGetValue(id, out var tomatoWas) && tomatoWas != 0;
                 world.LastState[id] = value;
-                if (started && value == 0 && !CheckTracker.IsReported(tomato.Value))
+                if (started && value == 0 && !Solved(tomato.Value))
                     world.TomatoesOut[id] = Time.unscaledTime + TomatoGraceSeconds;
                 else if (value != 0)
                     world.TomatoesOut.Remove(id);
@@ -179,7 +198,7 @@ namespace BigWalkArchipelago.Core
                 Fail(id, world.SyncControllers[controller] + " (a synchronised button let go)", world);
         }
 
-        // Every frame (ApRuntime): a wrong press waits one frame for the door that may follow it.
+        // Every frame (ApRuntime): a wrong press waits a few frames for a door.
         internal static void TickPresses()
         {
             var world = _world;
@@ -188,7 +207,7 @@ namespace BigWalkArchipelago.Core
 
             foreach (var id in new List<int>(world.PendingFrame.Keys))
             {
-                if (Time.frameCount <= world.PendingFrame[id])
+                if (Time.frameCount - world.PendingFrame[id] <= ResetFrames)
                     continue;
 
                 world.PendingFrame.Remove(id);
@@ -210,17 +229,32 @@ namespace BigWalkArchipelago.Core
 
                 world.TomatoesOut.Remove(id);
                 var tomato = world.Tomatoes[id];
-                if (CheckTracker.IsReported(tomato.Value))
+                if (Solved(tomato.Value))
                     Plugin.Log.LogInfo($"{Tag} Solved in time: {tomato.Key} (its check went after the tomato ran out).");
                 else
                     Fail(id, tomato.Key + " (the timed tomato ran out)", world);
             }
         }
 
+        // A Gauntlet stage may be no location of this seed, so its chamber is read from the save.
+        private static bool Solved(string location)
+        {
+            if (location.StartsWith(ChamberPrefix, StringComparison.Ordinal)
+                && int.TryParse(location.Substring(ChamberPrefix.Length), out var level))
+                return GauntletStairways.IsStageSolved(level);
+
+            return !string.IsNullOrEmpty(location) && CheckTracker.IsReported(location);
+        }
+
         private static void Fail(int id, string puzzle, World world)
         {
             if (Time.unscaledTime < world.ReadyAt)
                 return;
+            if (world.StageOf.TryGetValue(id, out var stage) && GauntletStairways.IsStageSolved(stage))
+            {
+                Plugin.Log.LogInfo($"{Tag} Not failed: {puzzle}, its Gauntlet stage is solved already.");
+                return;
+            }
             if (LastFired.TryGetValue(id, out var at) && Time.unscaledTime - at < Cooldown)
                 return;
             LastFired[id] = Time.unscaledTime;
@@ -252,6 +286,10 @@ namespace BigWalkArchipelago.Core
             var name = key;
             if (Core.Net.ApLocationIds.TryResolveLocation(key, out var locationId))
                 name = Core.Net.ApRuntime.LocationName(locationId);
+            // The server has no name for a stage that is no location of this seed.
+            if (key.StartsWith(ChamberPrefix, StringComparison.Ordinal) && (name == key || name == locationId.ToString())
+                && int.TryParse(key.Substring(ChamberPrefix.Length), out var level))
+                name = $"Silent Gauntlet's stage {level + 1}";
 
             return how == null ? $"failed the {name}" : $"failed the {name} ({how})";
         }
@@ -295,6 +333,18 @@ namespace BigWalkArchipelago.Core
                         gourds.Add((prop.saveablePropName.ToString(), location, prop.transform.position));
                 }
 
+                (string name, string location) PuzzleOf(Transform at, int id)
+                {
+                    if (GauntletStairways.TryStageOf(at, out var stage))
+                    {
+                        world.StageOf[id] = stage;
+                        var chamber = ChamberPrefix + stage;
+                        return (chamber, chamber);
+                    }
+
+                    return Nearest(at.position);
+                }
+
                 (string name, string location) Nearest(Vector3 at)
                 {
                     var nearest = ("a puzzle", string.Empty);
@@ -312,9 +362,10 @@ namespace BigWalkArchipelago.Core
                     return nearest;
                 }
 
-                string Name(Component owner)
+                // `id` is the one Fail will get, so a solved stage is let off.
+                string Name(Component owner, int id)
                 {
-                    var puzzle = Nearest(owner.transform.position).name;
+                    var puzzle = PuzzleOf(owner.transform, id).name;
                     world.Rows.Add($"{owner.GetIl2CppType().Name}	{puzzle}	{PathOf(owner.transform)}");
                     return $"{puzzle} ({owner.GetIl2CppType().Name})";
                 }
@@ -323,14 +374,14 @@ namespace BigWalkArchipelago.Core
                 {
                     var state = screen != null ? screen.peckSystemReference.peckSystem : null;
                     if (state != null)
-                        world.Screens[state.GetInstanceID()] = Name(screen);
+                        world.Screens[state.GetInstanceID()] = Name(screen, state.GetInstanceID());
                 }
 
                 foreach (var p in UnityEngine.Object.FindObjectsByType<PressInOrder>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 {
                     if (p != null && p.failureSwitch != null)
                     {
-                        world.FailureSwitches[p.failureSwitch.GetInstanceID()] = Name(p);
+                        world.FailureSwitches[p.failureSwitch.GetInstanceID()] = Name(p, p.failureSwitch.GetInstanceID());
                         world.ResetBySetOff.Add(p.failureSwitch.GetInstanceID());
                         if (p.isActiveSystem.peckSystem != null)
                             world.ActiveOf[p.isActiveSystem.peckSystem.GetInstanceID()] = p.failureSwitch.GetInstanceID();
@@ -340,7 +391,7 @@ namespace BigWalkArchipelago.Core
                 foreach (var c in UnityEngine.Object.FindObjectsByType<CountingController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 {
                     if (c != null && c.failureSwitch != null)
-                        world.FailureSwitches[c.failureSwitch.GetInstanceID()] = Name(c);
+                        world.FailureSwitches[c.failureSwitch.GetInstanceID()] = Name(c, c.failureSwitch.GetInstanceID());
                 }
 
                 foreach (var sim in UnityEngine.Object.FindObjectsByType<SimPressController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -349,14 +400,18 @@ namespace BigWalkArchipelago.Core
                         continue;
 
                     var controller = sim.GetInstanceID();
-                    world.SyncControllers[controller] = Name(sim);
+                    world.SyncControllers[controller] = Name(sim, controller);
                     if (sim.onSucess != null)
                         world.SyncSuccess[sim.onSucess.GetInstanceID()] = controller;
                     foreach (var button in sim.switches)
                     {
                         var state = button != null ? button.stateSystem : null;
                         if (state != null)
+                        {
                             world.SyncButtons[state.GetInstanceID()] = controller;
+                            if (world.StageOf.TryGetValue(controller, out var stage))
+                                world.StageOf[state.GetInstanceID()] = stage;
+                        }
                     }
                 }
 
@@ -366,7 +421,7 @@ namespace BigWalkArchipelago.Core
                     if (state == null || state.gameObject.name != "Pomodoro" || !InDispenser(state.transform))
                         continue;
 
-                    var puzzle = Nearest(state.transform.position);
+                    var puzzle = PuzzleOf(state.transform, state.GetInstanceID());
                     world.Tomatoes[state.GetInstanceID()] = new KeyValuePair<string, string>(puzzle.name, puzzle.location);
                     world.Rows.Add($"Pomodoro	{puzzle.name}	{PathOf(state.transform)}");
                 }

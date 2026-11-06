@@ -384,6 +384,19 @@ namespace BigWalkArchipelago.Core
             return true;
         }
 
+        // The stages have no gourd, so PuzzleFailures names their puzzles by this.
+        internal static bool TryStageOf(Transform transform, out int level)
+        {
+            level = -1;
+            if (transform == null)
+                return false;
+
+            var path = PathOf(transform);
+            return path.Contains(GauntletPath) && TryLevelOf(path, out level);
+        }
+
+        internal static bool IsStageSolved(int level) => level >= 0 && level < Chambers.Length && PuzzleDone(level);
+
         private static bool TryLevelOf(string path, out int level)
         {
             level = -1;
