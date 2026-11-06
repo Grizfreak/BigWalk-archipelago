@@ -6,6 +6,28 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## 1.0.8
+
+### Moving from 1.0.7 to 1.0.8
+
+- Everyone in a session needs this version: the mod's protocol is now v24.
+- A 1.0.7 YAML generates as it did, except for two more Teleporters with `teleport_buttons: items`.
+
+### Added
+
+- **Teleport buttons to the Drawbridge and the Green Dome Tower** (Jay0): one button in the hub for each and one back
+  in each. With `with_towers` they open once a player has stood there. With `items` they also need their Teleporter,
+  so a seed generated before 1.0.8 never opens them. There is no resync station at these two places: the hub's is
+  not far from the Green Dome. The hub's row moved two places to the left to make room for them on the red wall.
+
+### Fixed
+
+- **The Silent Gauntlet sent DeathLinks named after Scout Bombs** (Tyrope): opening a stage's door to enter it or to
+  leave it after solving it could count as a failure. The door fix of 1.0.7 now covers every "buttons in order" puzzle,
+  not just Pointer's Paradise, whichever comes first, the door or the reset. A stage already solved no longer fails,
+  a timed tomato looks at its own stage instead of Scout Bombs' check, and the Gauntlet's failures carry their stage's
+  name.
+
 ## 1.0.7
 
 ### Moving from 1.0.6 to 1.0.7
