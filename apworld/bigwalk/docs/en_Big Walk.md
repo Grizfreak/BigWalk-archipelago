@@ -399,7 +399,8 @@ All off by default.
   (with by_item, its Progressive Monument). The logic waits for it too.
 - `hint_keys: from_start`: the seven big keys are hinted from the start.
 - `fast_golf`: the golf ball (the cannonball) is no longer too heavy.
-- `tower_resync_stations`: a resync station in each of the five towers. It's a
+- `tower_resync_stations`: a resync station in each of the five towers, at the
+  Drawbridge and at the Green Dome Tower. It's a
   button that brings your gourds, keys and gadgets lying around back in front
   of it. The hub always has one. `guests_can_resync` lets guests use them.
 - `teleport_buttons`: buttons in the hub that take you to the five towers, the

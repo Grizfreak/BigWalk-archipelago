@@ -986,8 +986,9 @@ class HintBoard(DefaultOnToggle):
 
 class TowerResyncStations(Toggle):
     """
-    A resync station in each of the five towers: a button that brings your gourds, keys and
-    gadgets lying around back in front of it. The hub's station is always there.
+    A resync station in each of the five towers, at the Drawbridge and at the Green Dome Tower: a
+    button that brings your gourds, keys and gadgets lying around back in front of it. The hub's
+    station is always there.
     """
 
     display_name = "Tower Resync Stations"

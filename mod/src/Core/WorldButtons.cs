@@ -660,7 +660,7 @@ namespace BigWalkArchipelago.Core
         }
 
         // The slots a table can have, so two slots never share a block of tickets.
-        private const int MaxSlots = 32;
+        private const int MaxSlots = 40;
 
         // The first ticket of a block of the button's own tickets that nothing in the game holds.
         // The game's scene objects carry tickets too, and one of the blocks was one of theirs:

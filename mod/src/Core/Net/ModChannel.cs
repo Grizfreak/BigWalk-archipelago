@@ -64,7 +64,7 @@ namespace BigWalkArchipelago.Core.Net
 
         // Both ends must speak the same version; a mismatch is logged once
         // and ignored rather than half-read.
-        private const byte ProtocolVersion = 24;
+        private const byte ProtocolVersion = 25;
 
         private const byte KindHello = 1;
         private const byte KindSnapshot = 2;
@@ -494,7 +494,7 @@ namespace BigWalkArchipelago.Core.Net
                 writer.WriteByte((byte)((CabinFeverWaits.Help(0) ? 1 : 0) | (CabinFeverWaits.Help(1) ? 2 : 0)
                                         | (TileThiefHelper.HostMode << 2)
                                         | (CabinFeverWaits.HideTimer(0) ? 16 : 0) | (CabinFeverWaits.HideTimer(1) ? 32 : 0)));
-                writer.WriteByte(ResyncStations.HostState());
+                NetworkWriterExtensions.WriteUShort(writer, ResyncStations.HostState());
                 NetworkWriterExtensions.WriteString(writer, GourdNames.Current);
                 writer.WriteByte(PackChecks.HostMode);
                 writer.WriteByte(PackChecks.HostObjectMode);
@@ -946,7 +946,7 @@ namespace BigWalkArchipelago.Core.Net
                 var cabinFever = NetworkReaderExtensions.ReadUShort(reader);
                 var cabinFeverLong = NetworkReaderExtensions.ReadUShort(reader);
                 var cabinFeverHelp = reader.ReadByte();
-                var resyncStations = reader.ReadByte();
+                var resyncStations = NetworkReaderExtensions.ReadUShort(reader);
                 var gourdName = NetworkReaderExtensions.ReadString(reader);
                 var packMode = reader.ReadByte();
                 var objectMode = reader.ReadByte();

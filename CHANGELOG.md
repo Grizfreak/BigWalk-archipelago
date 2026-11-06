@@ -10,15 +10,15 @@ unwinnable, which is why every player of a session should run the same build.
 
 ### Moving from 1.0.7 to 1.0.8
 
-- Everyone in a session needs this version: the mod's protocol is now v24.
+- Everyone in a session needs this version: the mod's protocol is now v25.
 - A 1.0.7 YAML generates as it did, except for two more Teleporters with `teleport_buttons: items`.
 
 ### Added
 
 - **Teleport buttons to the Drawbridge and the Green Dome Tower** (Jay0): one button in the hub for each and one back
   in each. With `with_towers` they open once a player has stood there. With `items` they also need their Teleporter,
-  so a seed generated before 1.0.8 never opens them. There is no resync station at these two places: the hub's is
-  not far from the Green Dome. The hub's row moved two places to the left to make room for them on the red wall.
+  so a seed generated before 1.0.8 never opens them. The hub's row moved two places to the left to make room for them on the red wall.
+- **Resync stations at the Drawbridge and the Green Dome Tower**, with `tower_resync_stations`.
 
 ### Fixed
 

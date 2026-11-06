@@ -6,8 +6,8 @@ using UnityEngine;
 
 namespace BigWalkArchipelago.Core
 {
-    // The resync stations (player's design, 2026-10-05): one in the hub and one in each of the five
-    // towers. Each is a button, a toggle beside it and a sign above them.
+    // The resync stations (player's design, 2026-10-05): one in the hub, one in each of the five
+    // towers, one at the Drawbridge and one at the Green Dome. Each is a button, a toggle beside it and a sign above them.
     //
     //  - The button takes back every gourd, key and (when the toggle says so) gadget of the slot
     //    that is not where it counts, and puts them back in front of itself (ApRuntime.ResyncAll).
@@ -67,16 +67,20 @@ namespace BigWalkArchipelago.Core
             Make("the Blue Castle Tower", "blue", 140.39f, 112.84f, -198.54f, -0.32f, -0.95f, 15, switchSink: 0.06f),
             Make("the Yellow Twist Tower", "yellow", -231.31f, 132.27f, -242.06f, 0.45f, 0.76f, 16, switchDrop: 0.32f, switchSink: -0.03f),
             Make("the Black Tower", "black", -28.48f, 118.34f, -282.17f, -0.64f, -0.77f, 17, signSink: 0.03f, signDepth: 0.06f),
+            Make("the Drawbridge", "drawbridge", -368.73f, 3.12f, -711.01f, -0.98f, -0.19f, 32, toggleSlot: 33,
+                buttonSink: 0.05f, signSink: -0.25f, switchSink: -0.08f),
+            Make("the Green Dome Tower", "dome", -130.90f, 46.90f, -440.51f, 0.53f, -0.85f, 34, toggleSlot: 35,
+                buttonSink: 0.05f, signSink: -0.1f, switchSink: 0f),
         };
 
         private static Station Make(string name, string tint, float x, float y, float z, float nx, float nz, int slot,
             Vector3? sign = null, float buttonSink = 0.25f, float signSink = 0f, float switchDrop = 0.45f,
-            float switchSink = 0.02f, float signDepth = 0.3f)
+            float switchSink = 0.02f, float signDepth = 0.3f, int toggleSlot = -1)
         {
             return new Station
             {
                 Name = name, Tint = tint, Point = new Vector3(x, y, z), Normal = new Vector3(nx, 0f, nz).normalized,
-                ButtonSlot = slot, ToggleSlot = slot + 8, SignPoint = sign,
+                ButtonSlot = slot, ToggleSlot = toggleSlot >= 0 ? toggleSlot : slot + 8, SignPoint = sign,
                 ButtonSink = buttonSink, SignSink = signSink, SwitchBelow = sign == null,
                 SwitchDrop = switchDrop, SwitchSink = switchSink, SignDepth = signDepth,
             };
@@ -93,7 +97,7 @@ namespace BigWalkArchipelago.Core
         // The face of a sign; its depth is the station's.
         private static readonly Vector3 SignSize = new Vector3(1.3f, 0.5f, 0f);
 
-        // On a guest: what the host last said (bits 0..5: gadgets per station; bit 6: running;
+        // On a guest: what the host last said (GadgetBit per station; bit 6: running;
         // bit 7: the towers' stations are there).
         private static int _mirrored = -1;
 
@@ -109,16 +113,19 @@ namespace BigWalkArchipelago.Core
                 $"[{nameof(ResyncStations)}] Stations in the towers {(towers ? "on" : "off")}, guests {(guests ? "may" : "may not")} use them.");
         }
 
+        // The first six stations took bits 0..5 before 6 and 7 were spoken for.
+        private static int GadgetBit(int station) => 1 << (station < 6 ? station : station + 2);
+
         private static bool TowersOn => IsGuest ? _mirrored >= 0 && (_mirrored & (1 << 7)) != 0 : _towers;
 
         // For the snapshot.
-        internal static byte HostState()
+        internal static ushort HostState()
         {
             var state = 0;
             for (var i = 0; i < Stations.Length; i++)
             {
                 if (GadgetsOn(i))
-                    state |= 1 << i;
+                    state |= GadgetBit(i);
             }
 
             if (ApRuntime.ResyncRunning)
@@ -127,11 +134,11 @@ namespace BigWalkArchipelago.Core
             if (_towers)
                 state |= 1 << 7;
 
-            return (byte)state;
+            return (ushort)state;
         }
 
         // On a guest: the signs follow at once, not at the next sync.
-        internal static void ApplyFromHost(byte state)
+        internal static void ApplyFromHost(ushort state)
         {
             if (_mirrored == state)
                 return;
@@ -161,7 +168,7 @@ namespace BigWalkArchipelago.Core
         private static bool GadgetsOn(int station)
         {
             if (IsGuest)
-                return _mirrored < 0 || (_mirrored & (1 << station)) != 0;
+                return _mirrored < 0 || (_mirrored & GadgetBit(station)) != 0;
 
             return SaveManager.GetIntValue(GadgetsKeyPrefix + station, 1, false) != 0;
         }
