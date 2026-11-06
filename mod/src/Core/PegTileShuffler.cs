@@ -50,6 +50,13 @@ namespace BigWalkArchipelago.Core
         // How often the tiles are looked for again: a far part of the island comes in later.
         private const float ScanSeconds = 10f;
 
+        // A prop that comes back into the world starts no second time: looked for now and then.
+        private const float QuietScanSeconds = 60f;
+        private static bool _dirty = true;
+        private static float _nextQuietScan;
+
+        internal static void MarkDirty() => _dirty = true;
+
         // How near a player must be for a set to be drawn: close enough for its ground to be
         // there, far enough for the swaps to happen out of sight (60 m: the player saw the tiles change in front of
         // them, 2026-10-20).
@@ -84,8 +91,13 @@ namespace BigWalkArchipelago.Core
                 return;
 
             _nextScan = Time.unscaledTime + ScanSeconds;
-            Shuffle();
             ReleaseNear();
+            if (!_dirty && Time.unscaledTime < _nextQuietScan)
+                return;
+
+            _dirty = false;
+            _nextQuietScan = Time.unscaledTime + QuietScanSeconds;
+            Shuffle();
         }
 
         // A world went away: the next one is shuffled again, from its own starting places.
@@ -96,6 +108,8 @@ namespace BigWalkArchipelago.Core
             Frozen.Clear();
             _at = -1f;
             _nextScan = 0f;
+            _dirty = true;
+            _nextQuietScan = 0f;
         }
 
         // Where a tile is: the home it is pinned to, or, for a tile simply lying there (most of

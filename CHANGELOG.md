@@ -27,6 +27,8 @@ unwinnable, which is why every player of a session should run the same build.
   not just Pointer's Paradise, whichever comes first, the door or the reset. A stage already solved no longer fails,
   a timed tomato looks at its own stage instead of Scout Bombs' check, and the Gauntlet's failures carry their stage's
   name.
+- **Small regular hitches**: two of the mod's checks searched the whole scene every few seconds, for about 10 to 20 ms
+  each time. They now search when something changed, with a slower check as a safety net.
 
 ## 1.0.7
 

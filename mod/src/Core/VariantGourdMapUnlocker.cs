@@ -23,12 +23,27 @@ namespace BigWalkArchipelago.Core
         private const float PollIntervalSeconds = 2f;
         private float _nextPollTime;
 
+        // A safety net: GourdMap.Initialize is what hides the flags, and it says so.
+        private const float QuietPollSeconds = 60f;
+        private static bool _dirty = true;
+        private float _nextQuietPoll;
+
+        internal static void FlagsReset() => _dirty = true;
+
         private void Update()
         {
-            if (!WorldManager.isReadyForEffects || Time.time < _nextPollTime)
+            if (!WorldManager.isReadyForEffects)
+            {
+                _dirty = true;
+                return;
+            }
+
+            if (Time.time < _nextPollTime)
                 return;
 
             _nextPollTime = Time.time + PollIntervalSeconds;
+            if (!_dirty && Time.time < _nextQuietPoll)
+                return;
 
             // L4 (0.6): with `include_big_game_puzzles` when_unlocked or disabled, the game's own way: hidden until an
             // ending. The host waits for its slot before revealing anything: a reveal made before the slot arrived
@@ -38,6 +53,8 @@ namespace BigWalkArchipelago.Core
             var slot = Net.ApRuntime.SlotData;
             if (!isGuest && ModConfig.ArchipelagoEnabled.Value && (slot == null || slot.IncludeBigGamePuzzles != "from_start"))
                 return;
+            _dirty = false;
+            _nextQuietPoll = Time.time + QuietPollSeconds;
             VariantGourdRevealer.RevealAll();
         }
     }
