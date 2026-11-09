@@ -831,13 +831,25 @@ class StartWithAbilities(OptionSet):
     default = frozenset()
 
 
-class LockRunning(Toggle):
+class LockRunning(Choice):
     """
-    With Lock Abilities on, running is an item too (Running). No place asks for it: the island is only slower
+    With Lock Abilities on, running can be an item too (Running). No place asks for it: the island is only slower
     to cross until it arrives.
+
+    - off: you run from the start.
+    - anywhere: Running is an item, anywhere in the multiworld.
+    - early: Running is an item, placed among the first checks anyone can reach (in a solo seed, your own).
+
+    true and false still work: true is anywhere, false is off.
     """
 
     display_name = "Lock Running"
+    option_off = 0
+    option_anywhere = 1
+    option_early = 2
+    alias_false = 0
+    alias_true = 1
+    default = option_off
 
 
 class RidesRequireSeat(Toggle):

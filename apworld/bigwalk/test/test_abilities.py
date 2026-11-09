@@ -3,7 +3,11 @@
 starting zone; the Seat and the arms are asked for by the gesture puzzles (puzzle tour, 2026-10-12).
 """
 
+from BaseClasses import CollectionState
+from Fill import distribute_items_restrictive
+
 from .. import data, items, regions
+from .. import options as bigwalk_options
 from .bases import BigWalkTestBase
 
 
@@ -95,6 +99,36 @@ class TestLockRunning(BigWalkTestBase):
     def test_running_in_the_pool_and_only_useful(self) -> None:
         self.assertIn(data.RUNNING_ITEM_NAME, ability_names(self))
         self.assertFalse(self.world.create_item(data.RUNNING_ITEM_NAME).advancement)
+
+
+class TestLockRunningEarly(BigWalkTestBase):
+    options = {"lock_abilities": "ambidextrous", "lock_running": "early"}
+
+    def test_running_asked_for_early(self) -> None:
+        self.assertIn(data.RUNNING_ITEM_NAME, ability_names(self))
+        self.assertEqual(self.multiworld.early_items[self.player].get(data.RUNNING_ITEM_NAME), 1)
+
+    def test_running_placed_in_sphere_one(self) -> None:
+        distribute_items_restrictive(self.multiworld)
+        spot = next(loc for loc in self.multiworld.get_locations()
+                    if loc.item is not None and loc.item.name == data.RUNNING_ITEM_NAME)
+        state = CollectionState(self.multiworld)
+        state.sweep_for_advancements(locations=[loc for loc in self.multiworld.get_filled_locations()
+                                                if loc.address is None])
+        self.assertTrue(spot.can_reach(state), spot.name)
+
+
+class TestLockRunningOldValues(BigWalkTestBase):
+    run_default_tests = False
+
+    def test_true_and_false_still_read(self) -> None:
+        self.assertEqual(bigwalk_options.LockRunning.from_any(True).value, bigwalk_options.LockRunning.option_anywhere)
+        self.assertEqual(bigwalk_options.LockRunning.from_any(False).value, bigwalk_options.LockRunning.option_off)
+        self.assertEqual(bigwalk_options.LockRunning.from_any("true").value, bigwalk_options.LockRunning.option_anywhere)
+
+    def test_anywhere_asks_for_nothing_early(self) -> None:
+        self.world_setup()
+        self.assertNotIn(data.RUNNING_ITEM_NAME, self.multiworld.early_items[self.player])
 
 
 class TestAbilitiesWithEverythingLocked(BigWalkTestBase):

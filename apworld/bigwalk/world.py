@@ -19,7 +19,7 @@ from . import options as bigwalk_options
 if TYPE_CHECKING:
     from NetUtils import MultiData
 
-WORLD_VERSION = "1.0.9"
+WORLD_VERSION = "1.0.10"
 """Kept in step with archipelago.json; sent in slot_data so the mod can check it."""
 
 TRACKER_OPTIONS = {
@@ -617,6 +617,10 @@ class BigWalkWorld(World):
 
     def create_items(self) -> None:
         items.create_all_items(self)
+        # `lock_running: early` (EnvyOmega, 2026-11-09): the fill places it in sphere 1, in any world.
+        if self.options.lock_running == bigwalk_options.LockRunning.option_early and any(
+                item.player == self.player and item.name == data.RUNNING_ITEM_NAME for item in self.multiworld.itempool):
+            self.multiworld.early_items[self.player][data.RUNNING_ITEM_NAME] = 1
 
     def set_rules(self) -> None:
         rules.set_all_rules(self)
