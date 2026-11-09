@@ -6,11 +6,13 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
-## Unreleased
+## 1.0.9
 
-### Moving from 1.0.8
+### Moving from 1.0.8 to 1.0.9
 
 - Everyone in a session needs this version: the mod's protocol is now v26.
+- A 1.0.8 YAML generates as it did; only a YAML naming the two lamps near Centurion Song in `exclude_locations` or
+  `priority_locations` needs their new names (see below). A seed generated before keeps its old logic for them.
 
 ### Added
 
