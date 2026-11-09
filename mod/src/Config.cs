@@ -23,6 +23,7 @@ namespace BigWalkArchipelago
         internal static ConfigEntry<int> StatusFontSize;
         internal static ConfigEntry<bool> ShowItemFeed;
         internal static ConfigEntry<bool> GuestsCanAskHints;
+        internal static ConfigEntry<int> TilePool;
         internal static ConfigEntry<bool> ApSounds;
         internal static ConfigEntry<bool> ShowObjectives;
         internal static ConfigEntry<bool> ShowTowerOrder;
@@ -228,6 +229,14 @@ namespace BigWalkArchipelago
                 "GuestsCanAskHints",
                 false,
                 "On the host: whether the guests may ask for a hint at the hub's hint board (they then get the item names' suggestions too). Also in the game's Settings > Archipelago. Off, the board stays on its hook for them and only the host asks; a hint costs the slot's points either way.");
+
+            TilePool = file.Bind(
+                "Archipelago",
+                "TilePool",
+                0,
+                new ConfigDescription(
+                    "When this machine hosts (Settings > Archipelago > Tile pool): how the PNGs of BepInEx/config/BigWalkArchipelago/tiles/pool are drawn for the nine icon tiles. 0 over the seed's own draw (custom_tiles), 1 only on the icons the seed left as the game's, 2 off. A PegTileA<n>.png of its own always wins.",
+                    new AcceptableValueRange<int>(0, 2)));
 
             ShowItemFeed = file.Bind(
                 "Archipelago",

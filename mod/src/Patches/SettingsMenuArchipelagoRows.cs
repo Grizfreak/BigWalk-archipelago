@@ -68,6 +68,7 @@ namespace BigWalkArchipelago.Patches
                     BuildSizeRow(template, rows);
                     BuildDeathLinkRows(template, rows);
                     BuildHintRow(template, rows);
+                    BuildTilePoolRow(template, rows);
                     BuildFlareRow(template, rows);
                     BuildMessagesRows(template, rows);
                     _rows = rows;
@@ -334,6 +335,7 @@ namespace BigWalkArchipelago.Patches
         // its left edge on that line's, with a gap of 40 % of that line's height.
         private static void PlaceGourdRow()
         {
+            FitRows();
             var below = _arrayRows.Count > 0 ? _arrayRows[_arrayRows.Count - 1].Row : _sizeRow;
             if (_gourdRow == null || below == null)
                 return;
@@ -378,6 +380,26 @@ namespace BigWalkArchipelago.Patches
 
         private static bool _layoutLogged;
         private static bool _shiftLogged;
+        private static bool _rowsFitted;
+
+        // The page held six arrow lines and the gourd name: past six, tighter spacing keeps it.
+        private static void FitRows()
+        {
+            if (_rowsFitted || _arrayRows.Count < 7)
+                return;
+            var parent = _arrayRows[0].Row.parent;
+            var group = parent != null ? parent.GetComponent<VerticalLayoutGroup>() : null;
+            var height = _arrayRows[0].Row.rect.height;
+            if (group == null || height <= 0f)
+                return;
+
+            _rowsFitted = true;
+            var count = _arrayRows.Count;
+            var before = group.spacing;
+            group.spacing = (6 * height + 5 * before - count * height) / (count - 1);
+            LayoutRebuilder.MarkLayoutForRebuild(parent.GetComponent<RectTransform>());
+            Plugin.Log.LogInfo($"{Tag} {count} lines of {height:0} px: spacing {before:0.#} -> {group.spacing:0.#}.");
+        }
 
         // Once: how the panel lays its lines out, to stop guessing (2026-10-06).
         private static void LogLayout(Vector3 sizeBottomLeft, float sizeHeight, Vector3 gourdTopLeft, Vector3 target)
@@ -693,6 +715,20 @@ namespace BigWalkArchipelago.Patches
                 {
                     ModConfig.GuestsCanAskHints.Value = !ModConfig.GuestsCanAskHints.Value;
                     Plugin.Log.LogInfo($"{Tag} Guests can ask hints: {ModConfig.GuestsCanAskHints.Value}.");
+                });
+        }
+
+        private static readonly string[] PoolModes = { "Over the seed", "Game's tiles only", "Off" };
+
+        // The host's tiles/pool (CustomTiles): over the seed, on the game's icons only, or off.
+        private static void BuildTilePoolRow(SettingsRow template, Transform parent)
+        {
+            BuildArrayRow(template, parent, "Tile pool", "TILE POOL :", hostOnly: true,
+                () => PoolModes[Math.Clamp(ModConfig.TilePool.Value, 0, PoolModes.Length - 1)],
+                delta =>
+                {
+                    ModConfig.TilePool.Value = (ModConfig.TilePool.Value + delta + PoolModes.Length) % PoolModes.Length;
+                    Plugin.Log.LogInfo($"{Tag} Tile pool: {PoolModes[ModConfig.TilePool.Value]}.");
                 });
         }
 

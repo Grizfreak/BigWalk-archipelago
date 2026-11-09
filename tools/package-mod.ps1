@@ -143,6 +143,13 @@ Playing together
   the hosting screen, and it is their save that holds the checks, the items
   and the deposits. Keep the same host for the whole game.
 
+Your own tiles and sounds
+-------------------------
+The host can show their own drawings on the tiles and play their own sounds
+on the sound puzzles, for everyone: PNG and WAV files named after the tile
+(PegTileA4.png replaces the G) in BepInEx\config\BigWalkArchipelago\tiles\.
+The guide: CUSTOM-TILES.md in the mod's GitHub repository.
+
 Uninstalling
 ------------
 Delete winhttp.dll, doorstop_config.ini, dotnet\, BepInEx\, README.txt and

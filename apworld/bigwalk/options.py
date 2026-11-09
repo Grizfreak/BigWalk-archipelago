@@ -1107,7 +1107,8 @@ class CustomTiles(Choice):
     - all: nine drawn among every tile.
     - custom_only: nine drawn among the drawings alone: none of the game's basic tiles stays.
 
-    How often each one is drawn: Custom Tile Weights; tiles you want for sure: Custom Tile Choices.
+    How often each one is drawn: Custom Tile Weights; tiles you want for sure: Custom Tile Choices. Your own
+    drawings, from the host's folder: CUSTOM-TILES.md in the mod's repository.
     """
 
     display_name = "Custom Tiles"
@@ -1124,7 +1125,7 @@ class CustomDrawings(Toggle):
     The community's scribbles for the drawing panels (the Poet's and the Pontiff's puzzles): each one takes the place
     of one of the game's 45 scribbles, drawn for the seed. Like the custom tiles, only what a tile shows changes.
     None are in this version yet: until some are added, on and off play alike. How to add one: the README of the
-    mod's mod/assets/tiles folder.
+    mod's mod/assets/tiles folder. Your own scribbles, from the host's folder: CUSTOM-TILES.md in the mod's repository.
     """
 
     display_name = "Custom Drawings"

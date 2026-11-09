@@ -27,6 +27,9 @@ From the [releases](https://github.com/Grizfreak/BigWalk-archipelago/releases):
 
 → **[The full setup guide](SETUP.md)**
 
+→ **[Your own tile drawings and sounds](CUSTOM-TILES.md)**: drop PNG and WAV files in a
+folder, no coding.
+
 ## Big Walk is co-op, and so is this
 
 Nothing here can be played solo: both bells and every monument deposit need

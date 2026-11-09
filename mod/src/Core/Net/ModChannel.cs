@@ -64,7 +64,7 @@ namespace BigWalkArchipelago.Core.Net
 
         // Both ends must speak the same version; a mismatch is logged once
         // and ignored rather than half-read.
-        private const byte ProtocolVersion = 25;
+        private const byte ProtocolVersion = 26;
 
         private const byte KindHello = 1;
         private const byte KindSnapshot = 2;
@@ -93,6 +93,9 @@ namespace BigWalkArchipelago.Core.Net
 
         // U2: the host tells the guests the map tracker's state of every check (Core/MapTracker).
         private const byte KindMap = 8;
+
+        // A chunk of a blob the host shares (BlobChannel): channel 0 tile sounds, 1 drawings.
+        private const byte KindBlob = 9;
 
         private const float SnapshotIntervalSeconds = 1f;
 
@@ -276,12 +279,50 @@ namespace BigWalkArchipelago.Core.Net
             PruneAnnounced();
             TrackGuests();
             TickRepublish();
+            PumpBlobs();
 
             if (Time.unscaledTime < _nextSnapshot || Announced.Count == 0)
                 return;
 
             _nextSnapshot = Time.unscaledTime + SnapshotIntervalSeconds;
             SendSnapshotToAnnounced();
+        }
+
+        private static void PumpBlobs()
+        {
+            var guests = new List<NetworkConnection>();
+            foreach (var connection in NetworkServer.connections.Values)
+            {
+                if (connection != null && Announced.Contains(connection.connectionId))
+                    guests.Add(connection);
+            }
+            TileSounds.PumpHost(guests);
+            CustomTiles.PumpHost(guests);
+        }
+
+        internal static void SendBlobChunk(NetworkConnection connection, byte channel, string key, ulong hash, byte[] compressed, int offset, int count)
+        {
+            try
+            {
+                var chunk = new byte[count];
+                Buffer.BlockCopy(compressed, offset, chunk, 0, count);
+                var writer = new NetworkWriter();
+                NetworkWriterExtensions.WriteUShort(writer, MessageId);
+                writer.WriteByte(KindBlob);
+                writer.WriteByte(ProtocolVersion);
+                writer.WriteByte(channel);
+                NetworkWriterExtensions.WriteString(writer, key);
+                NetworkWriterExtensions.WriteULong(writer, hash);
+                NetworkWriterExtensions.WriteInt(writer, compressed.Length);
+                NetworkWriterExtensions.WriteInt(writer, offset);
+                NetworkWriterExtensions.WriteInt(writer, count);
+                writer.WriteBytes((Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<byte>)chunk, 0, count);
+                connection.Send(writer.ToArraySegment(), 0);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"[{nameof(ModChannel)}] Could not send '{key}' to guest #{connection.connectionId}: {ex.Message}");
+            }
         }
 
         private static void ResetHost()
@@ -528,6 +569,23 @@ namespace BigWalkArchipelago.Core.Net
                 writer.WriteByte((byte)Math.Min(pegTiles.Length, byte.MaxValue));
                 for (var i = 0; i < pegTiles.Length && i < byte.MaxValue; i++)
                     NetworkWriterExtensions.WriteString(writer, pegTiles[i]);
+                var tileSounds = TileSounds.HostManifest();
+                writer.WriteByte((byte)tileSounds.Count);
+                foreach (var pair in tileSounds)
+                {
+                    writer.WriteByte((byte)pair.Key);
+                    NetworkWriterExtensions.WriteULong(writer, pair.Value);
+                }
+                var drawings = CustomTiles.HostManifest();
+                writer.WriteByte((byte)Math.Min(drawings.Count, byte.MaxValue));
+                var written = 0;
+                foreach (var pair in drawings)
+                {
+                    if (written++ == byte.MaxValue)
+                        break;
+                    NetworkWriterExtensions.WriteString(writer, pair.Key);
+                    NetworkWriterExtensions.WriteULong(writer, pair.Value);
+                }
 
                 connection.Send(writer.ToArraySegment(), 0);
             }
@@ -750,6 +808,7 @@ namespace BigWalkArchipelago.Core.Net
                 Palette.ForgetMirror();
                 GourdNames.ForgetMirror();
                 CustomTiles.ForgetMirror();
+                TileSounds.ForgetMirror();
             }
 
             _clientHandlerRegistered = false;
@@ -884,6 +943,30 @@ namespace BigWalkArchipelago.Core.Net
                     return;
                 }
 
+                if (kind == KindBlob)
+                {
+                    if (reader.ReadByte() != ProtocolVersion)
+                        return;
+                    var channel = reader.ReadByte();
+                    var key = NetworkReaderExtensions.ReadString(reader);
+                    var hash = NetworkReaderExtensions.ReadULong(reader);
+                    var total = NetworkReaderExtensions.ReadInt(reader);
+                    var offset = NetworkReaderExtensions.ReadInt(reader);
+                    var length = NetworkReaderExtensions.ReadInt(reader);
+                    // Bounded before reading: no chunk is larger than the host cuts them.
+                    if (length <= 0 || length > BlobChannel.ChunkBytes || key == null || key.Length > BlobChannel.MaxKeyLength)
+                        return;
+                    var raw = NetworkReaderExtensions.ReadBytes(reader, length);
+                    var data = new byte[length];
+                    for (var i = 0; i < length; i++)
+                        data[i] = raw[i];
+                    if (channel == 0)
+                        TileSounds.ReceiveChunk(key, hash, total, offset, data);
+                    else if (channel == 1)
+                        CustomTiles.ReceiveChunk(key, hash, total, offset, data);
+                    return;
+                }
+
                 if (kind == KindNotice)
                 {
                     if (reader.ReadByte() == ProtocolVersion)
@@ -981,6 +1064,24 @@ namespace BigWalkArchipelago.Core.Net
                 var pegTileCount = reader.ReadByte();
                 for (var i = 0; i < pegTileCount; i++)
                     pegTiles.Add(NetworkReaderExtensions.ReadString(reader));
+                var tileSounds = new Dictionary<int, ulong>();
+                var tileSoundCount = reader.ReadByte();
+                for (var i = 0; i < tileSoundCount; i++)
+                {
+                    var soundKind = reader.ReadByte();
+                    var hash = NetworkReaderExtensions.ReadULong(reader);
+                    if (soundKind < 9)
+                        tileSounds[soundKind] = hash;
+                }
+                var drawings = new Dictionary<string, ulong>();
+                var drawingCount = reader.ReadByte();
+                for (var i = 0; i < drawingCount; i++)
+                {
+                    var key = NetworkReaderExtensions.ReadString(reader);
+                    var hash = NetworkReaderExtensions.ReadULong(reader);
+                    if (!string.IsNullOrEmpty(key) && key.Length <= BlobChannel.MaxKeyLength)
+                        drawings[key] = hash;
+                }
 
                 var first = _receivedAt < 0f;
 
@@ -1028,6 +1129,8 @@ namespace BigWalkArchipelago.Core.Net
                 HintBoards.ApplyFromHost(hintFlags, hintNames);
                 ZoneLocks.ApplyFromHost(zoneLocked);
                 CustomTiles.ApplyFromHost(pegTiles);
+                CustomTiles.ApplyDrawingsFromHost(drawings);
+                TileSounds.ApplyManifestFromHost(tileSounds);
             }
             catch (Exception ex)
             {

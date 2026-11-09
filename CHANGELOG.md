@@ -8,6 +8,24 @@ unwinnable, which is why every player of a session should run the same build.
 
 ## Unreleased
 
+### Moving from 1.0.8
+
+- Everyone in a session needs this version: the mod's protocol is now v26.
+
+### Added
+
+- **Your own tiles** (Vidyo): the host's PNGs in `BepInEx/config/BigWalkArchipelago/tiles/` are shown on the peg
+  tiles, for every player of the session (the host sends them; a guest's own files are not used). Named after a tile
+  kind (`PegTileA4.png`), one replaces that icon or scribble; named after one of the mod's drawings (`pelly.png`), it
+  stands in for it. Any PNG that is not interlaced, any size up to 4096 pixels, with or without transparency; the
+  folder is read again when it changes. How to, step by step: `CUSTOM-TILES.md`.
+- **A pool of your own drawings**: any number of PNGs in the tiles folder's `pool`, drawn for the icon tiles by the
+  seed and slot (the same on every reconnection). Settings > Archipelago > Tile pool, on the host: over the seed's
+  own draw, only on the icons the seed left as the game's, or off.
+- **Your own tile sounds**: `PegTileA1.wav` to `PegTileA9.wav` in the same folder replace the icon tiles' parts of
+  the music on the speakers of Singer and Selector, Dancer and Selector and Tile Thief. The sound is their clue, so the
+  host's sounds are sent to every guest (samples only, checked by size and hash) and a guest's own files are not used.
+
 ### Fixed
 
 - **The two lamps behind the Big Wall were in logic without the Big Wall Door** (Morgan): they now sit behind it,

@@ -2,7 +2,8 @@
 
 Drawings the mod can show on Big Walk's peg tiles, by category, one folder each. A tile only changes what it shows:
 every puzzle asks for the same tiles, and every player of a session sees the same drawing (the drawings travel inside
-the mod, never from one machine to another).
+the mod). To show your own drawings or sounds for one session without proposing them here, see
+[`CUSTOM-TILES.md`](../../../CUSTOM-TILES.md): the host's files are sent to the other players.
 
 | Folder | Replaces | Option |
 |---|---|---|

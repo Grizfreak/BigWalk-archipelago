@@ -299,6 +299,9 @@ the main menu or the pause menu. Nothing there is in the YAML.
 - **Gentle effects** (each player, off by default): the traps' flashes are not shown on your screen,
   for players who find them hard to look at. Today that is Big Flare's. Everyone else keeps theirs, and
   nothing else changes, the clock included.
+- **Tile pool** (the host): how the drawings of the tiles folder's `pool` are drawn for the icon
+  tiles, over the seed's own draw, on the game's own icons only, or off (see
+  [CUSTOM-TILES.md](CUSTOM-TILES.md)).
 - **Gourd name** (the host): free text, up to 24 characters, applied with Enter or by leaving the
   field. The overlay says it instead of "Gourd" on every player's screen; a guest sees the host's,
   greyed. Left at "Gourd", it shows the seed's `gourd_name` (the YAML option, which renames the
@@ -338,3 +341,9 @@ the `[Archipelago]` section:
 
 The `[Debug]` section is off by default and is developer tooling, not
 gameplay.
+
+## Your own tiles
+
+The host can put their own drawings on the peg tiles and their own sounds on the sound puzzles,
+for everyone in the session, by dropping PNG and WAV files in
+`BepInEx/config/BigWalkArchipelago/tiles/`. How to, step by step: [CUSTOM-TILES.md](CUSTOM-TILES.md).
