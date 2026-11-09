@@ -411,7 +411,8 @@ class ZoneLocks(Toggle):
     - Lamps and light switches: they stay usable, but they are out of logic until the item arrives (lighting one
       early still sends its check).
 
-    The tutorial's, the Map Room's, the chairlift's, the tunnels' and the train's keep the lock they have.
+    The tutorial's, the Map Room's, the chairlift's, the tunnels', the Big Wall's and the train's keep the lock
+    they have.
     """
 
     display_name = "Zone Locks"

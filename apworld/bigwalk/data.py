@@ -1133,8 +1133,9 @@ class IslandObject(NamedTuple):
     location_name: str
     zone: str
     """
-    Where it lies: start (the tutorial), overworld, chairlift, tunnels, map_room (behind the Map Room's
-    door, its item), or tower:<big key prop> (a tower's roof and stairs: the far door of that tower).
+    Where it lies: start (the tutorial), overworld, chairlift, tunnels, big_wall (behind the Big Wall Door),
+    map_room (behind the Map Room's door, its item), or tower:<big key prop> (a tower's roof and stairs: the
+    far door of that tower).
     """
 
 
@@ -1230,7 +1231,8 @@ ISLAND_OBJECTS: tuple[IslandObject, ...] = (
     IslandObject("b5461e87-1a09-4f2c-b9b5-158f195adbf3", "BuoyProp", "Lamp (near Cannonball Commute)", "chairlift"),
     IslandObject("5d10fec3-7a2d-4bfd-be0e-6196152d88f5", "BuoyProp", "Lamp (near Cannonball 1)", "overworld"),
     IslandObject("12a7f64b-8175-4857-a371-77dc2989cd68", "BuoyProp", "Lamp (near Cannonball 2)", "overworld"),
-    IslandObject("b95078fd-d8f2-4fd9-b2aa-ecf8b84fdad7", "BuoyProp", "Lamp (near Centurion Song)", "overworld"),
+    # Behind the Big Wall, on the far side from the Centurion Song (Morgan, 2026-11-08).
+    IslandObject("b95078fd-d8f2-4fd9-b2aa-ecf8b84fdad7", "BuoyProp", "Lamp (Big Wall)", "big_wall"),
     IslandObject("59a73457-6368-4639-8ec7-335902797343", "BuoyProp", "Lamp (near Coordinates)", "overworld"),
     IslandObject("f7f2e9ed-14fd-4a54-a918-fc06b444a39e", "BuoyProp", "Lamp (near Easy Simultaneous Press)", "overworld"),
     IslandObject("80e38f3e-d054-4187-9675-66d6e70c8356", "BuoyProp", "Lamp (near Egg Hunt)", "overworld"),
@@ -1271,7 +1273,7 @@ ISLAND_OBJECTS: tuple[IslandObject, ...] = (
     IslandObject("b2f9b7af-39f5-431c-9908-c2ebf6d6453b", "BuoyLight", "Pedestal Lamp (near Breadcrumb Loop 1)", "overworld"),
     IslandObject("16990dcc-ebb8-453e-88fc-6478e3980728", "BuoyLight", "Pedestal Lamp (near Breadcrumb Loop 2)", "overworld"),
     IslandObject("db6fc3f6-366c-4cf9-81f1-9c45cbdceef4", "BuoyLight", "Pedestal Lamp (near Cabin Fever Long)", "chairlift"),
-    IslandObject("cf2e3191-4c77-4ce9-8c56-f43a73d6e531", "BuoyLight", "Pedestal Lamp (near Centurion Song)", "overworld"),
+    IslandObject("cf2e3191-4c77-4ce9-8c56-f43a73d6e531", "BuoyLight", "Pedestal Lamp (Big Wall)", "big_wall"),
     IslandObject("080554bb-bc16-41cd-bc96-4765cec96beb", "BuoyLight", "Pedestal Lamp (near Egg Hunt)", "overworld"),
     IslandObject("d0a1c556-d62f-42df-a36e-019636da7679", "BuoyLight", "Pedestal Lamp (near Fielding)", "overworld"),
     IslandObject("5efbf72b-9dff-4251-a536-f625ba8ff315", "BuoyLight", "Pedestal Lamp (near High Button 1)", "overworld"),
@@ -1412,8 +1414,8 @@ LIGHTS: tuple[Light, ...] = (
 
 # --------------------------------------------------------------------------
 # Zone locks (ROADMAP R12, player 2026-10-14): the island's lamps and gadgets, by the zone of the nearest coloured
-# tower, each zone's lamps and gadgets an item. The Map Room's, the chairlift's, the tunnels', the tutorial's and the
-# train's keep the lock they have.
+# tower, each zone's lamps and gadgets an item. The Map Room's, the chairlift's, the tunnels', the Big Wall's, the
+# tutorial's and the train's keep the lock they have.
 
 ZONE_LOCK_ID_OFFSET = 14_300
 """`BASE_ID + 14_300 + position` in ZONE_LOCKS (the lights end below 14_200)."""
@@ -1526,13 +1528,11 @@ OVERWORLD_ZONES: dict[str, str] = {
     "185e3864-0dcb-498b-baee-6da1a4b21a8e": "red",  # Walkie-Talkie (Red Cone Hill, Yellow)
     "f29614f5-0c70-4ed8-b152-9e57b371f20d": "red",  # Walkie-Talkie (Red Cone Valley, Blue)
     "1c9f8bc9-5850-4085-80f6-05c2821b505d": "yellow",  # Clock (Green Diffuser Train Stop)
-    "b95078fd-d8f2-4fd9-b2aa-ecf8b84fdad7": "yellow",  # Lamp (near Centurion Song)
     "80e38f3e-d054-4187-9675-66d6e70c8356": "yellow",  # Lamp (near Egg Hunt)
     "6a673617-992d-49ca-87f9-223aef4c9fe4": "yellow",  # Lamp (near Scout Bombs)
     "6beb48a3-60de-41e8-a9f6-d39772bcdfa4": "yellow",  # Lamp (near Singer and Selector)
     "TrainSystem/TrainStop - Green Diffuser/Lighting/BasicLightSwitch/LightSwitchPeckLogic": "yellow",  # Light Switch (Green Diffuser Train Stop) On
     "c6259d07-2499-4063-b033-b72cddd951c2": "yellow",  # Megaphone (Ramp Holder)
-    "cf2e3191-4c77-4ce9-8c56-f43a73d6e531": "yellow",  # Pedestal Lamp (near Centurion Song)
     "080554bb-bc16-41cd-bc96-4765cec96beb": "yellow",  # Pedestal Lamp (near Egg Hunt)
     "11c1d018-3dbf-46d4-b1de-f9aba4d29fc2": "yellow",  # Pedestal Lamp (near Observation Room 1)
     "bef6d32e-57a9-4ba1-b984-05fdec08800c": "yellow",  # Pedestal Lamp (near Observation Room 2)

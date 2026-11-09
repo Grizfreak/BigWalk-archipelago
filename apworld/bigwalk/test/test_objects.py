@@ -94,6 +94,6 @@ class TestObjectData(BigWalkTestBase):
         kinds = {kind for kind, _ in data.OBJECT_KINDS}
         self.assertEqual(set(data.OBJECT_KIND_KEYS), kinds)
         self.assertFalse({obj.kind for obj in data.ISLAND_OBJECTS} - kinds)
-        zones = {"start", "overworld", "chairlift", "tunnels", "map_room"}
+        zones = {"start", "overworld", "chairlift", "tunnels", "big_wall", "map_room"}
         for obj in data.ISLAND_OBJECTS:
             self.assertTrue(obj.zone in zones or obj.zone.startswith("tower:"), obj.location_name)

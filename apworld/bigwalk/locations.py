@@ -62,6 +62,7 @@ OBJECT_ZONE_REGIONS: dict[str, str] = {
     "start": regions.STARTING_ZONE,
     "chairlift": regions.CHAIRLIFT_ZONE,
     "tunnels": regions.TUNNEL_ZONE,
+    "big_wall": regions.ENDING_ZONE,
 }
 """An island object's region by its zone; the rest (overworld, map_room, tower:...) are in the overworld."""
 

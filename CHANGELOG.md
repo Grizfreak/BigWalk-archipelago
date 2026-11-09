@@ -6,6 +6,16 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## Unreleased
+
+### Fixed
+
+- **The two lamps behind the Big Wall were in logic without the Big Wall Door** (Morgan): they now sit behind it,
+  as objects and as lights, and no longer count as yellow-zone lamps for `zone_locks`. They are renamed
+  `Lamp (Big Wall)` and `Pedestal Lamp (Big Wall)` (they were "near Centurion Song", the nearest puzzle as the crow
+  flies); their ids do not change, but a YAML naming them in `exclude_locations` or `priority_locations` needs the
+  new names.
+
 ## 1.0.8
 
 ### Moving from 1.0.7 to 1.0.8
