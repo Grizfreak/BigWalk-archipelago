@@ -6,6 +6,19 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## 1.0.10
+
+### Moving from 1.0.9 to 1.0.10
+
+- Only the apworld changed: the mod is the same as 1.0.9's (protocol v26), so a 1.0.10 seed plays with the 1.0.9
+  mod, and the 1.0.10 mod plays a 1.0.9 seed.
+- A 1.0.9 YAML generates as it did: `lock_running: true` reads as `anywhere`, `false` as `off`.
+
+### Added
+
+- **`lock_running: early`** (EnvyOmega): Running stays an item, placed among the first checks anyone can reach (in a
+  solo seed, in the starting zone). `lock_running` is now `off`, `anywhere` or `early`.
+
 ## 1.0.9
 
 ### Moving from 1.0.8 to 1.0.9
