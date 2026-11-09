@@ -114,10 +114,80 @@ namespace BigWalkArchipelago.Debug
             }
 
             DumpDataSets(text);
+            DumpTileMusic(text);
 
             var path = System.IO.Path.Combine(Paths.BepInExRootPath, $"peg-tile-dump-{++_count}.txt");
             File.WriteAllText(path, text.ToString());
             Plugin.Log.LogInfo($"[{nameof(DebugPegTileDump)}] {tiles} tile(s) written to {path}.");
+        }
+
+        // Sound tiles: each connector's kind, its set's kind -> stem index, and each stem's clip.
+        private static void DumpTileMusic(StringBuilder text)
+        {
+            var groups = new Dictionary<IntPtr, MusicGroup>();
+            foreach (var connector in UnityEngine.Object.FindObjectsByType<PegTileMusicConnector>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                try
+                {
+                    var set = connector.pegTileMusicSet;
+                    var group = set != null ? set.musicGroup : null;
+                    text.AppendLine($"music connector {Path(connector.transform)} kind {connector.propGroup} active {connector.isActiveAndEnabled}"
+                                    + $" set '{(set != null ? set.name : "-")}' group '{(group != null ? group.name : "-")}'"
+                                    + $" on '{connector.onSound?.name}' off '{connector.offSound?.name}' scramble '{connector.scrambleSound?.name}'");
+                    if (set?.mappings != null)
+                        foreach (var pair in set.mappings)
+                            text.AppendLine($"  {pair.propGroup} -> stem {pair.Index}");
+                    if (group != null)
+                        groups[group.Pointer] = group;
+                }
+                catch (Exception ex)
+                {
+                    text.AppendLine("# music connector unreadable: " + ex.Message);
+                }
+            }
+
+            foreach (var player in UnityEngine.Object.FindObjectsByType<MusicPlayer>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                try
+                {
+                    var controller = player.ASC;
+                    var source = controller?._audioSource;
+                    text.AppendLine($"music player {Path(player.transform)} group '{player.MusicConfig?.name}' index {player.Index}"
+                                    + $" asset '{player.Asset?.name}' asc clip '{controller?._clip?.name}'"
+                                    + $" source clip '{source?.clip?.name}' playing {source?.isPlaying} time {source?.time:0.00}");
+                }
+                catch (Exception ex)
+                {
+                    text.AppendLine("# music player unreadable: " + ex.Message);
+                }
+            }
+
+            foreach (var group in groups.Values)
+            {
+                try
+                {
+                    text.AppendLine($"music group '{group.name}' sync {group.SyncToTimeOfDay} duration {group.Duration:0.00}s"
+                                    + $" mono '{Clip(group.MonoMix)}' bpm {(group.BPM != null && group.BPM.Length > 0 ? group.BPM[0].BPM : 0)}");
+                    if (group.SpeakerStems != null)
+                        for (var i = 0; i < group.SpeakerStems.Length; i++)
+                        {
+                            var cue = group.SpeakerStems[i];
+                            text.AppendLine($"  stem {i} cue '{cue?.name}' loop {cue?._loop} clip {Clip(cue)}");
+                        }
+                }
+                catch (Exception ex)
+                {
+                    text.AppendLine("# music group unreadable: " + ex.Message);
+                }
+            }
+        }
+
+        private static string Clip(SoundCue cue)
+        {
+            var clip = cue?._clip;
+            if (clip == null)
+                return "-";
+            return $"'{clip.name}' {clip.length:0.00}s {clip.frequency}Hz x{clip.channels} {clip.loadType} {clip.loadState}";
         }
 
         // R8 (custom tiles): every PegTileDataSet in use (its atlas cells per tile kind, its materials), its
