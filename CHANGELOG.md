@@ -6,6 +6,19 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## 1.0.11
+
+### Moving from 1.0.10 to 1.0.11
+
+- Only the mod changed: the apworld is the same as 1.0.10's (protocol v26), so 1.0.10 seeds and YAMLs work as they
+  are. Every player should still update the mod, the host first: the fix runs on each machine.
+
+### Fixed
+
+- **Custom tile sounds going silent** (Blunty, and two other players): after walking away from the sound tiles'
+  speakers for a while, the host's `PegTileA<n>.wav` sounds stayed silent on coming back. The game unloads idle clips
+  from memory, and a sound built from a file could not be loaded back; the mod now keeps them loaded.
+
 ## 1.0.10
 
 ### Moving from 1.0.9 to 1.0.10
