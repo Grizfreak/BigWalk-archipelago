@@ -106,7 +106,7 @@ namespace BigWalkArchipelago.Core
 
         private static void Apply(Dictionary<int, Sound> wanted)
         {
-            var same = wanted.Count == Applied.Count;
+            var same = wanted.Count == Applied.Count && AllOursLoaded();
             foreach (var pair in wanted)
                 same &= Applied.TryGetValue(pair.Key, out var hash) && hash == pair.Value.Hash;
             if (same)
@@ -164,7 +164,10 @@ namespace BigWalkArchipelago.Core
 
             var players = Repoint(swaps);
             foreach (var clip in dropped)
+            {
+                Unpin(clip);
                 UnityEngine.Object.Destroy(clip);
+            }
 
             Applied.Clear();
             foreach (var pair in wanted)
@@ -225,7 +228,50 @@ namespace BigWalkArchipelago.Core
             var clip = AudioClip.Create(name, length, 1, Rate, false);
             clip.SetData((Il2CppStructArray<float>)samples, 0);
             clip.hideFlags = HideFlags.DontUnloadUnusedAsset;
+            Pin(clip);
             return clip;
+        }
+
+        // The game unloads a clip left idle that no sound bank holds; a built clip cannot reload.
+        private static void Pin(AudioClip clip)
+        {
+            try
+            {
+                var references = AudioManager.Instance?.AudioReferenceManager;
+                if (references == null)
+                    Plugin.Log.LogWarning($"{Tag} No audio manager yet: '{clip.name}' may get unloaded.");
+                references?.IncreaseClipSoundBankCount(clip);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogWarning($"{Tag} A tile sound could not be kept loaded: {ex.Message}");
+            }
+        }
+
+        private static void Unpin(AudioClip clip)
+        {
+            try
+            {
+                AudioManager.Instance?.AudioReferenceManager?.DecreaseClipSoundBankCount(clip);
+            }
+            catch (Exception)
+            {
+                // The clip is destroyed right after: a stale count only keeps a dead key.
+            }
+        }
+
+        // Should one get unloaded anyway, the next tick builds it again.
+        private static bool AllOursLoaded()
+        {
+            foreach (var clip in Ours.Values)
+            {
+                if (clip == null || clip.loadState != AudioDataLoadState.Loaded)
+                {
+                    Plugin.Log.LogInfo($"{Tag} A tile sound was unloaded by the game; built again.");
+                    return false;
+                }
+            }
+            return true;
         }
 
         // ------------------------------------------------------------------
