@@ -6,6 +6,19 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## 1.0.13
+
+### Moving from 1.0.12 to 1.0.13
+
+- Only the apworld changed: the mod is the same as 1.0.12's (protocol v26), so a 1.0.13 seed plays with the 1.0.12
+  mod, and 1.0.12 YAMLs generate as they are.
+
+### Changed
+
+- **The logic travels with every seed**: slot_data's `logic` (regions, exits and every rule, as data) used to be sent
+  only with `tracker_board` or `map_tracker`. It is now always there, so an outside tracker such as a PopTracker pack
+  can evaluate the apworld's own rules instead of porting them by hand. Format in `apworld/README.md`.
+
 ## 1.0.12
 
 ### Moving from 1.0.11 to 1.0.12
