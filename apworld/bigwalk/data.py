@@ -1118,6 +1118,12 @@ OBJECT_ABILITIES: dict[str, Body] = {
 }
 """What picking up an island object asks of the body with `lock_abilities`, by its kind."""
 
+OBJECT_GUID_ABILITIES: dict[str, Body] = {
+    # Only reached by riding the mini carousel's swings (Morgan, 2026-11-14).
+    "88942e8e-6fae-4d71-93f0-8500741a82d1": Body(seat=True),  # Binoculars (Carousel)
+}
+"""The same for one object, on top of its kind's, keyed as IslandObject.guid."""
+
 
 def ability_item_id(ability: Ability) -> int:
     return BASE_ID + ABILITY_ID_OFFSET + ABILITIES.index(ability)

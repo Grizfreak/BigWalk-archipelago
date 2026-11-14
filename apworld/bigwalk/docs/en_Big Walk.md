@@ -370,7 +370,8 @@ can do becomes items. Each one applies to every player of the slot at once.
 Puzzles that need gestures ask for them in logic. The Seat and both arms
 extended: Concert, Indoor Semaphore, Optical Telegraph, Charades Rooms,
 Pointer's Paradise, Dancer and Selector, and the Gauntlet's last stage. Both
-arms raised: Invisible Ink. The Seat: the Carousel and Cannonball Commute.
+arms raised: Invisible Ink. The Seat: the Carousel and Cannonball Commute, and
+the Carousel's binoculars with `object_sanity`, only reached on its swings.
 Throwing: Fielding, Window Labyrinth, Basketball and Kick Up Pits. Carrying:
 High Button, the two obbies and Pointer's Paradise, and the three Megaphones
 with `object_sanity`, hung above one player's reach.

@@ -192,6 +192,19 @@ class TestMegaphonesNeedCarrying(BigWalkTestBase):
             self.assertTrue(self.can_reach_location(location), location)
 
 
+class TestCarouselBinocularsNeedSeat(BigWalkTestBase):
+    """The Carousel's binoculars are only reached on its swings (Morgan, 2026-11-14)."""
+
+    options = {"lock_abilities": "handed", "lock_puzzle_needs": False, "object_sanity": "every"}
+
+    def test_binoculars_carousel(self) -> None:
+        self.collect_all_but(["Seat"])
+        self.assertFalse(self.can_reach_location("Binoculars (Carousel)"))
+        self.assertTrue(self.can_reach_location("Binoculars (Peak Marker)"))
+        self.collect_by_name("Seat")
+        self.assertTrue(self.can_reach_location("Binoculars (Carousel)"))
+
+
 class TestChairliftFreeByDefault(BigWalkTestBase):
     options = {"lock_abilities": "handed", "lock_puzzle_needs": False}
 

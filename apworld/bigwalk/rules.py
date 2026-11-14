@@ -336,9 +336,10 @@ def object_rule(world: BigWalkWorld, obj: data.IslandObject) -> Rule | None:
     # A tower's lamps stand at its foot; its other objects are on the roof, past the opening button.
     if obj.zone.startswith("tower:") and not lamp:
         rule = with_all(rule, tower_open(world, obj.zone[len("tower:"):]))
-    body = body_rule(world, data.OBJECT_ABILITIES.get(obj.kind, data.Body()))
-    if body is not None:
-        rule = with_all(rule, [body])
+    for body_need in (data.OBJECT_ABILITIES.get(obj.kind), data.OBJECT_GUID_ABILITIES.get(obj.guid)):
+        body = body_rule(world, body_need) if body_need is not None else None
+        if body is not None:
+            rule = with_all(rule, [body])
     return with_zone(world, rule, obj.guid, obj.zone, lamp)
 
 
