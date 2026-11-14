@@ -6,6 +6,19 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## 1.0.12
+
+### Moving from 1.0.11 to 1.0.12
+
+- Only the apworld changed: the mod is the same as 1.0.11's (protocol v26), so a 1.0.12 seed plays with the 1.0.11
+  mod, and 1.0.11 YAMLs generate as they are. Regenerate a seed to get the fix.
+
+### Fixed
+
+- **Binoculars (Carousel) out of reach** (Morgan): with `lock_abilities` and `object_sanity`, the logic could ask for
+  the Carousel's binoculars before the Seat, though they are only reached by riding the Carousel's swings. They now
+  need the Seat.
+
 ## 1.0.11
 
 ### Moving from 1.0.10 to 1.0.11
