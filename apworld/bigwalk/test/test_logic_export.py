@@ -90,13 +90,14 @@ class LogicExportChecks:
             self.compare(self.multiworld.random.sample(progression, self.multiworld.random.randint(0, len(progression))))
 
 
-class TestOffByDefault(BigWalkTestBase):
-    run_default_tests = False
+class TestSentWithoutTheBoard(LogicExportChecks, BigWalkTestBase):
+    """Outside trackers read the logic too, so it travels with the board and the map tracker off."""
 
-    def test_no_logic_without_the_board(self) -> None:
+    def test_the_logic_is_there(self) -> None:
         slot_data = self.world.fill_slot_data()
         self.assertFalse(slot_data["tracker_board"])
-        self.assertNotIn("logic", slot_data)
+        self.assertEqual(slot_data["map_tracker"], "off")
+        self.assertIn("logic", slot_data)
 
 
 class TestDefaults(LogicExportChecks, BigWalkTestBase):

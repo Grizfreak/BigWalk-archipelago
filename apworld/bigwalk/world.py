@@ -1052,7 +1052,8 @@ class BigWalkWorld(World):
             "hint_items": self._hint_items(),
             # U2: the Map Room's map as a tracker; it needs the logic too.
             "map_tracker": self.options.map_tracker.current_key,
-            **({"logic": logic_export.export(self)} if self.options.tracker_board or self.options.map_tracker else {}),
+            # Always sent: outside trackers (PopTracker) evaluate it instead of porting the rules.
+            "logic": logic_export.export(self),
             "guests_can_resync": bool(self.options.guests_can_resync),
 
             # The waits of the two Cabin Fever puzzles (mod only), flat: mode, seconds, help, hide_timer.

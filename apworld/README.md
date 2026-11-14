@@ -90,6 +90,11 @@ accepted (`ending`, `gauntlet`, `second_ending` / `secret_ending`, `deposits` /
 the world from those instead of from whatever sits in the tracking player's
 `Players` folder.
 
+**Other trackers** (PopTracker packs) — slot_data carries the whole logic as
+data in `logic` (format in [`protocol.md`](protocol.md)): regions, exits and
+every rule, by item and location name. Evaluating it keeps a tracker in step
+with the apworld without porting the rules by hand.
+
 The assumptions the logic makes that have never been verified in game decide
 whether a generated seed is actually finishable: a seed played from the first
 check to the goal is still to do.

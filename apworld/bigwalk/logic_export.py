@@ -2,6 +2,7 @@
 The world's logic, written into slot_data for the mod (R7, `tracker_board`, player 2026-10-13): a board in
 the hub names the checks in logic, so the mod has to know the logic. Every rule of this world is built with the
 rule builder, which is data, so it travels as data and the mod evaluates it again with the items it has received.
+Sent in every seed since 1.0.13, for outside trackers (PopTracker) as well.
 
 The format (`slot_data["logic"]`, documented in ../protocol.md):
 
