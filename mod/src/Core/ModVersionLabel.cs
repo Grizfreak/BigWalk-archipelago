@@ -11,7 +11,7 @@ namespace BigWalkArchipelago.Core
     // read it was the first lines of BepInEx's log.
     //
     // Menus only: in the world the corner belongs to the game, and the
-    // Archipelago overlay already has the top-left.
+    // Archipelago overlay already has the top-left; in the world, only while its menus are open.
     internal class ModVersionLabel : MonoBehaviour
     {
         // Constructor required by Il2CppInterop for any type injected into IL2CPP.
@@ -33,7 +33,7 @@ namespace BigWalkArchipelago.Core
 
         private void OnGUI()
         {
-            if (WorldManager.isReadyForEffects)
+            if (WorldManager.isReadyForEffects && !WorldMenuOpen())
                 return;
 
             _style ??= new GUIStyle(GUI.skin.label) { fontSize = FontSize, wordWrap = false };
@@ -47,5 +47,16 @@ namespace BigWalkArchipelago.Core
             _style.normal.textColor = TextColor;
             GUI.Label(rect, Text, _style);
         }
+
+        // In the world, the pause and settings menus too (Tyrope, 2026-11-15).
+        private static bool WorldMenuOpen()
+        {
+            var menus = WorldMenuManager.instance;
+            if (menus == null)
+                return false;
+            return Shown(menus.pauseMenuHost) || Shown(menus.pauseMenuClient) || Shown(menus.settingsMenu);
+        }
+
+        private static bool Shown(Component menu) => menu != null && menu.gameObject.activeInHierarchy;
     }
 }
