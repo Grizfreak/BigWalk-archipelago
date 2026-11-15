@@ -25,6 +25,7 @@ namespace BigWalkArchipelago.Debug
         private const float NearbyRadius = 4f;
         private const int MaxParents = 6;
         private const int MaxNearby = 60;
+        private const float SwitchRadius = 6f;
 
         internal static void Log()
         {
@@ -75,6 +76,34 @@ namespace BigWalkArchipelago.Debug
             Plugin.Log.LogInfo($"[{nameof(DebugLookAt)}] {lines.Count} thing(s) within {NearbyRadius}m (showing {Math.Min(lines.Count, MaxNearby)}):");
             foreach (var line in lines.OrderBy(l => float.Parse(l.Substring(0, l.IndexOf('m')), CultureInfo.InvariantCulture)).Take(MaxNearby))
                 Plugin.Log.LogInfo($"[{nameof(DebugLookAt)}]   {line}");
+            LogSwitches(origin, camera);
+        }
+
+        // Each switch nearby on its own: the list above folds a vehicle's parts into its rigidbody.
+        private static void LogSwitches(Vector3 origin, Camera camera)
+        {
+            var switches = UnityEngine.Object.FindObjectsByType<PeckSwitch>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (switches == null)
+                return;
+            foreach (var sw in switches)
+            {
+                if (sw == null)
+                    continue;
+                var root = sw.transform.parent != null ? sw.transform.parent : sw.transform;
+                var distance = Vector3.Distance(origin, root.position);
+                if (distance > SwitchRadius)
+                    continue;
+                var shown = new List<string>();
+                foreach (var r in root.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (r != null)
+                        shown.Add($"{r.name}(active={r.gameObject.activeInHierarchy} on={r.enabled} seen={r.isVisible})");
+                }
+                var local = camera.transform.InverseTransformPoint(root.position);
+                Plugin.Log.LogInfo($"[{nameof(DebugLookAt)}]   switch {distance.ToString("F1", CultureInfo.InvariantCulture)}m "
+                    + $"{PathOf(root)} active={root.gameObject.activeInHierarchy} at {Fmt(root.position)} view {Fmt(local)} "
+                    + $"renderers: {string.Join(", ", shown)}");
+            }
         }
 
         private static (string name, float distance) NearestPuzzle(Vector3 at)
