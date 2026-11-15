@@ -91,9 +91,33 @@ the world from those instead of from whatever sits in the tracking player's
 `Players` folder.
 
 **Other trackers** (PopTracker packs) — slot_data carries the whole logic as
-data in `logic` (format in [`protocol.md`](protocol.md)): regions, exits and
-every rule, by item and location name. Evaluating it keeps a tracker in step
-with the apworld without porting the rules by hand.
+data in `logic`: regions, exits and every rule, by item and location name.
+Evaluating it keeps a tracker in step with the apworld without porting the
+rules by hand. Built by [`bigwalk/logic_export.py`](bigwalk/logic_export.py):
+
+| Key | Content |
+|---|---|
+| `origin` | the region the players start in |
+| `rules` | every distinct rule once; index 0 is always `["true"]` |
+| `exits` | `[from region, to region, rule index]` for every entrance |
+| `locations` | `[name, id, region, rule index, event item]`; id 0 and an event item name for an event, `""` for a real check |
+
+A rule is a nested list:
+
+| Rule | True when |
+|---|---|
+| `["true"]` / `["false"]` | always / never |
+| `["and", [rules]]` / `["or", [rules]]` | all / any of the rules |
+| `["has", item, count]` | at least `count` of `item` received |
+| `["all", [items]]` / `["any", [items]]` | one of each / one of any |
+| `["from", [items], count]` | at least `count` items in total among the list |
+| `["loc", location]` | that location is reachable (its region and its rule) |
+| `["reg", region]` | that region is reachable |
+
+Reachability is a sweep from `origin`: a region is reached through an exit
+whose rule holds, a location when its region is reached and its rule holds.
+An event location gives its event item once reached, which can open more,
+so repeat until nothing changes.
 
 The assumptions the logic makes that have never been verified in game decide
 whether a generated seed is actually finishable: a seed played from the first
