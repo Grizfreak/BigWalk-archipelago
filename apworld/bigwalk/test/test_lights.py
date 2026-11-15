@@ -37,7 +37,7 @@ class TestLightsWithSwitches(BigWalkTestBase):
 
     def test_train_headlights_need_the_train(self) -> None:
         self.collect_all_but(["Train"])
-        self.assertFalse(self.can_reach_location("Light Switch (Train, Front Car) On"))
+        self.assertFalse(self.can_reach_location("Light Switch (Red Train) On"))
         self.assertTrue(self.can_reach_location("Light Switch (Upper Hub Train Stop) On"))
 
 

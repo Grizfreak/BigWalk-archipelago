@@ -233,9 +233,9 @@ class TestTrainRequiresSeat(BigWalkTestBase):
 
     def test_the_headlights_ask_for_the_seat(self) -> None:
         self.collect_all_but(["Seat"])
-        self.assertFalse(self.can_reach_location("Light Switch (Train, Front Car) On"))
+        self.assertFalse(self.can_reach_location("Light Switch (Red Train) On"))
         self.collect_by_name("Seat")
-        self.assertTrue(self.can_reach_location("Light Switch (Train, Front Car) On"))
+        self.assertTrue(self.can_reach_location("Light Switch (Red Train) On"))
 
 
 class TestRidesRequireSeatWithoutLocks(BigWalkTestBase):
