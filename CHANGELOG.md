@@ -24,6 +24,10 @@ unwinnable, which is why every player of a session should run the same build.
   and yellow, each with a headlight switch on its engine's dashboard, right of the horn and bell. "Light Switch
   (Train, Front / Middle / Back Car)" become "Light Switch (Red / Green / Yellow Train)". Their ids do not change.
 
+### Docs
+
+- **The `slot_data["logic"]` format is in the apworld README** (Tyrope): it pointed to a file that is not published.
+
 ## 1.0.13
 
 ### Moving from 1.0.12 to 1.0.13
