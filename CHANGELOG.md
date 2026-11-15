@@ -6,6 +6,24 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## 1.0.14
+
+### Moving from 1.0.13 to 1.0.14
+
+- The mod and the apworld both changed, but nothing on the wire (protocol v26): 1.0.13 seeds and YAMLs work as they
+  are. Update the mod to see its version in game; new seeds get the train switches' new names.
+
+### Added
+
+- **The mod's version in game** (Tyrope): it showed bottom-right on the title and loading screens only; it now also
+  shows there while the pause or settings menu is open in the world.
+
+### Changed
+
+- **The train light switches are named after their trains** (Tyrope): there are three separate trains, red, green
+  and yellow, each with a headlight switch on its engine's dashboard, right of the horn and bell. "Light Switch
+  (Train, Front / Middle / Back Car)" become "Light Switch (Red / Green / Yellow Train)". Their ids do not change.
+
 ## 1.0.13
 
 ### Moving from 1.0.12 to 1.0.13
