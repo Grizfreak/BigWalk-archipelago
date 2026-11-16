@@ -66,6 +66,45 @@ class TestTunnelSanity(BigWalkTestBase):
         self.assertEqual(len(purple), 2)
 
 
+class TestPurpleObjects(BigWalkTestBase):
+    """The lamps past the purple hole wait for it too (caitlin, 1.0.8), as gadgets and as lights."""
+
+    options = {"tunnel_sanity": True, "object_sanity": "every", "light_sanity": "lamps"}
+    run_default_tests = False
+
+    def test_past_the_hole_needs_the_purple_tunnel(self) -> None:
+        purple = [obj for obj in data.ISLAND_OBJECTS if obj.zone == "purple"]
+        self.assertEqual(len(purple), 3)
+        names = [obj.location_name for obj in purple]
+        names += [light.location_name for light in data.LIGHTS if light.zone == "purple"]
+        before = [obj.location_name for obj in data.ISLAND_OBJECTS if obj.zone == "chairlift"]
+        names = [name for name in names if name in self.multiworld.regions.location_cache[self.player]]
+        before = [name for name in before if name in self.multiworld.regions.location_cache[self.player]]
+        self.assertTrue(before)
+        self.collect_by_name(data.GREEN_CUP.item_name)
+        for name in before:
+            self.assertTrue(self.can_reach_location(name), name)
+        for name in names:
+            self.assertFalse(self.can_reach_location(name), name)
+        self.collect_by_name(data.PURPLE_TUNNEL_ITEM_NAME)
+        for name in names:
+            self.assertTrue(self.can_reach_location(name), name)
+
+
+class TestPurpleObjectsWithoutTunnelSanity(BigWalkTestBase):
+    options = {"object_sanity": "every", "light_sanity": "lamps"}
+    run_default_tests = False
+
+    def test_past_the_hole_needs_the_tunnels(self) -> None:
+        names = [light.location_name for light in data.LIGHTS if light.zone == "purple"]
+        self.collect_by_name(data.GREEN_CUP.item_name)
+        for name in names:
+            self.assertFalse(self.can_reach_location(name), name)
+        self.collect_by_name(data.YELLOW_TWIST.item_name)
+        for name in names:
+            self.assertTrue(self.can_reach_location(name), name)
+
+
 class TestTunnelSanityFarDoors(BigWalkTestBase):
     options = {"tunnel_sanity": True, "require_arch_doors": True,
                "start_with_arch_doors_open": [data.FIRST_ARCH_DOOR.item_name]}

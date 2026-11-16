@@ -1139,7 +1139,8 @@ class IslandObject(NamedTuple):
     location_name: str
     zone: str
     """
-    Where it lies: start (the tutorial), overworld, chairlift, tunnels, big_wall (behind the Big Wall Door),
+    Where it lies: start (the tutorial), overworld, chairlift, purple (past the chairlift and the purple hole,
+    by the purple puzzles), tunnels, big_wall (behind the Big Wall Door),
     map_room (behind the Map Room's door, its item), or tower:<big key prop> (a tower's roof and stairs: the
     far door of that tower).
     """
@@ -1154,6 +1155,7 @@ ISLAND_OBJECTS: tuple[IslandObject, ...] = (
     # Every gadget of the island in all three versions of the map (object census, 2026-10-12, Ctrl+Shift+5),
     # placed by the player: the Map Room's bench is inside its door, the Secret Salon and the tunnel outlets'
     # torches are in the tunnels, the Spiral megaphone is past the chairlift, Ocean Treasure is not.
+    # Purple: only reachable through the purple hole, walked by the player on 2026-11-16.
     # Not here: the packs and flare guns (`pack_sanity`, `flare_gun_sanity`), the lamps, the puzzles' tools.
     IslandObject("6364d493-5c48-4480-a02d-ae086ef06825", "BinocularsProp", "Binoculars (Blue Castle Tower)", "tower:bigKeyBlueZone"),
     IslandObject("88942e8e-6fae-4d71-93f0-8500741a82d1", "BinocularsProp", "Binoculars (Carousel)", "overworld"),
@@ -1226,14 +1228,14 @@ ISLAND_OBJECTS: tuple[IslandObject, ...] = (
     IslandObject("1cdcd9a1-0343-4234-b1d9-7be646dec4ae", "BuoyProp", "Lamp (Blue Castle Tower)", "tower:bigKeyBlueZone"),
     IslandObject("24d2f9a5-5376-4a7c-b08c-17e9c060855b", "BuoyProp", "Lamp (Diffuser Peak)", "overworld"),
     IslandObject("fcda7d44-81af-4526-be44-f16a90e5b0ec", "BuoyProp", "Lamp (Green Cup Tower)", "tower:bigKeyGreenZone"),
-    IslandObject("98c2cd14-bbcf-4066-b58c-d7d23d2757f1", "BuoyProp", "Lamp (South Peak 1)", "chairlift"),
+    IslandObject("98c2cd14-bbcf-4066-b58c-d7d23d2757f1", "BuoyProp", "Lamp (South Peak 1)", "purple"),
     IslandObject("d252953b-ebd1-484a-a555-953bccb904c0", "BuoyProp", "Lamp (South Peak 2)", "chairlift"),
     IslandObject("2141d27e-647c-401f-9a0c-a3c1aa029434", "BuoyProp", "Lamp (Tutorial 1)", "start"),
     IslandObject("0cb88fcc-6d33-4b08-9e5e-124a34f7f15b", "BuoyProp", "Lamp (Tutorial 2)", "start"),
     IslandObject("0460483f-1636-4ee6-8635-2168a9acaf34", "BuoyProp", "Lamp (Tutorial 3)", "start"),
     IslandObject("4df70c57-8d1b-447e-bad5-5aa66c1169f4", "BuoyProp", "Lamp (Tutorial 4)", "start"),
     IslandObject("1ff0231c-4933-4bec-b878-4e6f1fe88856", "BuoyProp", "Lamp (Yellow Twist Tower)", "tower:bigKeyYellowZone"),
-    IslandObject("c5e792c4-080b-4377-8d68-f09c00debc91", "BuoyProp", "Lamp (near Cabin Fever Long)", "chairlift"),
+    IslandObject("c5e792c4-080b-4377-8d68-f09c00debc91", "BuoyProp", "Lamp (near Cabin Fever Long)", "overworld"),
     IslandObject("b5461e87-1a09-4f2c-b9b5-158f195adbf3", "BuoyProp", "Lamp (near Cannonball Commute)", "chairlift"),
     IslandObject("5d10fec3-7a2d-4bfd-be0e-6196152d88f5", "BuoyProp", "Lamp (near Cannonball 1)", "overworld"),
     IslandObject("12a7f64b-8175-4857-a371-77dc2989cd68", "BuoyProp", "Lamp (near Cannonball 2)", "overworld"),
@@ -1271,14 +1273,14 @@ ISLAND_OBJECTS: tuple[IslandObject, ...] = (
     IslandObject("cd88c773-6375-42c7-9475-76b288bd1c91", "BuoyLight", "Pedestal Lamp (Peak Marker 3)", "overworld"),
     IslandObject("1b047167-6e68-49c3-abf2-e15fbbeca0a5", "BuoyLight", "Pedestal Lamp (Red Funnel Tower 1)", "tower:bigKeyRedZone"),
     IslandObject("d27fe6ce-2b92-42bd-8d60-8885e368877c", "BuoyLight", "Pedestal Lamp (Red Funnel Tower 2)", "tower:bigKeyRedZone"),
-    IslandObject("b28ac861-6c5d-4702-8b11-ef38df1eac22", "BuoyLight", "Pedestal Lamp (South Peak 1)", "chairlift"),
+    IslandObject("b28ac861-6c5d-4702-8b11-ef38df1eac22", "BuoyLight", "Pedestal Lamp (South Peak 1)", "purple"),
     IslandObject("4cd9c5fc-7414-4bfc-b4a2-6fb4fa0312c5", "BuoyLight", "Pedestal Lamp (South Peak 2)", "chairlift"),
     IslandObject("3d09137d-fbbd-4cb8-a17a-05de7676f61c", "BuoyLight", "Pedestal Lamp (Yellow Twist Tower 1)", "tower:bigKeyYellowZone"),
     IslandObject("d0f4305f-b577-41f7-a879-18be53553509", "BuoyLight", "Pedestal Lamp (Yellow Twist Tower 2)", "tower:bigKeyYellowZone"),
     IslandObject("60412245-4b6c-47eb-a4e7-67eec146bf20", "BuoyLight", "Pedestal Lamp (near Basketball)", "overworld"),
     IslandObject("b2f9b7af-39f5-431c-9908-c2ebf6d6453b", "BuoyLight", "Pedestal Lamp (near Breadcrumb Loop 1)", "overworld"),
     IslandObject("16990dcc-ebb8-453e-88fc-6478e3980728", "BuoyLight", "Pedestal Lamp (near Breadcrumb Loop 2)", "overworld"),
-    IslandObject("db6fc3f6-366c-4cf9-81f1-9c45cbdceef4", "BuoyLight", "Pedestal Lamp (near Cabin Fever Long)", "chairlift"),
+    IslandObject("db6fc3f6-366c-4cf9-81f1-9c45cbdceef4", "BuoyLight", "Pedestal Lamp (near Cabin Fever Long)", "purple"),
     IslandObject("cf2e3191-4c77-4ce9-8c56-f43a73d6e531", "BuoyLight", "Pedestal Lamp (Big Wall)", "big_wall"),
     IslandObject("080554bb-bc16-41cd-bc96-4765cec96beb", "BuoyLight", "Pedestal Lamp (near Egg Hunt)", "overworld"),
     IslandObject("d0a1c556-d62f-42df-a36e-019636da7679", "BuoyLight", "Pedestal Lamp (near Fielding)", "overworld"),

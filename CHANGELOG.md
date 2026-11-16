@@ -6,6 +6,15 @@ an older apworld plays with a newer mod (ids never change); the other way
 round, an older mod ignores what it does not know and can make a seed
 unwinnable, which is why every player of a session should run the same build.
 
+## Unreleased
+
+### Fixed
+
+- **Three lamps past the purple hole were in logic without it** (caitlin): the 1.0.7 fix only covered the seven
+  purple puzzles. Lamp and Pedestal Lamp (South Peak 1) and Pedestal Lamp (near Cabin Fever Long) now need the
+  Tunnels item too (the Purple Tunnel with `tunnel_sanity`). Lamp (near Cabin Fever Long), on the coast, no longer needs the chairlift. Apworld only: no
+  change to the mod or the YAMLs.
+
 ## 1.0.14
 
 ### Moving from 1.0.13 to 1.0.14

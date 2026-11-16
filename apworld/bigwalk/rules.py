@@ -365,6 +365,8 @@ def place_rule(world: BigWalkWorld, zone: str) -> Rule | None:
     """What a place of the island asks for beyond its region, as object_rule says."""
     if zone == "map_room":
         return Has(data.tower_by_prop("bigKeyRedZone").item_name)
+    if zone == "purple":
+        return purple_hole(world)
     if zone.startswith("tower:"):
         door = data.TOWER_FAR_DOOR.get(zone[len("tower:"):])
         if door is not None and world.options.require_arch_doors and door in world.locked_arch_doors:

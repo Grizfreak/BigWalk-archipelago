@@ -61,6 +61,7 @@ LOCATION_NAME_GROUPS: dict[str, set[str]] = {
 OBJECT_ZONE_REGIONS: dict[str, str] = {
     "start": regions.STARTING_ZONE,
     "chairlift": regions.CHAIRLIFT_ZONE,
+    "purple": regions.CHAIRLIFT_ZONE,
     "tunnels": regions.TUNNEL_ZONE,
     "big_wall": regions.ENDING_ZONE,
 }
