@@ -19,6 +19,8 @@ unwinnable, which is why every player of a session should run the same build.
   purple puzzles. Lamp and Pedestal Lamp (South Peak 1) and Pedestal Lamp (near Cabin Fever Long) now need the
   Tunnels item too (the Purple Tunnel with `tunnel_sanity`). Lamp (near Cabin Fever Long), on the coast, no longer
   needs the chairlift.
+- **South Peak Fireworks were in logic without the chairlift** (Tyrope): the launcher sits past it, like the Maroon
+  Backpack and the Blue Belt, and now needs the Chairlift item too.
 
 ## 1.0.14
 

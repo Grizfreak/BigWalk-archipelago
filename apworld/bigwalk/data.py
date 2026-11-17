@@ -934,7 +934,7 @@ FIREWORKS: tuple[Firework, ...] = (
     Firework("Lookout_BlueTube", "Blue Castle Tower Fireworks", tower="bigKeyBlueZone"),
     Firework("Lookout_GreenHourglass", "Green Cup Tower Fireworks", tower="bigKeyGreenZone"),
     Firework("PeakMarker", "Peak Fireworks"),
-    Firework("SouthPeak", "South Peak Fireworks"),
+    Firework("SouthPeak", "South Peak Fireworks", past_chairlift=True),
     Firework("FireworksPlatform_Intro", "Intro Platform Fireworks"),
 )
 """

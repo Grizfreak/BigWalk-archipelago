@@ -28,6 +28,10 @@ class TestOnByDefault(BigWalkTestBase):
         self.assertEqual(self.multiworld.get_location("Purple Belt", self.player).parent_region.name,
                          regions.TUNNEL_ZONE)
 
+    def test_the_south_peak_fireworks_are_past_the_chairlift(self) -> None:
+        self.assertEqual(self.multiworld.get_location("South Peak Fireworks", self.player).parent_region.name,
+                         regions.CHAIRLIFT_ZONE)
+
     def test_the_hub_fireworks_are_past_the_way_out(self) -> None:
         self.assertEqual(self.multiworld.get_location("Hub Fireworks", self.player).parent_region.name,
                          regions.OVERWORLD)
